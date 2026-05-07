@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="access_statistics" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="d1e690a3-5977-4467-85f8-6b0bcd5b7210">
+	<parameter name="EMPRESA_NOME" class="java.lang.String"/>
+	<parameter name="EMPRESA_NIF" class="java.lang.String"/>
+	<parameter name="PERIODO_INICIO" class="java.lang.String"/>
+	<parameter name="PERIODO_FIM" class="java.lang.String"/>
+	<field name="username" class="java.lang.String"/>
+	<field name="loginTime" class="java.time.LocalDateTime"/>
+	<field name="logoutTime" class="java.time.LocalDateTime"/>
+	<field name="durationMinutes" class="java.lang.Long"/>
+	<field name="ipAddress" class="java.lang.String"/>
+	<field name="module" class="java.lang.String"/>
+	<field name="actionsCount" class="java.lang.Integer"/>
+	<background><band splitType="Stretch"/></background>
+	<title>
+		<band height="80">
+			<textField>
+				<reportElement x="0" y="0" width="400" height="25" uuid="a1b2c3d4-5678-90ab-cdef-123456789001"/>
+				<textElement>
+					<font size="16" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="500" y="0" width="302" height="25" uuid="b2c3d4e5-6789-01ab-cdef-234567890012"/>
+				<textElement textAlignment="Right">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Estatísticas de Acesso]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="25" width="400" height="15" uuid="c3d4e5f6-7890-12ab-cdef-345678900123"/>
+				<textFieldExpression><![CDATA["NIF: " + $P{EMPRESA_NIF}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="40" width="802" height="15" uuid="d4e5f6a7-8901-23ab-cdef-456789001234"/>
+				<textElement textAlignment="Center">
+					<font isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Período: " + $P{PERIODO_INICIO} + " a " + $P{PERIODO_FIM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy HH:mm">
+				<reportElement x="0" y="55" width="802" height="15" uuid="e5f6a7b8-9012-34ab-cdef-567890012345"/>
+				<textElement textAlignment="Center">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Gerado em: " + new java.util.Date()]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="25">
+			<staticText>
+				<reportElement x="0" y="0" width="100" height="25" uuid="f6a7b8c9-0123-45ab-cdef-678900123456"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Utilizador]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="100" y="0" width="120" height="25" uuid="a7b8c9d0-1234-56ab-cdef-789001234567"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Login]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="220" y="0" width="120" height="25" uuid="b8c9d0e1-2345-67ab-cdef-890012345678"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Logout]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="340" y="0" width="80" height="25" uuid="c9d0e1f2-3456-78ab-cdef-901234567890"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Duração (min)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="420" y="0" width="120" height="25" uuid="d0e1f2a3-4567-89ab-cdef-012345678901"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Endereço IP]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="540" y="0" width="100" height="25" uuid="e1f2a3b4-5678-90ab-cdef-123456789012"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Módulo]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="640" y="0" width="80" height="25" uuid="f2a3b4c5-6789-01ab-cdef-234567890123"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Ações]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="720" y="0" width="82" height="25" uuid="a3b4c5d6-7890-12ab-cdef-345678900124"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Status]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20">
+			<textField>
+				<reportElement x="0" y="0" width="100" height="20" uuid="b4c5d6e7-8901-23ab-cdef-456789001235"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{username}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy HH:mm">
+				<reportElement x="100" y="0" width="120" height="20" uuid="c5d6e7f8-9012-34ab-cdef-567890012346"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{loginTime}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy HH:mm">
+				<reportElement x="220" y="0" width="120" height="20" uuid="d6e7f8a9-0123-45ab-cdef-678900123457"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{logoutTime} != null ? $F{logoutTime} : "Em sessão"]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0">
+				<reportElement x="340" y="0" width="80" height="20" uuid="e7f8a9b0-1234-56ab-cdef-789001234568"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{durationMinutes}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="420" y="0" width="120" height="20" uuid="f8a9b0c1-2345-67ab-cdef-890012345679"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{ipAddress}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="540" y="0" width="100" height="20" uuid="a9b0c1d2-3456-78ab-cdef-901234567890"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{module}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0">
+				<reportElement x="640" y="0" width="80" height="20" uuid="b0c1d2e3-4567-89ab-cdef-012345678901"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{actionsCount}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="720" y="0" width="82" height="20" uuid="c1d2e3f4-5678-90ab-cdef-123456789012"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{logoutTime} != null ? "Concluído" : "Ativo"]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="30">
+			<textField>
+				<reportElement x="652" y="5" width="80" height="20" uuid="d2e3f4a5-6789-01ab-cdef-234567890123"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="732" y="5" width="70" height="20" uuid="e3f4a5b6-7890-12ab-cdef-345678901234"/>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[" de " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="5" width="300" height="20" uuid="f4a5b6c7-8901-23ab-cdef-456789012345"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Relatório de Estatísticas de Acesso - Kubata Administrator]]></text>
+			</staticText>
+		</band>
+	</pageFooter>
+</jasperReport>

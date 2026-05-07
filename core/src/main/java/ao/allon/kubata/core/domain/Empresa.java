@@ -6,7 +6,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import lombok.*;
 
-@Entity
+@Entity(name = "CoreEmpresa")
 @Table(name = "empresas")
 @Getter
 @Setter
