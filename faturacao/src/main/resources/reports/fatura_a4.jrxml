@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.20.0.final using JasperReports Library version 6.20.0-2bc7ab61d56f459e8176eb05c7705e145cd400ad  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="fatura_a4" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="4eedbb89-b4f6-4469-9ab6-f642a1688cf7">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	
+	<!-- Parameters -->
+	<parameter name="EMPRESA_NOME" class="java.lang.String"/>
+	<parameter name="EMPRESA_NIF" class="java.lang.String"/>
+	<parameter name="EMPRESA_ENDERECO" class="java.lang.String"/>
+	<parameter name="EMPRESA_TELEFONE" class="java.lang.String"/>
+	<parameter name="EMPRESA_EMAIL" class="java.lang.String"/>
+	<parameter name="EMPRESA_WEBSITE" class="java.lang.String"/>
+	<parameter name="EMPRESA_LOGO" class="java.io.InputStream"/>
+	<parameter name="FATURA_NUMERO" class="java.lang.String"/>
+	<parameter name="FATURA_DATA" class="java.lang.String"/>
+	<parameter name="FATURA_VENCIMENTO" class="java.lang.String"/>
+	<parameter name="CLIENTE_NOME" class="java.lang.String"/>
+	<parameter name="CLIENTE_NIF" class="java.lang.String"/>
+	<parameter name="CLIENTE_ENDERECO" class="java.lang.String"/>
+	<parameter name="FATURA_SUBTOTAL" class="java.lang.String"/>
+	<parameter name="FATURA_IVA" class="java.lang.String"/>
+	<parameter name="FATURA_TOTAL" class="java.lang.String"/>
+	<parameter name="FATURA_HASH" class="java.lang.String"/>
+	<parameter name="PROGRAMA_VALIDADO_NO" class="java.lang.String"/>
+	<parameter name="JWS_DOCUMENT_SIGNATURE" class="java.lang.String"/>
+	<parameter name="BANCO_NOME_1" class="java.lang.String"/>
+	<parameter name="BANCO_IBAN_1" class="java.lang.String"/>
+	<parameter name="BANCO_NOME_2" class="java.lang.String"/>
+	<parameter name="BANCO_IBAN_2" class="java.lang.String"/>
+	<parameter name="DOCUMENTO_TITULO" class="java.lang.String"/>
+	<parameter name="NOTE_FOOTER" class="java.lang.String"/>
+	<parameter name="ESTADO_DOCUMENTO" class="java.lang.String"/>
+	<parameter name="ESTADO_DOCUMENTO_VISUAL" class="java.lang.String"/>
+	<parameter name="OPERADOR" class="java.lang.String"/>
+	<parameter name="SYSTEM_ENTRY_DATE" class="java.lang.String"/>
+	<parameter name="DOCUMENT_STATUS" class="java.lang.String"/>
+	<parameter name="DOCUMENT_CANCEL_REASON" class="java.lang.String"/>
+	<parameter name="REJECTED_DOCUMENT_NO" class="java.lang.String"/>
+	<parameter name="CUSTOMER_COUNTRY" class="java.lang.String"/>
+	<parameter name="EAC_CODE" class="java.lang.String"/>
+	<parameter name="RETIFICADO" class="java.lang.Boolean"/>
+	<parameter name="RETIFICADO_POR" class="java.lang.String"/>
+	
+	<queryString>
+		<![CDATA[]]>
+	</queryString>
+	
+	<field name="descricao" class="java.lang.String"/>
+	<field name="quantidade" class="java.lang.Integer"/>
+	<field name="precoUnitario" class="java.math.BigDecimal"/>
+	<field name="percentualIva" class="java.math.BigDecimal"/>
+	<field name="total" class="java.math.BigDecimal"/>
+	
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	
+	<title>
+		<band height="160" splitType="Stretch">
+			<!-- Logo -->
+			<image onErrorType="Blank" hAlign="Left" vAlign="Top">
+				<reportElement x="0" y="0" width="100" height="80" uuid="a1b2c3d4-e5f6-7890-1234-567890abcdef"/>
+				<imageExpression><![CDATA[$P{EMPRESA_LOGO}]]></imageExpression>
+			</image>
+			
+			<!-- Empresa Info -->
+			<textField textAdjust="ScaleFont">
+				<reportElement x="120" y="0" width="280" height="25" uuid="1a2b3c4d-5e6f-7890-1234-567890abcdef"/>
+				<textElement>
+					<font size="16" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{EMPRESA_NOME} != null ? $P{EMPRESA_NOME}.toUpperCase() : ""]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="120" y="25" width="280" height="15" uuid="2b3c4d5e-6f78-9012-3456-7890abcdef12"/>
+				<textFieldExpression><![CDATA["NIF: " + ($P{EMPRESA_NIF} != null ? $P{EMPRESA_NIF} : "")]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight">
+				<reportElement x="120" y="40" width="280" height="30" uuid="3c4d5e6f-7890-1234-5678-90abcdef1234"/>
+				<textFieldExpression><![CDATA[$P{EMPRESA_ENDERECO} != null ? $P{EMPRESA_ENDERECO} : ""]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="120" y="70" width="280" height="15" uuid="4d5e6f78-9012-3456-7890-bcdef1234567"/>
+				<textFieldExpression><![CDATA[($P{EMPRESA_TELEFONE} != null ? $P{EMPRESA_TELEFONE} : "") + " | " + ($P{EMPRESA_EMAIL} != null ? $P{EMPRESA_EMAIL} : "")]]></textFieldExpression>
+			</textField>
+			
+			<!-- Document Info Right Side -->
+			<textField>
+				<reportElement x="410" y="0" width="145" height="20" uuid="6f789012-3456-7890-1234-def123456789"/>
+				<textElement textAlignment="Right">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{DOCUMENTO_TITULO} == null || $P{DOCUMENTO_TITULO}.trim().isEmpty() ? "FATURA" : $P{DOCUMENTO_TITULO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="410" y="25" width="145" height="20" uuid="78901234-5678-9012-3456-ef1234567890"/>
+				<textElement textAlignment="Right">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{FATURA_NUMERO}]]></textFieldExpression>
+			</textField>
+			
+			<staticText>
+				<reportElement x="410" y="50" width="145" height="15" uuid="89012345-6789-0123-4567-f12345678901"/>
+				<textElement textAlignment="Right"/>
+				<text><![CDATA[Data Emissão:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="410" y="65" width="145" height="15" uuid="90123456-7890-1234-5678-123456789012"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$P{FATURA_DATA}]]></textFieldExpression>
+			</textField>
+			
+			<staticText>
+				<reportElement x="410" y="85" width="145" height="15" uuid="01234567-8901-2345-6789-234567890123"/>
+				<textElement textAlignment="Right"/>
+				<text><![CDATA[Vencimento:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="410" y="100" width="145" height="15" uuid="12345678-9012-3456-7890-345678901234"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$P{FATURA_VENCIMENTO}]]></textFieldExpression>
+			</textField>
+
+			<!-- ESTADOS DO DOCUMENTO (Visual Identifiers) -->
+			<!-- ORIGINAL -->
+			<rectangle>
+				<reportElement x="0" y="125" width="555" height="20" backcolor="#000000" uuid="e2b2ab8f-18e4-4e24-9f84-ef6f4f9eea33">
+					<printWhenExpression><![CDATA[$P{ESTADO_DOCUMENTO_VISUAL} != null && $P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("ORIGINAL")]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0"/>
+				</graphicElement>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="125" width="555" height="20" forecolor="#FFFFFF" uuid="4f0e69a0-5f61-4c8c-8a21-8ee2d6c9a61c">
+					<printWhenExpression><![CDATA[$P{ESTADO_DOCUMENTO_VISUAL} != null && $P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("ORIGINAL")]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ORIGINAL"]]></textFieldExpression>
+			</textField>
+
+			<!-- 2ª VIA -->
+			<rectangle>
+				<reportElement x="0" y="125" width="555" height="20" uuid="a9f3e5d6-7a6b-4b39-9f91-3b8ee6a0a4db">
+					<printWhenExpression><![CDATA[$P{ESTADO_DOCUMENTO_VISUAL} != null && ($P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("2ª VIA") || $P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("DUPLICADO"))]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="1.0" lineColor="#000000" lineStyle="Dashed"/>
+				</graphicElement>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="125" width="555" height="20" uuid="c4f30f7a-bf32-4e4a-8d16-77d3f6e5cc7c">
+					<printWhenExpression><![CDATA[$P{ESTADO_DOCUMENTO_VISUAL} != null && ($P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("2ª VIA") || $P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("DUPLICADO"))]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["2ª VIA"]]></textFieldExpression>
+			</textField>
+
+			<!-- ANULADO -->
+			<rectangle>
+				<reportElement x="0" y="125" width="555" height="20" backcolor="#333333" mode="Opaque" uuid="c983ebf7-4ddf-4e5b-9f68-e55ffb0b8d4a">
+					<printWhenExpression><![CDATA[$P{ESTADO_DOCUMENTO_VISUAL} != null && $P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("ANULADO")]]></printWhenExpression>
+				</reportElement>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="125" width="555" height="20" forecolor="#FFFFFF" uuid="e71a9e7b-45a2-45c8-8f46-e500930b98f1">
+					<printWhenExpression><![CDATA[$P{ESTADO_DOCUMENTO_VISUAL} != null && $P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("ANULADO")]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true" isStrikeThrough="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ANULADO"]]></textFieldExpression>
+			</textField>
+
+			<!-- RASCUNHO -->
+			<rectangle>
+				<reportElement x="0" y="125" width="555" height="20" uuid="a0e3d4f1-ec8b-4b0e-9f37-24c6f7b07f9b">
+					<printWhenExpression><![CDATA[$P{ESTADO_DOCUMENTO_VISUAL} != null && $P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("RASCUNHO")]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#666666" lineStyle="Dashed"/>
+				</graphicElement>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="125" width="555" height="20" forecolor="#666666" uuid="f0cc51b7-34a8-420b-9fbe-7c4b4b87a7a2">
+					<printWhenExpression><![CDATA[$P{ESTADO_DOCUMENTO_VISUAL} != null && $P{ESTADO_DOCUMENTO_VISUAL}.trim().equalsIgnoreCase("RASCUNHO")]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["RASCUNHO"]]></textFieldExpression>
+			</textField>
+
+			<!-- RETIFICADO (Overlay especial) -->
+			<rectangle>
+				<reportElement x="0" y="125" width="555" height="20" backcolor="#DDDDDD" mode="Opaque" uuid="7a9b0c1d-2e3f-4a5b-8c6d-0e1f2a3b4c5d">
+					<printWhenExpression><![CDATA[$P{RETIFICADO} != null && $P{RETIFICADO}.booleanValue()]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0"/>
+				</graphicElement>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="125" width="555" height="20" uuid="7b2a0b5f-3a6d-4c76-a2c1-8a4a6a64c87a">
+					<printWhenExpression><![CDATA[$P{RETIFICADO} != null && $P{RETIFICADO}.booleanValue()]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["RETIFICADO" + (($P{RETIFICADO_POR} != null && !$P{RETIFICADO_POR}.trim().isEmpty()) ? (" - " + $P{RETIFICADO_POR}) : "")]]></textFieldExpression>
+			</textField>
+
+			<line>
+				<reportElement x="0" y="150" width="555" height="1" uuid="5e6f7890-1234-5678-9012-cdef12345678"/>
+				<graphicElement>
+					<pen lineWidth="2.0" lineStyle="Solid"/>
+				</graphicElement>
+			</line>
+		</band>
+	</title>
+	
+	<pageHeader>
+		<band height="100" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="10" width="100" height="20" uuid="23456789-0123-4567-8901-456789012345"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cliente:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="30" width="300" height="20" uuid="34567890-1234-5678-9012-567890123456"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{CLIENTE_NOME} != null ? $P{CLIENTE_NOME} : "Consumidor Final"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="50" width="300" height="15" uuid="45678901-2345-6789-0123-678901234567"/>
+				<textFieldExpression><![CDATA["NIF: " + ($P{CLIENTE_NIF} != null ? $P{CLIENTE_NIF} : "Consumidor Final")]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight">
+				<reportElement x="0" y="65" width="300" height="30" uuid="56789012-3456-7890-1234-789012345678"/>
+				<textFieldExpression><![CDATA[$P{CLIENTE_ENDERECO} != null ? $P{CLIENTE_ENDERECO} : ""]]></textFieldExpression>
+			</textField>
+			
+			<!-- AGT Info Block -->
+			<textField>
+				<reportElement x="320" y="10" width="235" height="12" uuid="7b7e1b6d-10b1-4e69-b3ef-33a40c2a4c1a"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Dados AGT"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="320" y="24" width="235" height="12" uuid="8a65d196-0b57-4cb6-a5d7-2bf9da5c4c8b"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Entrada Sistema: " + ($P{SYSTEM_ENTRY_DATE} != null ? $P{SYSTEM_ENTRY_DATE} : "")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="320" y="38" width="235" height="12" uuid="5c02050d-9e8b-4ac0-b8d3-0d1c8cf2bacc"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[
+					"Status: " + ($P{DOCUMENT_STATUS} != null ? $P{DOCUMENT_STATUS} : "")
+					+ (($P{DOCUMENT_CANCEL_REASON} != null && !$P{DOCUMENT_CANCEL_REASON}.trim().isEmpty()) ? (" | Motivo: " + $P{DOCUMENT_CANCEL_REASON}) : "")
+				]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="320" y="52" width="235" height="12" uuid="8c1d8cf1-1a6e-4c12-95b2-9fe0fa7c5c52"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[
+					"País: " + ($P{CUSTOMER_COUNTRY} != null ? $P{CUSTOMER_COUNTRY} : "AO") + " | EAC: " + ($P{EAC_CODE} != null ? $P{EAC_CODE} : "")
+				]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="320" y="66" width="235" height="24" uuid="2f8e2b3b-6c10-4e92-9d8d-21e2352a07c5"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[
+					($P{JWS_DOCUMENT_SIGNATURE} != null && !$P{JWS_DOCUMENT_SIGNATURE}.trim().isEmpty())
+						? ("Assinatura: " + $P{JWS_DOCUMENT_SIGNATURE})
+						: ""
+				]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="320" y="88" width="235" height="12" uuid="5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[
+					"Operador: " + ($P{OPERADOR} != null ? $P{OPERADOR} : "Admin")
+				]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	
+	<columnHeader>
+		<band height="25" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="25" backcolor="#E0E0E0" uuid="67890123-4567-8901-2345-890123456789"/>
+				<graphicElement>
+					<pen lineWidth="0.0"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="5" y="0" width="235" height="25" uuid="78901234-5678-9012-3456-901234567890"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Descrição]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="240" y="0" width="60" height="25" uuid="89012345-6789-0123-4567-012345678901"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="300" y="0" width="80" height="25" uuid="90123456-7890-1234-5678-123456789012"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Preço Unit.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="380" y="0" width="60" height="25" uuid="01234567-8901-2345-6789-234567890123"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[IVA (%)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="440" y="0" width="110" height="25" uuid="12345678-9012-3456-7890-345678901234"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField textAdjust="StretchHeight">
+				<reportElement x="5" y="0" width="235" height="20" uuid="23456789-0123-4567-8901-456789012345"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{descricao}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="240" y="0" width="60" height="20" uuid="34567890-1234-5678-9012-567890123456"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{quantidade}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="300" y="0" width="80" height="20" uuid="45678901-2345-6789-0123-678901234567"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{precoUnitario}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="380" y="0" width="60" height="20" uuid="56789012-3456-7890-1234-789012345678"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{percentualIva}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="440" y="0" width="110" height="20" uuid="67890123-4567-8901-2345-890123456789"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{total}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="19" width="555" height="1" forecolor="#EEEEEE" uuid="78901234-5678-9012-3456-901234567890"/>
+			</line>
+		</band>
+	</detail>
+	
+	<columnFooter>
+		<band height="10" splitType="Stretch"/>
+	</columnFooter>
+	
+	<pageFooter>
+		<band height="50" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="555" height="10" forecolor="#CC0000" uuid="b9f8f3e0-1234-4d5a-9c88-0d0f0a1b2c3d">
+					<printWhenExpression><![CDATA[$P{NOTE_FOOTER} != null && !$P{NOTE_FOOTER}.isEmpty()]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{NOTE_FOOTER}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="12" width="280" height="20" forecolor="#999999" uuid="89012345-6789-0123-4567-012345678901"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[
+					($P{PROGRAMA_VALIDADO_NO} != null && !$P{PROGRAMA_VALIDADO_NO}.trim().isEmpty())
+						? ("Processado por programa validado n.º " + $P{PROGRAMA_VALIDADO_NO} + "/AGT")
+						: "Processado por Computador (Kubata ERP)"
+				]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="430" y="12" width="80" height="20" forecolor="#999999" uuid="90123456-7890-1234-5678-123456789012"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER} + " de"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="510" y="12" width="40" height="20" forecolor="#999999" uuid="01234567-8901-2345-6789-234567890123"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="32" width="555" height="10" forecolor="#CCCCCC" uuid="a1b2c3d4-e5f6-7890-1234-567890abcdef"/>
+				<textElement textAlignment="Center">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression><![CDATA[
+					$P{FATURA_HASH} != null && !$P{FATURA_HASH}.trim().isEmpty()
+						? ("Hash: " + $P{FATURA_HASH}.substring(0, Math.min(4, $P{FATURA_HASH}.length())))
+						: ""
+				]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	
+	<summary>
+		<band height="160" splitType="Stretch">
+			<rectangle>
+				<reportElement x="350" y="10" width="205" height="80" backcolor="#F5F5F5" uuid="12345678-9012-3456-7890-345678901234"/>
+				<graphicElement>
+					<pen lineWidth="0.0"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="360" y="20" width="80" height="20" uuid="23456789-0123-4567-8901-456789012345"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="false"/>
+				</textElement>
+				<text><![CDATA[Subtotal:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="450" y="20" width="95" height="20" uuid="34567890-1234-5678-9012-567890123456"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$P{FATURA_SUBTOTAL}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="360" y="40" width="80" height="20" uuid="45678901-2345-6789-0123-678901234567"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="false"/>
+				</textElement>
+				<text><![CDATA[IVA:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="450" y="40" width="95" height="20" uuid="56789012-3456-7890-1234-789012345678"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$P{FATURA_IVA}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="360" y="60" width="80" height="20" uuid="67890123-4567-8901-2345-890123456789"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="450" y="60" width="95" height="20" uuid="78901234-5678-9012-3456-901234567890"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{FATURA_TOTAL}]]></textFieldExpression>
+			</textField>
+			
+			<line>
+				<reportElement x="0" y="100" width="555" height="1" forecolor="#999999" uuid="89012345-6789-0123-4567-012345678901"/>
+				<graphicElement>
+					<pen lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			
+			<staticText>
+				<reportElement x="0" y="110" width="100" height="15" uuid="90123456-7890-1234-5678-123456789012"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Dados Bancários:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="125" width="250" height="15" uuid="01234567-8901-2345-6789-234567890123"/>
+				<textFieldExpression><![CDATA[($P{BANCO_NOME_1} != null ? $P{BANCO_NOME_1} + ": " + $P{BANCO_IBAN_1} : "")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="140" width="250" height="15" uuid="12345678-9012-3456-7890-345678901234"/>
+				<textFieldExpression><![CDATA[($P{BANCO_NOME_2} != null ? $P{BANCO_NOME_2} + ": " + $P{BANCO_IBAN_2} : "")]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

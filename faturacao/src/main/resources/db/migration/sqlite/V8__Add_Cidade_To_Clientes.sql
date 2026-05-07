@@ -1,0 +1,2 @@
+ALTER TABLE clientes ADD COLUMN cidade VARCHAR(255);
+

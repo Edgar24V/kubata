@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.20.0.final using JasperReports Library version 6.20.0-2bc7ab61c56f459e8176eb05c7705e145cd400ad  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="extrato_fornecedores" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="a1b2c3d4-e5f6-7890-1234-abcdef123456">
+    <property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+    <style name="Title" fontName="Arial" fontSize="26" isBold="true"/>
+    <style name="SubTitle" fontName="Arial" fontSize="18"/>
+    <style name="ColumnHeader" fontName="Arial" fontSize="12" isBold="true" forecolor="#FFFFFF" backcolor="#006400"/>
+    <style name="Detail" fontName="Arial" fontSize="10"/>
+    <style name="Footer" fontName="Arial" fontSize="8" isItalic="true"/>
+
+    <parameter name="EMPRESA_NOME" class="java.lang.String"/>
+    <parameter name="EMPRESA_NIF" class="java.lang.String"/>
+    <parameter name="EMPRESA_ENDERECO" class="java.lang.String"/>
+    <parameter name="EMPRESA_LOGO" class="java.io.InputStream"/>
+    <parameter name="periodoInicio" class="java.time.LocalDate"/>
+    <parameter name="periodoFim" class="java.time.LocalDate"/>
+
+    <queryString>
+        <![CDATA[]]>
+    </queryString>
+
+    <field name="fornecedor" class="java.lang.String"/>
+    <field name="total" class="java.lang.String"/>
+    <field name="pago" class="java.lang.String"/>
+    <field name="aberto" class="java.lang.String"/>
+
+    <title>
+        <band height="90" splitType="Stretch">
+            <image>
+                <reportElement x="0" y="0" width="80" height="80" uuid="1a2b3c4d-5e6f-7a8b-9c0d-abcdef123456"/>
+                <imageExpression><![CDATA[$P{EMPRESA_LOGO}]]></imageExpression>
+            </image>
+            <textField>
+                <reportElement style="Title" x="90" y="0" width="465" height="30" uuid="b1c2d3e4-f5a6-b7c8-d9e0-fedcba987654"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement style="SubTitle" x="90" y="30" width="465" height="20" uuid="c2d3e4f5-a6b7-c8d9-e0f1-123456fedcba"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Extrato de Fornecedores"]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement style="Detail" x="90" y="50" width="465" height="15" uuid="d3e4f5a6-b7c8-d9e0-f1a2-abcdef654321"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Período: " + java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").format($P{periodoInicio}) + " a " + java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").format($P{periodoFim})]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="25" splitType="Stretch">
+            <rectangle>
+                <reportElement mode="Opaque" x="0" y="0" width="555" height="25" backcolor="#006400" uuid="e4f5a6b7-c8d9-e0f1-a2b3-c4d5e6f7a8b9"/>
+            </rectangle>
+            <staticText>
+                <reportElement style="ColumnHeader" x="0" y="0" width="255" height="25" uuid="f5a6b7c8-d9e0-f1a2-b3c4-d5e6f7a8b9c0"/>
+                <textElement verticalAlignment="Middle" textAlignment="Left" markup="none">
+                    <paragraph leftIndent="5"/>
+                </textElement>
+                <text><![CDATA[Fornecedor]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="ColumnHeader" x="255" y="0" width="100" height="25" uuid="a6b7c8d9-e0f1-a2b3-c4d5-e6f7a8b9c0d1"/>
+                <textElement verticalAlignment="Middle" textAlignment="Right" markup="none">
+                    <paragraph rightIndent="5"/>
+                </textElement>
+                <text><![CDATA[Total Despesas]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="ColumnHeader" x="355" y="0" width="100" height="25" uuid="b7c8d9e0-f1a2-b3c4-d5e6-f7a8b9c0d1e2"/>
+                <textElement verticalAlignment="Middle" textAlignment="Right" markup="none">
+                    <paragraph rightIndent="5"/>
+                </textElement>
+                <text><![CDATA[Total Pago]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="ColumnHeader" x="455" y="0" width="100" height="25" uuid="c8d9e0f1-a2b3-c4d5-e6f7-a8b9c0d1e2f3"/>
+                <textElement verticalAlignment="Middle" textAlignment="Right" markup="none">
+                    <paragraph rightIndent="5"/>
+                </textElement>
+                <text><![CDATA[Valor em Aberto]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="20" splitType="Stretch">
+            <textField>
+                <reportElement style="Detail" x="0" y="0" width="255" height="20" uuid="d9e0f1a2-b3c4-d5e6-f7a8-b9c0d1e2f3a4"/>
+                <textElement verticalAlignment="Middle">
+                    <paragraph leftIndent="5"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{fornecedor}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0.00" isBlankWhenNull="true">
+                <reportElement style="Detail" x="255" y="0" width="100" height="20" uuid="e0f1a2b3-c4d5-e6f7-a8b9-c0d1e2f3a4b5"/>
+                <textElement verticalAlignment="Middle" textAlignment="Right">
+                    <paragraph rightIndent="5"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{total}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0.00" isBlankWhenNull="true">
+                <reportElement style="Detail" x="355" y="0" width="100" height="20" uuid="f1a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6"/>
+                <textElement verticalAlignment="Middle" textAlignment="Right">
+                    <paragraph rightIndent="5"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{pago}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0.00" isBlankWhenNull="true">
+                <reportElement style="Detail" x="455" y="0" width="100" height="20" uuid="a2b3c4d5-e6f7-a8b9-c0d1-e2f3a4b5c6d7"/>
+                <textElement verticalAlignment="Middle" textAlignment="Right">
+                    <paragraph rightIndent="5"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{aberto}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="25" splitType="Stretch">
+            <textField>
+                <reportElement style="Footer" x="0" y="0" width="278" height="25" uuid="b3c4d5e6-f7a8-b9c0-d1e2-f3a4b5c6d7e8"/>
+                <textElement verticalAlignment="Middle"/>
+                <textFieldExpression><![CDATA["Gerado em " + new java.util.Date()]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement style="Footer" x="278" y="0" width="277" height="25" uuid="c4d5e6f7-a8b9-c0d1-e2f3-a4b5c6d7e8f9"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"/>
+                <textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER} + " de " + $V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+</jasperReport>

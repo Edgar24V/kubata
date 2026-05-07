@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest an idea for this project
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Descrição da Funcionalidade
+      description: A sua funcionalidade está relacionada com algum problema? Por favor, descreva.
+      placeholder: Ex: Gostaria de ter um gráfico de vendas no dashboard principal.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solução Proposta
+      description: Uma descrição clara e concisa do que pretende que aconteça.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas Consideradas
+      description: Alguma solução alternativa ou funcionalidade que tenha considerado.

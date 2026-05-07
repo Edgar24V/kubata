@@ -1,0 +1,196 @@
+/* ════════════════════════════════════════════════════════
+   TABPANE — Office 365 Light Theme (RH — cores neutras)
+   ════════════════════════════════════════════════════════ */
+
+.root {
+    /* Variáveis Office 365 — neutras para RH */
+    -office-tab-bg:                #FFFFFF;
+    -office-tab-hover:             #E8F5E9; /* verde claro */
+    -office-tab-selected:          #FFFFFF;
+    -office-tab-underline:         #2E7D32; /* verde Kubata */
+    -office-tab-underline-hover:   #217346;
+    -office-tab-text:              #323130;
+    -office-tab-text-muted:        #605E5C;
+    -office-tab-border:            rgba(0,0,0,0.08);
+    -office-tab-close-hover:       #E81123;
+    -office-tab-padding-v:         12px;
+    -office-tab-padding-h:         20px;
+    -office-tab-height:            36px;
+    -office-tab-radius:            6px;
+}
+
+/* ============================================================
+   TabPane principal
+   ============================================================ */
+.office365-tabs {
+    -fx-background-color: -office-tab-bg;
+    -fx-border-color: -office-tab-border;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0;
+}
+
+/* Header area onde as abas ficam */
+.office365-tabs .tab-header-area {
+    -fx-background-color: -office-tab-bg;
+    -fx-padding: 0 8 0 8;
+    -fx-border-color: transparent;
+    -fx-spacing: 4px; /* margem entre abas */
+}
+
+/* Container dos headers (HBox) */
+.office365-tabs .tab-header-background {
+    -fx-background-color: -office-tab-bg;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ============================================================
+   Aba individual (Tab)
+   ============================================================ */
+.office365-tabs .tab {
+    -fx-background-color: -office-tab-bg;
+    -fx-background-radius: -office-tab-radius -office-tab-radius 0 0;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-border-radius: -office-tab-radius -office-tab-radius 0 0;
+    -fx-border-width: 0;
+    -fx-padding: -office-tab-padding-v -office-tab-padding-h;
+    -fx-text-fill: -office-tab-text-muted;
+    -fx-font-family: "Segoe UI", "Calibri", "Arial", sans-serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: 400;
+    -fx-cursor: hand;
+    -fx-alignment: center-left;
+    -fx-content-display: left;
+    -fx-graphic-text-gap: 8px;
+    -fx-pref-width: 160px; /* largura fixa */
+}
+
+/* Hover */
+.office365-tabs .tab:hover {
+    -fx-background-color: -office-tab-hover;
+}
+
+/* Selecionado (ativo) */
+.office365-tabs .tab:selected {
+    -fx-background-color: -office-tab-selected;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent transparent -office-tab-underline transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-border-insets: 0;
+    -fx-text-fill: -office-tab-text;
+    -fx-font-weight: 600;
+}
+
+/* Selecionado + hover (manter underline) */
+.office365-tabs .tab:selected:hover {
+    -fx-background-color: -office-tab-hover;
+    -fx-border-color: transparent transparent -office-tab-underline-hover transparent;
+}
+
+/* ============================================================
+   Botão de fechar aba
+   ============================================================ */
+.office365-tabs .tab .tab-container .tab-close-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999px;
+    -fx-border-color: transparent;
+    -fx-border-radius: 999px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 0;
+}
+
+.office365-tabs .tab .tab-container .tab-close-button:hover {
+    -fx-background-color: #E0E0E0; /* cinza */
+    -fx-text-fill: #323130;
+}
+
+/* Ícone do close (X) */
+.office365-tabs .tab .tab-container .tab-close-button .ikonli-font-icon {
+    -fx-icon-color: #2E7D32; /* verde Kubata */
+    -fx-icon-size: 12px;
+}
+
+.office365-tabs .tab .tab-container .tab-close-button:hover .ikonli-font-icon {
+    -fx-icon-color: black;
+}
+
+/* ============================================================
+   Área de conteúdo da aba (TabContent)
+   ============================================================ */
+.office365-tabs .tab-content-area {
+    -fx-background-color: -office-tab-bg;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ============================================================
+   Scroll horizontal quando há muitas abas
+   ============================================================ */
+.office365-tabs .tab-header-area .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 0;
+    -fx-max-height: 0;
+    -fx-opacity: 0;
+}
+
+/* Thumb (indicador) */
+.office365-tabs .tab-header-area .scroll-bar:horizontal .thumb {
+    -fx-background-color: rgba(0,0,0,0.2);
+    -fx-background-radius: 999px;
+    -fx-pref-height: 3px;
+}
+
+.office365-tabs .tab-header-area .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: rgba(0,0,0,0.35);
+}
+
+/* ============================================================
+   Placeholder (sem abas)
+   ============================================================ */
+.office365-tabs .tab-pane .placeholder {
+    -fx-background-color: -office-tab-bg;
+    -fx-text-fill: -office-tab-text-muted;
+    -fx-font-style: italic;
+    -fx-alignment: center;
+    -fx-padding: 40px;
+}
+
+/* ============================================================
+   Foco (accessibilidade)
+   ============================================================ */
+.office365-tabs .tab:focused {
+    -fx-border-color: transparent transparent -office-tab-underline transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+/* ============================================================
+   Dark mode override (se aplicado .root.dark-theme)
+   ============================================================ */
+.root.dark-theme .office365-tabs {
+    -office-tab-bg:                #2D2D2D;
+    -office-tab-hover:             #3D3D3D;
+    -office-tab-selected:          #252525;
+    -office-tab-underline:         #0078D4;
+    -office-tab-underline-hover:   #106EBE;
+    -office-tab-text:              #E0E0E0;
+    -office-tab-text-muted:        #9E9E9E;
+    -office-tab-border:            rgba(255,255,255,0.08);
+}
+
+.root.dark-theme .office365-tabs .tab {
+    -fx-text-fill: -office-tab-text-muted;
+}
+
+.root.dark-theme .office365-tabs .tab:selected {
+    -fx-text-fill: -office-tab-text;
+}
+
+.root.dark-theme .office365-tabs .tab .tab-container .tab-close-button .ikonli-font-icon {
+    -fx-icon-color: -office-tab-text-muted;
+}
+
+.root.dark-theme .office365-tabs .tab .tab-container .tab-close-button:hover .ikonli-font-icon {
+    -fx-icon-color: white;
+}

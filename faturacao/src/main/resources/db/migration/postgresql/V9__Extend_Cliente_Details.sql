@@ -1,0 +1,11 @@
+ALTER TABLE clientes ADD COLUMN data_nascimento DATE;
+ALTER TABLE clientes ADD COLUMN genero VARCHAR(32);
+ALTER TABLE clientes ADD COLUMN estado_civil VARCHAR(32);
+ALTER TABLE clientes ADD COLUMN bi VARCHAR(64);
+ALTER TABLE clientes ADD COLUMN passaporte VARCHAR(64);
+ALTER TABLE clientes ADD COLUMN provincia VARCHAR(255);
+ALTER TABLE clientes ADD COLUMN municipio VARCHAR(255);
+ALTER TABLE clientes ADD COLUMN categoria_cliente VARCHAR(255);
+ALTER TABLE clientes ADD COLUMN limite_credito DECIMAL(19, 2) DEFAULT 0.00;
+ALTER TABLE clientes ADD COLUMN estatuto VARCHAR(32);
+

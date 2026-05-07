@@ -1,0 +1,492 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA ADMIN — Ribbon Denso (PRIMAVERA V10 Style)
+   Cabeçalho verde igual à barra de título. Layout horizontal compacto.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tokens densos ─────────────────────────────────────────────────────────── */
+.root {
+    -kubata-dense-tab-row-h:     28px;
+    -kubata-dense-content-h:     78px;
+    -kubata-dense-group-h:       74px;
+    -kubata-dense-total-h:       106px;
+
+    -kubata-dense-tile-w:        52px;
+    -kubata-dense-tile-h:        56px;
+    -kubata-dense-tile-icon-box: 28px;
+    -kubata-dense-tile-icon:     20px;
+
+    -kubata-dense-large-w:       68px;
+    -kubata-dense-large-h:       68px;
+    -kubata-dense-large-box:     40px;
+    -kubata-dense-large-icon:    28px;
+
+    -kubata-dense-hover-bg:      rgba(33, 115, 70, 0.08);
+    -kubata-dense-hover-bd:      rgba(33, 115, 70, 0.22);
+    -kubata-dense-press-bg:      rgba(33, 115, 70, 0.18);
+    -kubata-dense-press-bd:      rgba(33, 115, 70, 0.38);
+
+    -kubata-dense-group-border:  #d6e4dc;
+    -kubata-dense-sep:           #dde8e2;
+}
+
+/* ── Barra densa — mesma cor que a title bar ────────────────────────────────── */
+.ribbon-dense-bar {
+    -fx-background-color: -kubata-green;
+    -fx-border-color: transparent transparent rgba(0, 0, 0, 0.12) transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 0;
+    -fx-min-height: -kubata-dense-total-h;
+    -fx-pref-height: -kubata-dense-total-h;
+    -fx-max-height: -kubata-dense-total-h;
+}
+
+/* ── TabPane denso — cabeçalho verde ──────────────────────────────────────────
+   IMPORTANTE: Estes estilos sobrescrevem o admin.css para o ribbon */
+.ribbon-dense-tab-pane,
+.ribbon-dense-tab-pane .tab-header-area,
+.ribbon-dense-tab-pane .tab-header-background,
+.ribbon-dense-tab-pane .headers-region {
+    -fx-background-color: -kubata-green !important;
+    -fx-border-color: transparent !important;
+}
+
+.ribbon-dense-tab-pane {
+    -fx-tab-min-height: -kubata-dense-tab-row-h;
+    -fx-tab-max-height: -kubata-dense-tab-row-h;
+    -fx-min-height: -kubata-dense-total-h;
+    -fx-pref-height: -kubata-dense-total-h;
+}
+
+.ribbon-dense-tab-pane .tab-header-area {
+    -fx-padding: 0 6px 0 6px;
+}
+
+.ribbon-dense-tab-pane .tab-header-area .control-buttons-tab {
+    -fx-background-color: -kubata-green;
+    -fx-visibility: hidden;
+}
+
+/* ── Tab individual ─────────────────────────────────────────────────────────── */
+.ribbon-dense-tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3px 3px 0 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0 12px 0 12px;
+    -fx-cursor: hand;
+}
+
+.ribbon-dense-tab-pane .tab:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.14);
+}
+
+.ribbon-dense-tab-pane .tab:selected {
+    -fx-background-color: #ffffff !important;
+    -fx-background-insets: 0 !important;
+}
+
+.ribbon-dense-tab-pane .tab-label {
+    -fx-text-fill: rgba(255, 255, 255, 0.92);
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+.ribbon-dense-tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-weight: 700;
+}
+
+.ribbon-dense-tab-pane .tab:focused {
+    -fx-background-color: rgba(255, 255, 255, 0.10);
+}
+.ribbon-dense-tab-pane .tab:selected:focused {
+    -fx-background-color: #ffffff;
+}
+
+/* ── Área de conteúdo ─────────────────────────────────────────────────────────
+   Isolado do admin.css */
+.ribbon-dense-tab-pane .tab-content-area {
+    -fx-background-color: #ffffff !important;
+    -fx-border-color: transparent transparent -kubata-dense-sep transparent !important;
+    -fx-border-width: 0 0 1px 0 !important;
+    -fx-padding: 0 !important;
+    -fx-min-height: -kubata-dense-content-h;
+    -fx-pref-height: -kubata-dense-content-h;
+    -fx-max-height: -kubata-dense-content-h;
+}
+
+/* ── Container principal da tab (HBox scroll+overflow) ───────────────────────── */
+.ribbon-dense-tab-content {
+    -fx-background-color: #ffffff;
+    -fx-padding: 0;
+    -fx-spacing: 0;
+    -fx-alignment: center-left;
+    -fx-min-height: -kubata-dense-content-h;
+    -fx-pref-height: -kubata-dense-content-h;
+    -fx-max-height: -kubata-dense-content-h;
+}
+
+/* ── ScrollPane horizontal ──────────────────────────────────────────────────── */
+.ribbon-dense-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-min-height: -kubata-dense-content-h;
+    -fx-pref-height: -kubata-dense-content-h;
+    -fx-max-height: -kubata-dense-content-h;
+}
+
+.ribbon-dense-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.ribbon-dense-scroll .scroll-bar:horizontal {
+    -fx-background-color: #f5f5f5;
+    -fx-pref-height: 6px;
+    -fx-max-height: 6px;
+    -fx-padding: 0 2px;
+}
+
+.ribbon-dense-scroll .scroll-bar:horizontal .thumb {
+    -fx-background-color: #b0c4ba;
+    -fx-background-radius: 3px;
+}
+
+.ribbon-dense-scroll .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #7aa88e;
+}
+
+.ribbon-dense-scroll .scroll-bar:horizontal .increment-button,
+.ribbon-dense-scroll .scroll-bar:horizontal .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-min-width: 0;
+    -fx-pref-width: 0;
+}
+
+/* ── Content Box Horizontal ─────────────────────────────────────────────────── */
+.ribbon-dense-tab-content-box {
+    -fx-background-color: transparent;
+    -fx-spacing: 0;
+    -fx-alignment: center-left;
+    -fx-padding: 2px 4px 0px 4px;
+    -fx-min-height: -kubata-dense-content-h;
+    -fx-pref-height: -kubata-dense-content-h;
+    -fx-max-height: -kubata-dense-content-h;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GRUPO DENSO — PRIMAVERA V10
+   Uma única fileira horizontal, separador vertical à direita, título em baixo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-dense-group {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent -kubata-dense-group-border transparent transparent;
+    -fx-border-width: 0 1px 0 0;
+    -fx-padding: 0 8px 0 6px;
+    -fx-spacing: 3;
+    -fx-alignment: center-left;
+    -fx-min-height: -kubata-dense-group-h;
+    -fx-pref-height: -kubata-dense-group-h;
+    -fx-max-height: -kubata-dense-group-h;
+}
+
+/* Título do grupo — sempre em baixo, letra muito pequena */
+.ribbon-dense-group-title {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-font-size: 8.5px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #9ca3af;
+    -fx-letter-spacing: 0.4px;
+    -fx-padding: 0 0 1px 0;
+    -fx-alignment: bottom-center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTÃO DENSO BASE
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-dense-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+    -fx-content-display: graphic-only;
+    -fx-alignment: center;
+}
+
+.ribbon-dense-button:hover,
+.ribbon-dense-button.hover {
+    -fx-background-color: -kubata-dense-hover-bg;
+    -fx-border-color: -kubata-dense-hover-bd;
+}
+
+.ribbon-dense-button:pressed,
+.ribbon-dense-button.pressed {
+    -fx-background-color: -kubata-dense-press-bg;
+    -fx-border-color: -kubata-dense-press-bd;
+}
+
+.ribbon-dense-button:focused {
+    -fx-border-color: -kubata-green;
+    -fx-background-color: -kubata-dense-hover-bg;
+}
+
+.ribbon-dense-button:disabled {
+    -fx-opacity: 0.38;
+    -fx-cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTÃO TILE — ícone em cima, texto abaixo (compacto)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-dense-button.tile {
+    -fx-min-width: -kubata-dense-tile-w;
+    -fx-pref-width: -kubata-dense-tile-w;
+    -fx-max-width: -kubata-dense-tile-w;
+    -fx-min-height: -kubata-dense-tile-h;
+    -fx-pref-height: -kubata-dense-tile-h;
+    -fx-max-height: -kubata-dense-tile-h;
+}
+
+/* Wrapper do ícone no tile */
+.ribbon-tile-icon-wrap {
+    -fx-background-color: rgba(33, 115, 70, 0.07);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(33, 115, 70, 0.16);
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+    -fx-alignment: center;
+}
+
+.ribbon-dense-button.tile:hover .ribbon-tile-icon-wrap,
+.ribbon-dense-button.tile.hover .ribbon-tile-icon-wrap {
+    -fx-background-color: rgba(33, 115, 70, 0.14);
+    -fx-border-color: rgba(33, 115, 70, 0.30);
+}
+
+.ribbon-dense-button.tile:pressed .ribbon-tile-icon-wrap {
+    -fx-background-color: rgba(33, 115, 70, 0.22);
+}
+
+/* Ícone tile */
+.ribbon-tile-icon {
+    -fx-icon-size: -kubata-dense-tile-icon;
+    -fx-icon-color: -kubata-green;
+    -fx-fill: -kubata-green;
+}
+
+/* Texto tile */
+.ribbon-tile-text {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-font-size: 9px;
+    -fx-font-weight: 400;
+    -fx-text-fill: #374151;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-max-height: 22px;
+}
+
+.ribbon-dense-button.tile:hover .ribbon-tile-text,
+.ribbon-dense-button.tile.hover .ribbon-tile-text {
+    -fx-text-fill: -kubata-green-dark;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTÃO LARGE — ícone maior, em coluna vertical (clássico ribbon)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-dense-button.large {
+    -fx-min-width: -kubata-dense-large-w;
+    -fx-pref-width: -kubata-dense-large-w;
+    -fx-max-width: -kubata-dense-large-w;
+    -fx-min-height: -kubata-dense-large-h;
+    -fx-pref-height: -kubata-dense-large-h;
+    -fx-max-height: -kubata-dense-large-h;
+}
+
+/* Wrapper do ícone large */
+.ribbon-large-icon-wrap {
+    -fx-background-color: rgba(33, 115, 70, 0.07);
+    -fx-background-radius: 8px;
+    -fx-border-color: rgba(33, 115, 70, 0.16);
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-alignment: center;
+}
+
+.ribbon-dense-button.large:hover .ribbon-large-icon-wrap,
+.ribbon-dense-button.large.hover .ribbon-large-icon-wrap {
+    -fx-background-color: rgba(33, 115, 70, 0.14);
+    -fx-border-color: rgba(33, 115, 70, 0.30);
+}
+
+/* Ícone large */
+.ribbon-large-icon {
+    -fx-icon-size: -kubata-dense-large-icon;
+    -fx-icon-color: -kubata-green;
+    -fx-fill: -kubata-green;
+}
+
+/* Texto large */
+.ribbon-large-text {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-font-size: 9.5px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #1f2937;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+
+.ribbon-dense-button.large:hover .ribbon-large-text,
+.ribbon-dense-button.large.hover .ribbon-large-text {
+    -fx-text-fill: -kubata-green-dark;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SEPARADOR ENTRE GRUPOS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-dense-separator {
+    -fx-padding: 0 3px 0 3px;
+}
+
+.ribbon-dense-separator .line {
+    -fx-border-color: -kubata-dense-group-border;
+    -fx-border-width: 0 0 0 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTÃO DE OVERFLOW »
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-dense-overflow-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent transparent transparent -kubata-dense-sep;
+    -fx-border-width: 0 0 0 1px;
+    -fx-border-radius: 0;
+    -fx-padding: 0 3px;
+    -fx-min-width: 22px;
+    -fx-pref-width: 22px;
+    -fx-max-width: 22px;
+    -fx-cursor: hand;
+}
+
+.ribbon-dense-overflow-button:hover {
+    -fx-background-color: -kubata-dense-hover-bg;
+    -fx-border-color: transparent transparent transparent -kubata-dense-group-border;
+}
+
+.ribbon-dense-overflow-button .ikonli-font-icon {
+    -fx-icon-size: 13px;
+    -fx-icon-color: #9ca3af;
+    -fx-fill: #9ca3af;
+}
+
+.ribbon-dense-overflow-button:hover .ikonli-font-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-fill: -kubata-green;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   POPUP DE OVERFLOW
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-dense-overflow-popup {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.ribbon-dense-overflow-container {
+    -fx-background-color: #ffffff;
+    -fx-border-color: -kubata-dense-group-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 8px;
+    -fx-spacing: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(33, 115, 70, 0.16), 12, 0, 0, 4);
+}
+
+.ribbon-dense-overflow-group {
+    -fx-spacing: 4px;
+    -fx-padding: 3px 4px;
+}
+
+.ribbon-dense-overflow-title {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #9ca3af;
+    -fx-letter-spacing: 0.5px;
+    -fx-padding: 0 0 3px 0;
+}
+
+.ribbon-dense-overflow-separator .line {
+    -fx-border-color: -kubata-dense-sep;
+    -fx-border-width: 1px 0 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   JANELA FLUTUANTE — barra de título verde como a title bar
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-dense-floating-window {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 6px;
+    -fx-border-color: -kubata-green;
+    -fx-border-width: 2px;
+    -fx-border-radius: 6px;
+    -fx-padding: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.24), 18, 0, 0, 6);
+}
+
+.ribbon-dense-floating-header {
+    -fx-background-color: -kubata-green;
+    -fx-background-radius: 4px 4px 0 0;
+    -fx-border-color: transparent;
+    -fx-padding: 5px 8px 5px 10px;
+    -fx-alignment: center-left;
+    -fx-spacing: 6;
+    -fx-cursor: move;
+}
+
+.ribbon-dense-floating-title {
+    -fx-fill: rgba(255, 255, 255, 0.96);
+    -fx-font-weight: bold;
+}
+
+.ribbon-dense-floating-close {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-min-width: 22px;
+    -fx-min-height: 22px;
+    -fx-pref-width: 22px;
+    -fx-pref-height: 22px;
+    -fx-background-radius: 3px;
+    -fx-padding: 0;
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(255, 255, 255, 0.80);
+    -fx-cursor: hand;
+}
+
+.ribbon-dense-floating-close:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.18);
+    -fx-text-fill: #ffffff;
+}
+
+.ribbon-dense-floating-content {
+    -fx-background-color: #ffffff;
+    -fx-padding: 6px 4px 4px 4px;
+    -fx-spacing: 4;
+}
+
+/* Tab marcada como flutuante */
+.ribbon-dense-tab-floating .tab-label {
+    -fx-text-fill: rgba(255, 255, 255, 0.55);
+    -fx-font-style: italic;
+}

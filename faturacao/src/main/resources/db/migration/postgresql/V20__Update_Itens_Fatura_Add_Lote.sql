@@ -1,0 +1,1 @@
+ALTER TABLE itens_fatura ADD COLUMN lote VARCHAR(50);

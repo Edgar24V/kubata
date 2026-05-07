@@ -1,0 +1,17 @@
+-- ============================================================================
+-- Kubata Enterprise Database Backup
+-- ============================================================================
+-- Backup Version: 1.0
+-- Application Version: 2.1.0
+-- Database Type: SQLITE
+-- Backup ID: 6
+-- Created At: 2026-03-01 10:58:17
+-- Created By: Windows Lite BR
+-- Backup Type: MANUAL
+-- Database URL: jdbc:sqlite:kubata_clean.db
+-- Checksum (SHA-256): [será calculado após compressão]
+-- ============================================================================
+-- WARNING: This is an automated backup file. Manual modification may corrupt
+-- the backup and prevent successful restoration.
+-- ============================================================================
+

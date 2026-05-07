@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.20.0.final using JasperReports Library version 6.20.0-2bc7ab61d56f459e8176eb05c7705e145cd400ad  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="invoice_agt" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="4eedbb89-b4f6-4469-9ab6-f642a1688cf7">
+    <property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+    <import value="java.text.NumberFormat"/>
+    <import value="java.util.Locale"/>
+    <style name="Title" forecolor="#FFFFFF" fontName="Times New Roman" fontSize="50" isBold="false" pdfFontName="Times-Bold"/>
+    <style name="SubTitle" forecolor="#CCCCCC" fontName="Times New Roman" fontSize="18" isBold="false" pdfFontName="Times-Roman"/>
+    <style name="Column header" forecolor="#666666" fontName="Times New Roman" fontSize="14" isBold="true"/>
+    <style name="Detail" mode="Transparent" fontName="Times New Roman"/>
+    <style name="Row" mode="Transparent" fontName="Times New Roman" pdfFontName="Times-Roman">
+        <conditionalStyle>
+            <conditionExpression><![CDATA[$V{REPORT_COUNT}%2 == 0]]></conditionExpression>
+            <style mode="Opaque" backcolor="#EEEFF0"/>
+        </conditionalStyle>
+    </style>
+    <style name="Table">
+        <box>
+            <pen lineWidth="1.0" lineColor="#000000"/>
+            <topPen lineWidth="1.0" lineColor="#000000"/>
+            <leftPen lineWidth="1.0" lineColor="#000000"/>
+            <bottomPen lineWidth="1.0" lineColor="#000000"/>
+            <rightPen lineWidth="1.0" lineColor="#000000"/>
+        </box>
+    </style>
+    
+    <!-- Parameters -->
+    <parameter name="companyName" class="java.lang.String"/>
+    <parameter name="companyNif" class="java.lang.String"/>
+    <parameter name="companyAddress" class="java.lang.String"/>
+    <parameter name="customerName" class="java.lang.String"/>
+    <parameter name="customerNif" class="java.lang.String"/>
+    <parameter name="invoiceNo" class="java.lang.String"/>
+    <parameter name="invoiceDate" class="java.lang.String"/>
+    <parameter name="hashFull" class="java.lang.String"/>
+    <parameter name="hashControl" class="java.lang.String"/>
+    <parameter name="programaValidadoNo" class="java.lang.String"/>
+    <parameter name="qrCodeImage" class="java.awt.Image"/>
+    <parameter name="estadoDocumentoVisual" class="java.lang.String"/>
+    <parameter name="retificado" class="java.lang.Boolean"/>
+    <parameter name="retificadoPor" class="java.lang.String"/>
+    <parameter name="totalNet" class="java.math.BigDecimal"/>
+    <parameter name="totalTax" class="java.math.BigDecimal"/>
+    <parameter name="totalGross" class="java.math.BigDecimal"/>
+    <parameter name="totalExtenso" class="java.lang.String"/>
+    <parameter name="operator" class="java.lang.String"/>
+    
+    <!-- Fields (Line Items) -->
+    <field name="code" class="java.lang.String"/>
+    <field name="description" class="java.lang.String"/>
+    <field name="quantity" class="java.math.BigDecimal"/>
+    <field name="unit" class="java.lang.String"/>
+    <field name="unitPrice" class="java.math.BigDecimal"/>
+    <field name="taxRate" class="java.math.BigDecimal"/>
+    <field name="total" class="java.math.BigDecimal"/>
+    
+    <background>
+        <band splitType="Stretch"/>
+    </background>
+    
+    <title>
+        <band height="136" splitType="Stretch">
+            <image>
+                <reportElement x="0" y="0" width="100" height="80" uuid="97705585-a0b5-4ec7-86f3-ae10c220e6af"/>
+                <!-- Placeholder for logo if passed as parameter -->
+            </image>
+            <textField>
+                <reportElement x="120" y="0" width="435" height="30" uuid="b29fc01f-0fd1-4c6c-9676-c48cff8a6335"/>
+                <textElement>
+                    <font size="22" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{companyName}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="120" y="30" width="435" height="20" uuid="c29fc01f-0fd1-4c6c-9676-c48cff8a6335"/>
+                <textElement>
+                    <font size="12"/>
+                </textElement>
+                <textFieldExpression><![CDATA["NIF: " + $P{companyNif}]]></textFieldExpression>
+            </textField>
+             <textField>
+                <reportElement x="120" y="50" width="435" height="40" uuid="d29fc01f-0fd1-4c6c-9676-c48cff8a6335"/>
+                <textElement>
+                    <font size="10"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{companyAddress}]]></textFieldExpression>
+            </textField>
+            
+            <staticText>
+                <reportElement x="0" y="90" width="555" height="1" uuid="533fdbd8-7c7a-4fc1-a90b-331b4d09803c">
+                    <property name="com.jaspersoft.studio.unit.height" value="px"/>
+                </reportElement>
+                <box>
+                    <bottomPen lineWidth="1.0"/>
+                </box>
+                <text><![CDATA[]]></text>
+            </staticText>
+            
+            <textField>
+                <reportElement x="0" y="100" width="280" height="20" uuid="77db09b8-165c-42b1-81a5-1e0cbaeed08a"/>
+                <textElement>
+                    <font size="14" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["FATURA Nº " + $P{invoiceNo}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="300" y="100" width="255" height="20" uuid="689415a5-f9ea-4796-9ddf-6cee82fdb016"/>
+                <textElement textAlignment="Right">
+                    <font size="12"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Data: " + $P{invoiceDate}]]></textFieldExpression>
+            </textField>
+             <textField>
+                <reportElement x="0" y="120" width="280" height="15" uuid="7b91c45f-32ae-48b8-8c0b-bcc7798a5eed"/>
+                <textFieldExpression><![CDATA["Cliente: " + $P{customerName}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="300" y="120" width="255" height="15" uuid="c60aa802-08a0-4f73-be13-ba64e3393d99"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["NIF Cliente: " + $P{customerNif}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="0" y="0" width="555" height="22" forecolor="#FFFFFF" backcolor="#444444" mode="Opaque" uuid="2170c61d-d251-484b-8d81-8c1f2007dc32">
+                    <printWhenExpression><![CDATA[$P{retificado} != null && $P{retificado}.booleanValue()]]></printWhenExpression>
+                </reportElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="12" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["RETIFICADO" + (($P{retificadoPor} != null && !$P{retificadoPor}.trim().isEmpty()) ? (" - " + $P{retificadoPor}) : "")]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+    
+    <columnHeader>
+        <band height="20" splitType="Stretch">
+            <staticText>
+                <reportElement style="Column header" x="0" y="0" width="80" height="20" uuid="ccbb09a5-df48-43a7-b19c-158af5047c5a"/>
+                <text><![CDATA[Código]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Column header" x="80" y="0" width="200" height="20" uuid="075caaf9-00ad-4000-9e85-81d3632a2714"/>
+                <text><![CDATA[Descrição]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Column header" x="280" y="0" width="60" height="20" uuid="297c08dd-a433-4aae-8f90-b62f60d75450"/>
+                <textElement textAlignment="Right"/>
+                <text><![CDATA[Qtd]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Column header" x="340" y="0" width="80" height="20" uuid="b586a98b-1561-466a-a195-d26008698447"/>
+                <textElement textAlignment="Right"/>
+                <text><![CDATA[Preço Unit.]]></text>
+            </staticText>
+             <staticText>
+                <reportElement style="Column header" x="420" y="0" width="50" height="20" uuid="11d02ded-5d47-4dc0-889d-2c9aea57a0a2"/>
+                <textElement textAlignment="Right"/>
+                <text><![CDATA[Taxa]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Column header" x="470" y="0" width="85" height="20" uuid="76ebd2cb-436f-40ac-9bc7-d1f8aa053bb6"/>
+                <textElement textAlignment="Right"/>
+                <text><![CDATA[Total]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+    
+    <detail>
+        <band height="20" splitType="Stretch">
+            <frame>
+                <reportElement style="Row" mode="Opaque" x="0" y="0" width="555" height="20" uuid="b50221b5-8254-440b-8c6f-1f0b138c9259"/>
+                <textField textAdjust="StretchHeight">
+                    <reportElement x="0" y="0" width="80" height="20" uuid="56009504-1a59-44f8-b636-a2ede2d4b199"/>
+                    <textElement verticalAlignment="Middle"/>
+                    <textFieldExpression><![CDATA[$F{code}]]></textFieldExpression>
+                </textField>
+                <textField textAdjust="StretchHeight">
+                    <reportElement x="80" y="0" width="200" height="20" uuid="eaaf896c-5ce8-4d84-b5ca-c08bda98cf88"/>
+                    <textElement verticalAlignment="Middle"/>
+                    <textFieldExpression><![CDATA[$F{description}]]></textFieldExpression>
+                </textField>
+                <textField textAdjust="StretchHeight">
+                    <reportElement x="280" y="0" width="60" height="20" uuid="4317b2be-fe88-41eb-a1d4-57f42df07d2d"/>
+                    <textElement textAlignment="Right" verticalAlignment="Middle"/>
+                    <textFieldExpression><![CDATA[$F{quantity} + " " + ($F{unit} != null ? $F{unit} : "un")]]></textFieldExpression>
+                </textField>
+                <textField textAdjust="StretchHeight">
+                    <reportElement x="340" y="0" width="80" height="20" uuid="d8a5bb66-988c-4768-a91a-c407f5ca540e"/>
+                    <textElement textAlignment="Right" verticalAlignment="Middle"/>
+                    <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($F{unitPrice})]]></textFieldExpression>
+                </textField>
+                <textField textAdjust="StretchHeight">
+                    <reportElement x="420" y="0" width="50" height="20" uuid="a4a23b81-a3a9-4422-b827-b8b7eafd2a2f"/>
+                    <textElement textAlignment="Right" verticalAlignment="Middle"/>
+                    <textFieldExpression><![CDATA[$F{taxRate} + "%"]]></textFieldExpression>
+                </textField>
+                <textField textAdjust="StretchHeight">
+                    <reportElement x="470" y="0" width="85" height="20" uuid="a5caa382-e053-4d22-8079-35231d307357"/>
+                    <textElement textAlignment="Right" verticalAlignment="Middle"/>
+                    <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($F{total})]]></textFieldExpression>
+                </textField>
+            </frame>
+        </band>
+    </detail>
+    
+    <columnFooter>
+        <band height="100" splitType="Stretch">
+            <staticText>
+                <reportElement x="0" y="0" width="555" height="1" uuid="21509223-32f3-4855-ba19-b99f682e2c3f">
+                    <property name="com.jaspersoft.studio.unit.height" value="px"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="1.0"/>
+                </box>
+                <text><![CDATA[]]></text>
+            </staticText>
+            
+            <!-- Totals -->
+            <staticText>
+                <reportElement x="350" y="10" width="100" height="20" uuid="b7b2ce53-fce4-427b-892b-a70be6c4449c"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Total Líquido:]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="450" y="10" width="100" height="20" uuid="7a259a81-06b4-4ec8-be62-a046f1d50b19"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"/>
+                <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($P{totalNet})]]></textFieldExpression>
+            </textField>
+            
+            <staticText>
+                <reportElement x="350" y="30" width="100" height="20" uuid="f82ac5d0-dce4-46af-9a02-51c0b1d6efa8"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Total Imposto:]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="450" y="30" width="100" height="20" uuid="c5857d98-2a33-4670-b1a0-d2705f8e6cec"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"/>
+                <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($P{totalTax})]]></textFieldExpression>
+            </textField>
+            
+            <staticText>
+                <reportElement x="350" y="50" width="100" height="20" uuid="4e743085-c374-4e41-8ff2-3f0b2e013e5a"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[TOTAL GERAL:]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="450" y="50" width="100" height="20" uuid="f18b21e4-44b6-44bc-b54c-30c6f2d53cc1"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font size="12" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($P{totalGross})]]></textFieldExpression>
+            </textField>
+            
+            <textField textAdjust="StretchHeight">
+                <reportElement x="0" y="75" width="550" height="20" uuid="a28b21e4-44b6-44bc-b54c-30c6f2d53cc2"/>
+                <textElement verticalAlignment="Middle">
+                    <font size="10" isItalic="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Total por extenso: " + ($P{totalExtenso} != null ? $P{totalExtenso} : "")]]></textFieldExpression>
+            </textField>
+        </band>
+    </columnFooter>
+    
+    <pageFooter>
+        <band height="140" splitType="Stretch">
+            <!-- AGT Compliance Block -->
+            <rectangle>
+                <reportElement x="0" y="10" width="555" height="100" backcolor="#FAFAFA" uuid="b38b21e4-44b6-44bc-b54c-30c6f2d53cc3"/>
+                <graphicElement>
+                    <pen lineWidth="0.5" lineStyle="Dashed"/>
+                </graphicElement>
+            </rectangle>
+            
+            <!-- QR Code -->
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle">
+                <reportElement x="10" y="15" width="90" height="90" uuid="c48b21e4-44b6-44bc-b54c-30c6f2d53cc4"/>
+                <imageExpression><![CDATA[$P{qrCodeImage}]]></imageExpression>
+            </image>
+            
+            <staticText>
+                <reportElement x="110" y="20" width="400" height="15" uuid="d58b21e4-44b6-44bc-b54c-30c6f2d53cc5"/>
+                <textElement>
+                    <font size="9" isBold="true"/>
+                </textElement>
+                <text><![CDATA[DOCUMENTO COMERCIAL / FISCAL]]></text>
+            </staticText>
+            
+            <textField>
+                <reportElement x="110" y="40" width="400" height="15" uuid="e68b21e4-44b6-44bc-b54c-30c6f2d53cc6"/>
+                <textElement>
+                    <font size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[
+                    "Hash: " +
+                    (
+                        $P{hashControl} != null && !$P{hashControl}.trim().isEmpty()
+                            ? $P{hashControl}.substring(0, Math.min(4, $P{hashControl}.length()))
+                            : (
+                                $P{hashFull} != null && !$P{hashFull}.trim().isEmpty()
+                                    ? $P{hashFull}.substring(0, Math.min(4, $P{hashFull}.length()))
+                                    : ""
+                            )
+                    )
+                    +
+                    (
+                        ($P{programaValidadoNo} != null && !$P{programaValidadoNo}.trim().isEmpty())
+                            ? (" - Processado por programa validado n.º " + $P{programaValidadoNo} + "/AGT")
+                            : ""
+                    )
+                ]]></textFieldExpression>
+            </textField>
+            
+             <textField>
+                <reportElement x="110" y="60" width="435" height="40" uuid="f78b21e4-44b6-44bc-b54c-30c6f2d53cc7"/>
+                <textElement>
+                    <font size="8" isItalic="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Os bens/serviços foram colocados à disposição do adquirente na data do documento.\n" + 
+                "Processado por Computador — Kubata Software — Certificado AGT Nº 000/AGT/2026\n" + 
+                "Documento original emitido em conformidade com o Decreto Presidencial 292/18 e Decreto Executivo 317/20"]]></textFieldExpression>
+            </textField>
+            
+            <textField>
+                <reportElement style="Column header" x="433" y="115" width="80" height="20" forecolor="#000000" uuid="e625ea3c-1741-4cfe-81cf-fbbdd00162c8"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font size="10" isBold="false"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Pág "+$V{PAGE_NUMBER}+" de"]]></textFieldExpression>
+            </textField>
+            <textField evaluationTime="Report">
+                <reportElement style="Column header" x="513" y="115" width="40" height="20" forecolor="#000000" uuid="f5d4115e-19d9-4589-a6f3-beafa923d84a"/>
+                <textElement verticalAlignment="Middle">
+                    <font size="10" isBold="false"/>
+                </textElement>
+                <textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="115" width="555" height="15" uuid="a88b21e4-44b6-44bc-b54c-30c6f2d53cc8"/>
+                <textElement textAlignment="Right">
+                    <font size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Operador: " + ($P{operator} != null ? $P{operator} : "")]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+</jasperReport>
+

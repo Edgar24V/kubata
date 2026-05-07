@@ -1,0 +1,4 @@
+# Designar responsáveis por áreas do código
+*       @user-admin
+/core/  @user-dev-core
+/admin/ @user-dev-ui

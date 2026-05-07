@@ -1,0 +1,21 @@
+package ao.allon.kubata.core.domain;
+
+public enum Role {
+    ADMIN,
+    USER,
+    OPERATOR,
+    DIRETOR,
+    GERENTE_FINANCEIRO,
+    CONTABILISTA,
+    OPERADOR_FATURACAO,
+    CAIXA,
+    SUPERVISOR_VENDAS,
+    VENDEDOR,
+    ESTOQUE,
+    COMPRAS,
+    LOGISTICA,
+    AUDITOR,
+    SUPORTE_TI,
+    RESPONSAVEL_FISCAL_AO,
+    VISITANTE
+}

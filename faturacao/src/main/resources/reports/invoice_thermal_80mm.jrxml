@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+    KUBATA - SISTEMA DE GESTÃO EMPRESARIAL (ANGOLA)
+    RELATÓRIO: FATURA TÉRMICA 80MM (PROFISSIONAL)
+    CONFORMIDADE AGT: Decreto Presidencial nº 71/25 e Decreto Executivo nº 683/25
+-->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="invoice_thermal_80mm_professional" pageWidth="226" pageHeight="2000" columnWidth="206" leftMargin="10" rightMargin="10" topMargin="10" bottomMargin="10" isIgnorePagination="true" uuid="f4d5e6f7-a8b9-4c0d-b1c2-d3e4f5a6b7c8">
+    <property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+    <import value="java.text.NumberFormat"/>
+    <import value="java.util.Locale"/>
+    <property name="com.jaspersoft.studio.unit." value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+    
+    <!-- Estilos Profissionais -->
+    <style name="Base" isDefault="true" fontName="Courier New" fontSize="8" pdfFontName="Courier" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+    <style name="Bold" style="Base" isBold="true"/>
+    <style name="Title" style="Bold" fontSize="11"/>
+    <style name="SubTitle" style="Bold" fontSize="9"/>
+    <style name="TableLabel" style="Bold" fontSize="7" mode="Opaque" backcolor="#F0F0F0"/>
+    <style name="Total" style="Bold" fontSize="10"/>
+    <style name="Muted" style="Base" fontSize="7" forecolor="#444444"/>
+    <style name="Legal" style="Base" fontSize="6" hAlign="Center"/>
+    
+    <!-- Parâmetros da Empresa -->
+    <parameter name="companyName" class="java.lang.String"/>
+    <parameter name="companyNif" class="java.lang.String"/>
+    <parameter name="companyAddress" class="java.lang.String"/>
+    <parameter name="companyPhone" class="java.lang.String"/>
+    <parameter name="companyEmail" class="java.lang.String"/>
+    <parameter name="companyCae" class="java.lang.String"/>
+    <parameter name="companyLogoImage" class="java.awt.Image"/>
+    
+    <!-- Parâmetros do Documento -->
+    <parameter name="documentTitle" class="java.lang.String"/>
+    <parameter name="documentNo" class="java.lang.String"/>
+    <parameter name="series" class="java.lang.String"/>
+    <parameter name="documentDate" class="java.lang.String"/>
+    <parameter name="systemEntryDate" class="java.lang.String"/>
+    <parameter name="documentType" class="java.lang.String"/>
+    <parameter name="documentStatus" class="java.lang.String"/>
+    <parameter name="documentCancelReason" class="java.lang.String"/>
+    
+    <!-- Parâmetros do Cliente -->
+    <parameter name="customerName" class="java.lang.String"/>
+    <parameter name="customerNif" class="java.lang.String"/>
+    <parameter name="customerAddress" class="java.lang.String"/>
+    <parameter name="customerCity" class="java.lang.String"/>
+    <parameter name="customerCountry" class="java.lang.String"/>
+    
+    <!-- Totais -->
+    <parameter name="totalNet" class="java.math.BigDecimal"/>
+    <parameter name="totalTax" class="java.math.BigDecimal"/>
+    <parameter name="totalGross" class="java.math.BigDecimal"/>
+    <parameter name="totalDiscount" class="java.math.BigDecimal"/>
+    <parameter name="totalExtenso" class="java.lang.String"/>
+    <parameter name="troco" class="java.math.BigDecimal"/>
+    
+    <!-- Software & Fiscal -->
+    <parameter name="softwareProductId" class="java.lang.String"/>
+    <parameter name="softwareVersion" class="java.lang.String"/>
+    <parameter name="softwareValidationNumber" class="java.lang.String"/>
+    <parameter name="jwsDocumentSignature" class="java.lang.String"/>
+    <parameter name="qrCodeImage" class="java.awt.Image"/>
+    <parameter name="footerNote" class="java.lang.String"/>
+
+    <!-- Campos de Itens -->
+    <field name="code" class="java.lang.String"/>
+    <field name="description" class="java.lang.String"/>
+    <field name="quantity" class="java.math.BigDecimal"/>
+    <field name="unit" class="java.lang.String"/>
+    <field name="unitPrice" class="java.math.BigDecimal"/>
+    <field name="taxRate" class="java.math.BigDecimal"/>
+    <field name="total" class="java.math.BigDecimal"/>
+    <field name="exemptionCode" class="java.lang.String"/>
+    <field name="exemptionReason" class="java.lang.String"/>
+
+    <!-- Variáveis de Resumo IVA -->
+    <variable name="V_IVA_TOTAL" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{total}.subtract($F{total}.divide(java.math.BigDecimal.ONE.add($F{taxRate}.divide(new java.math.BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)), 6, java.math.RoundingMode.HALF_UP))]]></variableExpression>
+    </variable>
+
+    <background>
+        <band splitType="Stretch"/>
+    </background>
+
+    <title>
+        <band height="250" splitType="Stretch">
+            <!-- Cabeçalho Empresa -->
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+                <reportElement x="53" y="0" width="100" height="40" uuid="e2a3b4c5-d6e7-4f89-a0b1-c2d3e4f5a6b7">
+                    <printWhenExpression><![CDATA[$P{companyLogoImage} != null]]></printWhenExpression>
+                </reportElement>
+                <imageExpression><![CDATA[$P{companyLogoImage}]]></imageExpression>
+            </image>
+            
+            <textField textAdjust="StretchHeight">
+                <reportElement style="Title" x="0" y="45" width="206" height="15" uuid="f3a4b5c6-d7e8-4f90-a1b2-c3d4e5f6a7b8"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[$P{companyName}.toUpperCase()]]></textFieldExpression>
+            </textField>
+            
+            <textField textAdjust="StretchHeight">
+                <reportElement style="Muted" x="0" y="60" width="206" height="20" uuid="0c1d2e3f-4a5b-6c7d-8e9f-0a1b2c3d4e5f"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[$P{companyAddress}]]></textFieldExpression>
+            </textField>
+            
+            <textField>
+                <reportElement style="Bold" x="0" y="80" width="206" height="10" uuid="1d2e3f4a-5b6c-7d8e-9f0a-1b2c3d4e5f6a"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA["NIF: " + $P{companyNif}]]></textFieldExpression>
+            </textField>
+            
+            <textField>
+                <reportElement style="Muted" x="0" y="90" width="206" height="10" uuid="2e3f4a5b-6c7d-8e9f-0a1b-2c3d4e5f6a7b"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA["CAE: " + ($P{companyCae} != null ? $P{companyCae} : "N/D")]]></textFieldExpression>
+            </textField>
+            
+            <textField>
+                <reportElement style="Muted" x="0" y="100" width="206" height="10" uuid="3f4a5b6c-7d8e-4f90-a1b2-c3d4e5f6a7b8"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA["Tel: " + ($P{companyPhone} != null ? $P{companyPhone} : "") + " | Email: " + ($P{companyEmail} != null ? $P{companyEmail} : "")]]></textFieldExpression>
+            </textField>
+            
+            <line>
+                <reportElement x="0" y="115" width="206" height="1" uuid="4a5b6c7d-8e9f-0a1b-2c3d-4e5f6a7b8c9d"/>
+                <graphicElement><pen lineWidth="1.5" lineStyle="Solid"/></graphicElement>
+            </line>
+            
+            <!-- Tipo de Documento -->
+            <textField>
+                <reportElement style="SubTitle" x="0" y="120" width="206" height="12" uuid="5b6c7d8e-9f0a-1b2c-3d4e-5f6a7b8c9d0a"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[$P{documentTitle}.toUpperCase()]]></textFieldExpression>
+            </textField>
+            
+            <textField>
+                <reportElement style="Bold" x="0" y="132" width="206" height="10" uuid="6c7d8e9f-0a1b-2c3d-4e5f-6a7b8c9d0a1b"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[($P{documentStatus} != null && $P{documentStatus}.equals("A")) ? "DOCUMENTO ANULADO" : "ORIGINAL"]]></textFieldExpression>
+            </textField>
+            
+            <!-- Detalhes Documento -->
+            <frame>
+                <reportElement x="0" y="145" width="206" height="35" uuid="7d8e9f0a-1b2c-3d4e-5f6a-7b8c9d0a1b2c"/>
+                <textField>
+                    <reportElement style="Base" x="0" y="0" width="103" height="10" uuid="8e9f0a1b-2c3d-4e5f-6a7b-8c9d0a1b2c3d"/>
+                    <textFieldExpression><![CDATA["Nº: " + $P{documentNo}]]></textFieldExpression>
+                </textField>
+                <textField>
+                    <reportElement style="Base" x="103" y="0" width="103" height="10" uuid="9f0a1b2c-3d4e-5f6a-7b8c-9d0a1b2c3d4e"/>
+                    <textElement textAlignment="Right"/>
+                    <textFieldExpression><![CDATA["Série: " + $P{series}]]></textFieldExpression>
+                </textField>
+                <textField>
+                    <reportElement style="Base" x="0" y="12" width="206" height="10" uuid="a0b1c2d3-e4f5-6a7b-8c9d-0a1b2c3d4e5f"/>
+                    <textFieldExpression><![CDATA["Data: " + $P{documentDate}]]></textFieldExpression>
+                </textField>
+                <textField>
+                    <reportElement style="Base" x="0" y="22" width="206" height="10" uuid="b1c2d3e4-f5a6-7b8c-9d0a-1b2c3d4e5f6a"/>
+                    <textFieldExpression><![CDATA["Hora Sistema: " + $P{systemEntryDate}]]></textFieldExpression>
+                </textField>
+            </frame>
+            
+            <line>
+                <reportElement x="0" y="185" width="206" height="1" uuid="c2d3e4f5-a6b7-8c9d-0a1b-2c3d4e5f6a7b"/>
+                <graphicElement><pen lineWidth="0.5" lineStyle="Dashed"/></graphicElement>
+            </line>
+            
+            <!-- Dados do Cliente -->
+            <frame>
+                <reportElement x="0" y="190" width="206" height="50" uuid="d3e4f5a6-b7c8-9d0a-1b2c-3d4e5f6a7b8c"/>
+                <staticText>
+                    <reportElement style="Bold" x="0" y="0" width="206" height="10" uuid="e4f5a6b7-c8d9-0a1b-2c3d-4e5f6a7b8c9d"/>
+                    <text><![CDATA[DADOS DO CLIENTE:]]></text>
+                </staticText>
+                <textField textAdjust="StretchHeight">
+                    <reportElement style="Base" x="0" y="12" width="206" height="10" uuid="f5a6b7c8-d9e0-1a2b-3c4d-5e6f7a8b9c0d"/>
+                    <textFieldExpression><![CDATA[($P{customerName} != null && !$P{customerName}.isEmpty()) ? $P{customerName} : "CONSUMIDOR FINAL"]]></textFieldExpression>
+                </textField>
+                <textField>
+                    <reportElement style="Base" x="0" y="24" width="206" height="10" uuid="0a1b2c3d-4e5f-6a7b-8c9d-0a1b2c3d4e5f"/>
+                    <textFieldExpression><![CDATA["NIF: " + (($P{customerNif} != null && !$P{customerNif}.trim().isEmpty()) ? $P{customerNif} : "999999999")]]></textFieldExpression>
+                </textField>
+                <textField textAdjust="StretchHeight">
+                    <reportElement style="Muted" x="0" y="36" width="206" height="10" uuid="1b2c3d4e-5f6a-7b8c-9d0a-1b2c3d4e5f6a"/>
+                    <textFieldExpression><![CDATA[($P{customerAddress} != null ? $P{customerAddress} : "")]]></textFieldExpression>
+                </textField>
+            </frame>
+            
+            <line>
+                <reportElement x="0" y="245" width="206" height="1" uuid="2c3d4e5f-6a7b-8c9d-0a1b-2c3d4e5f6a7b"/>
+                <graphicElement><pen lineWidth="1.0" lineStyle="Solid"/></graphicElement>
+            </line>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="15" splitType="Stretch">
+            <staticText>
+                <reportElement style="TableLabel" x="0" y="0" width="106" height="12" uuid="3d4e5f6a-7b8c-9d0a-1b2c-3d4e5f6a7b8c"/>
+                <textElement verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[ DESCRIÇÃO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="TableLabel" x="106" y="0" width="40" height="12" uuid="4e5f6a7b-8c9d-0a1b-2c3d-4e5f6a7b8c9d"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[QTD ]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="TableLabel" x="146" y="0" width="60" height="12" uuid="5f6a7b8c-9d0a-1b2c-3d4e-5f6a7b8c9d0a"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[TOTAL ]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="22" splitType="Stretch">
+            <!-- Descrição (Linha 1) -->
+            <textField textAdjust="StretchHeight">
+                <reportElement style="Base" x="0" y="2" width="206" height="10" uuid="6a7b8c9d-0a1b-2c3d-4e5f-6a7b8c9d0a1b"/>
+                <textFieldExpression><![CDATA[$F{description}.toUpperCase()]]></textFieldExpression>
+            </textField>
+            
+            <!-- Detalhes (Linha 2) -->
+            <textField>
+                <reportElement style="Muted" x="0" y="12" width="106" height="10" uuid="7b8c9d0a-1b2c-3d4e-5f6a-7b8c9d0a1b2c"/>
+                <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($F{unitPrice}) + " x " + ($F{taxRate} != null ? $F{taxRate} : "0") + "%"]]></textFieldExpression>
+            </textField>
+            
+            <textField>
+                <reportElement style="Base" x="106" y="12" width="40" height="10" uuid="8c9d0a1b-2c3d-4e5f-6a7b-8c9d0a1b2c3d"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[new java.text.DecimalFormat("#,##0.###").format($F{quantity})]]></textFieldExpression>
+            </textField>
+            
+            <textField>
+                <reportElement style="Bold" x="146" y="12" width="60" height="10" uuid="9d0a1b2c-3d4e-5f6a-7b8c-9d0a1b2c3d4e"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($F{total})]]></textFieldExpression>
+            </textField>
+            
+            <line>
+                <reportElement x="0" y="21" width="206" height="1" forecolor="#E0E0E0" uuid="a0b1c2d3-e4f5-6a7b-8c9d-0a1b2c3d4e5f"/>
+                <graphicElement><pen lineWidth="0.25"/></graphicElement>
+            </line>
+        </band>
+    </detail>
+
+    <summary>
+        <band height="400" splitType="Stretch">
+            <line>
+                <reportElement x="0" y="5" width="206" height="1" uuid="b1c2d3e4-f5a6-7b8c-9d0a-1b2c3d4e5f6a"/>
+                <graphicElement><pen lineWidth="1.0"/></graphicElement>
+            </line>
+            
+            <!-- Resumo Financeiro -->
+            <frame>
+                <reportElement x="0" y="10" width="206" height="55" uuid="c2d3e4f5-a6b7-8c9d-0a1b-2c3d4e5f6a7b"/>
+                <staticText>
+                    <reportElement style="Base" x="0" y="0" width="100" height="10" uuid="d3e4f5a6-b7c8-9d0a-1b2c-3d4e5f6a7b8c"/>
+                    <text><![CDATA[Subtotal:]]></text>
+                </staticText>
+                <textField>
+                    <reportElement style="Base" x="100" y="0" width="106" height="10" uuid="e4f5a6b7-c8d9-0a1b-2c3d-4e5f6a7b8c9d"/>
+                    <textElement textAlignment="Right"/>
+                    <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($P{totalNet})]]></textFieldExpression>
+                </textField>
+                
+                <staticText>
+                    <reportElement style="Base" x="0" y="12" width="100" height="10" uuid="f5a6b7c8-d9e0-1a2b-3c4d-5e6f7a8b9c0d"/>
+                    <text><![CDATA[Descontos:]]></text>
+                </staticText>
+                <textField>
+                    <reportElement style="Base" x="100" y="12" width="106" height="10" uuid="0a1b2c3d-4e5f-6a7b-8c9d-0a1b2c3d4e5f"/>
+                    <textElement textAlignment="Right"/>
+                    <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($P{totalDiscount})]]></textFieldExpression>
+                </textField>
+                
+                <staticText>
+                    <reportElement style="Base" x="0" y="24" width="100" height="10" uuid="1b2c3d4e-5f6a-7b8c-9d0a-1b2c3d4e5f6a"/>
+                    <text><![CDATA[IVA:]]></text>
+                </staticText>
+                <textField>
+                    <reportElement style="Base" x="100" y="24" width="106" height="10" uuid="2c3d4e5f-6a7b-8c9d-0a1b-2c3d4e5f6a7b"/>
+                    <textElement textAlignment="Right"/>
+                    <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($P{totalTax})]]></textFieldExpression>
+                </textField>
+                
+                <rectangle>
+                    <reportElement x="0" y="38" width="206" height="15" backcolor="#F0F0F0" uuid="3d4e5f6a-7b8c-9d0a-1b2c-3d4e5f6a7b8c"/>
+                    <graphicElement><pen lineWidth="0.0"/></graphicElement>
+                </rectangle>
+                <staticText>
+                    <reportElement style="Total" x="5" y="40" width="100" height="12" uuid="4e5f6a7b-8c9d-0a1b-2c3d-4e5f6a7b8c9d"/>
+                    <text><![CDATA[TOTAL GERAL:]]></text>
+                </staticText>
+                <textField>
+                    <reportElement style="Total" x="105" y="40" width="96" height="12" uuid="5f6a7b8c-9d0a-1b2c-3d4e-5f6a7b8c9d0a"/>
+                    <textElement textAlignment="Right"/>
+                    <textFieldExpression><![CDATA[NumberFormat.getCurrencyInstance(new Locale("pt", "AO")).format($P{totalGross})]]></textFieldExpression>
+                </textField>
+            </frame>
+            
+            <!-- Resumo IVA -->
+            <frame>
+                <reportElement x="0" y="75" width="206" height="35" uuid="6a7b8c9d-0a1b-2c3d-4e5f-6a7b8c9d0a1b"/>
+                <staticText>
+                    <reportElement style="Bold" x="0" y="0" width="206" height="10" uuid="7b8c9d0a-1b2c-3d4e-5f6a-7b8c9d0a1b2c"/>
+                    <text><![CDATA[RESUMO DE IMPOSTOS:]]></text>
+                </staticText>
+                <staticText>
+                    <reportElement style="Muted" x="0" y="12" width="60" height="10" uuid="8c9d0a1b-2c3d-4e5f-6a7b-8c9d0a1b2c3d"/>
+                    <text><![CDATA[Taxa]]></text>
+                </staticText>
+                <staticText>
+                    <reportElement style="Muted" x="60" y="12" width="70" height="10" uuid="9d0a1b2c-3d4e-5f6a-7b8c-9d0a1b2c3d4e"/>
+                    <textElement textAlignment="Right"/>
+                    <text><![CDATA[Base]]></text>
+                </staticText>
+                <staticText>
+                    <reportElement style="Muted" x="130" y="12" width="76" height="10" uuid="a0b1c2d3-e4f5-6a7b-8c9d-0a1b2c3d4e5f"/>
+                    <textElement textAlignment="Right"/>
+                    <text><![CDATA[Imposto]]></text>
+                </staticText>
+                <line>
+                    <reportElement x="0" y="23" width="206" height="1" uuid="b1c2d3e4-f5a6-7b8c-9d0a-1b2c3d4e5f6a"/>
+                    <graphicElement><pen lineWidth="0.25" lineStyle="Dashed"/></graphicElement>
+                </line>
+                <!-- O resumo deve ser populado dinamicamente ou fixo para 14%, 7%, 5% e Isento -->
+                <textField>
+                    <reportElement style="Base" x="0" y="25" width="206" height="10" uuid="c2d3e4f5-a6b7-8c9d-0a1b-2c3d4e5f6a7b"/>
+                    <textFieldExpression><![CDATA["Consulte o detalhe na fatura original."]]></textFieldExpression>
+                </textField>
+            </frame>
+            
+            <line>
+                <reportElement x="0" y="120" width="206" height="1" uuid="d3e4f5a6-b7c8-9d0a-1b2c-3d4e5f6a7b8c"/>
+                <graphicElement><pen lineWidth="0.5" lineStyle="Dashed"/></graphicElement>
+            </line>
+            
+            <!-- Informação Fiscal & Software -->
+            <frame>
+                <reportElement x="0" y="130" width="206" height="80" uuid="e4f5a6b7-c8d9-0a1b-2c3d-4e5f6a7b8c9d"/>
+                <textField>
+                    <reportElement style="Legal" x="0" y="0" width="206" height="15" uuid="f5a6b7c8-d9e0-1a2b-3c4d-5e6f7a8b9c0d"/>
+                    <textFieldExpression><![CDATA["Processado por software validado nº " + $P{softwareValidationNumber} + "/AGT"]]></textFieldExpression>
+                </textField>
+                
+                <textField textAdjust="StretchHeight">
+                    <reportElement style="Legal" x="0" y="15" width="206" height="10" uuid="0a1b2c3d-4e5f-6a7b-8c9d-0a1b2c3d4e5f"/>
+                    <textFieldExpression><![CDATA["Hash: " + ($P{jwsDocumentSignature} != null ? $P{jwsDocumentSignature}.substring(0,4) : "N/D") + " - " + $P{softwareProductId} + " v" + $P{softwareVersion}]]></textFieldExpression>
+                </textField>
+                
+                <!-- QR CODE -->
+                <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+                    <reportElement x="68" y="30" width="70" height="70" uuid="1b2c3d4e-5f6a-7b8c-9d0a-1b2c3d4e5f6a">
+                        <printWhenExpression><![CDATA[$P{qrCodeImage} != null]]></printWhenExpression>
+                    </reportElement>
+                    <imageExpression><![CDATA[$P{qrCodeImage}]]></imageExpression>
+                </image>
+            </frame>
+            
+            <textField textAdjust="StretchHeight">
+                <reportElement style="Bold" x="0" y="240" width="206" height="12" uuid="2c3d4e5f-6a7b-8c9d-0a1b-2c3d4e5f6a7b"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[$P{footerNote} != null ? $P{footerNote} : "OBRIGADO PELA PREFERÊNCIA!"]]></textFieldExpression>
+            </textField>
+            
+            <staticText>
+                <reportElement style="Legal" x="0" y="260" width="206" height="25" uuid="3d4e5f6a-7b8c-9d0a-1b2c-3d4e5f6a7b8c"/>
+                <text><![CDATA[Este documento não serve de fatura. Os bens/serviços foram colocados à disposição do adquirente na data e local do documento.]]></text>
+            </staticText>
+            
+            <textField>
+                <reportElement style="Legal" x="0" y="290" width="206" height="10" uuid="4e5f6a7b-8c9d-0a1b-2c3d-4e5f6a7b8c9d"/>
+                <textFieldExpression><![CDATA["Impresso em: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date())]]></textFieldExpression>
+            </textField>
+        </band>
+    </summary>
+</jasperReport>

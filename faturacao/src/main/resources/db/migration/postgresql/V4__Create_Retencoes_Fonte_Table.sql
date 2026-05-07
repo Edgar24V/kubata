@@ -1,0 +1,10 @@
+CREATE TABLE retencoes_fonte (
+    id BIGSERIAL PRIMARY KEY,
+    codigo VARCHAR(10) NOT NULL UNIQUE,
+    descricao VARCHAR(100) NOT NULL,
+    taxa DECIMAL(5, 2) NOT NULL,
+    tipo_rendimento VARCHAR(50) NOT NULL,
+    active BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP
+);

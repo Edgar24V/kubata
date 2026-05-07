@@ -1,0 +1,144 @@
+/* 
+ * FXRibbon Professional Theme for Kubata ERP
+ * Inspired by Microsoft Office / FXRibbon
+ */
+
+.ribbon-bar {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: #d1d1d1;
+    -fx-border-width: 0 0 1 0;
+    -fx-accent-color: #0078d4; /* Default Office Blue */
+}
+
+.ribbon-tab-strip {
+    -fx-background-color: white;
+    -fx-padding: 0 10 0 10;
+    -fx-spacing: 5;
+    -fx-border-color: #e1e1e1;
+    -fx-border-width: 0 0 1 0;
+}
+
+.ribbon-tab-label {
+    -fx-padding: 8 15 8 15;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-text-fill: #333333;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 3 0;
+    -fx-transition: 0.2s;
+}
+
+.ribbon-tab-label:hover {
+    -fx-background-color: #f0f0f0;
+    -fx-text-fill: var(-fx-accent-color);
+}
+
+.ribbon-tab-label-selected {
+    -fx-text-fill: var(-fx-accent-color);
+    -fx-font-weight: bold;
+    -fx-border-color: var(-fx-accent-color);
+}
+
+.ribbon-content-host {
+    -fx-background-color: #f3f3f3;
+    -fx-padding: 0;
+    -fx-min-height: 100px;
+}
+
+.ribbon-group {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent #d1d1d1 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 2 8 0 8;
+    -fx-alignment: top-center;
+    -fx-min-height: 90px;
+}
+
+.ribbon-group-title {
+    -fx-font-size: 10px;
+    -fx-text-fill: #666666;
+    -fx-text-transform: uppercase;
+    -fx-alignment: center;
+    -fx-min-height: 20px;
+    -fx-max-height: 20px;
+}
+
+.ribbon-group-separator {
+    -fx-background-color: #e1e1e1;
+}
+
+.ribbon-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4;
+    -fx-padding: 6;
+    -fx-cursor: hand;
+    -fx-transition: 0.1s; /* Documentation only, handled by hover colors */
+}
+
+.ribbon-button:hover {
+    -fx-background-color: #f0f0f0;
+}
+
+.ribbon-button-selected,
+.ribbon-button-selected:hover {
+    -fx-background-color: #e2eaf2;
+    -fx-border-color: var(-fx-accent-color);
+    -fx-border-width: 0 0 2 0;
+}
+
+.ribbon-button-tile {
+    -fx-min-width: 72px;
+    -fx-max-width: 72px;
+    -fx-min-height: 85px;
+    -fx-alignment: top-center;
+}
+
+.ribbon-tile-icon-wrap {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 6;
+    -fx-padding: 8;
+    -fx-min-width: 44px;
+    -fx-min-height: 44px;
+    -fx-border-color: #e1e1e1;
+    -fx-border-radius: 6;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.05), 2, 0, 0, 1);
+}
+
+.ribbon-button:hover .ribbon-tile-icon-wrap {
+    -fx-background-color: #ffffff;
+    -fx-border-color: var(-fx-accent-color);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.ribbon-button-text {
+    -fx-fill: #333333;
+    -fx-font-size: 11px;
+}
+
+.ribbon-button-text-below {
+    -fx-text-alignment: center;
+}
+
+.ribbon-icon-tile {
+    -fx-icon-size: 24px;
+    -fx-icon-color: #217346; /* Excel/Modern green */
+}
+
+.ribbon-icon-small {
+    -fx-icon-size: 16px;
+    -fx-icon-color: #333333;
+}
+
+.ribbon-column-separator {
+    -fx-background-color: #eeeeee;
+    -fx-margin: 5 0 5 0;
+}
+
+.ribbon-overflow-popup {
+    -fx-background-color: white;
+    -fx-border-color: #d1d1d1;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 5);
+    -fx-padding: 5;
+}

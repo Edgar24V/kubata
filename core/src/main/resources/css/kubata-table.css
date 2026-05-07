@@ -1,0 +1,228 @@
+/* ============================================================
+   kubata-table.css — Corrigido e modernizado
+   Base: AtlantaFX + Fluent Design System
+   ============================================================ */
+
+/* -----------------------------------------------
+   TOKENS GLOBAIS (prefixo -kub- para a marca)
+   ----------------------------------------------- */
+.root {
+    -kub-table-bg:              #ffffff;
+    -kub-table-header-bg:       #f6f8fb;
+    -kub-table-header-fg:       #1f3a5f;
+    -kub-table-row-hover:       #e8f5e9;
+    -kub-table-row-selected:    #4e9452;
+    -kub-table-row-alt:         #fbfcfe;
+    -kub-table-border:          #d7dee8;
+    -kub-table-border-soft:     rgba(31, 58, 95, 0.12);
+    -kub-table-shadow:          rgba(16, 24, 40, 0.08);
+    -kub-table-focus:           #3b82f6;
+    -kub-table-muted-fg:        rgba(31, 58, 95, 0.75);
+    -kub-table-error:           #dc2626;
+    -kub-table-error-bg:        #fee2e2;
+    -kub-cell-padding-v:        6px;
+    -kub-cell-padding-h:        10px;
+    -kub-table-radius:          10px;
+}
+
+/* ============================================================
+   TABELA BASE
+   ============================================================ */
+.advanced-table {
+    -fx-background-color: -kub-table-bg;
+    -fx-border-color: -kub-table-border-soft;
+    -fx-border-width: 1px;
+    -fx-border-radius: -kub-table-radius;
+    -fx-background-radius: -kub-table-radius;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.advanced-table:focused {
+    -fx-border-color: -kub-table-focus;
+    -fx-border-width: 1.2px;
+    -fx-effect: dropshadow(three-pass-box, -kub-table-shadow, 10, 0, 0, 2);
+}
+
+/* Cabeçalho */
+.advanced-table .column-header {
+    -fx-background-color: -kub-table-header-bg;
+    -fx-text-fill: -kub-table-header-fg;
+    -fx-font-weight: 700;
+    -fx-font-size: 12px;
+    -fx-padding: 10px -kub-cell-padding-h;
+    -fx-border-color: transparent -kub-table-border-soft transparent transparent;
+}
+
+.advanced-table .column-header-background {
+    -fx-background-color: -kub-table-header-bg;
+    -fx-background-radius: -kub-table-radius -kub-table-radius 0 0;
+}
+
+/* Linhas */
+.advanced-table .table-row-cell {
+    -fx-cell-size: 36px;
+    -fx-border-color: transparent transparent -kub-table-border-soft transparent;
+    -fx-background-insets: 0;
+}
+
+.advanced-table .table-row-cell:hover {
+    -fx-background-color: -kub-table-row-hover;
+}
+
+.advanced-table .table-row-cell:selected {
+    -fx-background-color: -kub-table-row-selected;
+}
+
+/* Células */
+.advanced-table .table-cell {
+    -fx-padding: -kub-cell-padding-v -kub-cell-padding-h;
+    -fx-text-fill: -kub-table-muted-fg;
+    -fx-alignment: CENTER-LEFT;  /* alinhamento profissional, padrão à esquerda */
+}
+
+/* Forçar texto centralizado se desejar (descomente a linha abaixo) */
+/* .advanced-table .table-cell { -fx-alignment: CENTER; } */
+
+.advanced-table .table-cell:filled:selected,
+.advanced-table .table-row-cell:selected .table-cell {
+    -fx-text-fill: white;
+}
+
+/* Linhas zebradas (apenas se a tabela tiver classe .report-table) */
+.report-table .table-row-cell:even {
+    -fx-background-color: -kub-table-row-alt;
+}
+
+/* ============================================================
+   CÉLULAS EDITÁVEIS
+   ============================================================ */
+.editable-table-cell {
+    -fx-padding: -kub-cell-padding-v -kub-cell-padding-h;
+    -fx-cursor: text;
+}
+
+.cell-editor {
+    -fx-background-color: white;
+    -fx-border-color: -kub-table-header-fg;
+    -fx-border-width: 0 0 2px 0;
+    -fx-background-radius: 3px 3px 0 0;
+    -fx-padding: 3px 6px;
+    -fx-font-size: 12px;
+}
+
+.cell-error {
+    -fx-background-color: -kub-table-error-bg;
+    -fx-border-color: -kub-table-error;
+    -fx-border-width: 0 0 2px 0;
+}
+
+.error-tooltip {
+    -fx-background-color: -kub-table-error;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-padding: 4px 8px;
+    -fx-background-radius: 4px;
+}
+
+/* ============================================================
+   CÉLULA MONETÁRIA (Kwanza)
+   ============================================================ */
+.currency-cell {
+    -fx-alignment: CENTER-RIGHT;
+    -fx-font-family: "JetBrains Mono", monospace;
+    -fx-font-size: 12px;
+}
+
+.currency-editor {
+    -fx-alignment: CENTER-RIGHT;
+    -fx-font-family: "JetBrains Mono", monospace;
+}
+
+/* ============================================================
+   CÉLULA DE AVALIAÇÃO (Estrelas)
+   ============================================================ */
+.star-filled {
+    -fx-text-fill: #f5a623;
+    -fx-font-size: 16px;
+    -fx-cursor: hand;
+}
+
+.star-empty {
+    -fx-text-fill: -kub-table-border;
+    -fx-font-size: 16px;
+    -fx-cursor: hand;
+}
+
+/* ============================================================
+   BARRA DE PESQUISA
+   ============================================================ */
+.table-toolbar {
+    -fx-background-color: -kub-table-bg;
+    -fx-border-color: transparent transparent -kub-table-border-soft transparent;
+    -fx-padding: 10px 12px;
+}
+
+.table-toolbar .label {
+    -fx-text-fill: -kub-table-muted-fg;
+}
+
+.table-search-field {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
+    -fx-border-color: -kub-table-border-soft;
+    -fx-padding: 8px 14px;
+    -fx-prompt-text-fill: rgba(31, 58, 95, 0.45);
+}
+
+.table-search-field:focused {
+    -fx-border-color: -kub-table-focus;
+    -fx-effect: dropshadow(three-pass-box, -kub-table-shadow, 10, 0, 0, 2);
+}
+
+/* ============================================================
+   PAGINAÇÃO
+   ============================================================ */
+.pagination-bar {
+    -fx-background-color: -kub-table-bg;
+    -fx-border-color: -kub-table-border-soft transparent transparent transparent;
+    -fx-padding: 10px 12px;
+}
+
+.pagination-bar .button {
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: -kub-table-border-soft;
+    -fx-background-color: #ffffff;
+    -fx-padding: 6px 12px;
+    -fx-cursor: hand;
+}
+
+.pagination-bar .button:hover {
+    -fx-background-color: -kub-table-row-hover;
+}
+
+/* ============================================================
+   SCROLLBAR MODERNA (discreta)
+   ============================================================ */
+.advanced-table .scroll-bar:vertical,
+.advanced-table .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.advanced-table .scroll-bar .thumb {
+    -fx-background-color: rgba(31, 58, 95, 0.20);
+    -fx-background-radius: 999px;
+}
+
+.advanced-table .scroll-bar .thumb:hover {
+    -fx-background-color: rgba(31, 58, 95, 0.28);
+}
+
+/* ============================================================
+   ESTADO DE CARREGAMENTO
+   ============================================================ */
+.table-loading {
+    -fx-background-color: rgba(255, 255, 255, 0.85);
+}

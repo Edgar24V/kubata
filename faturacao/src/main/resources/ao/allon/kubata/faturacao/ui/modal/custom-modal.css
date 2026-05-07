@@ -1,0 +1,52 @@
+/* Estilos para o componente de modal personalizado */
+
+.custom-modal-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.4);
+}
+
+.custom-modal-container {
+    -fx-background-color: -color-bg-default;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 20, 0, 0, 5);
+    /* -fx-max-width: 600px;  Removed to allow binding or content size */
+    /* -fx-max-height: 80vh; Removed to allow outer scrolling */
+}
+
+.custom-modal-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.custom-modal-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.custom-modal-header {
+    -fx-padding: 16px;
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 0 0 1px 0;
+    -fx-alignment: center-left;
+}
+
+.custom-modal-title {
+    -fx-font-size: 1.2em;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-fg-default;
+}
+
+.custom-modal-close-button {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+}
+
+.custom-modal-content {
+    -fx-padding: 24px;
+}
+
+.custom-modal-footer {
+    -fx-padding: 16px;
+    -fx-spacing: 10px;
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 1px 0 0 0;
+}

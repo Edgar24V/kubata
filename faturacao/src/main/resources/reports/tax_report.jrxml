@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="tax_report" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee">
+	<parameter name="EMPRESA_NOME" class="java.lang.String"/>
+	<parameter name="EMPRESA_NIF" class="java.lang.String"/>
+	<parameter name="EMPRESA_LOGO" class="java.io.InputStream"/>
+	<parameter name="PERIOD" class="java.lang.String"/>
+	<field name="data" class="java.lang.String"/>
+	<field name="totalVendas" class="java.math.BigDecimal"/>
+	<field name="totalIva" class="java.math.BigDecimal"/>
+	<variable name="SUM_VENDAS" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{totalVendas}]]></variableExpression>
+	</variable>
+	<variable name="SUM_IVA" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{totalIva}]]></variableExpression>
+	</variable>
+	<title>
+		<band height="100">
+			<image onErrorType="Blank">
+				<reportElement x="0" y="0" width="80" height="60" uuid="bbbbbbbb-1111-2222-3333-cccccccccccc"/>
+				<imageExpression><![CDATA[$P{EMPRESA_LOGO}]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="90" y="0" width="300" height="20" uuid="cccccccc-2222-3333-4444-dddddddddddd"/>
+				<textElement><font size="14" isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="90" y="20" width="300" height="15" uuid="dddddddd-3333-4444-5555-eeeeeeeeeeee"/>
+				<textFieldExpression><![CDATA["NIF: " + $P{EMPRESA_NIF}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="400" y="0" width="155" height="20" uuid="eeeeeeee-4444-5555-6666-ffffffffffff"/>
+				<textElement textAlignment="Right"><font size="12" isBold="true"/></textElement>
+				<text><![CDATA[MAPA DE IMPOSTOS]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="400" y="20" width="155" height="15" uuid="ffffffff-5555-6666-7777-000000000000"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$P{PERIOD}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="90" width="555" height="1" uuid="11111111-6666-7777-8888-111111111111"/>
+			</line>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="20">
+			<staticText>
+				<reportElement x="0" y="0" width="155" height="20" uuid="22222222-7777-8888-9999-222222222222"/>
+				<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+				<text><![CDATA[Data]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="155" y="0" width="200" height="20" uuid="33333333-8888-9999-aaaa-333333333333"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font isBold="true"/></textElement>
+				<text><![CDATA[Total Vendas (Kz)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="355" y="0" width="200" height="20" uuid="44444444-9999-aaaa-bbbb-444444444444"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font isBold="true"/></textElement>
+				<text><![CDATA[IVA Liquidado (Kz)]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20">
+			<textField>
+				<reportElement x="0" y="0" width="155" height="20" uuid="55555555-aaaa-bbbb-cccc-555555555555"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="155" y="0" width="200" height="20" uuid="66666666-bbbb-cccc-dddd-666666666666"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{totalVendas}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="355" y="0" width="200" height="20" uuid="77777777-cccc-dddd-eeee-777777777777"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{totalIva}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="30">
+			<line>
+				<reportElement x="0" y="5" width="555" height="1" uuid="88888888-dddd-eeee-ffff-888888888888"/>
+			</line>
+			<staticText>
+				<reportElement x="0" y="10" width="155" height="20" uuid="99999999-eeee-ffff-0000-999999999999"/>
+				<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+				<text><![CDATA[TOTAIS GERAIS:]]></text>
+			</staticText>
+			<textField pattern="#,##0.00">
+				<reportElement x="155" y="10" width="200" height="20" uuid="00000000-ffff-0000-1111-000000000000"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{SUM_VENDAS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="355" y="10" width="200" height="20" uuid="12121212-aaaa-bbbb-cccc-121212121212"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{SUM_IVA}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

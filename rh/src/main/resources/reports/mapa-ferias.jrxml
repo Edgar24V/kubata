@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="mapa_ferias" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+
+    <parameter name="TITULO" class="java.lang.String"/>
+    <parameter name="DATA_EMISSAO" class="java.lang.String"/>
+    <parameter name="DATA_INICIO" class="java.lang.String"/>
+    <parameter name="DATA_FIM" class="java.lang.String"/>
+    <parameter name="TOTAL_REGISTROS" class="java.lang.Integer"/>
+
+    <field name="colaborador.nomeCompleto" class="java.lang.String"/>
+    <field name="dataInicio" class="java.time.LocalDate"/>
+    <field name="dataFim" class="java.time.LocalDate"/>
+    <field name="quantidadeDias" class="java.lang.Integer"/>
+
+    <title>
+        <band height="70">
+            <textField>
+                <reportElement x="0" y="0" width="555" height="28"/>
+                <textElement textAlignment="Center">
+                    <font size="18" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{TITULO}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="32" width="555" height="14"/>
+                <textElement textAlignment="Center">
+                    <font size="10"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Período: " + $P{DATA_INICIO} + " até " + $P{DATA_FIM}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="48" width="555" height="14"/>
+                <textElement textAlignment="Center">
+                    <font size="10"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Data: " + $P{DATA_EMISSAO} + " | Total: " + $P{TOTAL_REGISTROS}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="20">
+            <staticText>
+                <reportElement x="0" y="0" width="280" height="20" backcolor="#EEEEEE" mode="Opaque"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Colaborador]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="280" y="0" width="85" height="20" backcolor="#EEEEEE" mode="Opaque"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Início]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="365" y="0" width="85" height="20" backcolor="#EEEEEE" mode="Opaque"/>
+                <textElement><font isBold="true"/></textElement>
+                <text><![CDATA[Fim]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="450" y="0" width="105" height="20" backcolor="#EEEEEE" mode="Opaque"/>
+                <textElement textAlignment="Right"><font isBold="true"/></textElement>
+                <text><![CDATA[Dias]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <textField>
+                <reportElement x="0" y="0" width="280" height="18"/>
+                <textFieldExpression><![CDATA[$F{colaborador.nomeCompleto}]]></textFieldExpression>
+            </textField>
+            <textField pattern="dd/MM/yyyy">
+                <reportElement x="280" y="0" width="85" height="18"/>
+                <textFieldExpression><![CDATA[$F{dataInicio}]]></textFieldExpression>
+            </textField>
+            <textField pattern="dd/MM/yyyy">
+                <reportElement x="365" y="0" width="85" height="18"/>
+                <textFieldExpression><![CDATA[$F{dataFim}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="450" y="0" width="105" height="18"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$F{quantidadeDias}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="18">
+            <textField>
+                <reportElement x="0" y="0" width="555" height="18"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+
+</jasperReport>

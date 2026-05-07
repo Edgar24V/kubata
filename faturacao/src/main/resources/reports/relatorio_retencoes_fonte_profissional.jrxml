@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Relatório de Retenções na Fonte - Sistema Kubata -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports 
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" 
+              name="relatorio_retencoes_fonte" 
+              pageWidth="595" 
+              pageHeight="842" 
+              orientation="Portrait" 
+              whenNoDataType="AllSectionsNoDetail" 
+              columnWidth="555" 
+              leftMargin="20" 
+              rightMargin="20" 
+              topMargin="30" 
+              bottomMargin="30">
+
+    <property name="ireport.zoom" value="1.0"/>
+    <property name="ireport.x" value="0"/>
+    <property name="ireport.y" value="0"/>
+    <property name="com.jaspersoft.studio.data.defaultdataadapter" value="Sample DB"/>
+    <property name="com.jaspersoft.studio.unit." value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+    <property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+
+    <!-- Estilos Profissionais -->
+    <style name="Title" fontSize="18" isBold="true"/>
+    <style name="Subtitle" fontSize="12" isBold="false" forecolor="#666666"/>
+    <style name="Header" fontSize="10" isBold="true" backcolor="#4CAF50"/>
+    <style name="Detail" fontSize="9" isBold="false"/>
+    <style name="Total" fontSize="10" isBold="true" backcolor="#E8F5E8"/>
+    <style name="Highlight" fontSize="10" isBold="true" forecolor="#2E7D32"/>
+    <style name="TableHeader" fontSize="9" isBold="true" backcolor="#4CAF50" forecolor="white"/>
+    <style name="TableDetail" fontSize="9" isBold="false"/>
+    <style name="TableTotal" fontSize="9" isBold="true" backcolor="#F5F5F5"/>
+    <style name="Footer" fontSize="8" isBold="false" forecolor="#666666"/>
+    <style name="HighTax" fontSize="9" isBold="true" forecolor="#D32F2F"/>
+    <style name="MediumTax" fontSize="9" isBold="true" forecolor="#F57C00"/>
+    <style name="LowTax" fontSize="9" isBold="true" forecolor="#388E3C"/>
+
+    <!-- Parâmetros -->
+    <parameter name="PERIODO_INICIO" class="java.lang.String"/>
+    <parameter name="PERIODO_FIM" class="java.lang.String"/>
+    <parameter name="EMPRESA_NOME" class="java.lang.String"/>
+    <parameter name="EMPRESA_NIF" class="java.lang.String"/>
+    <parameter name="EMPRESA_ENDERECO" class="java.lang.String"/>
+    <parameter name="EMPRESA_TELEFONE" class="java.lang.String"/>
+    <parameter name="EMPRESA_EMAIL" class="java.lang.String"/>
+    <parameter name="LOGO_PATH" class="java.lang.String"/>
+    <parameter name="USUARIO" class="java.lang.String"/>
+    <parameter name="DATA_EMISSAO" class="java.util.Date"/>
+    <parameter name="TOTAL_RETIDO" class="java.math.BigDecimal"/>
+    <parameter name="TOTAL_OPERACOES" class="java.math.BigDecimal"/>
+
+    <!-- Campos do dataset -->
+    <field name="codigo" class="java.lang.String"/>
+    <field name="descricao" class="java.lang.String"/>
+    <field name="taxa" class="java.math.BigDecimal"/>
+    <field name="tipoRendimento" class="java.lang.String"/>
+    <field name="numeroOperacoes" class="java.lang.Integer"/>
+    <field name="valorBase" class="java.math.BigDecimal"/>
+    <field name="valorRetido" class="java.math.BigDecimal"/>
+    <field name="dataUltimaOperacao" class="java.util.Date"/>
+
+    <!-- Variáveis -->
+    <variable name="TOTAL_RETENCOES" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{valorRetido}]]></variableExpression>
+    </variable>
+    <variable name="TOTAL_BASE_CALCULO" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{valorBase}]]></variableExpression>
+    </variable>
+    <variable name="TOTAL_OPERACOES_COUNT" class="java.lang.Integer" calculation="Sum">
+        <variableExpression><![CDATA[$F{numeroOperacoes}]]></variableExpression>
+    </variable>
+
+    <!-- Título do Relatório -->
+    <title>
+        <band height="120" splitType="Stretch">
+            <rectangle>
+                <reportElement x="0" y="0" width="555" height="120" backcolor="#4CAF50" uuid="d0808d13-ff96-4fb8-a906-cbc06302b112"/>
+            </rectangle>
+            <image>
+                <reportElement x="20" y="20" width="80" height="80" uuid="0ff5e138-1bf1-4e9f-8fb3-53669dd15642"/>
+                <imageExpression><![CDATA[$P{LOGO_PATH}]]></imageExpression>
+            </image>
+            <textField>
+                <reportElement style="Title" x="120" y="20" width="415" height="25" forecolor="white" uuid="05a20dd6-8f47-47e0-9dc0-1c005eb65941"/>
+                <textFieldExpression><![CDATA["RELATÓRIO DE RETENÇÕES NA FONTE"]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement style="Subtitle" x="120" y="50" width="415" height="15" forecolor="white" uuid="a79c7db0-9552-4b8c-a809-cafe10aa995d"/>
+                <textFieldExpression><![CDATA["Mapa de Retenções - " + $P{EMPRESA_NOME}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="120" y="70" width="415" height="15" forecolor="white" fontSize="9" uuid="ce378692-51a0-422a-b74b-bc0e79e072df"/>
+                <textFieldExpression><![CDATA["Período: " + $P{PERIODO_INICIO} + " até " + $P{PERIODO_FIM}]]></textFieldExpression>
+            </textField>
+            <textField pattern="dd/MM/yyyy HH:mm">
+                <reportElement x="120" y="90" width="200" height="15" forecolor="white" fontSize="8" uuid="432937cc-1e81-44e2-9453-3ecefb2be5e4"/>
+                <textFieldExpression><![CDATA["Emitido em: " + new java.util.Date()]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="400" y="90" width="135" height="15" forecolor="white" fontSize="8" uuid="bd811245-3966-4d61-b4de-38d8c25fe58a"/>
+                <textFieldExpression><![CDATA["Usuário: " + $P{USUARIO}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <!-- Cabeçalho da Página -->
+    <pageHeader>
+        <band height="30" splitType="Stretch">
+            <rectangle>
+                <reportElement x="0" y="0" width="555" height="30" backcolor="#E8F5E8" uuid="8117984c-a117-4018-9173-6256f3fff788"/>
+            </rectangle>
+            <textField>
+                <reportElement x="10" y="8" width="300" height="15" fontSize="9" isBold="true" uuid="47f90220-8ce1-4968-9bf0-f578ea9830a4"/>
+                <textFieldExpression><![CDATA[$P{EMPRESA_NOME} + " - NIF: " + $P{EMPRESA_NIF}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="400" y="8" width="145" height="15" fontSize="9" isBold="true" uuid="ddd5a597-327e-43c4-ac2e-66f42e244a9c"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER} + " de " + $V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageHeader>
+
+    <!-- Resumo Executivo -->
+    <summary>
+        <band height="100" splitType="Stretch">
+            <rectangle>
+                <reportElement x="0" y="0" width="555" height="100" backcolor="#F1F8E9" uuid="6aece4f4-3abc-4338-9e7b-f3fb37a4dec0"/>
+            </rectangle>
+            <staticText>
+                <reportElement style="Highlight" x="10" y="10" width="200" height="15" uuid="43d48160-687c-4484-93eb-4276870811f8"/>
+                <text><![CDATA[RESUMO EXECUTIVO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="10" y="35" width="200" height="15" fontSize="10" isBold="true" uuid="1a381691-7847-4c77-b627-8d8830147c4b"/>
+                <text><![CDATA[TOTAL RETIDO:]]></text>
+            </staticText>
+            <textField pattern="# ,##0.00 AOA">
+                <reportElement style="HighTax" x="220" y="35" width="150" height="15" uuid="b197d2fc-8efa-48ed-a9c4-998ac2674b40"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$P{TOTAL_RETIDO}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="10" y="55" width="200" height="15" fontSize="10" isBold="true" uuid="e2217b6a-4a39-4c1a-a3ac-63a679c9b70a"/>
+                <text><![CDATA[TOTAL DE OPERAÇÕES:]]></text>
+            </staticText>
+            <textField pattern="# ,##0.00 AOA">
+                <reportElement style="Highlight" x="220" y="55" width="150" height="15" uuid="d4289b7c-10e1-4680-a2c9-203b83e3ce8b"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$P{TOTAL_OPERACOES}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="10" y="75" width="200" height="15" fontSize="10" isBold="true" uuid="499d37c3-786d-433d-b762-bbbcc2e70df3"/>
+                <text><![CDATA[TAXA EFETIVA MÉDIA:]]></text>
+            </staticText>
+            <textField pattern="# ,##0.00 %">
+                <reportElement style="Highlight" x="220" y="75" width="150" height="15" uuid="d3918663-18f9-40cd-91d7-b1ae5f1dbf42"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$P{TOTAL_RETIDO}.doubleValue() / $P{TOTAL_OPERACOES}.doubleValue() * 100]]></textFieldExpression>
+            </textField>
+        </band>
+    </summary>
+
+    <!-- Coluna de Agrupamento por Tipo de Rendimento -->
+    <group name="TipoRendimentoGroup">
+        <groupExpression><![CDATA[$F{tipoRendimento}]]></groupExpression>
+        <groupHeader>
+            <band height="25">
+                <rectangle>
+                    <reportElement x="0" y="0" width="555" height="25" backcolor="#C8E6C9" uuid="26bb3eb3-4a05-4c7e-a7f8-f8be391d0e9c"/>
+                </rectangle>
+                <textField>
+                    <reportElement style="Highlight" x="10" y="5" width="300" height="15" uuid="32d3faef-c2f8-4d60-85a7-3da5383a9332"/>
+                    <textFieldExpression><![CDATA["TIPO DE RENDIMENTO: " + $F{tipoRendimento}]]></textFieldExpression>
+                </textField>
+                <textField>
+                    <reportElement x="400" y="5" width="145" height="15" fontSize="9" isBold="true" uuid="2ff84425-5bd0-43b8-a9de-c8a914155f3a"/>
+                    <textElement textAlignment="Right"/>
+                    <textFieldExpression><![CDATA["Total do Tipo: " + new java.text.DecimalFormat("#,##0.00").format($V{TOTAL_RETENCOES})]]></textFieldExpression>
+                </textField>
+            </band>
+        </groupHeader>
+        <groupFooter>
+            <band height="20">
+                <rectangle>
+                    <reportElement x="0" y="0" width="555" height="20" backcolor="#F5F5F5" uuid="8096765c-afa0-45ea-a85a-4bfa4ea2a8dd"/>
+                </rectangle>
+                <textField>
+                    <reportElement style="Total" x="10" y="3" width="300" height="15" uuid="9b1db290-22b5-4958-8453-63714bcf2d16"/>
+                    <textFieldExpression><![CDATA["TOTAL " + $F{tipoRendimento} + ":"]]></textFieldExpression>
+                </textField>
+                <textField pattern="# ,##0.00 AOA">
+                    <reportElement style="Total" x="400" y="3" width="145" height="15" uuid="cc31c07e-3f82-4e6b-bb71-0432aea14140"/>
+                    <textElement textAlignment="Right"/>
+                    <textFieldExpression><![CDATA[$V{TOTAL_RETENCOES}]]></textFieldExpression>
+                </textField>
+            </band>
+        </groupFooter>
+    </group>
+
+    <!-- Cabeçalho da Tabela -->
+    <columnHeader>
+        <band height="25" splitType="Stretch">
+            <staticText>
+                <reportElement style="TableHeader" x="0" y="0" width="60" height="25" uuid="3c62e69b-3579-4517-bedc-160ec5d35a60"/>
+                <text><![CDATA[CÓDIGO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="TableHeader" x="60" y="0" width="140" height="25" uuid="ef94a416-410d-4499-90e8-b4ea0422f573"/>
+                <text><![CDATA[DESCRIÇÃO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="TableHeader" x="200" y="0" width="80" height="25" uuid="2f0d1b42-9cfc-440b-9dff-a8493aa89c93"/>
+                <text><![CDATA[TAXA (%)]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="TableHeader" x="280" y="0" width="80" height="25" uuid="4659776f-02bb-4d4a-af99-f7a01fdb761c"/>
+                <text><![CDATA[OPERAÇÕES]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="TableHeader" x="360" y="0" width="95" height="25" uuid="adc64fd1-b88c-44c6-b5fa-0a5c2fbc3c71"/>
+                <text><![CDATA[BASE CÁLCULO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="TableHeader" x="455" y="0" width="100" height="25" uuid="186a4fd0-8cc7-41b1-9762-b1171371c04a"/>
+                <text><![CDATA[VALOR RETIDO]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <!-- Detalhes -->
+    <detail>
+        <band height="20" splitType="Stretch">
+            <textField>
+                <reportElement style="TableDetail" x="0" y="0" width="60" height="20" uuid="4d3bf827-95d9-464d-9bb1-0b896e5e4e60"/>
+                <textFieldExpression><![CDATA[$F{codigo}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement style="TableDetail" x="60" y="0" width="140" height="20" uuid="1d199921-0eb9-42c6-af4a-9c80a25c9556"/>
+                <textFieldExpression><![CDATA[$F{descricao}]]></textFieldExpression>
+            </textField>
+            <textField pattern="# ,##0.00 %">
+                <reportElement style="TableDetail" x="200" y="0" width="80" height="20" uuid="9bcca74a-ba66-4d2d-bd4a-ce5050b5bcf9"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$F{taxa}]]></textFieldExpression>
+            </textField>
+            <textField pattern="# ,##0">
+                <reportElement style="TableDetail" x="280" y="0" width="80" height="20" uuid="9abbb9d1-1877-44b0-af5c-ac9dd4434146"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$F{numeroOperacoes}]]></textFieldExpression>
+            </textField>
+            <textField pattern="# ,##0.00 AOA">
+                <reportElement style="TableDetail" x="360" y="0" width="95" height="20" uuid="c574c634-b189-4653-9911-85d4fae93303"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$F{valorBase}]]></textFieldExpression>
+            </textField>
+            <textField pattern="# ,##0.00 AOA">
+                <reportElement x="455" y="0" width="100" height="20" uuid="ea3fd966-a9b6-48c3-a579-d17851ad5473">
+                    <conditionalStyle>
+                        <conditionExpression><![CDATA[$F{taxa}.doubleValue() >= 15]]></conditionExpression>
+                        <style mode="Opaque" forecolor="#D32F2F" isBold="true"/>
+                    </conditionalStyle>
+                    <conditionalStyle>
+                        <conditionExpression><![CDATA[$F{taxa}.doubleValue() >= 10 && $F{taxa}.doubleValue() < 15]]></conditionExpression>
+                        <style mode="Opaque" forecolor="#F57C00" isBold="true"/>
+                    </conditionalStyle>
+                    <conditionalStyle>
+                        <conditionExpression><![CDATA[$F{taxa}.doubleValue() < 10]]></conditionExpression>
+                        <style mode="Opaque" forecolor="#388E3C" isBold="true"/>
+                    </conditionalStyle>
+                </reportElement>
+                <textFieldExpression><![CDATA[$F{valorRetido}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <!-- Rodapé -->
+    <pageFooter>
+        <band height="25" splitType="Stretch">
+            <rectangle>
+                <reportElement x="0" y="0" width="555" height="25" backcolor="#F5F5F5" uuid="48a379d9-d37e-41fc-8183-649064e9b173"/>
+            </rectangle>
+            <textField>
+                <reportElement style="Footer" x="10" y="5" width="300" height="15" uuid="2f064ed5-cadf-406b-87de-7515b8c1857e"/>
+                <textFieldExpression><![CDATA[$P{EMPRESA_NOME} + " | " + $P{EMPRESA_ENDERECO} + " | Tel: " + $P{EMPRESA_TELEFONE}]]></textFieldExpression>
+            </textField>
+            <textField pattern="dd/MM/yyyy HH:mm:ss">
+                <reportElement style="Footer" x="400" y="5" width="145" height="15" uuid="5a4cb559-0601-4dc3-a4f2-ae276397d1e3"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+
+</jasperReport>
+

@@ -1,0 +1,224 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA ADMIN — Ribbon Buttons (Microsoft Office Style)
+   Botões 100% customizados para ribbon
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Botão Base ────────────────────────────────────────────────────────────── */
+.ribbon-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3px;
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-cursor: hand;
+}
+
+.ribbon-button-hover {
+    -fx-background-color: rgba(33, 115, 70, 0.08);
+    -fx-border-color: rgba(33, 115, 70, 0.22);
+}
+
+.ribbon-button-pressed {
+    -fx-background-color: rgba(33, 115, 70, 0.18);
+    -fx-border-color: rgba(33, 115, 70, 0.38);
+}
+
+.ribbon-button-disabled {
+    -fx-opacity: 0.45;
+    -fx-cursor: default;
+}
+
+/* ── Ícone e Texto ─────────────────────────────────────────────────────────── */
+.ribbon-icon {
+    -fx-icon-color: #1a1a1a;
+}
+
+.ribbon-button-disabled .ribbon-icon {
+    -fx-icon-color: #666666;
+}
+
+.ribbon-text {
+    -fx-font-size: 10px;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-text-fill: #1a1a1a;
+    -fx-font-weight: 500;
+}
+
+.ribbon-button-disabled .ribbon-text {
+    -fx-text-fill: #666666;
+}
+
+/* ── Botão Grande ────────────────────────────────────────────────────────────── */
+.ribbon-large-button {
+    -fx-padding: 0;
+}
+
+.ribbon-large-button .ribbon-icon-box {
+    -fx-background-color: transparent;
+    -fx-background-radius: 2px;
+}
+
+.ribbon-large-button.ribbon-button-hover .ribbon-icon-box {
+    -fx-background-color: rgba(33, 115, 70, 0.06);
+}
+
+.ribbon-large-button.ribbon-button-pressed .ribbon-icon-box {
+    -fx-background-color: rgba(33, 115, 70, 0.12);
+}
+
+.ribbon-large-button .ribbon-text {
+    -fx-font-size: 10px;
+    -fx-alignment: center;
+}
+
+/* ── Botão Pequeno ───────────────────────────────────────────────────────────── */
+.ribbon-small-button {
+    -fx-padding: 0;
+    -fx-background-radius: 2px;
+}
+
+.ribbon-small-button .ribbon-text {
+    -fx-font-size: 11px;
+    -fx-alignment: center-left;
+}
+
+/* ── Grupo de Botões ─────────────────────────────────────────────────────────── */
+.ribbon-button-group {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent #dde8e2 transparent transparent;
+    -fx-border-width: 0 1px 0 0;
+}
+
+.ribbon-group-title {
+    -fx-font-size: 9px;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-text-fill: #555555;
+    -fx-font-weight: 500;
+    -fx-alignment: center;
+}
+
+.ribbon-group-separator {
+    -fx-background-color: #c8d6ce;
+    -fx-padding: 0 2px;
+}
+
+/* ── Popup de Overflow ───────────────────────────────────────────────────────── */
+.ribbon-overflow-popup {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 6px;
+    -fx-border-color: #d0dcd4;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-padding: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 8, 0, 0, 2);
+}
+
+.ribbon-overflow-container {
+    -fx-background-color: transparent;
+    -fx-padding: 4px;
+}
+
+.ribbon-overflow-group {
+    -fx-background-color: transparent;
+    -fx-padding: 4px 0;
+}
+
+.ribbon-overflow-title {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #1a472a;
+    -fx-padding: 0 0 6px 0;
+}
+
+.ribbon-overflow-separator {
+    -fx-background-color: #e0e8e3;
+    -fx-padding: 4px 0;
+}
+
+/* Tooltip customizado */
+.tooltip {
+    -fx-background-color: #2d2d2d;
+    -fx-background-radius: 4px;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 11px;
+    -fx-padding: 6px 10px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 4, 0, 0, 1);
+}
+
+.tooltip .text {
+    -fx-fill: #ffffff;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BOTÃO CARD — Estilo card quadrado com ícone grande
+   ════════════════════════════════════════════════════════════════════════════ */
+.ribbon-card-button {
+    -fx-padding: 0;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 6px;
+    -fx-border-color: #e0e8e3;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+}
+
+.ribbon-card-button.ribbon-button-hover {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #c8d6ce;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 4, 0, 0, 1);
+}
+
+.ribbon-card-button.ribbon-button-pressed {
+    -fx-background-color: #eef4f0;
+    -fx-border-color: #b0c4ba;
+}
+
+.ribbon-card-button .ribbon-card-icon-box {
+    -fx-background-color: rgba(33, 115, 70, 0.06);
+    -fx-background-radius: 4px;
+}
+
+.ribbon-card-button.ribbon-button-hover .ribbon-card-icon-box {
+    -fx-background-color: rgba(33, 115, 70, 0.10);
+}
+
+.ribbon-card-icon {
+    -fx-icon-color: #217346;
+}
+
+.ribbon-card-text {
+    -fx-font-size: 9px;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-text-fill: #1a1a1a;
+    -fx-font-weight: 500;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CONTAINER DE COLUNAS — Layout vertical para até 3 botões
+   ════════════════════════════════════════════════════════════════════════════ */
+.ribbon-column-container {
+    -fx-background-color: transparent;
+    -fx-padding: 2px 4px;
+    -fx-spacing: 2px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SEÇÃO DE OPERAÇÕES — Múltiplas colunas de botões pequenos
+   ════════════════════════════════════════════════════════════════════════════ */
+.ribbon-operations-section {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.ribbon-operations-title {
+    -fx-font-size: 9px;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-text-fill: #555555;
+    -fx-font-weight: 500;
+    -fx-alignment: center;
+}
+
+.ribbon-column-separator {
+    -fx-background-color: #c8d6ce;
+    -fx-padding: 0 2px;
+}

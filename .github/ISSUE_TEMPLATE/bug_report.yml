@@ -1,0 +1,39 @@
+name: Bug report
+description: Create a report to help us improve
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar um bug. Por favor, preencha as informações abaixo para nos ajudar a identificar o problema.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Descrição do Bug
+      description: Uma descrição clara e concisa do que aconteceu.
+      placeholder: Ex: Ao clicar no botão 'Gerar' em Relatórios, a aplicação fecha.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Passos para Reproduzir
+      description: Como podemos reproduzir este comportamento?
+      placeholder: |
+        1. Vá para '...'
+        2. Clique em '....'
+        3. Veja o erro
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versão do Sistema
+      placeholder: Ex: v1.0.0-SNAPSHOT
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou Capturas de Ecrã
+      description: Por favor, anexe logs relevantes ou imagens do erro.
