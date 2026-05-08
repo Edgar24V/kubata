@@ -64,6 +64,10 @@ public class HoraExtraService {
         repository.deleteById(id);
     }
 
+    public void delete(Long id) {
+        deleteById(id);
+    }
+
     public List<HoraExtra> findByColaborador(Long colaboradorId) {
         return repository.findByColaboradorIdOrderByDataDesc(colaboradorId);
     }

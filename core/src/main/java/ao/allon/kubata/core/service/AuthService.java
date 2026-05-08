@@ -4,7 +4,9 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
+import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.repository.UserRepository;
+import ao.allon.kubata.core.repository.UserSessionRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final UserSessionRepository userSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
     private final AcessoService acessoService;
@@ -33,8 +36,12 @@ public class AuthService {
     @Value("${kubata.security.password-expiry-days:90}")
     private int passwordExpiryDays;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, AcessoService acessoService) {
+    public AuthService(UserRepository userRepository, 
+                       UserSessionRepository userSessionRepository,
+                       PasswordEncoder passwordEncoder, 
+                       AcessoService acessoService) {
         this.userRepository = userRepository;
+        this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
     }
@@ -80,6 +87,10 @@ public class AuthService {
         resetFailures(user);
         userRepository.save(user);
         
+        // Criar sessão real na BD
+        UserSession session = new UserSession(user.getNome(), "STATION-01", ip, "KUBATA ERP");
+        userSessionRepository.save(session);
+        
         acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Sucesso", true);
         return user;
     }
@@ -90,6 +101,15 @@ public class AuthService {
         user.setMfaSecret(key.getKey());
         userRepository.save(user);
         return key.getKey();
+    }
+
+    @Transactional
+    public void logout(User user, String ip) {
+        if (user != null) {
+            userSessionRepository.findByUsername(user.getNome())
+                .ifPresent(userSessionRepository::delete);
+            acessoService.registrarAuditoria(user, "LOGOUT", "AUTH", ip, "Saída do sistema", true);
+        }
     }
 
     private boolean isLocked(User user) {

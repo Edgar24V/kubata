@@ -1,6 +1,7 @@
 package ao.allon.kubata.admin.service;
 
 import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.admin.service.job.JobManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -26,15 +27,18 @@ public class PersistenceService {
     private final SessionManager sessionManager;
     private final NotificationService notificationService;
     private final ModalManager modalManager;
+    private final JobManager jobManager;
 
-    public PersistenceService(AcessoService acessoService, 
-                             SessionManager sessionManager, 
-                             NotificationService notificationService,
-                             ModalManager modalManager) {
+    public PersistenceService(AcessoService acessoService,
+                              SessionManager sessionManager,
+                              NotificationService notificationService,
+                              ModalManager modalManager,
+                              JobManager jobManager) {
         this.acessoService = acessoService;
         this.sessionManager = sessionManager;
         this.notificationService = notificationService;
         this.modalManager = modalManager;
+        this.jobManager = jobManager;
     }
 
     /**
@@ -48,6 +52,17 @@ public class PersistenceService {
      */
     public <T, ID> void saveAsync(JpaRepository<T, ID> repository, T entity, String entityType, String description, Consumer<T> onSuccess) {
         logger.info("Iniciando persistência assíncrona para {}: {}", entityType, description);
+
+        if (jobManager != null) {
+            jobManager.submit("Persistir Dados", "UPDATE", entityType, description, job -> {
+                repository.save(entity);
+            }, () -> {
+                if (onSuccess != null) {
+                    onSuccess.accept(entity);
+                }
+            });
+            return;
+        }
 
         Task<T> task = new Task<>() {
             @Override
@@ -97,6 +112,14 @@ public class PersistenceService {
     public <T, ID> void deleteAsync(JpaRepository<T, ID> repository, T entity, ID id, String entityType, String description, Runnable onSuccess) {
         logger.info("Iniciando remoção assíncrona para {}: {}", entityType, description);
 
+        if (jobManager != null) {
+            jobManager.submit("Remover Registo", "DELETE", entityType, description, job -> {
+                if (entity != null) repository.delete(entity);
+                else if (id != null) repository.deleteById(id);
+            }, onSuccess);
+            return;
+        }
+
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
@@ -141,10 +164,43 @@ public class PersistenceService {
     }
 
     /**
+     * Executa uma operação em segundo plano de forma silenciosa (sem logs de auditoria ou notificações).
+     * Ideal para heartbeats, verificações de saúde ou atualizações automáticas de UI.
+     */
+    public void executeSilent(Runnable operation, Runnable onSuccess) {
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                operation.run();
+                return null;
+            }
+        };
+
+        if (onSuccess != null) {
+            task.setOnSucceeded(e -> onSuccess.run());
+        }
+
+        task.setOnFailed(e -> {
+            logger.warn("Operação silenciosa falhou: {}", task.getException().getMessage());
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    /**
      * Executa uma operação genérica de forma assíncrona com auditoria e notificações.
      */
     public void executeAsync(Runnable operation, String actionType, String entityType, String description, Runnable onSuccess) {
         logger.info("Iniciando operação assíncrona {}: {}", actionType, description);
+
+        if (jobManager != null) {
+            jobManager.submit("Operação de Sistema", actionType, entityType, description, job -> {
+                operation.run();
+            }, onSuccess);
+            return;
+        }
 
         Task<Void> task = new Task<>() {
             @Override

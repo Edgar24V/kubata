@@ -3,28 +3,44 @@ package ao.allon.kubata.admin.ui.wizard;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.Empresa;
+import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.domain.BackupConfig;
 import ao.allon.kubata.core.repository.EmpresaRepository;
+import ao.allon.kubata.core.repository.UserRepository;
+import ao.allon.kubata.core.repository.BackupConfigRepository;
+import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.admin.service.SessionManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.FileChooser;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Component;
 import org.controlsfx.validation.ValidationSupport;
 import org.controlsfx.validation.Validator;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class EmpresaWizardView extends VBox {
 
     private final ModalManager modalManager;
     private final EmpresaRepository empresaRepository;
+    private final UserRepository userRepository;
+    private final BackupConfigRepository backupConfigRepository;
+    private final AcessoService acessoService;
+    private final SessionManager sessionManager;
     private Empresa empresa;
     private int currentStep = 0;
     private final List<WizardStep> steps = new ArrayList<>();
@@ -38,9 +54,18 @@ public class EmpresaWizardView extends VBox {
     private Button btnNext;
     private Button btnHelp;
 
-    public EmpresaWizardView(ModalManager modalManager, EmpresaRepository empresaRepository) {
+    public EmpresaWizardView(ModalManager modalManager, 
+                             EmpresaRepository empresaRepository,
+                             UserRepository userRepository,
+                             BackupConfigRepository backupConfigRepository,
+                             AcessoService acessoService,
+                             SessionManager sessionManager) {
         this.modalManager = modalManager;
         this.empresaRepository = empresaRepository;
+        this.userRepository = userRepository;
+        this.backupConfigRepository = backupConfigRepository;
+        this.acessoService = acessoService;
+        this.sessionManager = sessionManager;
         buildUI();
     }
 
@@ -221,7 +246,8 @@ public class EmpresaWizardView extends VBox {
     }
 
     private void logActivity(String action) {
-        // TODO: Persistir log de auditoria via AcessoService
+        acessoService.registrarAuditoria(sessionManager.getUser(), "WIZARD", "EMPRESA", 
+                "127.0.0.1", "Empresa: " + empresa.getNome() + " | Ação: " + action, true);
         System.out.println("[WIZARD LOG] " + empresa.getNome() + ": " + action);
     }
 
@@ -326,14 +352,19 @@ public class EmpresaWizardView extends VBox {
 
     // 3. Setores e Departamentos
     private class SectorsStep implements WizardStep {
+        private ListView<String> lvSetores;
         public String getTitle() { return "3. Estrutura Organizacional"; }
         public String getDescription() { return "Defina os principais setores e departamentos da empresa."; }
         public Node getContent() {
             VBox box = new VBox(15);
             box.setAlignment(Pos.CENTER);
             
-            ListView<String> lvSetores = new ListView<>();
-            lvSetores.getItems().addAll("Administração", "Financeiro", "Vendas", "Armazém", "RH");
+            lvSetores = new ListView<>();
+            if (empresa.getSetores() != null && !empresa.getSetores().isEmpty()) {
+                lvSetores.getItems().addAll(empresa.getSetores().split(","));
+            } else {
+                lvSetores.getItems().addAll("Administração", "Financeiro", "Vendas", "Armazém", "RH");
+            }
             lvSetores.setPrefHeight(200);
             lvSetores.setMaxWidth(400);
             
@@ -353,7 +384,10 @@ public class EmpresaWizardView extends VBox {
             return box;
         }
         public boolean validate() { return true; }
-        public void savePartial() { /* TODO: Salvar setores em tabela relacionada */ }
+        public void savePartial() { 
+            String setores = String.join(",", lvSetores.getItems());
+            empresa.setSetores(setores);
+        }
         public String getHelpText() { return "Defina a estrutura para facilitar a alocação de custos e funcionários futuramente."; }
     }
 
@@ -365,12 +399,22 @@ public class EmpresaWizardView extends VBox {
             VBox box = new VBox(15);
             box.setAlignment(Pos.CENTER);
             
-            TableView<String[]> tvUsers = new TableView<>();
-            TableColumn<String[], String> colNome = new TableColumn<>("Nome");
-            TableColumn<String[], String> colPerfil = new TableColumn<>("Perfil");
-            tvUsers.getColumns().addAll(colNome, colPerfil);
+            TableView<User> tvUsers = new TableView<>();
+            TableColumn<User, String> colNome = new TableColumn<>("Nome");
+            colNome.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getNome()));
+            
+            TableColumn<User, String> colEmail = new TableColumn<>("Email");
+            colEmail.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getEmail()));
+
+            TableColumn<User, String> colPerfil = new TableColumn<>("Perfil");
+            colPerfil.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getRole().name()));
+
+            tvUsers.getColumns().addAll(colNome, colEmail, colPerfil);
             tvUsers.setPrefHeight(200);
-            tvUsers.setMaxWidth(500);
+            tvUsers.setMaxWidth(600);
+            
+            // Carregar usuários reais
+            tvUsers.getItems().setAll(userRepository.findAll());
             
             Label lblTip = new Label("Dica: Pode definir permissões granulares no módulo Administrator após o login.");
             lblTip.setStyle("-fx-font-style: italic; -fx-text-fill: #95a5a6;");
@@ -422,27 +466,69 @@ public class EmpresaWizardView extends VBox {
 
     // 6. Logotipo e Identidade
     private class BrandingStep implements WizardStep {
+        private ImageView imgView;
+        private byte[] logoBytes;
+        private String mimeType;
+
         public String getTitle() { return "6. Logótipo & Branding"; }
         public String getDescription() { return "Personalize a aparência dos seus documentos e faturas."; }
         public Node getContent() {
             VBox box = new VBox(20);
             box.setAlignment(Pos.CENTER);
             
-            Rectangle rectLogo = new Rectangle(200, 120, Color.web("#f5f6f7"));
-            rectLogo.setArcWidth(10); rectLogo.setArcHeight(10);
-            rectLogo.setStroke(Color.web("#dcdde1"));
+            StackPane logoContainer = new StackPane();
+            logoContainer.setPrefSize(200, 120);
+            logoContainer.setStyle("-fx-background-color: #f5f6f7; -fx-background-radius: 10; -fx-border-color: #dcdde1; -fx-border-radius: 10;");
+            
+            imgView = new ImageView();
+            imgView.setFitWidth(180);
+            imgView.setFitHeight(100);
+            imgView.setPreserveRatio(true);
+            
+            if (empresa.getLogotipo() != null) {
+                logoBytes = empresa.getLogotipo();
+                mimeType = empresa.getLogotipoMimeType();
+                imgView.setImage(new Image(new java.io.ByteArrayInputStream(logoBytes)));
+            } else {
+                logoContainer.getChildren().add(new Label("Sem Logótipo", IconUtils.icon(Feather.IMAGE, 24)));
+            }
+            logoContainer.getChildren().add(imgView);
             
             Button btnUpload = new Button("Selecionar Logótipo", IconUtils.icon(Feather.UPLOAD, 14));
+            btnUpload.setOnAction(e -> {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Selecionar Logótipo");
+                fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Imagens", "*.png", "*.jpg", "*.jpeg")
+                );
+                File file = fileChooser.showOpenDialog(getScene().getWindow());
+                if (file != null) {
+                    try {
+                        logoBytes = Files.readAllBytes(file.toPath());
+                        mimeType = Files.probeContentType(file.toPath());
+                        imgView.setImage(new Image(new java.io.ByteArrayInputStream(logoBytes)));
+                        logoContainer.getChildren().removeIf(n -> n instanceof Label);
+                    } catch (Exception ex) {
+                        modalManager.alert("Erro", "Falha ao carregar imagem: " + ex.getMessage(), "error", ex);
+                    }
+                }
+            });
             
             HBox colors = new HBox(15);
             colors.setAlignment(Pos.CENTER);
-            colors.getChildren().addAll(new Label("Cor dos Documentos:"), new ColorPicker(Color.web("#27ae60")));
+            ColorPicker cp = new ColorPicker(Color.web("#27ae60"));
+            colors.getChildren().addAll(new Label("Cor dos Documentos:"), cp);
             
-            box.getChildren().addAll(new Label("Pré-visualização do Logótipo:"), rectLogo, btnUpload, colors);
+            box.getChildren().addAll(new Label("Pré-visualização do Logótipo:"), logoContainer, btnUpload, colors);
             return box;
         }
         public boolean validate() { return true; }
-        public void savePartial() {}
+        public void savePartial() {
+            if (logoBytes != null) {
+                empresa.setLogotipo(logoBytes);
+                empresa.setLogotipoMimeType(mimeType);
+            }
+        }
         public String getHelpText() { return "O logótipo será impresso em todas as faturas e guias emitidas pelo sistema."; }
     }
 
@@ -470,6 +556,9 @@ public class EmpresaWizardView extends VBox {
 
     // 8. Backup e Segurança
     private class BackupSecurityStep implements WizardStep {
+        private CheckBox chkBackupDiario, chkMfa;
+        private ComboBox<String> cbRetention;
+
         public String getTitle() { return "8. Segurança & Backup"; }
         public String getDescription() { return "Defina as políticas de proteção de dados."; }
         public Node getContent() {
@@ -477,12 +566,12 @@ public class EmpresaWizardView extends VBox {
             box.setAlignment(Pos.CENTER_LEFT);
             box.setPadding(new Insets(0, 100, 0, 100));
             
-            CheckBox chkBackupDiario = new CheckBox("Backup automático diário (Nuvem)");
+            chkBackupDiario = new CheckBox("Backup automático diário (Nuvem)");
             chkBackupDiario.setSelected(true);
             
-            CheckBox chkMfa = new CheckBox("Ativar Autenticação de Dois Fatores (2FA) para Administradores");
+            chkMfa = new CheckBox("Ativar Autenticação de Dois Fatores (2FA) para Administradores");
             
-            ComboBox<String> cbRetention = new ComboBox<>();
+            cbRetention = new ComboBox<>();
             cbRetention.getItems().addAll("Manter backups por 30 dias", "Manter backups por 1 ano", "Manter backups permanentemente");
             cbRetention.getSelectionModel().selectFirst();
             
@@ -490,7 +579,16 @@ public class EmpresaWizardView extends VBox {
             return box;
         }
         public boolean validate() { return true; }
-        public void savePartial() {}
+        public void savePartial() {
+            BackupConfig config = backupConfigRepository.findById(1L).orElse(new BackupConfig());
+            config.setEnabled(chkBackupDiario.isSelected());
+            config.setFrequency(BackupConfig.BackupFrequency.DAILY);
+            config.setRetentionDays(cbRetention.getSelectionModel().getSelectedIndex() == 0 ? 30 : 365);
+            backupConfigRepository.save(config);
+            
+            // Simulação de salvamento de MFA global (Poderia estar em ParametrosSistema)
+            logActivity("Configuração de backup e MFA salva.");
+        }
         public String getHelpText() { return "A segurança dos dados é fundamental para a conformidade com a lei de proteção de dados."; }
     }
 

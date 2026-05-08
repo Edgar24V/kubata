@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Serviço de notificações moderno para o Kubata Administrator.
@@ -24,6 +26,8 @@ public class NotificationService {
 
     private StackPane rootContainer;
     private VBox notificationBox;
+    private final Map<String, Long> recentNotifications = new ConcurrentHashMap<>();
+    private static final long DEBOUNCE_MS = 2000; // 2 segundos para evitar duplicados
 
     /**
      * Define o container raiz onde as notificações serão exibidas.
@@ -66,47 +70,61 @@ public class NotificationService {
     private void createNotification(String titleStr, String summaryStr, String styleClass, Feather icon) {
         if (rootContainer == null || notificationBox == null) return;
 
+        // Anti-duplicação (Debounce)
+        String key = titleStr + "|" + summaryStr;
+        long now = System.currentTimeMillis();
+        if (recentNotifications.containsKey(key)) {
+            if (now - recentNotifications.get(key) < DEBOUNCE_MS) {
+                return; // Ignora se for muito recente (duplicado)
+            }
+        }
+        recentNotifications.put(key, now);
+
         VBox toast = new VBox(5);
         toast.getStyleClass().addAll("notification-toast", styleClass);
-        toast.setMinWidth(300);
+        toast.setMinWidth(320);
         toast.setMaxWidth(400);
-        toast.setPadding(new Insets(12, 15, 12, 15));
+        toast.setPadding(new Insets(15));
         
-        // Estilo base via código para garantir visibilidade inicial, mas preferir CSS
-        toast.setStyle("-fx-background-color: white; -fx-background-radius: 8px; " +
-                      "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 4); " +
-                      "-fx-border-color: #e0e0e0; -fx-border-radius: 8px; -fx-border-width: 1px;");
+        // Cores baseadas no estilo
+        final String finalAccentColor;
+        if (styleClass.contains("error")) finalAccentColor = "#e74c3c";
+        else if (styleClass.contains("warning")) finalAccentColor = "#f39c12";
+        else if (styleClass.contains("info")) finalAccentColor = "#3498db";
+        else finalAccentColor = "#2ecc71"; // Success
 
-        HBox header = new HBox(10);
+        toast.setStyle("-fx-background-color: white; " +
+                      "-fx-background-radius: 12px; " +
+                      "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 15, 0, 0, 5); " +
+                      "-fx-border-color: " + finalAccentColor + "; " +
+                      "-fx-border-width: 0 0 0 5; " + // Barra lateral colorida
+                      "-fx-cursor: hand;");
+
+        HBox header = new HBox(12);
         header.setAlignment(Pos.CENTER_LEFT);
         
-        Label iconLabel = new Label();
-        iconLabel.setGraphic(IconUtils.icon(icon, IconUtils.SIZE_SMALL));
+        StackPane iconCircle = new StackPane();
+        iconCircle.setPrefSize(30, 30);
+        iconCircle.setStyle("-fx-background-color: " + finalAccentColor + "22; -fx-background-radius: 50;");
+        iconCircle.getChildren().add(IconUtils.icon(icon, 16));
         
         Label title = new Label(titleStr);
-        title.getStyleClass().add("notification-title");
-        title.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #333;");
+        title.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2c3e50;");
 
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button closeBtn = new Button();
         closeBtn.setGraphic(IconUtils.icon(Feather.X, 12));
-        closeBtn.getStyleClass().add("button-icon-small");
-        closeBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand;");
+        closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #95a5a6; -fx-padding: 0;");
         
-        header.getChildren().addAll(iconLabel, title, spacer, closeBtn);
+        header.getChildren().addAll(iconCircle, title, spacer, closeBtn);
 
         Label summary = new Label(summaryStr);
         summary.setWrapText(true);
-        summary.getStyleClass().add("notification-summary");
-        summary.setStyle("-fx-font-size: 11px; -fx-text-fill: #666;");
+        summary.setStyle("-fx-font-size: 12px; -fx-text-fill: #7f8c8d; -fx-padding: 0 0 0 42;");
 
-        Label time = new Label("Agora • " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-        time.getStyleClass().add("notification-time");
-        time.setStyle("-fx-font-size: 9px; -fx-text-fill: #999;");
-
-        toast.getChildren().addAll(header, summary, time);
+        toast.getChildren().addAll(header, summary);
 
         // Animação de entrada
         toast.setOpacity(0);
@@ -133,9 +151,13 @@ public class NotificationService {
             closeNotification(toast);
         });
         
-        // Efeito de hover
-        toast.setOnMouseEntered(e -> toast.setStyle(toast.getStyle() + "-fx-border-color: #2ecc71;"));
-        toast.setOnMouseExited(e -> toast.setStyle(toast.getStyle() + "-fx-border-color: #e0e0e0;"));
+        // Efeito de hover e clique para fechar
+        toast.setOnMouseEntered(e -> toast.setStyle(toast.getStyle() + "-fx-border-color: " + finalAccentColor + "; -fx-background-color: #fafafa;"));
+        toast.setOnMouseExited(e -> toast.setStyle(toast.getStyle().replace("-fx-background-color: #fafafa;", "")));
+        toast.setOnMouseClicked(e -> {
+            autoClose.stop();
+            closeNotification(toast);
+        });
     }
 
     private void closeNotification(VBox toast) {

@@ -59,6 +59,10 @@ public class FaltaService {
         repository.deleteById(id);
     }
 
+    public void delete(Long id) {
+        deleteById(id);
+    }
+
     public List<Falta> findByData(LocalDate data) {
         return repository.findByDataBetweenOrderByData(data, data);
     }

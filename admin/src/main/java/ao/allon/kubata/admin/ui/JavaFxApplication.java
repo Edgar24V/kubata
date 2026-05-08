@@ -1,6 +1,7 @@
 package ao.allon.kubata.admin.ui;
 
 import ao.allon.kubata.admin.KubataAdminApplication;
+import ao.allon.kubata.admin.service.PendingRestoreApplier;
 import ao.allon.kubata.admin.ui.util.GlobalExceptionHandler;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -15,6 +16,7 @@ public class JavaFxApplication extends Application {
     @Override
     public void init() {
         GlobalExceptionHandler.setup(); // Configura o handler de exceções global
+        PendingRestoreApplier.applyIfPresent();
         applicationContext = new SpringApplicationBuilder(KubataAdminApplication.class)
                 .headless(false)
                 .run(getParameters().getRaw().toArray(new String[0]));

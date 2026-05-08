@@ -153,6 +153,9 @@ public class Empresa extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String modulos;
 
+    @Column(columnDefinition = "TEXT")
+    private String setores;
+
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
 
@@ -302,4 +305,7 @@ public class Empresa extends BaseEntity {
 
     public String getModulos() { return modulos; }
     public void setModulos(String modulos) { this.modulos = modulos; }
+
+    public String getSetores() { return setores; }
+    public void setSetores(String setores) { this.setores = setores; }
 }

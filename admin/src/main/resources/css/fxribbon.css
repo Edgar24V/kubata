@@ -7,7 +7,7 @@
     -fx-background-color: #f3f3f3;
     -fx-border-color: #d1d1d1;
     -fx-border-width: 0 0 1 0;
-    -fx-accent-color: #0078d4; /* Default Office Blue */
+    -kubata-accent-color: #0078d4; /* Default Office Blue */
 }
 
 .ribbon-tab-strip {
@@ -30,13 +30,13 @@
 
 .ribbon-tab-label:hover {
     -fx-background-color: #f0f0f0;
-    -fx-text-fill: var(-fx-accent-color);
+    -fx-text-fill: -kubata-accent-color;
 }
 
 .ribbon-tab-label-selected {
-    -fx-text-fill: var(-fx-accent-color);
+    -fx-text-fill: -kubata-accent-color;
     -fx-font-weight: bold;
-    -fx-border-color: var(-fx-accent-color);
+    -fx-border-color: -kubata-accent-color;
 }
 
 .ribbon-content-host {
@@ -82,7 +82,7 @@
 .ribbon-button-selected,
 .ribbon-button-selected:hover {
     -fx-background-color: #e2eaf2;
-    -fx-border-color: var(-fx-accent-color);
+    -fx-border-color: -kubata-accent-color;
     -fx-border-width: 0 0 2 0;
 }
 
@@ -106,7 +106,7 @@
 
 .ribbon-button:hover .ribbon-tile-icon-wrap {
     -fx-background-color: #ffffff;
-    -fx-border-color: var(-fx-accent-color);
+    -fx-border-color: -kubata-accent-color;
     -fx-scale-x: 1.05;
     -fx-scale-y: 1.05;
 }

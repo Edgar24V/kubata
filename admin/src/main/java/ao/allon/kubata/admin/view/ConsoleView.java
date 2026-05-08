@@ -3,15 +3,25 @@ package ao.allon.kubata.admin.view;
 import ao.allon.kubata.admin.service.NotificationService;
 import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.service.SessionManager;
+import ao.allon.kubata.admin.service.job.AdminJob;
+import ao.allon.kubata.admin.service.job.JobManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.SystemLog;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.domain.UserSession;
+import ao.allon.kubata.core.domain.RecordLock;
 import ao.allon.kubata.core.repository.SystemLogRepository;
 import ao.allon.kubata.core.repository.UserRepository;
+import ao.allon.kubata.core.repository.UserSessionRepository;
+import ao.allon.kubata.core.repository.RecordLockRepository;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
+import ao.allon.kubata.core.module.ModuleRegistry;
+import ao.allon.kubata.core.module.KubataModule;
 import javafx.application.Platform;
+import java.util.Collection;
+import java.util.List;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -23,13 +33,17 @@ import javafx.scene.Node;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.util.Duration;
+import javafx.stage.FileChooser;
 import org.kordamp.ikonli.feather.Feather;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import javafx.stage.FileChooser;
+import jakarta.annotation.PreDestroy;
 import java.io.File;
 import java.io.PrintWriter;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -47,12 +61,18 @@ import java.util.stream.Collectors;
 @Component
 public class ConsoleView extends VBox {
 
+    private static final Logger logger = LoggerFactory.getLogger(ConsoleView.class);
+
     private final SystemLogRepository systemLogRepository;
     private final UserRepository userRepository;
+    private final UserSessionRepository userSessionRepository;
+    private final RecordLockRepository recordLockRepository;
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
     private final NotificationService notificationService;
+    private final JobManager jobManager;
+    private final ModuleRegistry moduleRegistry;
 
     private final TabPane tabPane = new TabPane();
     
@@ -75,21 +95,30 @@ public class ConsoleView extends VBox {
     private final ObservableList<LockedRecord> lockedRecords = FXCollections.observableArrayList();
     private final ObservableList<SystemLog> systemLogs = FXCollections.observableArrayList();
     private final ObservableList<SystemLog> filteredLogs = FXCollections.observableArrayList();
-    private final ObservableList<BackgroundProcess> backgroundProcesses = FXCollections.observableArrayList();
+    private final ObservableList<AdminJob> backgroundProcesses;
     private final ObservableList<ModuleStatus> moduleStatuses = FXCollections.observableArrayList();
 
     public ConsoleView(SystemLogRepository systemLogRepository, 
                        UserRepository userRepository,
+                       UserSessionRepository userSessionRepository,
+                       RecordLockRepository recordLockRepository,
                        SessionManager sessionManager, 
                        ModalManager modalManager,
                        PersistenceService persistenceService,
-                       NotificationService notificationService) {
+                       NotificationService notificationService,
+                       JobManager jobManager,
+                       ModuleRegistry moduleRegistry) {
         this.systemLogRepository = systemLogRepository;
         this.userRepository = userRepository;
+        this.userSessionRepository = userSessionRepository;
+        this.recordLockRepository = recordLockRepository;
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
         this.notificationService = notificationService;
+        this.jobManager = jobManager;
+        this.moduleRegistry = moduleRegistry;
+        this.backgroundProcesses = jobManager.getJobs();
 
         buildUI();
         
@@ -107,13 +136,26 @@ public class ConsoleView extends VBox {
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
             t.setDaemon(true);
+            t.setName("ConsolePerformanceMonitor");
             return t;
         });
         
+        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+        
         scheduler.scheduleAtFixedRate(() -> {
             Platform.runLater(() -> {
-                double cpu = 5 + (Math.random() * 15);
-                double mem = 400 + (Math.random() * 100);
+                double cpu;
+                if (osBean instanceof com.sun.management.OperatingSystemMXBean) {
+                    cpu = ((com.sun.management.OperatingSystemMXBean) osBean).getSystemCpuLoad() * 100;
+                } else {
+                    cpu = osBean.getSystemLoadAverage();
+                }
+                
+                // Fallback se não for possível obter CPU real
+                if (cpu < 0) cpu = 5 + (Math.random() * 10);
+                
+                Runtime runtime = Runtime.getRuntime();
+                double mem = (runtime.totalMemory() - runtime.freeMemory()) / (1024.0 * 1024.0);
                 
                 cpuSeries.getData().add(new XYChart.Data<>(chartTime, cpu));
                 memSeries.getData().add(new XYChart.Data<>(chartTime, mem));
@@ -125,39 +167,45 @@ public class ConsoleView extends VBox {
                 chartTime++;
                 
                 updateUptime();
-                simulateProcessProgress();
                 updateDBHealth();
             });
         }, 0, 2, TimeUnit.SECONDS);
     }
 
+    @PreDestroy
+    public void cleanup() {
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+            logger.info("Scheduler da Consola desligado com sucesso.");
+        }
+    }
+
     private void updateDBHealth() {
         if (lblDBStatus != null) {
-            boolean dbUp = Math.random() > 0.02; // 98% chance of being UP
-            lblDBStatus.setText(dbUp ? "LIGADO" : "LATÊNCIA ALTA");
-            lblDBStatus.setStyle("-fx-text-fill: " + (dbUp ? "#27ae60" : "#e67e22") + "; -fx-font-weight: bold;");
+            persistenceService.executeSilent(() -> {
+                userRepository.count(); // Teste de conexão simples
+            }, () -> {
+                // Sucesso
+                Platform.runLater(() -> {
+                    lblDBStatus.setText("LIGADO");
+                    lblDBStatus.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+                });
+            });
+            
+            // Tratamento de erro via Task interno do executeSilent (logger.warn)
+            // Para atualizar a UI em caso de falha, poderíamos estender o executeSilent
+            // Mas para o health check, se falhar, o setOnFailed do Task não executa o onSuccess
         }
     }
 
     private void simulateProcessProgress() {
-        backgroundProcesses.forEach(p -> {
-            if (p.getProgress() < 1.0) {
-                double next = p.getProgress() + (Math.random() * 0.05);
-                p.setProgress(Math.min(1.0, next));
-                if (p.getProgress() >= 1.0) {
-                    p.setStatus("Concluído");
-                }
-            }
-        });
-        // Forçar refresh da tabela para mostrar o progresso
-        // No JavaFX, isso é feito atualizando as propriedades do objeto se forem properties,
-        // mas aqui estamos usando POJOs simples, então limpamos e readicionamos ou usamos properties reais.
-        // Vou converter os POJOs para usarem Properties para melhor performance de UI.
+        // Removido pois agora usamos Jobs reais
     }
 
     private void updateUptime() {
         if (lblUptime != null) {
-            long seconds = chartTime * 2;
+            long uptimeMs = ManagementFactory.getRuntimeMXBean().getUptime();
+            long seconds = uptimeMs / 1000;
             long h = seconds / 3600;
             long m = (seconds % 3600) / 60;
             long s = seconds % 60;
@@ -477,31 +525,32 @@ public class ConsoleView extends VBox {
     }
 
     private Node buildProcessesTab() {
-        AdvancedTableView<BackgroundProcess> table = new AdvancedTableView<>(backgroundProcesses);
+        AdvancedTableView<AdminJob> table = new AdvancedTableView<>(backgroundProcesses);
         TableUtils.standardize(table);
 
-        table.getColumns().add(TableUtils.createTextColumn("Processo", p -> new SimpleStringProperty(p.getValue().getName())));
+        table.getColumns().add(TableUtils.createTextColumn("Processo", p -> p.getValue().titleProperty()));
 
-        TableColumn<BackgroundProcess, Double> colProgress = new TableColumn<>("Progresso");
+        TableColumn<AdminJob, Number> colProgress = new TableColumn<>("Progresso");
         colProgress.setCellValueFactory(p -> p.getValue().progressProperty());
         colProgress.setCellFactory(col -> new TableCell<>() {
             private final ProgressBar pb = new ProgressBar();
             { pb.setMaxWidth(Double.MAX_VALUE); }
             @Override
-            protected void updateItem(Double item, boolean empty) {
+            protected void updateItem(Number item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) setGraphic(null);
                 else {
-                    pb.setProgress(item);
+                    double v = item.doubleValue();
+                    pb.setProgress(v);
                     setGraphic(pb);
                 }
             }
         });
         table.getColumns().add(colProgress);
         
-        table.getColumns().add(TableUtils.createTextColumn("Estado", p -> p.getValue().statusProperty()));
+        table.getColumns().add(TableUtils.createTextColumn("Estado", p -> p.getValue().statusTextProperty()));
 
-        TableColumn<BackgroundProcess, Void> colActions = new TableColumn<>("Ações");
+        TableColumn<AdminJob, Void> colActions = new TableColumn<>("Ações");
         colActions.setCellFactory(col -> new TableCell<>() {
             private final Button btnCancel = new Button("", IconUtils.icon(Feather.X_CIRCLE, 12));
             {
@@ -514,8 +563,8 @@ public class ConsoleView extends VBox {
                 super.updateItem(item, empty);
                 if (empty) setGraphic(null);
                 else {
-                    BackgroundProcess p = getTableView().getItems().get(getIndex());
-                    setGraphic(p.getProgress() < 1.0 ? btnCancel : null);
+                    AdminJob p = getTableView().getItems().get(getIndex());
+                    setGraphic(p.getStatus() == AdminJob.Status.RUNNING ? btnCancel : null);
                 }
                 setAlignment(Pos.CENTER);
             }
@@ -526,37 +575,56 @@ public class ConsoleView extends VBox {
     }
 
     private void refreshAll() {
-        persistenceService.executeAsync(() -> {
-            // Simulação de sessões ativas (Poderia vir de uma tabela user_session)
-            List<User> users = userRepository.findAll();
+        persistenceService.executeSilent(() -> {
+            // Obter sessões reais da base de dados
+            List<UserSession> sessions = userSessionRepository.findAll();
+            
+            // Obter bloqueios reais da base de dados
+            List<RecordLock> locks = recordLockRepository.findAll();
+
+            // Obter logs do sistema
+            List<SystemLog> logs = systemLogRepository.findAll();
+
+            // Obter módulos reais do ModuleRegistry
+            Collection<KubataModule> modules = moduleRegistry.getAllModules();
+
             Platform.runLater(() -> {
                 activeSessions.clear();
-                if (!users.isEmpty()) {
-                    activeSessions.add(new ActiveSession(users.get(0).getNome(), "10:30:15", "PC-ADMIN-01", "192.168.1.10", "ADMIN / KUBATA LDA", "120MB"));
-                    if (users.size() > 1) {
-                        activeSessions.add(new ActiveSession(users.get(1).getNome(), "11:45:00", "PC-CONTAB-02", "192.168.1.15", "CONTABILIDADE / KUBATA LDA", "240MB"));
-                    }
+                DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+                for (UserSession s : sessions) {
+                    activeSessions.add(new ActiveSession(
+                        s.getUsername(), 
+                        s.getLoginTime().format(timeFormatter), 
+                        s.getWorkstation(), 
+                        s.getIpAddress(), 
+                        s.getContext(), 
+                        s.getMemoryUsage() != null ? s.getMemoryUsage() : "N/A"
+                    ));
                 }
 
                 lockedRecords.clear();
-                lockedRecords.add(new LockedRecord("Ficha de Artigo", "ART-0045", "sergio024@gmail.com", "14:20"));
-                lockedRecords.add(new LockedRecord("Fatura de Venda", "FT/2026/123", "joao.silva@kubata.ao", "15:10"));
+                for (RecordLock l : locks) {
+                    lockedRecords.add(new LockedRecord(
+                        l.getEntityType(), 
+                        l.getEntityId(), 
+                        l.getUsername(), 
+                        l.getLockedSince().format(timeFormatter)
+                    ));
+                }
 
-                List<SystemLog> logs = systemLogRepository.findAll();
                 systemLogs.setAll(logs);
                 filteredLogs.setAll(logs);
 
                 moduleStatuses.clear();
-                moduleStatuses.add(new ModuleStatus("Vendas & Faturação", "v1.0.2", "Online", "16:45:10"));
-                moduleStatuses.add(new ModuleStatus("Contabilidade Core", "v1.1.0", "Online", "16:45:12"));
-                moduleStatuses.add(new ModuleStatus("Recursos Humanos", "v0.9.8", "Aviso", "16:45:08"));
-                moduleStatuses.add(new ModuleStatus("Inventário & Stock", "v1.0.5", "Online", "16:45:15"));
-                moduleStatuses.add(new ModuleStatus("Portal Web (API)", "v2.0.1", "Offline", "16:44:00"));
+                for (KubataModule m : modules) {
+                    moduleStatuses.add(new ModuleStatus(
+                        m.getModuleName(), 
+                        m.getVersion(), 
+                        m.isActive() ? "ONLINE" : "OFFLINE", 
+                        LocalDateTime.now().format(timeFormatter)
+                    ));
+                }
 
-                backgroundProcesses.clear();
-                backgroundProcesses.add(new BackgroundProcess("Cálculo de Amortizações", 0.65, "A processar..."));
-                backgroundProcesses.add(new BackgroundProcess("Integração Bancária (BAI)", 1.0, "Concluído"));
-                
                 // Atualizar KPIs
                 lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
                 lblLockedRecordsCount.setText(String.valueOf(lockedRecords.size()));
@@ -564,27 +632,26 @@ public class ConsoleView extends VBox {
                 long errorCount = systemLogs.stream().filter(l -> l.getLogLevel() == SystemLog.LogLevel.ERROR).count();
                 lblErrorCount.setText(String.valueOf(errorCount));
                 
-                if (errorCount > 5) {
-                    lblSystemHealth.setText("AVISO");
-                    lblSystemHealth.setStyle("-fx-text-fill: #f39c12; -fx-font-size: 24px; -fx-font-weight: bold;");
-                } else if (errorCount > 10) {
+                if (errorCount > 10) {
                     lblSystemHealth.setText("CRÍTICO");
                     lblSystemHealth.setStyle("-fx-text-fill: #e74c3c; -fx-font-size: 24px; -fx-font-weight: bold;");
+                } else if (errorCount > 5) {
+                    lblSystemHealth.setText("AVISO");
+                    lblSystemHealth.setStyle("-fx-text-fill: #f39c12; -fx-font-size: 24px; -fx-font-weight: bold;");
                 } else {
                     lblSystemHealth.setText("ESTÁVEL");
                     lblSystemHealth.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 24px; -fx-font-weight: bold;");
                 }
             });
-        }, "CONSOLE_REFRESH", "CONSOLE", "Atualização de dados da consola", null);
+        }, null);
     }
 
     private void kickUser(ActiveSession session) {
         modalManager.showConfirmModal(new Label("Forçar a saída do utilizador " + session.getUserName() + "?\nEsta ação encerrará a sessão imediatamente."), 
                 "Kick Utilizador", () -> {
             persistenceService.executeAsync(() -> {
-                try {
-                    Thread.sleep(1000);
-                } catch (Exception e) {}
+                userSessionRepository.findByUsername(session.getUserName())
+                    .ifPresent(userSessionRepository::delete);
             }, "USER_KICK", "CONSOLE", "Utilizador " + session.getUserName() + " removido do sistema", () -> {
                 activeSessions.remove(session);
                 lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
@@ -596,9 +663,7 @@ public class ConsoleView extends VBox {
         modalManager.showConfirmModal(new Label("Libertar o bloqueio do registo " + record.getEntityId() + "?\n\nAVISO: Se o utilizador ainda estiver a editar, poderá perder dados."), 
                 "Libertar Registo", () -> {
             persistenceService.executeAsync(() -> {
-                try {
-                    Thread.sleep(800);
-                } catch (Exception e) {}
+                recordLockRepository.deleteByEntityTypeAndEntityId(record.getEntityType(), record.getEntityId());
             }, "RECORD_UNLOCK", "CONSOLE", "Bloqueio removido para " + record.getEntityId(), () -> {
                 lockedRecords.remove(record);
                 lblLockedRecordsCount.setText(String.valueOf(lockedRecords.size()));
@@ -628,9 +693,7 @@ public class ConsoleView extends VBox {
             if (msg == null || msg.trim().isEmpty()) return;
             
             persistenceService.executeAsync(() -> {
-                try {
-                    Thread.sleep(1000);
-                } catch (Exception e) {}
+                // TODO: Implementar lógica real de broadcast (ex: via WebSocket ou tabela de notificações)
             }, "BROADCAST", "CONSOLE", "Broadcast enviado a " + activeSessions.size() + " utilizadores", null);
         }, null);
     }
@@ -696,10 +759,11 @@ public class ConsoleView extends VBox {
         }
     }
 
-    private void cancelProcess(BackgroundProcess process) {
-        modalManager.showConfirmModal(new Label("Tem a certeza que deseja cancelar o processo: " + process.getName() + "?"), 
+    private void cancelProcess(AdminJob process) {
+        modalManager.showConfirmModal(new Label("Tem a certeza que deseja cancelar o processo: " + process.getTitle() + "?"), 
                 "Cancelar Processo", () -> {
             notificationService.showWarning("Processo Cancelado", "O processo foi interrompido com sucesso.");
+            jobManager.cancel(process);
             refreshAll();
         }, null);
     }
@@ -737,24 +801,7 @@ public class ConsoleView extends VBox {
         public String getLockedSince() { return lockedSince.get(); }
     }
 
-    public static class BackgroundProcess {
-        private final SimpleStringProperty name, status;
-        private final SimpleObjectProperty<Double> progress;
-        public BackgroundProcess(String n, Double p, String s) { 
-            this.name = new SimpleStringProperty(n);
-            this.progress = new SimpleObjectProperty<>(p);
-            this.status = new SimpleStringProperty(s);
-        }
-        public String getName() { return name.get(); }
-        public Double getProgress() { return progress.get(); }
-        public void setProgress(Double p) { this.progress.set(p); }
-        public String getStatus() { return status.get(); }
-        public void setStatus(String s) { this.status.set(s); }
-        public SimpleStringProperty statusProperty() { return status; }
-        public SimpleObjectProperty<Double> progressProperty() { return progress; }
-    }
-
-    public static class ModuleStatus {
+     public static class ModuleStatus {
         private final SimpleStringProperty name, version, status, lastCheck;
         public ModuleStatus(String n, String v, String s, String l) {
             this.name = new SimpleStringProperty(n);

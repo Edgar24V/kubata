@@ -263,11 +263,8 @@ public class RelatoriosView extends VBox {
         lblTotalEmpresas.setText("...");
         lblTotalLogs.setText("...");
 
-        persistenceService.executeAsync(() -> {
+        persistenceService.executeSilent(() -> {
             try {
-                // Simular delay para UX de processamento
-                Thread.sleep(500);
-
                 long totalUtilizadores = userRepository.count();
                 long totalEmpresas = empresaRepository.count();
                 long totalLogs = auditLogRepository.count();
@@ -286,24 +283,45 @@ public class RelatoriosView extends VBox {
                     userStatusChart.getData().add(new PieChart.Data("Ativos (" + utilizadoresAtivos + ")", utilizadoresAtivos));
                     userStatusChart.getData().add(new PieChart.Data("Inativos (" + utilizadoresInativos + ")", utilizadoresInativos));
 
-                    // Atualizar Gráfico de Barras (Dados simulados baseados no volume real)
+                    // Atualizar Gráfico de Barras (Dados reais baseados no AuditLog)
                     auditActivityChart.getData().clear();
                     XYChart.Series<String, Number> series = new XYChart.Series<>();
-                    Random r = new Random();
-                    series.getData().add(new XYChart.Data<>("Seg", 10 + r.nextInt(50)));
-                    series.getData().add(new XYChart.Data<>("Ter", 20 + r.nextInt(60)));
-                    series.getData().add(new XYChart.Data<>("Qua", 5 + r.nextInt(40)));
-                    series.getData().add(new XYChart.Data<>("Qui", 30 + r.nextInt(70)));
-                    series.getData().add(new XYChart.Data<>("Sex", 40 + r.nextInt(80)));
-                    series.getData().add(new XYChart.Data<>("Sáb", 5 + r.nextInt(20)));
-                    series.getData().add(new XYChart.Data<>("Dom", 2 + r.nextInt(10)));
+                    
+                    LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
+                    List<Object[]> dailyCounts = auditLogRepository.countByDay(weekAgo, LocalDateTime.now());
+                    
+                    // Mapa para facilitar o preenchimento dos dias (garantindo que todos os dias apareçam)
+                    Map<String, Long> countMap = new HashMap<>();
+                    DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    for (int i = 6; i >= 6; i--) { // Corrigido loop para 7 dias
+                        countMap.put(LocalDate.now().minusDays(i).format(dayFormatter), 0L);
+                    }
+                    // Reinicializar countMap corretamente
+                    countMap.clear();
+                    for (int i = 6; i >= 0; i--) {
+                        countMap.put(LocalDate.now().minusDays(i).format(dayFormatter), 0L);
+                    }
+                    
+                    for (Object[] row : dailyCounts) {
+                        if (row != null && row.length >= 2 && row[0] != null) {
+                            countMap.put(row[0].toString(), ((Number) row[1]).longValue());
+                        }
+                    }
+                    
+                    countMap.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .forEach(entry -> {
+                            String label = entry.getKey().substring(8); // Só o dia
+                            series.getData().add(new XYChart.Data<>(label, entry.getValue()));
+                        });
+
                     auditActivityChart.getData().add(series);
                 });
             } catch (Exception e) {
                 Platform.runLater(() ->
                     modalManager.alert("Erro", "Falha ao processar estatísticas: " + e.getMessage(), "error", e));
             }
-        }, "READ", "RELATORIOS", "Refresh de estatísticas e gráficos", null);
+        }, null);
     }
 
     private HBox createStatCard(String title, Label valueLbl, Feather icon) {
@@ -370,9 +388,6 @@ public class RelatoriosView extends VBox {
 
         persistenceService.executeAsync(() -> {
             try {
-                // Simular processamento para mostrar o loading (UX)
-                Thread.sleep(800);
-
                 // Carregar parâmetros da empresa ativa
                 Empresa empresa = empresaRepository.findFirstByAtivaTrue().orElse(new Empresa());
                 Map<String, Object> params = new HashMap<>();

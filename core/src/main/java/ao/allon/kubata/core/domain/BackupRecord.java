@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 })
 public class BackupRecord extends BaseEntity {
 
-    @Column(name = "filename", nullable = false, length = 200)
+    @Column(name = "filename", nullable = true, length = 200)
     private String filename;
 
     @Column(name = "type", length = 50)
