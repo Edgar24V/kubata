@@ -30,8 +30,12 @@ class AuthServiceTest {
     @Mock
     private AcessoService acessoService;
 
+    @Mock
+    private ao.allon.kubata.core.repository.UserSessionRepository userSessionRepository;
+
     @InjectMocks
     private AuthService authService;
+
 
     private User user;
 
