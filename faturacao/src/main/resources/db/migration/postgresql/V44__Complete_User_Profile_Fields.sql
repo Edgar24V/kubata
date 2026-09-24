@@ -1,0 +1,11 @@
+-- V44: Complete fields required by the shared User entity (PostgreSQL)
+ALTER TABLE users ADD COLUMN empresa_id BIGINT;
+ALTER TABLE users ADD COLUMN departamento VARCHAR(255);
+ALTER TABLE users ADD COLUMN cargo VARCHAR(255);
+ALTER TABLE users ADD COLUMN password_provisoria BOOLEAN DEFAULT TRUE NOT NULL;
+ALTER TABLE users ADD COLUMN data_expiracao_password DATE;
+ALTER TABLE users ADD COLUMN idioma VARCHAR(20) DEFAULT 'pt-AO';
+ALTER TABLE users ADD COLUMN tema VARCHAR(50) DEFAULT 'VERDE_ADMIN';
+ALTER TABLE users ADD COLUMN linhas_por_pagina INTEGER DEFAULT 50;
+ALTER TABLE users ADD COLUMN ultimo_ip_login VARCHAR(45);
+ALTER TABLE users ADD COLUMN superadmin BOOLEAN DEFAULT FALSE NOT NULL;

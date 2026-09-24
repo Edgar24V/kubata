@@ -26,27 +26,44 @@ public class DataInitializer {
     public CommandLineRunner initData() {
         return args -> {
             if (userRepository.count() == 0) {
-                String adminEmail = System.getenv().getOrDefault("KUBATA_BOOTSTRAP_ADMIN_EMAIL", "admin@dev.com");
-                String adminPassword = System.getenv("KUBATA_BOOTSTRAP_ADMIN_PASSWORD");
+                String adminEmail = firstNonBlank(
+                        System.getenv("KUBATA_BOOTSTRAP_ADMIN_EMAIL"),
+                        System.getProperty("KUBATA_BOOTSTRAP_ADMIN_EMAIL"),
+                        "admin@dev.com"
+                );
+                String adminPassword = firstNonBlank(
+                        System.getenv("KUBATA_BOOTSTRAP_ADMIN_PASSWORD"),
+                        System.getProperty("KUBATA_BOOTSTRAP_ADMIN_PASSWORD"),
+                        "admin123"
+                );
 
-                if (adminPassword == null || adminPassword.isBlank()) {
-                    log.warn("Nenhum usuário encontrado no banco de dados e KUBATA_BOOTSTRAP_ADMIN_PASSWORD não definida.");
-                    log.warn("O sistema pode estar inacessível. Configure KUBATA_BOOTSTRAP_ADMIN_PASSWORD para criar o primeiro administrador.");
+                if (userRepository.existsByEmail(adminEmail)) {
                     return;
                 }
 
-                if (!userRepository.existsByEmail(adminEmail)) {
-                    User admin = new User();
-                    admin.setNome("Administrador");
-                    admin.setEmail(adminEmail);
-                    admin.setPassword(passwordEncoder.encode(adminPassword));
-                    admin.setRole(Role.ADMIN);
-                    admin.setActive(true);
-                    admin.setPasswordChangedAt(java.time.LocalDateTime.now());
-                    userRepository.save(admin);
-                    log.info("Usuário administrador inicial criado: {}", adminEmail);
-                }
+                User admin = new User();
+                admin.setNome("Administrador");
+                admin.setEmail(adminEmail);
+                admin.setPassword(passwordEncoder.encode(adminPassword));
+                admin.setRole(Role.ADMIN);
+                admin.setActive(true);
+                admin.setPasswordChangedAt(java.time.LocalDateTime.now());
+                userRepository.save(admin);
+
+                log.info("Usuário administrador inicial criado com email {} e senha padrão {}. ALTERE A SENHA IMEDIATAMENTE.", adminEmail, adminPassword);
             }
         };
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
     }
 }
