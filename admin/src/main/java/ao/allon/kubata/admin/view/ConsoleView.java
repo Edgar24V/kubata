@@ -23,7 +23,6 @@ import ao.allon.kubata.core.module.KubataModule;
 import ao.allon.kubata.core.module.communication.ModuleCommunicationService;
 import javafx.application.Platform;
 import java.util.Collection;
-import java.util.List;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -513,12 +512,17 @@ public class ConsoleView extends VBox {
         btnFilter.setOnAction(e -> {
             String level = cmbLevel.getValue();
             String category = cmbCategory.getValue();
-            
+
             List<SystemLog> filtered = systemLogs.stream()
-                .filter(l -> level.equals("TODOS") || l.getLogLevel().name().equals(level))
-                .filter(l -> category.equals("TODOS") || l.getCategory().equals(category))
-                .collect(Collectors.toList());
-            
+                    .filter(l -> l != null)
+                    .filter(l -> "TODOS".equals(level)
+                            || (l.getLogLevel() != null
+                            && l.getLogLevel().name().equals(level)))
+                    .filter(l -> "TODOS".equals(category)
+                            || (l.getCategory() != null
+                            && l.getCategory().equals(category)))
+                    .collect(Collectors.toList());
+
             filteredLogs.setAll(filtered);
         });
 
@@ -556,9 +560,47 @@ public class ConsoleView extends VBox {
         });
 
         table.getColumns().add(colTime);
-        table.getColumns().add(TableUtils.createTextColumn("Nível", l -> new SimpleStringProperty(l.getValue().getLogLevel().name())));
-        table.getColumns().add(TableUtils.createTextColumn("Categoria", l -> new SimpleStringProperty(l.getValue().getCategory())));
-        table.getColumns().add(TableUtils.createTextColumn("Mensagem", l -> new SimpleStringProperty(l.getValue().getMessage())));
+        TableColumn<SystemLog, String> colLevel = new TableColumn<>("Nível");
+        colLevel.setCellValueFactory(l -> new SimpleStringProperty(
+                l.getValue().getLogLevel() != null
+                        ? l.getValue().getLogLevel().name()
+                        : "INFO"
+        ));
+        colLevel.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+
+                Label badge = new Label(item);
+                badge.getStyleClass().add("console-log-badge");
+
+                switch (item) {
+                    case "ERROR", "FATAL" -> badge.getStyleClass().add("console-log-error");
+                    case "WARN" -> badge.getStyleClass().add("console-log-warning");
+                    default -> badge.getStyleClass().add("console-log-info");
+                }
+
+                setText(null);
+                setGraphic(badge);
+                setAlignment(Pos.CENTER);
+            }
+        });
+
+        TableColumn<SystemLog, String> colCategory = new TableColumn<>("Categoria");
+        colCategory.setCellValueFactory(l ->
+                new SimpleStringProperty(l.getValue().getCategory()));
+
+        TableColumn<SystemLog, String> colMessage = new TableColumn<>("Mensagem");
+        colMessage.setCellValueFactory(l ->
+                new SimpleStringProperty(l.getValue().getMessage()));
+
+        table.getColumns().addAll(colLevel, colCategory, colMessage);
 
         VBox.setVgrow(table, Priority.ALWAYS);
         content.getChildren().addAll(filters, table.withSearchBar());
@@ -842,6 +884,7 @@ public class ConsoleView extends VBox {
                     String msg = txtMsg.getText() == null
                             ? ""
                             : txtMsg.getText().trim();
+                    boolean urgent = chkUrgent.isSelected();
 
                     if (msg.isBlank()) {
                         modalManager.alert(
@@ -856,7 +899,7 @@ public class ConsoleView extends VBox {
                     persistenceService.executeAsync(() -> {
                         SystemLog log = new SystemLog();
                         log.setLogLevel(
-                                chkUrgent.isSelected()
+                                urgent
                                         ? SystemLog.LogLevel.WARN
                                         : SystemLog.LogLevel.INFO
                         );
@@ -872,7 +915,7 @@ public class ConsoleView extends VBox {
                                     "SYSTEM_BROADCAST",
                                     java.util.Map.of(
                                             "message", msg,
-                                            "urgent", chkUrgent.isSelected(),
+                                            "urgent", urgent,
                                             "source", "Kubata Administrator"
                                     )
                             );
@@ -882,7 +925,7 @@ public class ConsoleView extends VBox {
                     "CONSOLE",
                     "Mensagem operacional emitida para o ecossistema Kubata",
                     () -> {
-                        if (chkUrgent.isSelected()) {
+                        if (urgent) {
                             notificationService.showWarning(
                                     "Mensagem do Sistema",
                                     msg
