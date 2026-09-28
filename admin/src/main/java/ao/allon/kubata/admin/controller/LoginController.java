@@ -56,7 +56,9 @@ public class LoginController {
     private static final Pattern EMAIL_PATTERN = 
         Pattern.compile("^[A-Za-z0-9+_.-]+@([A-Za-z0-9-]+\\.)+[A-Za-z]{2,}$");
 
-    public LoginController(AuthService authService, ApplicationEventPublisher eventPublisher) {
+    public LoginController(AuthService authService,
+                           ApplicationEventPublisher eventPublisher,
+                           MaintenanceModeService maintenanceModeService) {
         this.authService = authService;
         this.eventPublisher = eventPublisher;
         this.maintenanceModeService = maintenanceModeService;
