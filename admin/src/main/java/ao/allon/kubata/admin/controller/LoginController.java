@@ -1,7 +1,9 @@
 package ao.allon.kubata.admin.controller;
 
+import ao.allon.kubata.admin.service.MaintenanceModeService;
 import ao.allon.kubata.admin.ui.event.LoginSuccessEvent;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.service.AuthService;
 import javafx.animation.*;
 import javafx.application.Platform;
@@ -33,6 +35,7 @@ public class LoginController {
 
     private final AuthService authService;
     private final ApplicationEventPublisher eventPublisher;
+    private final MaintenanceModeService maintenanceModeService;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     // UI Components
@@ -56,6 +59,7 @@ public class LoginController {
     public LoginController(AuthService authService, ApplicationEventPublisher eventPublisher) {
         this.authService = authService;
         this.eventPublisher = eventPublisher;
+        this.maintenanceModeService = maintenanceModeService;
     }
 
     public Parent createView(Stage stage) {
@@ -339,6 +343,15 @@ public class LoginController {
             try {
                 // Remove artificial sleep – use real authentication
                 User user = authService.authenticate(email, password, null, "127.0.0.1");
+
+                boolean elevated = user.isSuperadmin() || user.getRole() == Role.ADMIN;
+                if (maintenanceModeService.isEnabled() && !elevated) {
+                    authService.logout(user, "127.0.0.1");
+                    throw new IllegalStateException(
+                            "O sistema está em modo de manutenção. "
+                                    + maintenanceModeService.getReason());
+                }
+
                 Platform.runLater(() -> {
                     setLoading(false);
                     eventPublisher.publishEvent(new LoginSuccessEvent(this, user));
