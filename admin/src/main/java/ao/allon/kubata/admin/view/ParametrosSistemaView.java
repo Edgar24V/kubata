@@ -525,16 +525,7 @@ public class ParametrosSistemaView extends VBox {
             return;
         }
 
-        final Empresa empresaRef;
-        if (scope.empresaId != null) {
-            empresaRef = empresaRepository.findById(scope.empresaId).orElse(null);
-            if (empresaRef == null) {
-                showWarning("A empresa seleccionada já não está disponível.");
-                return;
-            }
-        } else {
-            empresaRef = null;
-        }
+        final Empresa empresaRef = null;
 
         TextField keyField = new TextField();
         keyField.setPromptText("Ex.: IVA_PADRAO");
@@ -676,7 +667,7 @@ public class ParametrosSistemaView extends VBox {
 
     private void saveFromForm(ParametroSistema existing,
                                EmpresaScope scope,
-                               Empresa empresaRef,
+                               Empresa ignoredEmpresaRef,
                                TextField keyField,
                                TextField valueField,
                                ComboBox<String> typeCombo,
@@ -703,65 +694,80 @@ public class ParametrosSistemaView extends VBox {
             return;
         }
 
-        if (existing == null) {
-            if (scope.empresaId == null
-                    && parametroRepository.findByChaveAndEmpresaIdIsNull(key).isPresent()) {
-                showWarning("Já existe um parâmetro global com a chave: " + key);
-                return;
-            }
-
-            if (scope.empresaId != null
-                    && parametroRepository.findByEmpresa_IdAndChave(scope.empresaId, key).isPresent()) {
-                showWarning("Já existe um parâmetro nesta empresa com a chave: " + key);
-                return;
-            }
-        }
-
-        ParametroSistema target = existing != null
-                ? existing
-                : ParametroSistema.builder().build();
-
-        Map<String, String> before = existing != null
-                ? snapshot(existing)
+        final Map<String, String> before = existing != null
+                ? snapshot(existing, scope)
                 : null;
 
-        if (existing == null) {
-            target.setChave(key);
-            target.setEmpresa(empresaRef);
-        }
-
-        target.setValor(value);
-        target.setTipoValor(type);
-        target.setGrupo(group.isBlank() ? null : group);
-        target.setDescricao(description.isBlank() ? null : description);
-        target.setEditavel(editableCheck.isSelected());
-        target.setAtualizadoEm(LocalDateTime.now());
-
-        var user = sessionManager.getUser();
-        target.setAtualizadoPor(
-                truncate(
-                        user != null && user.getEmail() != null
-                                ? user.getEmail()
-                                : user != null && user.getNome() != null
-                                        ? user.getNome()
-                                        : "SYSTEM",
-                        50
-                )
-        );
-
-        final String descriptionForAudit =
+        final String operationDescription =
                 (existing == null ? "Criação" : "Alteração")
                         + " do parâmetro " + key;
 
-        persistenceService.saveAsync(
-                parametroRepository,
-                target,
+        persistenceService.executeAsync(
+                () -> {
+                    try {
+                        if (existing == null) {
+                            if (scope.empresaId == null
+                                    && parametroRepository.findByChaveAndEmpresaIdIsNull(key).isPresent()) {
+                                throw new IllegalStateException(
+                                        "Já existe um parâmetro global com a chave: " + key
+                                );
+                            }
+
+                            if (scope.empresaId != null
+                                    && parametroRepository.findByEmpresa_IdAndChave(
+                                    scope.empresaId, key).isPresent()) {
+                                throw new IllegalStateException(
+                                        "Já existe um parâmetro nesta empresa com a chave: " + key
+                                );
+                            }
+                        }
+
+                        ParametroSistema target = existing != null
+                                ? existing
+                                : ParametroSistema.builder().build();
+
+                        if (existing == null) {
+                            target.setChave(key);
+
+                            Empresa empresa = scope.empresaId == null
+                                    ? null
+                                    : empresaRepository.findById(scope.empresaId)
+                                            .orElseThrow(() -> new IllegalStateException(
+                                                    "A empresa seleccionada já não existe."
+                                            ));
+
+                            target.setEmpresa(empresa);
+                        }
+
+                        target.setValor(value);
+                        target.setTipoValor(type);
+                        target.setGrupo(group.isBlank() ? null : group);
+                        target.setDescricao(description.isBlank() ? null : description);
+                        target.setEditavel(editableCheck.isSelected());
+                        target.setAtualizadoEm(LocalDateTime.now());
+
+                        var user = sessionManager.getUser();
+                        target.setAtualizadoPor(
+                                truncate(
+                                        user != null && user.getEmail() != null
+                                                ? user.getEmail()
+                                                : user != null && user.getNome() != null
+                                                        ? user.getNome()
+                                                        : "SYSTEM",
+                                        50
+                                )
+                        );
+
+                        ParametroSistema saved = parametroRepository.save(target);
+                        auditChange(before, saved, scope.empresaId);
+                    } catch (RuntimeException ex) {
+                        throw ex;
+                    }
+                },
+                "PARAMETRO_SAVE",
                 "PARAMETRO_SISTEMA",
-                descriptionForAudit,
-                saved -> {
-                    auditChange(existing, before, saved, scope.empresaId);
-                    reload();
-                }
+                operationDescription,
+                this::reload
         );
     }
 
@@ -841,8 +847,7 @@ public class ParametrosSistemaView extends VBox {
         deleteParameter(selected);
     }
 
-    private void auditChange(ParametroSistema existing,
-                             Map<String, String> before,
+    private void auditChange(Map<String, String> before,
                              ParametroSistema saved,
                              Long empresaId) {
         var user = sessionManager.getUser();
