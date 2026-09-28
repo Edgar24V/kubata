@@ -24,6 +24,7 @@ import javafx.stage.FileChooser;
 import javafx.util.Duration;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.*;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -82,6 +83,7 @@ public class AdvancedTableView<S> extends TableView<S> {
     private final ProgressIndicator loadingIndicator = new ProgressIndicator();
 
     private final BooleanProperty busy = new SimpleBooleanProperty(false);
+    private RowDensity rowDensity = RowDensity.COMFORTABLE;
 
     private Consumer<S> onEditCallback;
     private Consumer<S> onDeleteCallback;
@@ -257,6 +259,24 @@ public class AdvancedTableView<S> extends TableView<S> {
     }
 
     /**
+     * Controla a densidade visual das linhas.
+     */
+    public void setDensity(RowDensity density) {
+        RowDensity next = density == null ? RowDensity.COMFORTABLE : density;
+        getStyleClass().removeIf(style ->
+                style.equals("table-density-compact")
+                        || style.equals("table-density-comfortable")
+                        || style.equals("table-density-spacious")
+        );
+        getStyleClass().add(next.cssClass);
+        rowDensity = next;
+    }
+
+    public RowDensity getDensity() {
+        return rowDensity;
+    }
+
+    /**
      * Modo normal, compatível com as versões anteriores.
      */
     public void setData(ObservableList<S> items) {
@@ -279,6 +299,7 @@ public class AdvancedTableView<S> extends TableView<S> {
         pageProvider = null;
         totalItems = sourceData.size();
         pageIndex = 0;
+        updatePageSizeControlVisibility();
         updatePagerState();
 
         this.sourceDataListener = change -> Platform.runLater(this::updatePagerState);
@@ -300,6 +321,7 @@ public class AdvancedTableView<S> extends TableView<S> {
         setItems(FXCollections.observableArrayList());
         filteredData = null;
         selectedItems.clear();
+        updatePageSizeControlVisibility();
         refreshPage();
     }
 
@@ -796,6 +818,24 @@ public class AdvancedTableView<S> extends TableView<S> {
         contextMenu.getItems().add(new SeparatorMenuItem());
         contextMenu.getItems().addAll(selectAll, clearSelection);
 
+        Menu densityMenu = new Menu("Densidade");
+
+        for (RowDensity density : RowDensity.values()) {
+            RadioMenuItem densityItem = new RadioMenuItem(
+                    switch (density) {
+                        case COMPACT -> "Compacta";
+                        case COMFORTABLE -> "Confortável";
+                        case SPACIOUS -> "Espaçosa";
+                    }
+            );
+            densityItem.setSelected(rowDensity == density);
+            densityItem.setOnAction(e -> setDensity(density));
+            densityMenu.getItems().add(densityItem);
+        }
+
+        contextMenu.getItems().add(densityMenu);
+
+
         setContextMenu(contextMenu);
     }
 
@@ -1009,21 +1049,48 @@ public class AdvancedTableView<S> extends TableView<S> {
             return;
         }
 
-        try (BufferedWriter writer = Files.newBufferedWriter(
-                file.toPath(),
-                StandardCharsets.UTF_8
-        )) {
-            writer.write("\uFEFF");
-            writeCsvHeader(writer);
+        List<S> snapshot = records == null
+                ? List.of()
+                : List.copyOf(records);
 
-            if (records != null) {
-                for (S item : records) {
+        long requestId = requestSequence.incrementAndGet();
+        setLoading(true);
+        cancelActiveOperation();
+
+        activeOperation = PAGE_EXECUTOR.submit(() -> {
+            try (BufferedWriter writer = Files.newBufferedWriter(
+                    file.toPath(),
+                    StandardCharsets.UTF_8
+            )) {
+                writer.write("\uFEFF");
+                writeCsvHeader(writer);
+
+                for (S item : snapshot) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     writeCsvRow(writer, item);
                 }
+
+                writer.flush();
+
+                Platform.runLater(() -> {
+                    if (requestId == requestSequence.get()) {
+                        setLoading(false);
+                    }
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    if (requestId != requestSequence.get()) {
+                        return;
+                    }
+                    setLoading(false);
+                    setPlaceholder(new Label(
+                            "Falha ao exportar: " + safeMessage(ex)
+                    ));
+                });
             }
-        } catch (IOException ex) {
-            showExportFailure(ex);
-        }
+        });
     }
 
     private void writeCsvHeader(BufferedWriter writer) throws IOException {
@@ -1072,15 +1139,21 @@ public class AdvancedTableView<S> extends TableView<S> {
             return;
         }
 
-        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            XSSFSheet sheet = workbook.createSheet("Dados");
+        List<S> snapshot = records == null
+                ? List.of()
+                : List.copyOf(records);
+
+        try (SXSSFWorkbook workbook = new SXSSFWorkbook(100)) {
+            workbook.setCompressTempFiles(true);
+
+            Sheet sheet = workbook.createSheet("Dados");
             List<TableColumn<S, ?>> columns = getVisibleColumns();
 
-            XSSFCellStyle headerStyle = workbook.createCellStyle();
+            CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
-            XSSFFont headerFont = workbook.createFont();
+            Font headerFont = workbook.createFont();
             headerFont.setColor(IndexedColors.WHITE.getIndex());
             headerFont.setBold(true);
             headerStyle.setFont(headerFont);
@@ -1095,32 +1168,28 @@ public class AdvancedTableView<S> extends TableView<S> {
 
             int rowIndex = 1;
 
-            if (records != null) {
-                for (S item : records) {
-                    Row row = sheet.createRow(rowIndex++);
+            for (S item : snapshot) {
+                Row row = sheet.createRow(rowIndex++);
 
-                    for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
-                        Object value = columns.get(columnIndex).getCellData(item);
-                        Cell cell = row.createCell(columnIndex);
+                for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
+                    Object value = columns.get(columnIndex).getCellData(item);
+                    Cell cell = row.createCell(columnIndex);
 
-                        if (value instanceof Number number) {
-                            cell.setCellValue(number.doubleValue());
-                        } else if (value instanceof Boolean bool) {
-                            cell.setCellValue(bool);
-                        } else {
-                            cell.setCellValue(value == null ? "" : value.toString());
-                        }
+                    if (value instanceof Number number) {
+                        cell.setCellValue(number.doubleValue());
+                    } else if (value instanceof Boolean bool) {
+                        cell.setCellValue(bool);
+                    } else {
+                        cell.setCellValue(value == null ? "" : value.toString());
                     }
                 }
-            }
-
-            for (int i = 0; i < columns.size(); i++) {
-                sheet.autoSizeColumn(i);
             }
 
             try (OutputStream output = new FileOutputStream(file)) {
                 workbook.write(output);
             }
+
+            workbook.dispose();
         } catch (IOException ex) {
             showExportFailure(ex);
         }
@@ -1235,6 +1304,18 @@ public class AdvancedTableView<S> extends TableView<S> {
         }
 
         return throwable.getMessage();
+    }
+
+    public enum RowDensity {
+        COMPACT("table-density-compact"),
+        COMFORTABLE("table-density-comfortable"),
+        SPACIOUS("table-density-spacious");
+
+        private final String cssClass;
+
+        RowDensity(String cssClass) {
+            this.cssClass = cssClass;
+        }
     }
 
     /**
