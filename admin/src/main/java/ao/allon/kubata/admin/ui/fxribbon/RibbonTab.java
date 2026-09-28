@@ -9,8 +9,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 
 /**
- * Representa uma aba (separador) do Ribbon.
- * Contém uma lista de {@link RibbonGroup} exibidos horizontalmente.
+ * Aba do Ribbon.
  */
 public class RibbonTab {
 
@@ -19,23 +18,20 @@ public class RibbonTab {
     private final HBox contentPane;
 
     public RibbonTab(String title) {
-        this.title = title;
+        this.title = title == null ? "" : title;
 
-        contentPane = new HBox(0);
+        contentPane = new HBox(1);
         contentPane.getStyleClass().add("ribbon-tab-content");
-        contentPane.setAlignment(Pos.CENTER_LEFT);
+        contentPane.setAlignment(Pos.TOP_LEFT);
         contentPane.setFillHeight(true);
-        contentPane.setSpacing(2);
-        contentPane.setPadding(new javafx.geometry.Insets(2, 6, 0, 6));
+        contentPane.setPadding(new Insets(3, 8, 2, 8));
         contentPane.setMinWidth(0);
 
-        // Espaçador final para empurrar grupos à esquerda
         Region spacer = new Region();
+        spacer.getStyleClass().add("ribbon-content-spacer");
         HBox.setHgrow(spacer, Priority.ALWAYS);
         contentPane.getChildren().add(spacer);
     }
-
-    // ── API pública ────────────────────────────────────────────────────────────
 
     public String getTitle() {
         return title;
@@ -45,20 +41,17 @@ public class RibbonTab {
         return groups;
     }
 
-    /**
-     * Adiciona um grupo ao tab. O grupo é inserido antes do espaçador final.
-     */
     public void addGroup(RibbonGroup group) {
+        if (group == null) {
+            return;
+        }
+
         groups.add(group);
-        int spacerIdx = contentPane.getChildren().size() - 1;
+        int spacerIdx = Math.max(0, contentPane.getChildren().size() - 1);
         contentPane.getChildren().add(spacerIdx, group);
         HBox.setMargin(group, new Insets(0, 2, 0, 2));
     }
 
-    /**
-     * O painel HBox que contém todos os grupos desta tab.
-     * É este painel que é colocado na área de conteúdo do Ribbon.
-     */
     public HBox getContentPane() {
         return contentPane;
     }
