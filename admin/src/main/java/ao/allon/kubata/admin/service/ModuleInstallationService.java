@@ -7,6 +7,7 @@ import ao.allon.kubata.core.module.ModuleRegistry;
 import ao.allon.kubata.core.module.ModuleView;
 import ao.allon.kubata.core.repository.ModuloSistemaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ import java.util.List;
  * instalados/inicializados através do Administrator.
  */
 @Service
+@DependsOn("registerModules")
 public class ModuleInstallationService {
 
     private final ModuleRegistry moduleRegistry;
