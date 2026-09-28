@@ -1,7 +1,6 @@
 /*
- * KUBATA — Ribbon 2024 Edition
- * Linguagem visual inspirada no Microsoft 365 / Excel 2024.
- * A identidade visual continua a ser do Kubata.
+ * KUBATA — Ribbon 2024
+ * Layout estável e responsivo por overflow de categorias.
  */
 
 .ribbon-bar {
@@ -9,20 +8,11 @@
     -fx-border-color: #D9DDDA;
     -fx-border-width: 0 0 1 0;
     -kubata-ribbon-green: #107C41;
-    -kubata-ribbon-green-dark: #0B6337;
-    -kubata-ribbon-green-soft: #E7F2EB;
-    -kubata-ribbon-hover: #F2F7F4;
-    -kubata-ribbon-pressed: #DCEDE4;
-    -kubata-ribbon-border: #D7DBD8;
-    -kubata-ribbon-text: #252525;
-    -kubata-ribbon-muted: #6B6F72;
 }
-
-/* ── Tabs ─────────────────────────────────────────────────────────────────── */
 
 .ribbon-tab-strip {
     -fx-background-color: #FFFFFF;
-    -fx-padding: 0 8 0 8;
+    -fx-padding: 0 9 0 9;
     -fx-spacing: 1;
     -fx-border-color: #E2E5E3;
     -fx-border-width: 0 0 1 0;
@@ -36,7 +26,6 @@
     -fx-padding: 8 14 7 14;
     -fx-font-family: "Segoe UI";
     -fx-font-size: 12px;
-    -fx-font-weight: normal;
     -fx-text-fill: #3B3D3E;
     -fx-border-color: transparent;
     -fx-border-width: 0 0 2 0;
@@ -57,30 +46,18 @@
     -fx-border-width: 0 0 2 0;
 }
 
-.ribbon-tab-label-selected:hover {
-    -fx-background-color: #FFFFFF;
-    -fx-text-fill: #0B6337;
-}
-
-.ribbon-tab-label:focused {
-    -fx-background-color: #F3F5F4;
-    -fx-border-color: transparent transparent #107C41 transparent;
-}
-
-/* ── Content ──────────────────────────────────────────────────────────────── */
-
 .ribbon-content-host {
     -fx-background-color: #FFFFFF;
-    -fx-min-height: 100px;
-    -fx-pref-height: 108px;
-    -fx-max-height: 116px;
+    -fx-min-height: 112px;
+    -fx-pref-height: 112px;
+    -fx-max-height: 112px;
 }
 
 .ribbon-content-scroll {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-padding: 0;
     -fx-border-color: transparent;
+    -fx-padding: 0;
 }
 
 .ribbon-content-scroll > .viewport {
@@ -90,63 +67,73 @@
 
 .ribbon-tab-content {
     -fx-background-color: #FFFFFF;
-    -fx-padding: 3 8 1 8;
-    -fx-spacing: 3px;
-    -fx-min-width: 0;
+    -fx-padding: 3 8 2 8;
+    -fx-spacing: 1px;
 }
-
-/* ── Groups ───────────────────────────────────────────────────────────────── */
 
 .ribbon-group {
     -fx-background-color: transparent;
     -fx-border-color: transparent #E0E3E1 transparent transparent;
     -fx-border-width: 0 1 0 0;
-    -fx-padding: 2 9 1 9;
+    -fx-padding: 2 7 1 7;
     -fx-alignment: TOP_CENTER;
-    -fx-min-width: 72px;
-    -fx-min-height: 100px;
+    -fx-min-width: 86px;
+    -fx-min-height: 108px;
     -fx-pref-height: 108px;
+    -fx-max-height: 108px;
+}
+
+.ribbon-group-content {
+    -fx-min-height: 76px;
+    -fx-pref-height: 76px;
+    -fx-max-height: 76px;
+}
+
+.ribbon-column-container {
+    -fx-spacing: 2px;
+    -fx-padding: 0 2px 0 2px;
+}
+
+.ribbon-column-separator {
+    -fx-background-color: #DDE2DF;
+    -fx-min-width: 1px;
+    -fx-pref-width: 1px;
+    -fx-max-width: 1px;
+    -fx-min-height: 60px;
+    -fx-pref-height: 68px;
+    -fx-max-height: 68px;
+}
+
+.ribbon-group-title-area {
+    -fx-background-color: #F2F7F4;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D9E8DE;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-padding: 2 5 2 5;
+    -fx-margin: 4px 3px 2px 3px;
 }
 
 .ribbon-group-title {
     -fx-font-family: "Segoe UI";
     -fx-font-size: 10px;
-    -fx-font-weight: normal;
-    -fx-text-fill: #6B6F72;
+    -fx-font-weight: bold;
+    -fx-text-fill: #4E5A53;
     -fx-alignment: CENTER;
     -fx-text-alignment: center;
     -fx-wrap-text: true;
-    -fx-min-height: 22px;
-    -fx-pref-height: 24px;
-    -fx-max-height: 28px;
 }
-
-.ribbon-column-container {
-    -fx-spacing: 2px;
-    -fx-padding: 0 2 0 2;
-}
-
-.ribbon-column-separator {
-    -fx-background-color: #EAECEB;
-    -fx-min-width: 1px;
-    -fx-pref-width: 1px;
-    -fx-max-width: 1px;
-    -fx-min-height: 54px;
-    -fx-pref-height: 70px;
-}
-
-/* ── Command buttons ──────────────────────────────────────────────────────── */
 
 .ribbon-button {
     -fx-background-color: transparent;
-    -fx-min-width: 0;
-    -fx-background-radius: 3px;
+    -fx-background-radius: 4px;
     -fx-border-color: transparent;
     -fx-border-width: 1px;
-    -fx-border-radius: 3px;
-    -fx-padding: 3px;
+    -fx-border-radius: 4px;
+    -fx-padding: 2px 3px 2px 3px;
     -fx-cursor: hand;
     -fx-font-family: "Segoe UI";
+    -fx-min-width: 0;
 }
 
 .ribbon-button:hover {
@@ -173,184 +160,82 @@
     -fx-border-color: #A9CDB7;
 }
 
-/* ── Large command ───────────────────────────────────────────────────────── */
-
 .ribbon-button-tile {
-    -fx-min-width: 70px;
-    -fx-pref-width: 70px;
-    -fx-max-width: 70px;
-    -fx-min-height: 82px;
-    -fx-pref-height: 88px;
-    -fx-max-height: 94px;
+    -fx-min-width: 72px;
+    -fx-pref-width: 72px;
+    -fx-max-width: 72px;
+    -fx-min-height: 72px;
+    -fx-pref-height: 72px;
+    -fx-max-height: 72px;
     -fx-alignment: TOP_CENTER;
 }
 
 .ribbon-tile-icon-wrap {
     -fx-background-color: transparent;
-    -fx-padding: 5px;
-    -fx-min-width: 42px;
-    -fx-pref-width: 42px;
-    -fx-min-height: 40px;
-    -fx-pref-height: 40px;
+    -fx-background-radius: 4px;
+    -fx-padding: 4px;
+    -fx-min-width: 40px;
+    -fx-pref-width: 40px;
+    -fx-max-width: 40px;
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+    -fx-max-height: 36px;
 }
 
 .ribbon-button-tile:hover .ribbon-tile-icon-wrap {
     -fx-background-color: #EAF4EE;
-    -fx-background-radius: 3px;
-}
-
-.ribbon-button-tile:pressed .ribbon-tile-icon-wrap {
-    -fx-background-color: #DCEDE4;
-    -fx-background-radius: 3px;
 }
 
 .ribbon-icon-tile {
-    -fx-icon-size: 25px;
+    -fx-icon-size: 23px;
     -fx-icon-color: #107C41;
 }
 
 .ribbon-button-text {
-    -fx-text-fill: #303234;
-    -fx-fill: #303234;
     -fx-font-family: "Segoe UI";
-    -fx-font-size: 10.5px;
+    -fx-font-size: 10px;
+    -fx-text-fill: #303234;
     -fx-wrap-text: true;
 }
 
 .ribbon-button-text-below {
     -fx-text-alignment: center;
     -fx-alignment: CENTER;
-    -fx-max-width: 64px;
+    -fx-wrap-text: true;
 }
 
-/* ── Small command ───────────────────────────────────────────────────────── */
-
 .ribbon-button-small {
-    -fx-min-width: 90px;
-    -fx-pref-width: 90px;
-    -fx-max-width: 150px;
-    -fx-min-height: 25px;
-    -fx-pref-height: 25px;
+    -fx-min-width: 106px;
+    -fx-pref-width: 106px;
+    -fx-max-width: 106px;
+    -fx-min-height: 22px;
+    -fx-pref-height: 22px;
+    -fx-max-height: 22px;
     -fx-alignment: CENTER_LEFT;
-    -fx-padding: 3 7 3 7;
 }
 
 .ribbon-icon-small {
-    -fx-icon-size: 15px;
+    -fx-icon-size: 14px;
     -fx-icon-color: #107C41;
 }
 
-
-/* ── Responsive / Redimensionamento ──────────────────────────────────────── */
-
-/*
- * O Ribbon adapta os comandos em três níveis:
- * normal -> compacto -> compacto pequeno -> overflow.
- * Nenhum grupo deve ultrapassar a área visível do Ribbon.
- */
-.ribbon-compact-medium .ribbon-button-tile {
-    -fx-min-width: 62px;
-    -fx-pref-width: 62px;
-    -fx-max-width: 62px;
-}
-
-.ribbon-compact-medium .ribbon-button-tile .ribbon-button-text-below {
-    -fx-font-size: 9.5px;
-    -fx-max-width: 56px;
-}
-
-.ribbon-compact-medium .ribbon-button-small {
-    -fx-min-width: 76px;
-    -fx-pref-width: 76px;
-    -fx-max-width: 112px;
-}
-
-.ribbon-compact-medium .ribbon-button-small .ribbon-button-text {
-    -fx-font-size: 10px;
-}
-
-.ribbon-compact-small .ribbon-button-tile {
-    -fx-min-width: 56px;
-    -fx-pref-width: 56px;
-    -fx-max-width: 56px;
-}
-
-.ribbon-compact-small .ribbon-button-tile .ribbon-button-text-below {
-    -fx-font-size: 8.5px;
-    -fx-max-width: 50px;
-}
-
-.ribbon-compact-small .ribbon-tile-icon-wrap {
-    -fx-min-width: 36px;
-    -fx-pref-width: 36px;
-    -fx-min-height: 34px;
-    -fx-pref-height: 34px;
-    -fx-padding: 3px;
-}
-
-.ribbon-compact-small .ribbon-icon-tile {
-    -fx-icon-size: 21px;
-}
-
-.ribbon-compact-small .ribbon-button-small {
-    -fx-min-width: 68px;
-    -fx-pref-width: 68px;
-    -fx-max-width: 96px;
-}
-
-.ribbon-compact-small .ribbon-button-small .ribbon-button-text {
-    -fx-font-size: 9.5px;
-}
-
-.ribbon-compact-small .ribbon-group {
-    -fx-padding: 2 5 1 5;
-}
-
-.ribbon-compact-small .ribbon-group-title {
-    -fx-font-size: 9px;
-    -fx-pref-height: 26px;
-}
-
-.ribbon-compact-small .ribbon-column-container {
-    -fx-padding: 0 1 0 1;
-}
-
-.ribbon-overflow-popup .ribbon-group-title {
-    -fx-font-size: 10.5px;
-    -fx-pref-height: 26px;
-}
-
-.ribbon-compact-small .ribbon-tab-label {
-    -fx-padding: 8 9 7 9;
-}
-
-/* O conteúdo é controlado pelo cálculo de overflow do Ribbon. */
-.ribbon-content-host {
-    -fx-min-width: 0;
-}
-
-.ribbon-content-scroll {
-    -fx-min-width: 0;
-}
-
-/* ── Overflow ────────────────────────────────────────────────────────────── */
-
+/* Overflow */
 .ribbon-overflow-button {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 3px;
+    -fx-background-radius: 4px;
     -fx-border-color: #D7DBD8;
     -fx-border-width: 1px;
-    -fx-border-radius: 3px;
+    -fx-border-radius: 4px;
     -fx-text-fill: #107C41;
     -fx-font-family: "Segoe UI Symbol";
-    -fx-font-size: 18px;
+    -fx-font-size: 17px;
     -fx-font-weight: bold;
-    -fx-min-width: 28px;
+    -fx-min-width: 30px;
     -fx-pref-width: 30px;
-    -fx-max-width: 32px;
-    -fx-min-height: 52px;
+    -fx-max-width: 30px;
+    -fx-min-height: 58px;
     -fx-pref-height: 64px;
-    -fx-max-height: 72px;
+    -fx-max-height: 70px;
     -fx-padding: 0;
     -fx-cursor: hand;
 }
@@ -360,198 +245,29 @@
     -fx-border-color: #A9CDB7;
 }
 
-.ribbon-overflow-button:pressed {
-    -fx-background-color: #DCEDE4;
-    -fx-border-color: #107C41;
-}
-
-/* ── Tooltip ─────────────────────────────────────────────────────────────── */
-
-.tooltip {
-    -fx-background-color: #FFFFFF;
-    -fx-text-fill: #252525;
-    -fx-font-family: "Segoe UI";
-    -fx-font-size: 11px;
-    -fx-padding: 6 9 6 9;
-    -fx-border-color: #BEC4C0;
-    -fx-border-width: 1px;
-    -fx-border-radius: 2px;
-    -fx-background-radius: 2px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.16), 7, 0.12, 0, 2);
-}
-
-/* ── Overflow popup ──────────────────────────────────────────────────────── */
-
 .ribbon-overflow-popup {
     -fx-background-color: #FFFFFF;
     -fx-border-color: #C9CECB;
     -fx-border-width: 1px;
-    -fx-border-radius: 2px;
-    -fx-background-radius: 2px;
-    -fx-padding: 5px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 7px;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 14, 0.14, 0, 4);
 }
 
 .ribbon-overflow-popup > .ribbon-group {
     -fx-border-color: transparent transparent #E4E7E5 transparent;
     -fx-border-width: 0 0 1 0;
-    -fx-padding: 5 7 4 7;
+    -fx-padding: 5 7 5 7;
 }
 
-
-.ribbon-overflow-item-button {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-text-fill: #303234;
-    -fx-font-family: "Segoe UI";
-    -fx-font-size: 11px;
-    -fx-padding: 7 10 7 10;
-    -fx-cursor: hand;
-    -fx-alignment: CENTER_LEFT;
-}
-
-.ribbon-overflow-item-button:hover {
-    -fx-background-color: #EAF4EE;
-    -fx-text-fill: #107C41;
-}
-
-/* ── Backstage / Ficheiro ────────────────────────────────────────────────── */
-
-.ribbon-file-button {
-    -fx-background-color: #107C41;
-    -fx-text-fill: #FFFFFF;
-    -fx-font-family: "Segoe UI";
-    -fx-font-size: 12px;
-    -fx-font-weight: bold;
-    -fx-padding: 6 14 6 14;
-    -fx-cursor: hand;
-    -fx-border-color: transparent;
-}
-
-.ribbon-file-button:hover {
-    -fx-background-color: #0B6A35;
-}
-
-.ribbon-file-button:pressed {
-    -fx-background-color: #07582B;
-}
-
-.ribbon-backstage-container {
-    -fx-background-color: transparent;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 20, 0.15, 0, 4);
-}
-
-.ribbon-backstage {
-    -fx-background-color: #FFFFFF;
-}
-
-.ribbon-backstage-left {
-    -fx-background-color: #F3F4F4;
-    -fx-border-color: transparent #DADDE0 transparent transparent;
-    -fx-border-width: 0 1 0 0;
-}
-
-.ribbon-backstage-right {
-    -fx-background-color: #FFFFFF;
-}
-
+/* Compatibilidade */
+.ribbon-file-button,
 .ribbon-backstage-back,
 .ribbon-backstage-menu-item {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-text-fill: #303030;
     -fx-font-family: "Segoe UI";
-    -fx-font-size: 12px;
-    -fx-padding: 9 14 9 14;
-    -fx-cursor: hand;
-    -fx-alignment: center-left;
 }
-
-.ribbon-backstage-back:hover,
-.ribbon-backstage-menu-item:hover {
-    -fx-background-color: #E7F2EB;
-    -fx-text-fill: #107C41;
-}
-
-.ribbon-backstage-menu-item:pressed {
-    -fx-background-color: #107C41;
-    -fx-text-fill: #FFFFFF;
-}
-
-/* ── Legacy selectors from older adapter ─────────────────────────────────── */
 
 .ribbon-office-bar {
     -fx-background-color: #F7F8F7;
-}
-
-.ribbon-tab-header {
-    -fx-background-color: #FFFFFF;
-    -fx-spacing: 1px;
-    -fx-padding: 0 8 0 8;
-}
-
-.ribbon-tab-button,
-.ribbon-tab-selected {
-    -fx-font-family: "Segoe UI";
-    -fx-cursor: hand;
-}
-
-.ribbon-tab-button {
-    -fx-background-color: transparent;
-    -fx-text-fill: #424242;
-    -fx-font-size: 12px;
-    -fx-padding: 8 14 7 14;
-    -fx-border-color: transparent;
-}
-
-.ribbon-tab-button:hover {
-    -fx-background-color: #F3F4F4;
-    -fx-text-fill: #107C41;
-}
-
-.ribbon-tab-selected {
-    -fx-background-color: #FFFFFF;
-    -fx-text-fill: #107C41;
-    -fx-font-weight: bold;
-    -fx-border-color: transparent transparent #107C41 transparent;
-    -fx-border-width: 0 0 2 0;
-}
-
-.ribbon-content {
-    -fx-background-color: #FFFFFF;
-    -fx-border-color: #E1E3E5;
-    -fx-border-width: 1 0 1 0;
-    -fx-padding: 3 8 0 8;
-}
-
-.ribbon-office-group {
-    -fx-background-color: transparent;
-    -fx-padding: 2 7 2 7;
-}
-
-.ribbon-large-button:hover,
-.ribbon-medium-button:hover,
-.ribbon-small-button:hover {
-    -fx-background-color: #F1F6F3;
-    -fx-border-color: #C9DED0;
-}
-
-.ribbon-large-button:pressed,
-.ribbon-medium-button:pressed,
-.ribbon-small-button:pressed {
-    -fx-background-color: #DCEDE3;
-    -fx-border-color: #107C41;
-}
-
-.ribbon-large-icon,
-.ribbon-medium-icon,
-.ribbon-small-icon {
-    -fx-icon-color: #107C41;
-}
-
-.ribbon-large-text,
-.ribbon-medium-text,
-.ribbon-small-text {
-    -fx-font-family: "Segoe UI";
-    -fx-text-fill: #303030;
 }
