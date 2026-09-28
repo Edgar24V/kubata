@@ -1137,10 +1137,10 @@ public class ConsoleView extends VBox {
         String text = String.valueOf(value)
                 .replace("\r", " ")
                 .replace("\n", " ")
-                .replace(""", """");
+                .replace("\"", "\"\"");
 
-        return (text.contains(";") || text.contains("""))
-                ? """ + text + """
+        return (text.contains(";") || text.contains("\""))
+                ? "\"" + text + "\""
                 : text;
     }
 
