@@ -277,6 +277,36 @@ public class AdvancedTableView<S> extends TableView<S> {
         }
     }
 
+    public void setOnEdit(Consumer<S> callback) {
+        this.onEditCallback = callback;
+        setupContextMenu();
+    }
+
+    public void setOnDelete(Consumer<S> callback) {
+        this.onDeleteCallback = callback;
+        setupContextMenu();
+    }
+
+    public void setOnBatchDelete(Consumer<List<S>> callback) {
+        this.onBatchDeleteCallback = callback;
+        setupContextMenu();
+    }
+
+    public void setOnViewDetails(Consumer<S> callback) {
+        this.onViewDetailsCallback = callback;
+        setupContextMenu();
+    }
+
+    public void setOnRefresh(Runnable callback) {
+        this.onRefreshCallback = callback;
+        setupContextMenu();
+    }
+
+    public void setEntityName(String name) {
+        this.entityName = name == null || name.isBlank() ? "Item" : name;
+        setupContextMenu();
+    }
+
     /**
      * Controla a densidade visual das linhas.
      */
