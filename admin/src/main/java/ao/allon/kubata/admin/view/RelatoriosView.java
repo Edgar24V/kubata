@@ -26,6 +26,7 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
@@ -619,7 +620,9 @@ public class RelatoriosView extends VBox {
                     : "Desconhecido");
             row.put("createdBy", record.getTriggeredBy() != null
                     ? record.getTriggeredBy() : "Sistema");
-            row.put("description", record.getDescription());
+            row.put("description", record.getNotes() != null
+                    ? record.getNotes()
+                    : record.getErrorMessage());
             row.put("restoreDate", record.getRestoredAt());
             row.put("restoredBy", record.getRestoredBy());
             data.add(row);
@@ -664,13 +667,13 @@ public class RelatoriosView extends VBox {
     }
 
     private void exportAuditCsv() {
-        java.io.FileChooser chooser = new java.io.FileChooser();
+        FileChooser chooser = new FileChooser();
         chooser.setTitle("Guardar auditoria");
         chooser.setInitialFileName("kubata-auditoria-" +
                 LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE) +
                 ".csv");
         chooser.getExtensionFilters().add(
-                new java.io.FileChooser.ExtensionFilter("CSV", "*.csv"));
+                new FileChooser.ExtensionFilter("CSV", "*.csv"));
 
         java.io.File file = chooser.showSaveDialog(getScene() != null
                 ? getScene().getWindow()
