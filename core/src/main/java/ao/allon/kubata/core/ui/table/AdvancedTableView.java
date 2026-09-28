@@ -1147,7 +1147,7 @@ public class AdvancedTableView<S> extends TableView<S> {
                 || value.indexOf('"') >= 0
                 || value.indexOf('\n') >= 0
                 || value.indexOf('\r') >= 0) {
-            return '"' + value.replace(""", """") + '"';
+            return '"' + value.replace("\"", "\"\"") + '"';
         }
 
         return value;
