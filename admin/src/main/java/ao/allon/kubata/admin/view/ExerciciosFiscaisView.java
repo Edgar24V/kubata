@@ -115,10 +115,22 @@ public class ExerciciosFiscaisView extends VBox {
         HBox kpis = buildKpis();
         HBox filters = buildFilters();
 
-        BorderPane workspace = new BorderPane();
+        SplitPane workspace = new SplitPane();
         workspace.getStyleClass().add("exercicios-workspace");
-        workspace.setCenter(buildTable());
-        workspace.setRight(buildDetails());
+        workspace.setOrientation(Orientation.HORIZONTAL);
+        workspace.setDividerPositions(0.76);
+        workspace.setMinHeight(0);
+
+        StackPane tablePane = new StackPane(buildTable());
+        tablePane.getStyleClass().add("exercicios-table-pane");
+        tablePane.setMinWidth(420);
+
+        VBox details = buildDetails();
+        details.getStyleClass().add("exercicios-details-pane");
+
+        workspace.getItems().addAll(tablePane, details);
+        SplitPane.setResizableWithParent(tablePane, true);
+        SplitPane.setResizableWithParent(details, false);
 
         getChildren().addAll(header, kpis, filters, workspace);
         VBox.setVgrow(workspace, Priority.ALWAYS);
