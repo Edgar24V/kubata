@@ -11,21 +11,28 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Botão do Ribbon que se adapta ao tamanho:
- * <ul>
- *   <li><b>LARGE</b> – mosaico quadrado: wrapper de ícone (40×40) + texto em baixo</li>
- *   <li><b>SMALL</b> – linha horizontal: ícone pequeno + texto ao lado</li>
- * </ul>
+ * Botão do Ribbon.
+ *
+ * LARGE = comando principal com ícone acima do texto.
+ * SMALL = comando secundário com ícone à esquerda.
  */
 public class RibbonButton extends Button {
 
     private final RibbonButtonSize size;
 
-    public RibbonButton(String id, String label, Node icon, RibbonButtonSize size, String tooltip, Runnable action) {
+    public RibbonButton(String id,
+                        String label,
+                        Node icon,
+                        RibbonButtonSize size,
+                        String tooltip,
+                        Runnable action) {
+
         this.size = size;
         setId(id);
 
         getStyleClass().add("ribbon-button");
+        setFocusTraversable(true);
+        setMnemonicParsing(false);
 
         if (size == RibbonButtonSize.LARGE) {
             buildLargeLayout(label, icon);
@@ -33,36 +40,38 @@ public class RibbonButton extends Button {
             buildSmallLayout(label, icon);
         }
 
-        setText(""); // conteúdo gerido pelo graphic
+        setText("");
 
         if (tooltip != null && !tooltip.isBlank()) {
             setTooltip(new Tooltip(tooltip));
         }
+
         if (action != null) {
             setOnAction(e -> action.run());
         }
     }
 
-    // ── Layouts ────────────────────────────────────────────────────────────────
-
     private void buildLargeLayout(String label, Node icon) {
         getStyleClass().add("ribbon-button-tile");
 
-        VBox content = new VBox(3);
+        VBox content = new VBox(4);
         content.setAlignment(Pos.TOP_CENTER);
+        content.setFillWidth(true);
 
-        // Wrapper quadrado com fundo verde subtil (estilo PRIMAVERA V10)
         StackPane iconWrap = new StackPane();
         iconWrap.getStyleClass().add("ribbon-tile-icon-wrap");
+
         if (icon != null) {
-            icon.getStyleClass().add("ribbon-icon-tile");
+            if (!icon.getStyleClass().contains("ribbon-icon-tile")) {
+                icon.getStyleClass().add("ribbon-icon-tile");
+            }
             iconWrap.getChildren().add(icon);
         }
 
         Text text = new Text(label);
         text.getStyleClass().addAll("ribbon-button-text", "ribbon-button-text-below");
         text.setTextAlignment(TextAlignment.CENTER);
-        text.setWrappingWidth(52);
+        text.setWrappingWidth(62);
 
         content.getChildren().addAll(iconWrap, text);
         setGraphic(content);
@@ -71,34 +80,33 @@ public class RibbonButton extends Button {
     private void buildSmallLayout(String label, Node icon) {
         getStyleClass().add("ribbon-button-small");
 
-        HBox content = new HBox(5);
+        HBox content = new HBox(6);
         content.setAlignment(Pos.CENTER_LEFT);
 
         if (icon != null) {
-            icon.getStyleClass().add("ribbon-icon-small");
+            if (!icon.getStyleClass().contains("ribbon-icon-small")) {
+                icon.getStyleClass().add("ribbon-icon-small");
+            }
             content.getChildren().add(icon);
         }
 
         Text text = new Text(label);
         text.getStyleClass().add("ribbon-button-text");
+        text.setWrappingWidth(105);
 
         content.getChildren().add(text);
         setGraphic(content);
     }
-
-    // ── API pública ────────────────────────────────────────────────────────────
 
     public RibbonButtonSize getRibbonSize() {
         return size;
     }
 
     public void setSelected(boolean selected) {
+        getStyleClass().remove("ribbon-button-selected");
+
         if (selected) {
-            if (!getStyleClass().contains("ribbon-button-selected")) {
-                getStyleClass().add("ribbon-button-selected");
-            }
-        } else {
-            getStyleClass().remove("ribbon-button-selected");
+            getStyleClass().add("ribbon-button-selected");
         }
     }
 }
