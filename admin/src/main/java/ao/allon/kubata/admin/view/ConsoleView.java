@@ -364,6 +364,7 @@ public class ConsoleView extends VBox {
 
         value.getStyleClass().removeAll("console-kpi-value");
         value.getStyleClass().add("console-kpi-value");
+        value.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; " + valueStyle);
 
         box.getChildren().addAll(lblTitle, value);
         return box;
@@ -991,15 +992,25 @@ public class ConsoleView extends VBox {
         
         File file = fileChooser.showSaveDialog(getScene().getWindow());
         if (file != null) {
-            try (PrintWriter writer = new PrintWriter(file)) {
-                writer.println("Data/Hora;Nivel;Categoria;Mensagem");
+            try (PrintWriter writer = new PrintWriter(file, java.nio.charset.StandardCharsets.UTF_8)) {
+                writer.println("\uFEFFData/Hora;Nivel;Categoria;Mensagem");
                 for (SystemLog log : filteredLogs) {
-                    writer.println(String.format("%s;%s;%s;%s", 
-                        log.getTimestamp(), log.getLogLevel(), log.getCategory(), log.getMessage()));
+                    writer.println(
+                            csvValue(log.getTimestamp()) + ";" +
+                            csvValue(log.getLogLevel()) + ";" +
+                            csvValue(log.getCategory()) + ";" +
+                            csvValue(log.getMessage())
+                    );
                 }
-                notificationService.showSuccess("Exportação Concluída", "Os logs foram exportados para " + file.getName());
+                notificationService.showSuccess(
+                        "Exportação Concluída",
+                        "Os logs foram exportados para " + file.getName()
+                );
             } catch (Exception ex) {
-                notificationService.showError("Erro na Exportação", "Não foi possível gravar o ficheiro: " + ex.getMessage());
+                notificationService.showError(
+                        "Erro na Exportação",
+                        "Não foi possível gravar o ficheiro: " + ex.getMessage()
+                );
             }
         }
     }
@@ -1116,6 +1127,21 @@ public class ConsoleView extends VBox {
         return version == null || version.isBlank()
                 ? "DEV"
                 : version;
+    }
+
+    private static String csvValue(Object value) {
+        if (value == null) {
+            return "";
+        }
+
+        String text = String.valueOf(value)
+                .replace("\r", " ")
+                .replace("\n", " ")
+                .replace(""", """");
+
+        return (text.contains(";") || text.contains("""))
+                ? """ + text + """
+                : text;
     }
 
 }
