@@ -20,6 +20,7 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.module.ModuleRegistry;
 import ao.allon.kubata.core.module.KubataModule;
+import ao.allon.kubata.core.module.communication.ModuleCommunicationService;
 import javafx.application.Platform;
 import java.util.Collection;
 import java.util.List;
@@ -76,6 +77,7 @@ public class ConsoleView extends VBox {
     private final Environment environment;
     private final JobManager jobManager;
     private final ModuleRegistry moduleRegistry;
+    private final ModuleCommunicationService moduleCommunicationService;
 
     private final TabPane tabPane = new TabPane();
     
@@ -112,7 +114,8 @@ public class ConsoleView extends VBox {
                        MaintenanceModeService maintenanceModeService,
                        Environment environment,
                        JobManager jobManager,
-                       ModuleRegistry moduleRegistry) {
+                       ModuleRegistry moduleRegistry,
+                       ModuleCommunicationService moduleCommunicationService) {
         this.systemLogRepository = systemLogRepository;
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
@@ -125,6 +128,7 @@ public class ConsoleView extends VBox {
         this.environment = environment;
         this.jobManager = jobManager;
         this.moduleRegistry = moduleRegistry;
+        this.moduleCommunicationService = moduleCommunicationService;
         this.backgroundProcesses = jobManager.getJobs();
 
         buildUI();
@@ -861,12 +865,22 @@ public class ConsoleView extends VBox {
                         log.setMessage(msg);
                         log.setThreadName(Thread.currentThread().getName());
                         systemLogRepository.save(log);
+
+                        if (moduleCommunicationService != null) {
+                            moduleCommunicationService.broadcast(
+                                    "ADMIN",
+                                    "SYSTEM_BROADCAST",
+                                    java.util.Map.of(
+                                            "message", msg,
+                                            "urgent", chkUrgent.isSelected(),
+                                            "source", "Kubata Administrator"
+                                    )
+                            );
+                        }
                     },
                     "BROADCAST",
                     "CONSOLE",
-                    "Mensagem operacional registada para "
-                            + activeSessions.size()
-                            + " sessão(ões)",
+                    "Mensagem operacional emitida para o ecossistema Kubata",
                     () -> {
                         if (chkUrgent.isSelected()) {
                             notificationService.showWarning(
