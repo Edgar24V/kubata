@@ -56,7 +56,26 @@ public class AdminMainView extends StackPane {
 
     private void buildUI() {
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
-        tabs.getStyleClass().add("office365-tabs");
+        tabs.getStyleClass().addAll("office365-tabs", "kubata-main-tabpane");
+        tabs.setMinWidth(0);
+        tabs.setMinHeight(0);
+        tabs.setMaxWidth(Double.MAX_VALUE);
+        tabs.setMaxHeight(Double.MAX_VALUE);
+
+        // Ajuste responsivo do cabeçalho conforme a largura disponível.
+        tabs.widthProperty().addListener((obs, oldWidth, newWidth) -> {
+            double width = newWidth == null ? 0 : newWidth.doubleValue();
+            tabs.getStyleClass().removeAll(
+                    "kubata-tabs-compact",
+                    "kubata-tabs-small"
+            );
+
+            if (width > 0 && width < 760) {
+                tabs.getStyleClass().add("kubata-tabs-small");
+            } else if (width > 0 && width < 1050) {
+                tabs.getStyleClass().add("kubata-tabs-compact");
+            }
+        });
 
         // Sincronizar seleção do Ribbon com a tab ativa
         tabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
