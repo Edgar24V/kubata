@@ -554,7 +554,10 @@ public class ApplicationView extends VBox {
                 .map(info -> new DatabaseUpdate(
                         String.valueOf(info.getVersion()) + " - " + info.getDescription(),
                         info.getInstalledOn() != null
-                                ? info.getInstalledOn().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                                ? info.getInstalledOn().toInstant()
+                                        .atZone(java.time.ZoneId.systemDefault())
+                                        .toLocalDateTime()
+                                        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
                                 : "—",
                         info.getState() != null ? info.getState().getDisplayName() : "Desconhecido"
                 ))
