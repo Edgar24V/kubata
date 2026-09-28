@@ -89,7 +89,8 @@ public class AdvancedTableView<S> extends TableView<S> {
     private Runnable onRefreshCallback;
     private String entityName = "Item";
 
-    private final ObservableList<S> sourceData = FXCollections.observableArrayList();
+    private ObservableList<S> sourceData = FXCollections.observableArrayList();
+    private ListChangeListener<S> sourceDataListener;
 
     private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
 
@@ -243,8 +244,11 @@ public class AdvancedTableView<S> extends TableView<S> {
                 ? FXCollections.observableArrayList()
                 : items;
 
-        this.sourceData.clear();
-        this.sourceData.addAll(safeItems);
+        if (this.sourceDataListener != null) {
+            this.sourceData.removeListener(this.sourceDataListener);
+        }
+
+        this.sourceData = safeItems;
 
         this.filteredData = new FilteredList<>(this.sourceData, p -> true);
         SortedList<S> sortedData = new SortedList<>(filteredData);
@@ -257,9 +261,8 @@ public class AdvancedTableView<S> extends TableView<S> {
         pageIndex = 0;
         updatePagerState();
 
-        sourceData.addListener((ListChangeListener<S>) change -> {
-            updatePagerState();
-        });
+        this.sourceDataListener = change -> Platform.runLater(this::updatePagerState);
+        this.sourceData.addListener(this.sourceDataListener);
     }
 
     /**
@@ -844,7 +847,7 @@ public class AdvancedTableView<S> extends TableView<S> {
 
     private void exportAllToCSV() {
         if (pageProvider == null) {
-            exportToCSV(getItems());
+            exportToCSV(sourceData);
             return;
         }
 
