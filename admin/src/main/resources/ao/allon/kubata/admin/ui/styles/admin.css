@@ -5908,7 +5908,6 @@ Text {
 
 .tab-pane {
     -fx-tab-min-height: 32px;
-    -fx-tab-pref-height: 32px;
     -fx-tab-max-height: 32px;
 }
 
@@ -5959,6 +5958,10 @@ Text {
  * Apenas as cores são alteradas, evitando qualquer "salto" visual.
  */
 .tab-pane > .tab-header-area > .headers-region > .tab:selected,
+.tab-pane > .tab-header-area > .headers-region > .tab:top:selected,
+.tab-pane > .tab-header-area > .headers-region > .tab:bottom:selected,
+.tab-pane > .tab-header-area > .headers-region > .tab:left:selected,
+.tab-pane > .tab-header-area > .headers-region > .tab:right:selected,
 .office365-tabs .tab:selected,
 .kubata-main-tabpane .tab:selected {
     -fx-background-insets: 0;
@@ -6056,7 +6059,6 @@ Text {
 .kubata-main-tabpane.kubata-tabs-compact,
 .kubata-main-tabpane.kubata-tabs-small {
     -fx-tab-min-height: 32px;
-    -fx-tab-pref-height: 32px;
     -fx-tab-max-height: 32px;
 }
 
