@@ -385,12 +385,16 @@ public class LoginController {
         setLoading(true);
         executor.submit(() -> {
             try {
-                // Chamar serviço de reset de senha (implementar no AuthService)
-                // authService.requestPasswordReset(email);
-                Thread.sleep(1000); // Simulação – remover depois
+                // O AuthService mantém a política de não revelar se a conta existe.
+                authService.recoverPassword(email);
+
                 Platform.runLater(() -> {
                     setLoading(false);
-                    showMessage("Foi enviado um link de recuperação para " + email, false);
+                    showMessage(
+                            "O pedido de recuperação foi registado. "
+                                    + "Verifique o canal de recuperação configurado no sistema.",
+                            false
+                    );
                 });
             } catch (Exception ex) {
                 Platform.runLater(() -> {
