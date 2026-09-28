@@ -6109,3 +6109,209 @@ Text {
 .status-bar .toggle-button {
     -fx-text-fill: #FFFFFF;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA — MODAL PADRÃO DO SISTEMA
+   Estrutura única para diálogos, confirmações, formulários e erros.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-modal-overlay {
+  -fx-background-color: rgba(15, 23, 42, 0.58);
+  -fx-padding: 18px;
+}
+
+.kubata-modal-dialog {
+  -fx-background-color: -color-bg-overlay;
+  -fx-background-radius: 12px;
+  -fx-border-color: rgba(33, 115, 70, 0.18);
+  -fx-border-width: 1px;
+  -fx-border-radius: 12px;
+  -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.28), 28, 0.18, 0, 10);
+}
+
+.kubata-modal-dialog:focused {
+  -fx-border-color: rgba(33, 115, 70, 0.38);
+}
+
+.kubata-modal-header {
+  -fx-background-color: linear-gradient(to bottom, #ffffff, #f8faf9);
+  -fx-border-color: transparent transparent -color-border-subtle transparent;
+  -fx-border-width: 0 0 1px 0;
+  -fx-background-radius: 12px 12px 0 0;
+}
+
+.kubata-modal-title {
+  -fx-font-family: "Segoe UI Semibold", "Segoe UI", sans-serif;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-text-fill: -color-fg-default;
+}
+
+.kubata-modal-subtitle {
+  -fx-font-size: 11px;
+  -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-modal-icon {
+  -fx-min-width: 34px;
+  -fx-pref-width: 34px;
+  -fx-max-width: 34px;
+  -fx-min-height: 34px;
+  -fx-pref-height: 34px;
+  -fx-max-height: 34px;
+  -fx-alignment: CENTER;
+  -fx-background-radius: 9px;
+  -fx-border-radius: 9px;
+  -fx-border-width: 1px;
+}
+
+.kubata-modal-icon .ikonli-font-icon {
+  -fx-icon-size: 16px;
+}
+
+.kubata-modal-icon-default {
+  -fx-background-color: -color-accent-subtle;
+  -fx-border-color: -kubata-green-border;
+  -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-modal-icon-info {
+  -fx-background-color: #eaf4ff;
+  -fx-border-color: #b7d7f5;
+  -fx-text-fill: #185a9d;
+}
+
+.kubata-modal-icon-success {
+  -fx-background-color: -color-success-subtle;
+  -fx-border-color: -color-success-muted;
+  -fx-text-fill: -color-success-fg;
+}
+
+.kubata-modal-icon-warning {
+  -fx-background-color: -color-warning-subtle;
+  -fx-border-color: -color-warning-muted;
+  -fx-text-fill: -color-warning-fg;
+}
+
+.kubata-modal-icon-danger {
+  -fx-background-color: -color-danger-subtle;
+  -fx-border-color: -color-danger-muted;
+  -fx-text-fill: -color-danger-fg;
+}
+
+.kubata-modal-close {
+  -fx-min-width: 32px;
+  -fx-pref-width: 32px;
+  -fx-max-width: 32px;
+  -fx-min-height: 32px;
+  -fx-pref-height: 32px;
+  -fx-max-height: 32px;
+  -fx-background-radius: 7px;
+  -fx-border-radius: 7px;
+}
+
+.kubata-modal-close:hover {
+  -fx-background-color: -color-danger-subtle;
+}
+
+.kubata-modal-close .ikonli-font-icon {
+  -fx-icon-size: 15px;
+}
+
+.kubata-modal-scroll {
+  -fx-background-color: transparent;
+  -fx-background: transparent;
+  -fx-border-color: transparent;
+  -fx-border-width: 0;
+}
+
+.kubata-modal-scroll > .viewport {
+  -fx-background-color: transparent;
+}
+
+.kubata-modal-scroll > .corner {
+  -fx-background-color: transparent;
+}
+
+.kubata-modal-scroll .scroll-bar:vertical,
+.kubata-modal-scroll .scroll-bar:horizontal {
+  -fx-background-color: transparent;
+}
+
+.kubata-modal-scroll .thumb {
+  -fx-background-color: rgba(87, 96, 106, 0.38);
+  -fx-background-radius: 8px;
+}
+
+.kubata-modal-scroll .thumb:hover {
+  -fx-background-color: rgba(33, 115, 70, 0.58);
+}
+
+.kubata-modal-separator {
+  -fx-padding: 0;
+}
+
+.kubata-modal-footer {
+  -fx-background-color: #fbfcfb;
+  -fx-background-radius: 0 0 12px 12px;
+}
+
+.kubata-modal-footer > .label {
+  -fx-font-size: 11px;
+  -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-modal-message {
+  -fx-font-size: 13px;
+  -fx-text-fill: -color-fg-default;
+  -fx-line-spacing: 2px;
+}
+
+.kubata-modal-stacktrace {
+  -fx-control-inner-background: #111827;
+  -fx-text-fill: #e5e7eb;
+  -fx-highlight-fill: -kubata-green;
+  -fx-highlight-text-fill: white;
+  -fx-background-radius: 6px;
+  -fx-border-radius: 6px;
+  -fx-border-color: #374151;
+  -fx-font-family: "Consolas", "Cascadia Mono", "Monospace", monospace;
+  -fx-font-size: 11px;
+}
+
+.kubata-modal-dialog .text-field,
+.kubata-modal-dialog .password-field,
+.kubata-modal-dialog .text-area,
+.kubata-modal-dialog .combo-box-base,
+.kubata-modal-dialog .choice-box,
+.kubata-modal-dialog .date-picker,
+.kubata-modal-dialog .spinner {
+  -fx-min-height: 34px;
+}
+
+.kubata-modal-dialog .text-area {
+  -fx-min-height: 90px;
+}
+
+.kubata-modal-dialog .button {
+  -fx-min-height: 34px;
+}
+
+.kubata-modal-dialog .titled-pane {
+  -fx-background-color: -color-bg-subtle;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 6px;
+  -fx-background-radius: 6px;
+}
+
+.kubata-modal-dialog .titled-pane > .title {
+  -fx-background-color: -color-bg-subtle;
+  -fx-padding: 7px 10px;
+}
+
+.kubata-modal-dialog .titled-pane > .content {
+  -fx-background-color: -color-bg-default;
+  -fx-border-color: transparent;
+  -fx-padding: 10px;
+}
