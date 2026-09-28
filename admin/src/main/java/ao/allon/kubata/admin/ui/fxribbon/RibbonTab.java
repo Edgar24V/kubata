@@ -2,6 +2,7 @@ package ao.allon.kubata.admin.ui.fxribbon;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -51,6 +52,7 @@ public class RibbonTab {
         groups.add(group);
         int spacerIdx = contentPane.getChildren().size() - 1;
         contentPane.getChildren().add(spacerIdx, group);
+        HBox.setMargin(group, new Insets(0, 2, 0, 2));
     }
 
     /**
