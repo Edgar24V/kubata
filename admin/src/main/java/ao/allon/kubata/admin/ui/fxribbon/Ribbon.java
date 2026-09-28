@@ -255,16 +255,6 @@ public class Ribbon extends VBox {
                 return;
             }
 
-            // Compactação progressiva antes de começar a esconder comandos.
-            updateResponsiveMode(available);
-            applyCss();
-            layout();
-
-            if (available < 140) {
-                hideAllButFirstGroup(selectedTab);
-                return;
-            }
-
             List<RibbonGroup> groups = selectedTab.getGroups();
             List<RibbonGroup> hidden = hiddenGroupsMap.get(selectedTab);
 
@@ -351,7 +341,7 @@ public class Ribbon extends VBox {
             width = group.getLayoutBounds().getWidth();
         }
 
-        return Math.max(72, Math.ceil(width));
+        return Math.max(96, Math.ceil(width));
     }
 
     private void restoreAllGroups(RibbonTab tab) {
