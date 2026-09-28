@@ -6073,3 +6073,39 @@ Text {
 .kubata-main-tabpane.kubata-tabs-small .tab-label {
     -fx-font-size: 10.5px;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KUBATA — Ícones Brancos do Cabeçalho e Rodapé
+   O texto e os ícones acompanham a mesma cor do chrome verde.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.custom-title-bar .ikonli-font-icon,
+.custom-title-bar .font-icon,
+.custom-title-bar .button .ikonli-font-icon,
+.custom-title-bar .button .font-icon,
+.custom-title-bar .label .ikonli-font-icon,
+.custom-title-bar .label .font-icon {
+    -fx-icon-color: #FFFFFF;
+    -fx-fill: #FFFFFF;
+}
+
+.custom-title-bar .button,
+.custom-title-bar .toggle-button {
+    -fx-text-fill: #FFFFFF;
+}
+
+.status-bar .ikonli-font-icon,
+.status-bar .font-icon,
+.status-bar .button .ikonli-font-icon,
+.status-bar .button .font-icon,
+.status-bar .label .ikonli-font-icon,
+.status-bar .label .font-icon {
+    -fx-icon-color: #FFFFFF;
+    -fx-fill: #FFFFFF;
+}
+
+.status-bar .button,
+.status-bar .toggle-button {
+    -fx-text-fill: #FFFFFF;
+}
