@@ -71,8 +71,8 @@
 
 .ribbon-content-host {
     -fx-background-color: #FFFFFF;
-    -fx-min-height: 104px;
-    -fx-pref-height: 112px;
+    -fx-min-height: 100px;
+    -fx-pref-height: 108px;
     -fx-max-height: 116px;
 }
 
@@ -228,6 +228,81 @@
 .ribbon-icon-small {
     -fx-icon-size: 15px;
     -fx-icon-color: #107C41;
+}
+
+
+/* ── Responsive / Redimensionamento ──────────────────────────────────────── */
+
+/*
+ * O Ribbon adapta os comandos em três níveis:
+ * normal -> compacto -> compacto pequeno -> overflow.
+ * Nenhum grupo deve ultrapassar a área visível do Ribbon.
+ */
+.ribbon-compact-medium .ribbon-button-tile {
+    -fx-min-width: 62px;
+    -fx-pref-width: 62px;
+    -fx-max-width: 62px;
+}
+
+.ribbon-compact-medium .ribbon-button-tile .ribbon-button-text-below {
+    -fx-font-size: 10px;
+}
+
+.ribbon-compact-medium .ribbon-button-small {
+    -fx-min-width: 76px;
+    -fx-pref-width: 76px;
+    -fx-max-width: 112px;
+}
+
+.ribbon-compact-medium .ribbon-button-small .ribbon-button-text {
+    -fx-font-size: 10px;
+}
+
+.ribbon-compact-small .ribbon-button-tile {
+    -fx-min-width: 56px;
+    -fx-pref-width: 56px;
+    -fx-max-width: 56px;
+}
+
+.ribbon-compact-small .ribbon-button-tile .ribbon-button-text-below {
+    -fx-font-size: 9px;
+}
+
+.ribbon-compact-small .ribbon-tile-icon-wrap {
+    -fx-min-width: 36px;
+    -fx-pref-width: 36px;
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-padding: 3px;
+}
+
+.ribbon-compact-small .ribbon-icon-tile {
+    -fx-icon-size: 21px;
+}
+
+.ribbon-compact-small .ribbon-button-small {
+    -fx-min-width: 68px;
+    -fx-pref-width: 68px;
+    -fx-max-width: 96px;
+}
+
+.ribbon-compact-small .ribbon-button-small .ribbon-button-text {
+    -fx-font-size: 9.5px;
+}
+
+.ribbon-compact-small .ribbon-group {
+    -fx-padding: 2 4 0 4;
+}
+
+.ribbon-compact-small .ribbon-tab-label {
+    -fx-padding: 8 9 7 9;
+}
+
+/* Impede que o conteúdo visual crie uma área maior que a janela. */
+.ribbon-content-host,
+.ribbon-content-scroll,
+.ribbon-content-scroll > .viewport {
+    -fx-max-width: Infinity;
 }
 
 /* ── Overflow ────────────────────────────────────────────────────────────── */
