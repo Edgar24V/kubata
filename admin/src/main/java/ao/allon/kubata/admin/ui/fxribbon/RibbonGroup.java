@@ -1,11 +1,9 @@
 package ao.allon.kubata.admin.ui.fxribbon;
 
-import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
@@ -15,82 +13,82 @@ import java.util.List;
 /**
  * Grupo de comandos do Ribbon.
  *
- * Layout:
- *   [comandos]
- *   [título]
- *
- * Cada grupo recebe uma linha vertical no lado direito através do CSS,
- * reproduzindo a separação visual típica do Office.
+ * Estrutura:
+ *   área de comandos
+ *   margem vertical
+ *   título da categoria
  */
 public class RibbonGroup extends VBox {
 
     private final String groupTitle;
     private final HBox contentBox;
+    private final VBox titleArea;
+    private final Label titleLabel;
     private final List<VBox> columns = new ArrayList<>();
 
     public RibbonGroup(String title) {
-        this.groupTitle = title;
+        this.groupTitle = title == null ? "" : title;
 
         getStyleClass().add("ribbon-group");
-        setFillWidth(true);
         setAlignment(Pos.TOP_CENTER);
+        setFillWidth(true);
         setMinWidth(0);
-        setMaxHeight(Double.MAX_VALUE);
+        setPrefHeight(108);
+        setMinHeight(108);
+        setMaxHeight(108);
 
         contentBox = new HBox(2);
-        contentBox.setAlignment(Pos.CENTER_LEFT);
-        contentBox.setPadding(new Insets(4, 7, 3, 7));
-        contentBox.setMinWidth(0);
-        contentBox.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(contentBox, Priority.NEVER);
+        contentBox.getStyleClass().add("ribbon-group-content");
+        contentBox.setAlignment(Pos.TOP_CENTER);
+        contentBox.setFillHeight(true);
+        contentBox.setPadding(new Insets(4, 5, 0, 5));
 
-        Label titleLabel = new Label(title);
+        titleArea = new VBox();
+        titleArea.getStyleClass().add("ribbon-group-title-area");
+        titleArea.setAlignment(Pos.CENTER);
+        titleArea.setFillWidth(true);
+        titleArea.setMinHeight(25);
+        titleArea.setPrefHeight(25);
+        titleArea.setMaxHeight(25);
+        titleArea.setPadding(new Insets(2, 6, 2, 6));
+
+        titleLabel = new Label(this.groupTitle);
         titleLabel.getStyleClass().add("ribbon-group-title");
-        titleLabel.setWrapText(true);
-        titleLabel.prefWidthProperty().bind(widthProperty().subtract(10));
-        titleLabel.maxWidthProperty().bind(widthProperty().subtract(10));
         titleLabel.setAlignment(Pos.CENTER);
-        titleLabel.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
-        titleLabel.setPadding(new Insets(3, 7, 3, 7));
+        titleLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        titleLabel.setWrapText(true);
+        titleLabel.setMaxWidth(Double.MAX_VALUE);
+        titleLabel.setMinWidth(0);
+        titleLabel.setMinHeight(18);
+        titleLabel.setPrefHeight(21);
+        titleLabel.setMaxHeight(23);
+        titleLabel.setPadding(new Insets(0, 2, 0, 2));
 
-        VBox titleArea = new VBox();
-        titleArea.setAlignment(Pos.BOTTOM_CENTER);
-        titleArea.setMinWidth(0);
-        titleArea.setMaxWidth(Double.MAX_VALUE);
         titleArea.getChildren().add(titleLabel);
 
         getChildren().addAll(contentBox, titleArea);
-
-        VBox.setVgrow(contentBox, Priority.ALWAYS);
-        VBox.setVgrow(titleArea, Priority.NEVER);
     }
 
     /**
      * Adiciona uma coluna de comandos.
-     * Separadores internos são inseridos automaticamente entre colunas.
+     * Os separadores recebem margem própria para nunca colidir com os botões.
      */
     public void addColumn(List<RibbonButton> buttons) {
         if (buttons == null || buttons.isEmpty()) {
             return;
         }
 
-        VBox column = new VBox(1);
-        column.setAlignment(Pos.TOP_LEFT);
+        VBox column = new VBox(2);
+        column.getStyleClass().add("ribbon-column-container");
+        column.setAlignment(Pos.TOP_CENTER);
         column.setFillWidth(true);
         column.setMinWidth(0);
-        column.setMaxWidth(Double.MAX_VALUE);
-        column.getStyleClass().add("ribbon-column-container");
 
-        for (RibbonButton btn : buttons) {
-            if (btn == null) {
+        for (RibbonButton button : buttons) {
+            if (button == null) {
                 continue;
             }
-
-            column.getChildren().add(btn);
-
-            if (btn.getRibbonSize() == RibbonButtonSize.LARGE) {
-                VBox.setVgrow(btn, Priority.ALWAYS);
-            }
+            column.getChildren().add(button);
         }
 
         if (!columns.isEmpty()) {
@@ -99,7 +97,7 @@ public class RibbonGroup extends VBox {
             separator.setPrefWidth(1);
             separator.setMinWidth(1);
             separator.setMaxWidth(1);
-            HBox.setMargin(separator, new Insets(0, 3, 0, 3));
+            HBox.setMargin(separator, new Insets(3, 4, 3, 4));
             contentBox.getChildren().add(separator);
         }
 
@@ -111,9 +109,6 @@ public class RibbonGroup extends VBox {
         addColumn(List.of(button));
     }
 
-    /**
-     * Adiciona no máximo três comandos SMALL à mesma coluna.
-     */
     public void addSmallButtons(List<RibbonButton> buttons) {
         if (buttons == null || buttons.isEmpty()) {
             return;
