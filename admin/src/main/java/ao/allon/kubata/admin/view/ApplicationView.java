@@ -30,7 +30,15 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -47,6 +55,7 @@ public class ApplicationView extends VBox {
     private final ParametroSistemaRepository parametroRepository;
     private final ObjectProvider<Flyway> flywayProvider;
     private final ModuleRegistry moduleRegistry;
+    private final DataSource dataSource;
 
     private final TabPane tabPane = new TabPane();
     
@@ -61,7 +70,8 @@ public class ApplicationView extends VBox {
                            NotificationService notificationService,
                            ParametroSistemaRepository parametroRepository,
                            ObjectProvider<Flyway> flywayProvider,
-                           ModuleRegistry moduleRegistry) {
+                           ModuleRegistry moduleRegistry,
+                           DataSource dataSource) {
         this.moduloRepository = moduloRepository;
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
@@ -69,6 +79,7 @@ public class ApplicationView extends VBox {
         this.parametroRepository = parametroRepository;
         this.flywayProvider = flywayProvider;
         this.moduleRegistry = moduleRegistry;
+        this.dataSource = dataSource;
 
         buildUI();
         
@@ -277,9 +288,9 @@ public class ApplicationView extends VBox {
         grid.setPadding(new Insets(20));
 
         CheckBox chkApiEnabled = new CheckBox("Activar Web API (REST)");
-        chkApiEnabled.setSelected(true);
+        chkApiEnabled.setSelected(Boolean.parseBoolean(readGlobalParameter("API_ENABLED", "false")));
         
-        TextField txtPort = new TextField("8080");
+        TextField txtPort = new TextField(readGlobalParameter("API_PORT", "8080"));
         txtPort.setPrefWidth(100);
         
         TextField txtEndpoint = new TextField("/api/v1/kubata");
@@ -302,14 +313,14 @@ public class ApplicationView extends VBox {
         Label lblSec = new Label("Segurança e Autenticação", IconUtils.icon(Feather.SHIELD, 14));
         lblSec.getStyleClass().add("h4");
         
-        TextField txtApiKey = new TextField("KBT-7890-X12-PROD");
+        TextField txtApiKey = new TextField(readGlobalParameter("API_KEY", "Não configurada"));
         txtApiKey.setEditable(false);
         txtApiKey.setStyle("-fx-font-family: 'Consolas';");
         
         Button btnRegen = new Button("Regenerar API Key", IconUtils.icon(Feather.REFRESH_CW, 12));
         btnRegen.getStyleClass().add("button-outlined");
         btnRegen.setOnAction(e -> {
-            txtApiKey.setText("KBT-" + (1000 + new java.util.Random().nextInt(8999)) + "-X" + (10 + new java.util.Random().nextInt(89)) + "-PROD");
+            txtApiKey.setText(generateApiKey());
             notificationService.showInfo("API Key Regenerada", "Lembre-se de atualizar os seus clientes externos.");
         });
         
@@ -389,20 +400,16 @@ public class ApplicationView extends VBox {
         persistenceService.executeAsync(() -> {
             List<ModuloSistema> mods = moduloRepository.findAll();
 
+            List<DatabaseUpdate> migrationRows = loadMigrationHistory();
+            List<DatabaseTable> tableRows = loadDatabaseTables();
+
             Platform.runLater(() -> {
                 modulos.setAll(mods);
-                
-                updates.clear();
-                updates.add(new DatabaseUpdate("SP_2026_001", "2026-04-01", "Aplicado"));
-                updates.add(new DatabaseUpdate("FIX_VAT_CALC", "2026-03-15", "Aplicado"));
-
-                dbTables.clear();
-                dbTables.add(new DatabaseTable("TBL_FACTURACAO", "1.240.500", "450 MB", "8"));
-                dbTables.add(new DatabaseTable("TBL_CLIENTES", "15.200", "12 MB", "3"));
-                dbTables.add(new DatabaseTable("TBL_ARTIGOS", "45.000", "85 MB", "5"));
-                dbTables.add(new DatabaseTable("TBL_MOVIMENTOS", "2.500.000", "1.2 GB", "12"));
+                updates.setAll(migrationRows);
+                dbTables.setAll(tableRows);
             });
-        }, "APP_REFRESH", "APPLICATION", "Atualização de dados de engenharia", null);
+        }, "APP_REFRESH", "APPLICATION",
+                "Atualização de dados de engenharia e infraestrutura", null);
     }
 
     private void initializeModule(ModuloSistema modulo) {
@@ -526,6 +533,124 @@ public class ApplicationView extends VBox {
         parametro.setAtualizadoPor("Kubata Administrator");
 
         parametroRepository.save(parametro);
+    }
+
+    private List<DatabaseUpdate> loadMigrationHistory() {
+        Flyway flyway = flywayProvider.getIfAvailable();
+        if (flyway == null) {
+            return List.of(new DatabaseUpdate(
+                    "Flyway",
+                    LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                    "Indisponível"
+            ));
+        }
+
+        return java.util.Arrays.stream(flyway.info().all())
+                .filter(info -> info != null && info.getVersion() != null)
+                .sorted(java.util.Comparator.comparing(
+                        MigrationInfo::getInstalledRank,
+                        java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())
+                ))
+                .map(info -> new DatabaseUpdate(
+                        String.valueOf(info.getVersion()) + " - " + info.getDescription(),
+                        info.getInstalledOn() != null
+                                ? info.getInstalledOn().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                                : "—",
+                        info.getState() != null ? info.getState().getDisplayName() : "Desconhecido"
+                ))
+                .collect(Collectors.toList());
+    }
+
+    private List<DatabaseTable> loadDatabaseTables() {
+        if (dataSource == null) {
+            return List.of();
+        }
+
+        List<DatabaseTable> rows = new java.util.ArrayList<>();
+
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData meta = connection.getMetaData();
+
+            try (ResultSet tables = meta.getTables(null, null, "%", new String[]{"TABLE"})) {
+                while (tables.next() && rows.size() < 100) {
+                    String name = tables.getString("TABLE_NAME");
+
+                    if (name == null || name.isBlank() || name.startsWith("sqlite_")
+                            || name.startsWith("flyway_")) {
+                        continue;
+                    }
+
+                    long rowCount = countRows(connection, name);
+                    int indexCount = countIndexes(meta, name);
+
+                    rows.add(new DatabaseTable(
+                            name,
+                            String.valueOf(rowCount),
+                            "N/D",
+                            String.valueOf(indexCount)
+                    ));
+                }
+            }
+        } catch (Exception ex) {
+            notificationService.showWarning(
+                    "Metadados da base de dados",
+                    "Não foi possível obter todas as estatísticas: " + ex.getMessage()
+            );
+        }
+
+        return rows;
+    }
+
+    private long countRows(Connection connection, String tableName) {
+        String identifier = """ + tableName.replace(""", """") + """;
+
+        try (Statement statement = connection.createStatement();
+             var rs = statement.executeQuery(
+                     "SELECT COUNT(*) FROM " + identifier)) {
+
+            return rs.next() ? rs.getLong(1) : 0L;
+        } catch (SQLException ignored) {
+            return 0L;
+        }
+    }
+
+    private int countIndexes(DatabaseMetaData meta, String tableName) {
+        Set<String> names = new LinkedHashSet<>();
+
+        try (ResultSet rs = meta.getIndexInfo(null, null, tableName, false, false)) {
+            while (rs.next()) {
+                String name = rs.getString("INDEX_NAME");
+                if (name != null && !name.isBlank()) {
+                    names.add(name);
+                }
+            }
+        } catch (SQLException ignored) {
+            // Alguns drivers JDBC não suportam metadata de índices.
+        }
+
+        return names.size();
+    }
+
+    private String readGlobalParameter(String key, String fallback) {
+        try {
+            return parametroRepository.findByChaveAndEmpresaIdIsNull(key)
+                    .map(ParametroSistema::getValor)
+                    .filter(value -> value != null && !value.isBlank())
+                    .orElse(fallback);
+        } catch (Exception ex) {
+            return fallback;
+        }
+    }
+
+    private String generateApiKey() {
+        byte[] bytes = new byte[24];
+        new java.security.SecureRandom().nextBytes(bytes);
+
+        StringBuilder sb = new StringBuilder("KBT-");
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.substring(0, Math.min(sb.length(), 35)).toUpperCase();
     }
 
 }
