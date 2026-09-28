@@ -3,11 +3,12 @@ package ao.allon.kubata.admin.ui.fxribbon;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 /**
@@ -57,6 +58,8 @@ public class RibbonButton extends Button {
         VBox content = new VBox(4);
         content.setAlignment(Pos.TOP_CENTER);
         content.setFillWidth(true);
+        content.setMinWidth(0);
+        content.setMaxWidth(Double.MAX_VALUE);
 
         StackPane iconWrap = new StackPane();
         iconWrap.getStyleClass().add("ribbon-tile-icon-wrap");
@@ -68,10 +71,16 @@ public class RibbonButton extends Button {
             iconWrap.getChildren().add(icon);
         }
 
-        Text text = new Text(label);
+        Label text = new Label(label);
         text.getStyleClass().addAll("ribbon-button-text", "ribbon-button-text-below");
         text.setTextAlignment(TextAlignment.CENTER);
-        text.setWrappingWidth(62);
+        text.setAlignment(Pos.CENTER);
+        text.setWrapText(true);
+        text.setTextOverrun(OverrunStyle.ELLIPSIS);
+        text.setMaxWidth(Double.MAX_VALUE);
+        text.setMinWidth(0);
+        text.setMaxHeight(34);
+        VBox.setVgrow(text, javafx.scene.layout.Priority.NEVER);
 
         content.getChildren().addAll(iconWrap, text);
         setGraphic(content);
@@ -82,6 +91,9 @@ public class RibbonButton extends Button {
 
         HBox content = new HBox(6);
         content.setAlignment(Pos.CENTER_LEFT);
+        content.setFillHeight(true);
+        content.setMinWidth(0);
+        content.setMaxWidth(Double.MAX_VALUE);
 
         if (icon != null) {
             if (!icon.getStyleClass().contains("ribbon-icon-small")) {
@@ -90,10 +102,16 @@ public class RibbonButton extends Button {
             content.getChildren().add(icon);
         }
 
-        Text text = new Text(label);
+        Label text = new Label(label);
         text.getStyleClass().add("ribbon-button-text");
-        text.setWrappingWidth(105);
+        text.setAlignment(Pos.CENTER_LEFT);
+        text.setWrapText(true);
+        text.setTextOverrun(OverrunStyle.ELLIPSIS);
+        text.setMaxWidth(Double.MAX_VALUE);
+        text.setMinWidth(0);
+        text.setMaxHeight(24);
 
+        HBox.setHgrow(text, javafx.scene.layout.Priority.ALWAYS);
         content.getChildren().add(text);
         setGraphic(content);
     }
