@@ -94,9 +94,11 @@ public class AdvancedTableView<S> extends TableView<S> {
     private ListChangeListener<S> sourceDataListener;
 
     private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
+    private TextField activeSearchField;
+    private ComboBox<Integer> pageSizeCombo;
 
     private PageProvider<S> pageProvider;
-    private ExecutorService activeLoader;
+    private Future<?> activeOperation;
     private long pageIndex = 0;
     private int pageSize = DEFAULT_PAGE_SIZE;
     private long totalItems = -1;
