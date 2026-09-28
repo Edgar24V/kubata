@@ -6876,3 +6876,198 @@ Text {
 .exercicios-details .button {
     -fx-min-height: 34px;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   EXERCÍCIOS — refinamento visual e layout redimensionável
+   ───────────────────────────────────────────────────────────── */
+
+.exercicios-header {
+    -fx-padding: 16px 20px 14px 20px;
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #fbfcfd);
+}
+
+.exercicios-title-icon {
+    -fx-min-width: 42px;
+    -fx-pref-width: 42px;
+    -fx-min-height: 42px;
+    -fx-pref-height: 42px;
+    -fx-background-color: #e8f5e9;
+    -fx-border-color: #cce8d2;
+    -fx-border-width: 1px;
+    -fx-border-radius: 11px;
+    -fx-background-radius: 11px;
+    -fx-text-fill: #1a5c35;
+}
+
+.exercicios-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+}
+
+.exercicios-subtitle {
+    -fx-font-size: 11.5px;
+}
+
+.exercicios-kpi-row {
+    -fx-padding: 12px 20px 10px 20px;
+    -fx-spacing: 12px;
+}
+
+.exercicios-kpi-card {
+    -fx-padding: 11px 13px;
+    -fx-min-height: 74px;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10px;
+    -fx-border-color: #e0e6eb;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(20, 33, 45, 0.05), 8, 0.15, 0, 2);
+}
+
+.exercicios-kpi-card:hover {
+    -fx-border-color: #b8dcbc;
+}
+
+.exercicios-kpi-icon {
+    -fx-min-width: 30px;
+    -fx-pref-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: #d7ecd9;
+}
+
+.exercicios-kpi-value {
+    -fx-font-size: 22px;
+}
+
+.exercicios-filters {
+    -fx-padding: 2px 20px 12px 20px;
+    -fx-spacing: 8px;
+}
+
+.exercicios-filters .combo-box-base {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d5dde4;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+}
+
+.exercicios-filter-hint {
+    -fx-padding: 0 2px 0 8px;
+}
+
+.exercicios-workspace {
+    -fx-padding: 0 20px 18px 20px;
+    -fx-background-color: #f6f8fa;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+}
+
+.exercicios-workspace > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 0 5px 0 5px;
+}
+
+.exercicios-workspace > .split-pane-divider > .vertical-grabber {
+    -fx-background-color: #d5dde4;
+    -fx-background-radius: 3px;
+    -fx-pref-width: 4px;
+    -fx-min-width: 4px;
+    -fx-max-width: 4px;
+}
+
+.exercicios-table-pane {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 11px;
+    -fx-border-color: #dfe5ea;
+    -fx-border-width: 1px;
+    -fx-border-radius: 11px;
+    -fx-padding: 0;
+    -fx-effect: dropshadow(gaussian, rgba(20, 33, 45, 0.07), 14, 0.16, 0, 3);
+}
+
+.exercicios-table-pane > .advanced-table {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 10px;
+}
+
+.exercicios-table-pane > .advanced-table > .virtual-flow {
+    -fx-background-color: transparent;
+}
+
+.exercicios-details-pane {
+    -fx-min-width: 300px;
+    -fx-pref-width: 330px;
+    -fx-max-width: 360px;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 11px;
+    -fx-border-color: #dfe5ea;
+    -fx-border-width: 1px;
+    -fx-border-radius: 11px;
+    -fx-effect: dropshadow(gaussian, rgba(20, 33, 45, 0.07), 14, 0.16, 0, 3);
+}
+
+.exercicios-details {
+    -fx-background-color: transparent;
+    -fx-background-radius: 11px;
+    -fx-border-color: transparent;
+}
+
+.exercicios-details-title {
+    -fx-font-size: 14.5px;
+}
+
+.exercicios-details-facts {
+    -fx-padding: 4px 0 7px 0;
+}
+
+.exercicios-detail-fact {
+    -fx-padding: 5px 7px;
+    -fx-background-color: #f8fafb;
+    -fx-background-radius: 6px;
+    -fx-border-color: #edf0f2;
+    -fx-border-radius: 6px;
+}
+
+.exercicios-details-section {
+    -fx-padding: 6px 0 4px 0;
+}
+
+.exercicios-details .button {
+    -fx-padding: 0 11px;
+}
+
+.exercicios-details-help {
+    -fx-background-color: #f3faf5;
+    -fx-background-radius: 8px;
+    -fx-border-color: #d3e9d7;
+    -fx-border-radius: 8px;
+    -fx-padding: 9px;
+}
+
+.exercicio-status-badge {
+    -fx-min-width: 88px;
+    -fx-alignment: CENTER;
+}
+
+.exercicio-actual-badge {
+    -fx-min-width: 82px;
+    -fx-alignment: CENTER;
+}
+
+.exercicios-view .button-primary {
+    -fx-padding: 0 14px;
+}
+
+.exercicios-modal-intro {
+    -fx-padding: 5px 0 10px 0;
+}
+
+.exercicios-modal-note {
+    -fx-background-color: #f7f9fb;
+    -fx-background-radius: 7px;
+    -fx-padding: 8px 10px;
+}
