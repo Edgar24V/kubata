@@ -620,6 +620,7 @@ public class AdvancedTableView<S> extends TableView<S> {
         updatePagerState();
 
         pageSizeCombo = createPageSizeCombo();
+        updatePageSizeControlVisibility();
 
         HBox toolbar = new HBox(
                 10,
