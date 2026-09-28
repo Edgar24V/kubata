@@ -1,5 +1,6 @@
 package ao.allon.kubata.admin.ui.fxribbon;
 
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -45,8 +46,9 @@ public class RibbonGroup extends VBox {
 
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("ribbon-group-title");
-        titleLabel.setMaxWidth(Double.MAX_VALUE);
         titleLabel.setWrapText(true);
+        titleLabel.prefWidthProperty().bind(widthProperty().subtract(10));
+        titleLabel.maxWidthProperty().bind(widthProperty().subtract(10));
         titleLabel.setAlignment(Pos.CENTER);
         titleLabel.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
         titleLabel.setPadding(new Insets(3, 7, 3, 7));
@@ -96,6 +98,8 @@ public class RibbonGroup extends VBox {
             separator.getStyleClass().add("ribbon-column-separator");
             separator.setPrefWidth(1);
             separator.setMinWidth(1);
+            separator.setMaxWidth(1);
+            HBox.setMargin(separator, new Insets(0, 3, 0, 3));
             contentBox.getChildren().add(separator);
         }
 
