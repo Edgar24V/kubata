@@ -417,17 +417,17 @@ public class RelatoriosView extends VBox {
                     dataSource = new JRBeanCollectionDataSource(auditLogDTOs);
                 } else if (reportTitle.contains("Estatísticas")) {
                     reportFile = "classpath:reports/access_statistics.jrxml";
-                    // Criar dados simulados para estatísticas de acesso
+                    // Dados reais derivados do histórico de auditoria.
                     dataSource = new JRBeanCollectionDataSource(generateAccessStatisticsData());
                 } else if (reportTitle.contains("Backup")) {
                     reportFile = "classpath:reports/backup_restore.jrxml";
-                    // Criar dados simulados para backup e restauro
+                    // Dados reais do histórico de backups.
                     dataSource = new JRBeanCollectionDataSource(generateBackupRestoreData());
                 } else {
                     Platform.runLater(() -> {
                         btnGerar.setGraphic(originalGraphic);
                         btnGerar.setDisable(false);
-                        modalManager.alert("Informação", "O relatório '" + reportTitle + "' está em fase de desenho JRXML.", "info", null);
+                        modalManager.alert("Informação", "O relatório '" + reportTitle + "' não está disponível nesta instalação.", "info", null);
                     });
                     return;
                 }
