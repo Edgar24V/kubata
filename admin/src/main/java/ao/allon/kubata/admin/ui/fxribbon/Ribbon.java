@@ -238,11 +238,29 @@ public class Ribbon extends VBox {
             closeOverflowPopup();
             restoreAllGroups(selectedTab);
 
-            double available = contentHost.getWidth()
-                    - OVERFLOW_BUTTON_WIDTH
-                    - CONTENT_HORIZONTAL_MARGIN;
+            // Garante que os tamanhos usados pelo cálculo já consideram CSS
+            // e o tamanho atual da janela.
+            applyCss();
+            layout();
 
-            if (available < 80) {
+            double hostWidth = contentHost.getWidth();
+            double available = Math.max(
+                    0,
+                    hostWidth - OVERFLOW_BUTTON_WIDTH - CONTENT_HORIZONTAL_MARGIN
+            );
+
+            if (hostWidth <= 1) {
+                overflowButton.setVisible(false);
+                overflowButton.setManaged(false);
+                return;
+            }
+
+            // Compactação progressiva antes de começar a esconder comandos.
+            updateResponsiveMode(available);
+            applyCss();
+            layout();
+
+            if (available < 140) {
                 hideAllButFirstGroup(selectedTab);
                 return;
             }
@@ -252,7 +270,7 @@ public class Ribbon extends VBox {
 
             hidden.clear();
 
-            double required = 8;
+            double required = 0;
             int visibleCount = groups.size();
 
             for (RibbonGroup group : groups) {
@@ -280,6 +298,23 @@ public class Ribbon extends VBox {
         }
     }
 
+    /**
+     * Reduz progressivamente a largura dos comandos antes de recorrer
+     * ao overflow. Assim o Ribbon continua utilizável em janelas médias.
+     */
+    private void updateResponsiveMode(double available) {
+        getStyleClass().removeAll(
+                "ribbon-compact-medium",
+                "ribbon-compact-small"
+        );
+
+        if (available < 760) {
+            getStyleClass().add("ribbon-compact-small");
+        } else if (available < 1080) {
+            getStyleClass().add("ribbon-compact-medium");
+        }
+    }
+
     private void hideAllButFirstGroup(RibbonTab tab) {
         restoreAllGroups(tab);
 
@@ -302,17 +337,21 @@ public class Ribbon extends VBox {
     }
 
     private double preferredGroupWidth(RibbonGroup group) {
-        double width = group.prefWidth(-1);
+        if (group == null) {
+            return 0;
+        }
+
+        double width = group.getBoundsInParent().getWidth();
+
+        if (width <= 0) {
+            width = group.prefWidth(-1);
+        }
 
         if (width <= 0) {
             width = group.getLayoutBounds().getWidth();
         }
 
-        if (width <= 0) {
-            width = 120;
-        }
-
-        return Math.max(88, width);
+        return Math.max(72, Math.ceil(width));
     }
 
     private void restoreAllGroups(RibbonTab tab) {
@@ -337,7 +376,11 @@ public class Ribbon extends VBox {
     }
 
     private void requestOverflowUpdate() {
-        Platform.runLater(this::updateOverflow);
+        Platform.runLater(() -> {
+            if (selectedTab != null) {
+                updateOverflow();
+            }
+        });
     }
 
     private void showOverflow() {
