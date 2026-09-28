@@ -1,654 +1,757 @@
 package ao.allon.kubata.admin.view;
 
-import ao.allon.kubata.core.ui.table.AdvancedTableView;
-import ao.allon.kubata.core.ui.table.TableUtils;
-import ao.allon.kubata.core.ui.table.TextTableCell;
 import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
-import ao.allon.kubata.admin.ui.util.ThemeManager;
 import ao.allon.kubata.admin.ui.wizard.EmpresaWizardView;
 import ao.allon.kubata.core.domain.Empresa;
+import ao.allon.kubata.core.module.KubataModule;
+import ao.allon.kubata.core.module.ModuleRegistry;
 import ao.allon.kubata.core.repository.EmpresaRepository;
+import ao.allon.kubata.core.repository.ModuloSistemaRepository;
 import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.core.ui.table.AdvancedTableView;
+import ao.allon.kubata.core.ui.table.TableUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.concurrent.Task;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Component;
-import org.controlsfx.validation.ValidationSupport;
-import org.controlsfx.validation.Validator;
 
 import jakarta.annotation.PostConstruct;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Centro de gestão empresarial do Kubata Administrator.
+ *
+ * <p>O Administrator é a camada central do ecossistema: gere empresas,
+ * estado operacional, módulos disponíveis para cada empresa e acesso ao
+ * Assistente de Instalação/Configuração.</p>
+ */
 @Component
 public class EmpresaView extends VBox {
 
     private final EmpresaRepository empresaRepository;
+    private final ModuloSistemaRepository moduloSistemaRepository;
+    private final ModuleRegistry moduleRegistry;
     private final AcessoService acessoService;
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
     private final EmpresaWizardView empresaWizardView;
     private final PersistenceService persistenceService;
 
+    private final ObservableList<Empresa> empresas = FXCollections.observableArrayList();
+
     private AdvancedTableView<Empresa> table;
-    private ObservableList<Empresa> empresas;
     private TextField searchField;
 
-    public EmpresaView(EmpresaRepository empresaRepository, AcessoService acessoService, SessionManager sessionManager, 
-                       ModalManager modalManager, EmpresaWizardView empresaWizardView, PersistenceService persistenceService) {
+    private Label totalLabel;
+    private Label activeLabel;
+    private Label inactiveLabel;
+    private Label modulesLabel;
+
+    private VBox detailsPane;
+    private Label detailsTitle;
+    private Label detailsStatus;
+    private Label detailsNif;
+    private Label detailsLocation;
+    private Label detailsFiscal;
+    private Label detailsExercise;
+    private Label detailsModules;
+
+    public EmpresaView(EmpresaRepository empresaRepository,
+                       ModuloSistemaRepository moduloSistemaRepository,
+                       ModuleRegistry moduleRegistry,
+                       AcessoService acessoService,
+                       SessionManager sessionManager,
+                       ModalManager modalManager,
+                       EmpresaWizardView empresaWizardView,
+                       PersistenceService persistenceService) {
         this.empresaRepository = empresaRepository;
+        this.moduloSistemaRepository = moduloSistemaRepository;
+        this.moduleRegistry = moduleRegistry;
         this.acessoService = acessoService;
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
         this.empresaWizardView = empresaWizardView;
         this.persistenceService = persistenceService;
 
-        empresas = FXCollections.observableArrayList();
         buildUI();
     }
 
     @PostConstruct
     private void init() {
-        Platform.runLater(() -> {
-            try {
-                loadEmpresas();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        Platform.runLater(this::loadEmpresas);
     }
 
     private void buildUI() {
+        getStyleClass().add("empresa-view");
         setSpacing(0);
-        setPadding(Insets.EMPTY);
+        setFillWidth(true);
 
-        HBox toolbar = buildToolbar();
+        VBox header = buildHeader();
+        HBox kpis = buildKpis();
+
+        BorderPane body = new BorderPane();
+        body.setPadding(new Insets(0, 18, 18, 18));
+
         table = buildTable();
+        detailsPane = buildDetailsPane();
 
-        getChildren().addAll(toolbar, table);
-        VBox.setVgrow(table, Priority.ALWAYS);
+        SplitPane split = new SplitPane(table, detailsPane);
+        split.setDividerPositions(0.71);
+        split.getStyleClass().add("empresa-content-split");
+        BorderPane.setMargin(split, new Insets(12, 0, 0, 0));
+        body.setCenter(split);
+
+        getChildren().addAll(header, kpis, body);
+        VBox.setVgrow(body, Priority.ALWAYS);
     }
 
-    private HBox buildToolbar() {
-        HBox box = new HBox(10);
-        box.getStyleClass().add("header-box");
-        box.setAlignment(Pos.CENTER_LEFT);
+    private VBox buildHeader() {
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(16, 18, 10, 18));
+        root.getStyleClass().add("empresa-header");
 
-        Label title = new Label("Gestão de Empresas");
-        title.getStyleClass().add("h3");
+        HBox titleRow = new HBox(12);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
 
-        searchField = new TextField();
-        searchField.setPromptText("Pesquisar por nome ou NIF...");
-        searchField.setPrefWidth(280);
-        searchField.textProperty().addListener((obs, oldVal, newVal) -> filterEmpresas(newVal));
+        Label icon = new Label("▣");
+        icon.getStyleClass().add("empresa-title-icon");
 
-        Button btnNovo = new Button("Nova Empresa", IconUtils.icon(Feather.PLUS, IconUtils.SIZE_SMALL));
-        btnNovo.getStyleClass().add("button-primary");
-        btnNovo.setOnAction(e -> showEmpresaDialog(null));
+        VBox text = new VBox(3);
+        Label title = new Label("Empresas");
+        title.getStyleClass().add("h2");
 
-        Button btnEditar = new Button("Editar", IconUtils.icon(Feather.EDIT_2, IconUtils.SIZE_SMALL));
-        btnEditar.getStyleClass().add("button-outlined");
-        btnEditar.setOnAction(e -> {
-            Empresa selected = table.getSelectionModel().getSelectedItem();
-            if (selected != null) showEmpresaDialog(selected);
-        });
+        Label subtitle = new Label(
+                "Centro empresarial do Kubata Administrator · empresas, módulos e configuração central"
+        );
+        subtitle.getStyleClass().add("text-muted");
 
-        Button btnRemover = new Button("Remover", IconUtils.icon(Feather.TRASH_2, IconUtils.SIZE_SMALL));
-        btnRemover.getStyleClass().add("button-danger");
-        btnRemover.setDisable(true);
-        btnRemover.setOnAction(e -> removeEmpresa());
+        text.getChildren().addAll(title, subtitle);
 
-        Button btnRefresh = new Button(null, IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
-        btnRefresh.getStyleClass().add("button-outlined");
-        btnRefresh.setOnAction(e -> {
-            loadEmpresas();
-            modalManager.alert("Atualização", "Lista de empresas atualizada com sucesso.", "info", null);
-        });
-
-        Pane spacer = new Pane();
+        Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        box.getChildren().addAll(title, spacer, searchField, btnNovo, btnEditar, btnRemover, btnRefresh);
-        return box;
+        searchField = new TextField();
+        searchField.setPromptText("Pesquisar por nome, NIF, identificador, província...");
+        searchField.setPrefWidth(340);
+        searchField.getStyleClass().add("empresa-search");
+        searchField.textProperty().addListener((obs, old, value) -> filter(value));
+
+        Button newButton = new Button(
+                "Nova empresa",
+                IconUtils.icon(Feather.PLUS_CIRCLE, IconUtils.SIZE_SMALL)
+        );
+        newButton.getStyleClass().add("button-primary");
+        newButton.setOnAction(e -> openWizard(new Empresa()));
+
+        Button editButton = new Button(
+                "Configurar",
+                IconUtils.icon(Feather.SETTINGS, IconUtils.SIZE_SMALL)
+        );
+        editButton.getStyleClass().add("button-outlined");
+        editButton.setOnAction(e -> openSelectedWizard());
+
+        Button duplicateButton = new Button(
+                "Duplicar",
+                IconUtils.icon(Feather.COPY, IconUtils.SIZE_SMALL)
+        );
+        duplicateButton.getStyleClass().add("button-outlined");
+        duplicateButton.setOnAction(e -> duplicateSelected());
+
+        Button toggleButton = new Button(
+                "Activar / desactivar",
+                IconUtils.icon(Feather.POWER, IconUtils.SIZE_SMALL)
+        );
+        toggleButton.getStyleClass().add("button-outlined");
+        toggleButton.setOnAction(e -> toggleSelected());
+
+        Button refreshButton = new Button(
+                "",
+                IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
+        );
+        refreshButton.getStyleClass().add("button-outlined");
+        refreshButton.setTooltip(new Tooltip("Actualizar empresas"));
+        refreshButton.setOnAction(e -> loadEmpresas());
+
+        titleRow.getChildren().addAll(
+                icon, text, spacer, searchField, newButton,
+                editButton, duplicateButton, toggleButton, refreshButton
+        );
+
+        root.getChildren().add(titleRow);
+        return root;
+    }
+
+    private HBox buildKpis() {
+        HBox row = new HBox(12);
+        row.setPadding(new Insets(4, 18, 8, 18));
+        row.getStyleClass().add("empresa-kpi-row");
+
+        totalLabel = new Label("0");
+        activeLabel = new Label("0");
+        inactiveLabel = new Label("0");
+        modulesLabel = new Label("0");
+
+        row.getChildren().addAll(
+                kpi("Empresas", totalLabel, Feather.BRIEFCASE),
+                kpi("Operacionais", activeLabel, Feather.CHECK_CIRCLE),
+                kpi("Inactivas", inactiveLabel, Feather.PAUSE_CIRCLE),
+                kpi("Módulos activos no runtime", modulesLabel, Feather.LAYERS)
+        );
+
+        return row;
+    }
+
+    private VBox kpi(String title, Label value, Feather iconCode) {
+        Label icon = new Label("", IconUtils.icon(iconCode, 16));
+        icon.getStyleClass().add("empresa-kpi-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("empresa-kpi-title");
+
+        value.getStyleClass().add("empresa-kpi-value");
+
+        VBox text = new VBox(1, titleLabel, value);
+        VBox card = new VBox(4, new HBox(8, icon, text));
+        card.getStyleClass().add("empresa-kpi-card");
+        HBox.setHgrow(card, Priority.ALWAYS);
+        return card;
     }
 
     private AdvancedTableView<Empresa> buildTable() {
         AdvancedTableView<Empresa> tv = new AdvancedTableView<>();
+        tv.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tv.setData(empresas);
-        
         TableUtils.standardize(tv);
-        tv.setEditable(true);
-        
-        TableColumn<Empresa, String> colNome = new TableColumn<>("Nome");
-        colNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
-        colNome.setCellFactory(tc -> TextTableCell.create());
-        colNome.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setNome(event.getNewValue());
-            saveEmpresaInline(e);
+
+        tv.setOnViewDetails(this::showDetails);
+        tv.setOnEdit(this::openWizard);
+        tv.setOnDelete(this::removeEmpresa);
+        tv.setOnRefresh(this::loadEmpresas);
+        tv.setEntityName("Empresa");
+
+        TableColumn<Empresa, String> identifier = textColumn("ID", "identificador", 75);
+        TableColumn<Empresa, String> name = textColumn("Razão Social", "nome", 220);
+        TableColumn<Empresa, String> commercial = textColumn("Nome Comercial", "nomeComercial", 170);
+        TableColumn<Empresa, String> nif = textColumn("NIF", "nif", 120);
+        TableColumn<Empresa, String> province = textColumn("Província", "provincia", 115);
+        TableColumn<Empresa, String> municipality = textColumn("Município", "municipio", 125);
+        TableColumn<Empresa, String> regime = textColumn("Regime Fiscal", "regimeFiscal", 150);
+        TableColumn<Empresa, Integer> year = new TableColumn<>("Exercício");
+        year.setCellValueFactory(c -> new SimpleObjectProperty<>(c.getValue().getExercicioActual()));
+        year.setPrefWidth(90);
+
+        TableColumn<Empresa, Integer> moduleCount = new TableColumn<>("Módulos");
+        moduleCount.setCellValueFactory(c -> new SimpleObjectProperty<>(countCompanyModules(c.getValue())));
+        moduleCount.setPrefWidth(85);
+
+        TableColumn<Empresa, String> state = new TableColumn<>("Estado");
+        state.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getAtiva() ? "Activa" : "Inactiva"));
+        state.setPrefWidth(95);
+
+        TableColumn<Empresa, String> currency = textColumn("Moeda", "moedaBase", 90);
+
+        tv.getColumns().addAll(
+                identifier, name, commercial, nif, province, municipality,
+                regime, year, currency, moduleCount, state
+        );
+
+        tv.getSelectionModel().selectedItemProperty().addListener(
+                (obs, oldValue, selected) -> showDetails(selected)
+        );
+
+        tv.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2
+                    && event.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                Empresa selected = tv.getSelectionModel().getSelectedItem();
+                if (selected != null) openWizard(selected);
+            }
         });
-        colNome.setPrefWidth(200);
 
-        TableColumn<Empresa, String> colNomeComercial = new TableColumn<>("Nome Comercial");
-        colNomeComercial.setCellValueFactory(new PropertyValueFactory<>("nomeComercial"));
-        colNomeComercial.setCellFactory(tc -> TextTableCell.create());
-        colNomeComercial.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setNomeComercial(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colNomeComercial.setPrefWidth(180);
-
-        TableColumn<Empresa, String> colNif = new TableColumn<>("NIF");
-        colNif.setCellValueFactory(new PropertyValueFactory<>("nif"));
-        colNif.setCellFactory(tc -> TextTableCell.create());
-        colNif.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setNif(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colNif.setPrefWidth(120);
-
-        TableColumn<Empresa, String> colTipoContribuinte = TableUtils.createTextColumn("Tipo Contribuinte", col -> new SimpleStringProperty(col.getValue().getTipoContribuinte()));
-        colTipoContribuinte.setPrefWidth(150);
-
-        TableColumn<Empresa, String> colRegime = TableUtils.createTextColumn("Regime Fiscal", col -> new SimpleStringProperty(col.getValue().getRegimeFiscal()));
-        colRegime.setPrefWidth(140);
-
-        TableColumn<Empresa, java.math.BigDecimal> colCapital = new TableColumn<>("Cap. Social");
-        colCapital.setCellValueFactory(col -> new SimpleObjectProperty<>(col.getValue().getCapitalSocial()));
-        colCapital.setPrefWidth(140);
-
-        TableColumn<Empresa, String> colMorada = new TableColumn<>("Endereço");
-        colMorada.setCellValueFactory(new PropertyValueFactory<>("morada"));
-        colMorada.setCellFactory(tc -> TextTableCell.create());
-        colMorada.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setMorada(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colMorada.setPrefWidth(300);
-
-        TableColumn<Empresa, String> colMunicipio = new TableColumn<>("Município");
-        colMunicipio.setCellValueFactory(new PropertyValueFactory<>("municipio"));
-        colMunicipio.setCellFactory(tc -> TextTableCell.create());
-        colMunicipio.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setMunicipio(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colMunicipio.setPrefWidth(150);
-
-        TableColumn<Empresa, String> colProvincia = new TableColumn<>("Província");
-        colProvincia.setCellValueFactory(new PropertyValueFactory<>("provincia"));
-        colProvincia.setCellFactory(tc -> TextTableCell.create());
-        colProvincia.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setProvincia(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colProvincia.setPrefWidth(150);
-
-        TableColumn<Empresa, String> colEmail = new TableColumn<>("E-mail");
-        colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
-        colEmail.setCellFactory(tc -> TextTableCell.create());
-        colEmail.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setEmail(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colEmail.setPrefWidth(180);
-
-        TableColumn<Empresa, String> colTelefone = new TableColumn<>("Telefone");
-        colTelefone.setCellValueFactory(new PropertyValueFactory<>("telefone"));
-        colTelefone.setCellFactory(tc -> TextTableCell.create());
-        colTelefone.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setTelefone(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colTelefone.setPrefWidth(120);
-
-        TableColumn<Empresa, String> colIban = new TableColumn<>("IBAN");
-        colIban.setCellValueFactory(new PropertyValueFactory<>("iban"));
-        colIban.setCellFactory(tc -> TextTableCell.create());
-        colIban.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setIban(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colIban.setPrefWidth(200);
-
-        TableColumn<Empresa, String> colCertificado = new TableColumn<>("Certificado AGT");
-        colCertificado.setCellValueFactory(new PropertyValueFactory<>("numeroCertificadoAGT"));
-        colCertificado.setCellFactory(tc -> TextTableCell.create());
-        colCertificado.setOnEditCommit(event -> {
-            Empresa e = event.getRowValue();
-            e.setNumeroCertificadoAGT(event.getNewValue());
-            saveEmpresaInline(e);
-        });
-        colCertificado.setPrefWidth(150);
-
-        TableColumn<Empresa, Boolean> colAtiva = TableUtils.createCheckColumn("Ativa", col -> new SimpleBooleanProperty(col.getValue().getAtiva()));
-        colAtiva.setPrefWidth(80);
-        colAtiva.setEditable(true);
-
-        tv.getColumns().addAll(colNome, colNomeComercial, colNif, colTipoContribuinte, colRegime, colCapital, 
-                              colMorada, colMunicipio, colProvincia, colEmail, colTelefone, 
-                              colIban, colCertificado, colAtiva);
         return tv;
     }
 
-    private void loadEmpresas() {
-        table.setLoading(true);
-        Platform.runLater(() -> {
-            try {
-                List<Empresa> all = empresaRepository.findAll();
-                empresas.setAll(all);
-            } catch (Exception e) {
-                e.printStackTrace();
-                modalManager.alert("Erro de Dados", "Detetados registos com formato de data incompatível. O sistema tentará corrigir automaticamente no próximo salvamento.", "warning", e);
-            } finally {
-                table.setLoading(false);
-            }
-        });
+    private <T> TableColumn<Empresa, T> textColumn(String title, String property, double width) {
+        TableColumn<Empresa, T> column = new TableColumn<>(title);
+        column.setCellValueFactory(new PropertyValueFactory<>(property));
+        column.setPrefWidth(width);
+        return column;
     }
 
-    private void filterEmpresas(String query) {
-        if (query == null || query.isBlank()) {
-            table.setFilter(e -> true);
-            return;
-        }
-        String lower = query.toLowerCase();
-        table.setFilter(e -> (e.getNome() != null && e.getNome().toLowerCase().contains(lower)) ||
-                             (e.getNif() != null && e.getNif().toLowerCase().contains(lower)));
+    private VBox buildDetailsPane() {
+        VBox root = new VBox(12);
+        root.getStyleClass().add("empresa-details");
+        root.setPadding(new Insets(16));
+        root.setMinWidth(310);
+
+        HBox titleRow = new HBox(9);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+
+        Label icon = new Label("", IconUtils.icon(Feather.BRIEFCASE, 18));
+        detailsTitle = new Label("Nenhuma empresa seleccionada");
+        detailsTitle.getStyleClass().add("h3");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        detailsStatus = new Label("—");
+        detailsStatus.getStyleClass().add("empresa-status");
+
+        titleRow.getChildren().addAll(icon, detailsTitle, spacer, detailsStatus);
+
+        VBox facts = new VBox(8);
+        facts.getStyleClass().add("empresa-details-facts");
+
+        detailsNif = fact("NIF");
+        detailsLocation = fact("Localização");
+        detailsFiscal = fact("Fiscalidade");
+        detailsExercise = fact("Exercício / moeda");
+        detailsModules = fact("Módulos");
+
+        facts.getChildren().addAll(
+                factRow("NIF", detailsNif),
+                factRow("Localização", detailsLocation),
+                factRow("Fiscal", detailsFiscal),
+                factRow("Exercício", detailsExercise),
+                factRow("Módulos", detailsModules)
+        );
+
+        Label modulesTitle = new Label("Módulos disponíveis para a empresa");
+        modulesTitle.getStyleClass().add("empresa-details-section");
+
+        VBox moduleList = new VBox(7);
+        ScrollPane moduleScroll = new ScrollPane(moduleList);
+        moduleScroll.setFitToWidth(true);
+        moduleScroll.setPrefViewportHeight(260);
+        moduleScroll.getStyleClass().add("empresa-details-scroll");
+        VBox.setVgrow(moduleScroll, Priority.ALWAYS);
+
+        HBox actions = new HBox(8);
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        Button configure = new Button(
+                "Abrir assistente",
+                IconUtils.icon(Feather.SETTINGS, 14)
+        );
+        configure.getStyleClass().add("button-primary");
+        configure.setOnAction(e -> openSelectedWizard());
+
+        Button saveModules = new Button(
+                "Guardar módulos",
+                IconUtils.icon(Feather.CHECK, 14)
+        );
+        saveModules.getStyleClass().add("button-outlined");
+        saveModules.setOnAction(e -> saveModuleSelection(moduleList));
+
+        actions.getChildren().addAll(configure, saveModules);
+
+        root.getChildren().addAll(titleRow, new Separator(), facts, modulesTitle, moduleScroll, actions);
+
+        root.properties().put("moduleList", moduleList);
+        return root;
     }
 
-    public void showEmpresaDialog(Empresa empresa) {
-        boolean isNew = (empresa == null);
-        ValidationSupport validationSupport = new ValidationSupport();
-        
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(25));
-        root.setPrefWidth(750);
-
-        HBox header = new HBox(10);
-        header.setAlignment(Pos.CENTER_LEFT);
-        Label title = new Label(isNew ? "Registo de Nova Empresa" : "Edição de Empresa");
-        title.getStyleClass().add("h2");
-        header.getChildren().add(title);
-        root.getChildren().add(header);
-
-        ScrollPane scroll = new ScrollPane();
-        scroll.setFitToWidth(true);
-        scroll.getStyleClass().add("bg-transparent");
-
-        GridPane grid = new GridPane();
-        grid.setHgap(20);
-        grid.setVgap(15);
-        grid.setPadding(new Insets(5, 5, 20, 5));
-        grid.getStyleClass().add("bg-default");
-
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(20);
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setPercentWidth(30);
-        ColumnConstraints col3 = new ColumnConstraints();
-        col3.setPercentWidth(20);
-        ColumnConstraints col4 = new ColumnConstraints();
-        col4.setPercentWidth(30);
-        grid.getColumnConstraints().addAll(col1, col2, col3, col4);
-
-        int row = 0;
-
-        // Seção: Identificação
-        addSectionTitle(grid, "Identificação", row++);
-        
-        TextField txtIdentificador = createStyledTextField("ID (Ex: KBT)");
-        txtIdentificador.setText(empresa != null ? empresa.getIdentificador() : "");
-        txtIdentificador.setMaxWidth(80);
-        addField(grid, "Identificador:*", txtIdentificador, row, 0);
-        validationSupport.registerValidator(txtIdentificador, Validator.createEmptyValidator("O identificador é obrigatório"));
-
-        TextField txtNome = createStyledTextField("Nome da empresa");
-        txtNome.setText(empresa != null ? empresa.getNome() : "");
-        addField(grid, "Nome:*", txtNome, row++, 2);
-        validationSupport.registerValidator(txtNome, Validator.createEmptyValidator("O nome é obrigatório"));
-
-        TextField txtNif = createStyledTextField("NIF / NIPC");
-        txtNif.setText(empresa != null ? empresa.getNif() : "");
-        addField(grid, "NIF:*", txtNif, row, 0);
-        validationSupport.registerValidator(txtNif, Validator.createEmptyValidator("O NIF é obrigatório"));
-
-        TextField txtNomeComercial = createStyledTextField("Nome comercial");
-        txtNomeComercial.setText(empresa != null ? empresa.getNomeComercial() : "");
-        addField(grid, "Nome Comercial:", txtNomeComercial, row++, 2);
-
-        ComboBox<String> cmbTipoContribuinte = new ComboBox<>(FXCollections.observableArrayList(
-                "Pessoa Singular", "Pessoa Colectiva", "Não Residente"
-        ));
-        cmbTipoContribuinte.setMaxWidth(Double.MAX_VALUE);
-        cmbTipoContribuinte.setValue(empresa != null ? empresa.getTipoContribuinte() : "Pessoa Colectiva");
-        addField(grid, "Tipo Contribuinte:*", cmbTipoContribuinte, row, 0);
-        validationSupport.registerValidator(cmbTipoContribuinte, Validator.createEmptyValidator("O tipo de contribuinte é obrigatório"));
-
-        TextField txtCapital = createStyledTextField("Capital social");
-        txtCapital.setText(empresa != null && empresa.getCapitalSocial() != null ? empresa.getCapitalSocial().toString() : "");
-        addField(grid, "Capital Social:", txtCapital, row++, 2);
-
-        Spinner<Integer> spAnoInicio = new Spinner<>(1900, 2100, empresa != null && empresa.getAnoInicio() != null ? empresa.getAnoInicio() : 2024);
-        spAnoInicio.setMaxWidth(Double.MAX_VALUE);
-        addField(grid, "Ano Início Actividade:", spAnoInicio, row, 0);
-        row++;
-
-        // Seção: Localização
-        addSectionTitle(grid, "Localização e Endereço", row++);
-        
-        TextField txtMorada = createStyledTextField("Morada completa");
-        txtMorada.setText(empresa != null ? empresa.getMorada() : "");
-        addField(grid, "Endereço:", txtMorada, row, 0, 3);
-        row++;
-
-        ComboBox<String> cmbProvincia = new ComboBox<>(FXCollections.observableArrayList(
-                "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango",
-                "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
-                "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico",
-                "Namibe", "Uíge", "Zaire"
-        ));
-        cmbProvincia.setMaxWidth(Double.MAX_VALUE);
-        cmbProvincia.setValue(empresa != null ? empresa.getProvincia() : "Luanda");
-        addField(grid, "Província:", cmbProvincia, row, 0);
-
-        TextField txtMunicipio = createStyledTextField("Município");
-        txtMunicipio.setText(empresa != null ? empresa.getMunicipio() : "");
-        addField(grid, "Município:", txtMunicipio, row++, 2);
-
-        // Seção: Contactos
-        addSectionTitle(grid, "Contactos e Presença Web", row++);
-
-        TextField txtTelefone = createStyledTextField("Telefone principal");
-        txtTelefone.setText(empresa != null ? empresa.getTelefone() : "");
-        addField(grid, "Telefone:", txtTelefone, row, 0);
-
-        TextField txtTelemovel = createStyledTextField("Telemóvel");
-        txtTelemovel.setText(empresa != null ? empresa.getTelemovel() : "");
-        addField(grid, "Telemóvel:", txtTelemovel, row++, 2);
-
-        TextField txtEmail = createStyledTextField("Email de contacto");
-        txtEmail.setText(empresa != null ? empresa.getEmail() : "");
-        addField(grid, "Email:", txtEmail, row, 0);
-        validationSupport.registerValidator(txtEmail, Validator.createRegexValidator("Email inválido", "^[A-Za-z0-9+_.-]+@(.+)$", org.controlsfx.validation.Severity.ERROR));
-
-        TextField txtWebsite = createStyledTextField("URL do Website");
-        txtWebsite.setText(empresa != null ? empresa.getWebsite() : "");
-        addField(grid, "Website:", txtWebsite, row++, 2);
-
-        // Seção: Fiscal e Bancária
-        addSectionTitle(grid, "Informação Fiscal e Bancária", row++);
-
-        TextField txtIban = createStyledTextField("IBAN");
-        txtIban.setText(empresa != null ? empresa.getIban() : "");
-        addField(grid, "IBAN:", txtIban, row, 0);
-
-        TextField txtBanco = createStyledTextField("Nome do Banco");
-        txtBanco.setText(empresa != null ? empresa.getBanco() : "");
-        addField(grid, "Banco:", txtBanco, row++, 2);
-
-        TextField txtCertificadoAGT = createStyledTextField("Nº Certificado AGT");
-        txtCertificadoAGT.setText(empresa != null ? empresa.getNumeroCertificadoAGT() : "");
-        addField(grid, "Certificado AGT:", txtCertificadoAGT, row, 0);
-
-        ComboBox<String> cmbRegime = new ComboBox<>(FXCollections.observableArrayList(
-                "Geral - 14%", "Simples", "Isento", "Especial"
-        ));
-        cmbRegime.setMaxWidth(Double.MAX_VALUE);
-        cmbRegime.setValue(empresa != null ? empresa.getRegimeFiscal() : "Geral - 14%");
-        addField(grid, "Regime Fiscal:*", cmbRegime, row++, 2);
-        validationSupport.registerValidator(cmbRegime, Validator.createEmptyValidator("O regime fiscal é obrigatório"));
-
-        // Seção: Fiscal e Comercial Avançado
-        addSectionTitle(grid, "Aspectos Fiscais e Comerciais", row++);
-
-        TextField txtCae = createStyledTextField("Código CAE");
-        txtCae.setText(empresa != null ? empresa.getCae() : "");
-        addField(grid, "CAE:", txtCae, row, 0);
-
-        TextField txtBairroFiscal = createStyledTextField("Bairro Fiscal");
-        txtBairroFiscal.setText(empresa != null ? empresa.getBairroFiscal() : "");
-        addField(grid, "Bairro Fiscal:", txtBairroFiscal, row++, 2);
-
-        TextField txtVolumeNegocios = createStyledTextField("Volume previsto");
-        txtVolumeNegocios.setText(empresa != null && empresa.getVolumeNegociosPrevisto() != null ? empresa.getVolumeNegociosPrevisto().toString() : "");
-        addField(grid, "Vol. Negócios:", txtVolumeNegocios, row, 0);
-
-        HBox capitalBox = new HBox(5);
-        capitalBox.setAlignment(Pos.CENTER_LEFT);
-        TextField txtCapNac = new TextField(); txtCapNac.setPromptText("Nac%"); txtCapNac.setPrefWidth(60);
-        txtCapNac.setText(empresa != null && empresa.getCapitalNacional() != null ? empresa.getCapitalNacional().toString() : "100");
-        TextField txtCapEst = new TextField(); txtCapEst.setPromptText("Est%"); txtCapEst.setPrefWidth(60);
-        txtCapEst.setText(empresa != null && empresa.getCapitalEstrangeiro() != null ? empresa.getCapitalEstrangeiro().toString() : "0");
-        TextField txtCapPub = new TextField(); txtCapPub.setPromptText("Pub%"); txtCapPub.setPrefWidth(60);
-        txtCapPub.setText(empresa != null && empresa.getCapitalPublico() != null ? empresa.getCapitalPublico().toString() : "0");
-        capitalBox.getChildren().addAll(new Label("Nac"), txtCapNac, new Label("Est"), txtCapEst, new Label("Pub"), txtCapPub);
-        addField(grid, "Origem Capital%:", capitalBox, row++, 2);
-
-        // Seção: Configurações do Sistema
-        addSectionTitle(grid, "Configurações do Sistema", row++);
-
-        Spinner<Integer> spExercicio = new Spinner<>(2000, 2099, empresa != null && empresa.getExercicioActual() != null ? empresa.getExercicioActual() : 2024);
-        spExercicio.setMaxWidth(Double.MAX_VALUE);
-        addField(grid, "Exercício Actual:", spExercicio, row, 0);
-
-        HBox moedasBox = new HBox(10);
-        ComboBox<String> cmbMoeda = new ComboBox<>(FXCollections.observableArrayList("AOA", "USD", "EUR", "ZAR"));
-        cmbMoeda.setPrefWidth(85);
-        cmbMoeda.setValue(empresa != null ? empresa.getMoedaBase() : "AOA");
-        ComboBox<String> cmbMoedaAlt = new ComboBox<>(FXCollections.observableArrayList("AOA", "USD", "EUR", "ZAR"));
-        cmbMoedaAlt.setPrefWidth(85);
-        cmbMoedaAlt.setValue(empresa != null ? empresa.getMoedaAlternativa() : "USD");
-        moedasBox.getChildren().addAll(new Label("Base:"), cmbMoeda, new Label("Alt:"), cmbMoedaAlt);
-        addField(grid, "Moedas (Base/Alt):", moedasBox, row++, 2);
-
-        // Seção: Módulos e Setup Inicial
-        addSectionTitle(grid, "Ativação de Módulos e Setup Inicial", row++);
-
-        HBox setupBox = new HBox(20);
-        setupBox.setAlignment(Pos.CENTER_LEFT);
-        CheckBox chkAbrirExercicio = createStyledCheckBox("Abrir Exercício Contabilístico");
-        chkAbrirExercicio.setSelected(true);
-        CheckBox chkAbrirAnoRH = createStyledCheckBox("Abrir Ano RH");
-        chkAbrirAnoRH.setSelected(true);
-        setupBox.getChildren().addAll(chkAbrirExercicio, chkAbrirAnoRH);
-        grid.add(setupBox, 0, row++, 4, 1);
-
-        FlowPane modulosFlow = new FlowPane(15, 10);
-        modulosFlow.setPadding(new Insets(5, 0, 10, 0));
-        
-        CheckBox chkFaturacao = createStyledCheckBox("Faturação");
-        chkFaturacao.setSelected(empresa == null || (empresa.getModulos() != null && empresa.getModulos().contains("FATURACAO")));
-
-        CheckBox chkEstoque = createStyledCheckBox("Estoque");
-        chkEstoque.setSelected(empresa == null || (empresa.getModulos() != null && empresa.getModulos().contains("ESTOQUE")));
-
-        CheckBox chkCompras = createStyledCheckBox("Compras");
-        chkCompras.setSelected(empresa == null || (empresa.getModulos() != null && empresa.getModulos().contains("COMPRAS")));
-
-        CheckBox chkRH = createStyledCheckBox("Recursos Humanos");
-        chkRH.setSelected(empresa == null || (empresa.getModulos() != null && empresa.getModulos().contains("RH")));
-
-        CheckBox chkFinanceiro = createStyledCheckBox("Financeiro");
-        chkFinanceiro.setSelected(empresa == null || (empresa.getModulos() != null && empresa.getModulos().contains("FINANCEIRO")));
-
-        CheckBox chkBanking = createStyledCheckBox("Banking");
-        chkBanking.setSelected(empresa == null || (empresa.getModulos() != null && empresa.getModulos().contains("BANKING")));
-
-        modulosFlow.getChildren().addAll(chkFaturacao, chkEstoque, chkCompras, chkRH, chkFinanceiro, chkBanking);
-        grid.add(modulosFlow, 0, row, 4, 1);
-        row++;
-
-        CheckBox chkAtiva = createStyledCheckBox("Empresa Ativa e Operacional");
-        chkAtiva.setSelected(empresa == null || empresa.getAtiva());
-        chkAtiva.getStyleClass().add("text-success");
-        chkAtiva.getStyleClass().add("text-bold");
-        grid.add(chkAtiva, 0, row, 4, 1);
-        row++;
-
-        scroll.setContent(grid);
-        root.getChildren().add(scroll);
-
-        modalManager.showConfirmModal(root, isNew ? "Nova Empresa" : "Editar Empresa", () -> {
-            if (validationSupport.isInvalid()) {
-                modalManager.alert("Erro de Validação", "Por favor, corrija os erros nos campos destacados.", "error", null);
-                return;
-            }
-
-            try {
-                String nome = txtNome.getText();
-                String nif = txtNif.getText();
-                
-                Empresa e = empresa != null ? empresa : new Empresa();
-                e.setIdentificador(txtIdentificador.getText().trim());
-                e.setNome(nome.trim());
-                e.setNif(nif.trim());
-                e.setNomeComercial(txtNomeComercial.getText());
-                e.setTipoContribuinte(cmbTipoContribuinte.getValue());
-                e.setMorada(txtMorada.getText().isBlank() ? null : txtMorada.getText().trim());
-                e.setProvincia(cmbProvincia.getValue());
-                e.setMunicipio(txtMunicipio.getText().isBlank() ? null : txtMunicipio.getText().trim());
-                e.setTelefone(txtTelefone.getText().isBlank() ? null : txtTelefone.getText().trim());
-                e.setTelemovel(txtTelemovel.getText().isBlank() ? null : txtTelemovel.getText().trim());
-                e.setEmail(txtEmail.getText().isBlank() ? null : txtEmail.getText().trim());
-                e.setWebsite(txtWebsite.getText().isBlank() ? null : txtWebsite.getText().trim());
-                e.setIban(txtIban.getText().isBlank() ? null : txtIban.getText().trim());
-                e.setBanco(txtBanco.getText().isBlank() ? null : txtBanco.getText().trim());
-                e.setNumeroCertificadoAGT(txtCertificadoAGT.getText().isBlank() ? null : txtCertificadoAGT.getText().trim());
-                e.setRegimeFiscal(cmbRegime.getValue());
-                e.setExercicioActual(spExercicio.getValue());
-                e.setMoedaBase(cmbMoeda.getValue());
-                e.setMoedaAlternativa(cmbMoedaAlt.getValue());
-                e.setAnoInicio(spAnoInicio.getValue());
-                e.setCae(txtCae.getText().trim());
-                e.setBairroFiscal(txtBairroFiscal.getText().trim());
-                e.setAtiva(chkAtiva.isSelected());
-
-                try {
-                    if (!txtVolumeNegocios.getText().isBlank()) e.setVolumeNegociosPrevisto(new java.math.BigDecimal(txtVolumeNegocios.getText().replace(",", ".")));
-                    if (!txtCapNac.getText().isBlank()) e.setCapitalNacional(new java.math.BigDecimal(txtCapNac.getText().replace(",", ".")));
-                    if (!txtCapEst.getText().isBlank()) e.setCapitalEstrangeiro(new java.math.BigDecimal(txtCapEst.getText().replace(",", ".")));
-                    if (!txtCapPub.getText().isBlank()) e.setCapitalPublico(new java.math.BigDecimal(txtCapPub.getText().replace(",", ".")));
-                } catch (Exception ex) { /* ignore parse errors */ }
-
-                if (isNew && chkAbrirExercicio.isSelected()) {
-                    System.out.println("DEBUG: Abrindo exercício contabilístico para " + e.getNome());
-                }
-                if (isNew && chkAbrirAnoRH.isSelected()) {
-                    System.out.println("DEBUG: Abrindo ano RH para " + e.getNome());
-                }
-
-                e.setMensagemFatura("");
-
-                StringBuilder modulos = new StringBuilder();
-                if (chkFaturacao.isSelected()) modulos.append("FATURACAO,");
-                if (chkEstoque.isSelected()) modulos.append("ESTOQUE,");
-                if (chkCompras.isSelected()) modulos.append("COMPRAS,");
-                if (chkRH.isSelected()) modulos.append("RH,");
-                if (chkFinanceiro.isSelected()) modulos.append("FINANCEIRO,");
-                if (chkBanking.isSelected()) modulos.append("BANKING,");
-                e.setModulos(modulos.length() > 0 ? modulos.substring(0, modulos.length() - 1) : "");
-
-                if (!txtCapital.getText().isBlank()) {
-                    try {
-                        e.setCapitalSocial(new java.math.BigDecimal(txtCapital.getText().replace(",", ".")));
-                    } catch (NumberFormatException ex) { }
-                }
-
-                persistenceService.saveAsync(empresaRepository, e, "EMPRESA", 
-                        (isNew ? "Criada" : "Atualizada") + " empresa: " + e.getNome(),
-                        saved -> {
-                            loadEmpresas();
-                            if (isNew) {
-                                Platform.runLater(() -> empresaWizardView.start(saved));
-                            }
-                        });
-            } catch (Exception ex) {
-                modalManager.alert("Erro", "Erro ao preparar salvamento: " + ex.getMessage(), "error", ex);
-            }
-        }, null);
+    private Label fact(String label) {
+        Label value = new Label("—");
+        value.getStyleClass().add("empresa-fact-value");
+        return value;
     }
 
-    private void addSectionTitle(GridPane grid, String title, int row) {
-        Label label = new Label(title.toUpperCase());
-        label.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e; -fx-padding: 10 0 5 0; -fx-border-color: #ecf0f1; -fx-border-width: 0 0 1 0;");
-        label.setMaxWidth(Double.MAX_VALUE);
-        grid.add(label, 0, row, 4, 1);
+    private HBox factRow(String label, Label value) {
+        Label title = new Label(label);
+        title.getStyleClass().add("empresa-fact-label");
+        title.setMinWidth(88);
+
+        value.setWrapText(true);
+        HBox row = new HBox(8, title, value);
+        HBox.setHgrow(value, Priority.ALWAYS);
+        return row;
     }
 
-    private void addField(GridPane grid, String labelText, javafx.scene.Node field, int row, int col) {
-        addField(grid, labelText, field, row, col, 1);
-    }
-
-    private void addField(GridPane grid, String labelText, javafx.scene.Node field, int row, int col, int colspan) {
-        Label label = new Label(labelText);
-        label.setStyle("-fx-text-fill: #7f8c8d;");
-        grid.add(label, col, row);
-        grid.add(field, col + 1, row, colspan, 1);
-    }
-
-    private TextField createStyledTextField(String prompt) {
-        TextField field = new TextField();
-        field.setPromptText(prompt);
-        field.setMaxWidth(Double.MAX_VALUE);
-        return field;
-    }
-
-    private CheckBox createStyledCheckBox(String text) {
-        CheckBox cb = new CheckBox(text);
-        cb.setStyle("-fx-cursor: hand;");
-        return cb;
-    }
-
-    private void saveEmpresaInline(Empresa e) {
-        persistenceService.saveAsync(empresaRepository, e, "EMPRESA", 
-                "Atualização inline da empresa: " + e.getNome(), null);
-    }
-
-    private void removeEmpresa() {
-        Empresa selected = table.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            modalManager.alert("Aviso", "Selecione uma empresa para remover.", "warning", null);
+    private void showDetails(Empresa empresa) {
+        if (empresa == null) {
+            detailsTitle.setText("Nenhuma empresa seleccionada");
+            detailsStatus.setText("—");
+            detailsNif.setText("—");
+            detailsLocation.setText("—");
+            detailsFiscal.setText("—");
+            detailsExercise.setText("—");
+            detailsModules.setText("—");
+            moduleList().getChildren().clear();
             return;
         }
 
-        modalManager.showConfirmModal(new Label("Tem certeza que deseja remover a empresa: " + selected.getNome() + "?"),
-                "Remover Empresa", () -> {
-            persistenceService.deleteAsync(empresaRepository, selected, null, "EMPRESA", 
-                    "Removida empresa: " + selected.getNome(), this::loadEmpresas);
-        }, null);
+        detailsTitle.setText(
+                empresa.getNome() == null || empresa.getNome().isBlank()
+                        ? "Empresa sem nome"
+                        : empresa.getNome()
+        );
+
+        detailsStatus.setText(empresa.getAtiva() ? "ACTIVA" : "INACTIVA");
+        detailsStatus.getStyleClass().removeAll("active", "inactive");
+        detailsStatus.getStyleClass().add(empresa.getAtiva() ? "active" : "inactive");
+
+        detailsNif.setText(
+                join(" · ", empresa.getNif(), empresa.getIdentificador())
+        );
+        detailsLocation.setText(
+                join(" · ", empresa.getProvincia(), empresa.getMunicipio(), empresa.getLocalidade())
+        );
+        detailsFiscal.setText(
+                join(" · ", empresa.getRegimeFiscal(), empresa.getCae())
+        );
+        detailsExercise.setText(
+                join(" · ",
+                        empresa.getExercicioActual() == null ? null : String.valueOf(empresa.getExercicioActual()),
+                        empresa.getMoedaBase()
+                )
+        );
+
+        List<KubataModule> modules = orderedModules();
+        Set<String> selected = companyModuleIds(empresa);
+
+        detailsModules.setText(
+                selected.isEmpty()
+                        ? "Nenhum módulo seleccionado"
+                        : selected.stream()
+                        .map(this::moduleName)
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .collect(Collectors.joining(", "))
+        );
+
+        VBox list = moduleList();
+        list.getChildren().clear();
+
+        for (KubataModule module : modules) {
+            CheckBox check = new CheckBox(module.getModuleName());
+            check.setSelected(selected.contains(module.getModuleId()));
+            check.setUserData(module.getModuleId());
+            check.setDisable(!module.isActive());
+
+            Label state = new Label(module.isActive() ? "Runtime activo" : "Não instalado/activo");
+            state.getStyleClass().add(module.isActive() ? "empresa-module-runtime-ok" : "empresa-module-runtime-off");
+
+            HBox row = new HBox(8, check, new Region(), state);
+            HBox.setHgrow(row.getChildren().get(1), Priority.ALWAYS);
+            row.setAlignment(Pos.CENTER_LEFT);
+            list.getChildren().add(row);
+        }
     }
 
-    private void toggleEmpresa() {
+    @SuppressWarnings("unchecked")
+    private VBox moduleList() {
+        return (VBox) detailsPane.getProperties().get("moduleList");
+    }
+
+    private void saveModuleSelection(VBox list) {
         Empresa selected = table.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            modalManager.alert("Aviso", "Selecione uma empresa para ativar/desativar.", "warning", null);
+            modalManager.alert("Empresa", "Seleccione uma empresa antes de guardar os módulos.", "warning", null);
+            return;
+        }
+
+        Set<String> ids = new LinkedHashSet<>();
+        for (Node node : list.getChildren()) {
+            if (!(node instanceof HBox row)) continue;
+            for (Node child : row.getChildren()) {
+                if (child instanceof CheckBox check && check.isSelected() && check.getUserData() != null) {
+                    ids.add(String.valueOf(check.getUserData()));
+                }
+            }
+        }
+
+        if (ids.isEmpty()) {
+            modalManager.alert(
+                    "Módulos",
+                    "Seleccione pelo menos um módulo para a empresa.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        selected.setModulos(String.join(",", ids));
+        persistenceService.saveAsync(
+                empresaRepository,
+                selected,
+                "EMPRESA",
+                "Actualização dos módulos da empresa " + selected.getNome(),
+                saved -> {
+                    empresas.setAll(empresaRepository.findAll());
+                    table.getSelectionModel().select(saved);
+                    showDetails(saved);
+                }
+        );
+    }
+
+    private void openSelectedWizard() {
+        Empresa selected = table.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            modalManager.alert("Empresa", "Seleccione uma empresa para configurar.", "warning", null);
+            return;
+        }
+        openWizard(selected);
+    }
+
+    private void openWizard(Empresa empresa) {
+        empresaWizardView.start(empresa, this::loadEmpresas);
+    }
+
+    private void duplicateSelected() {
+        Empresa source = table.getSelectionModel().getSelectedItem();
+        if (source == null) {
+            modalManager.alert("Empresa", "Seleccione uma empresa para duplicar.", "warning", null);
+            return;
+        }
+
+        Empresa copy = Empresa.builder()
+                .nome(source.getNome() + " - Cópia")
+                .nomeComercial(source.getNomeComercial())
+                .tipoContribuinte(source.getTipoContribuinte())
+                .morada(source.getMorada())
+                .codigoPostal(source.getCodigoPostal())
+                .locality(source.getLocalidade())
+                .telefone(source.getTelefone())
+                .fax(source.getFax())
+                .email(source.getEmail())
+                .website(source.getWebsite())
+                .nifFiscal(source.getNifFiscal())
+                .nifSegurancaSocial(source.getNifSegurancaSocial())
+                .regimeFiscal(source.getRegimeFiscal())
+                .cae(source.getCae())
+                .municipio(source.getMunicipio())
+                .provincia(source.getProvincia())
+                .pais(source.getPais())
+                .caixaPostal(source.getCaixaPostal())
+                .telemovel(source.getTelemovel())
+                .iban(source.getIban())
+                .banco(source.getBanco())
+                .contaBancaria(source.getContaBancaria())
+                .descricaoActividade(source.getDescricaoActividade())
+                .capitalSocial(source.getCapitalSocial())
+                .volumeNegociosPrevisto(source.getVolumeNegociosPrevisto())
+                .capitalNacional(source.getCapitalNacional())
+                .capitalEstrangeiro(source.getCapitalEstrangeiro())
+                .capitalPublico(source.getCapitalPublico())
+                .anoInicio(source.getAnoInicio())
+                .moedaBase(source.getMoedaBase())
+                .moedaAlternativa(source.getMoedaAlternativa())
+                .casasDecimaisValor(source.getCasasDecimaisValor())
+                .casasDecimaisQuantidade(source.getCasasDecimaisQuantidade())
+                .exercicioActual(source.getExercicioActual())
+                .rodapeDocumento(source.getRodapeDocumento())
+                .mensagemFatura(source.getMensagemFatura())
+                .ativa(false)
+                .modulos(source.getModulos())
+                .setores(source.getSetores())
+                .build();
+
+        copy.setIdentificador("");
+        copy.setNif("");
+
+        openWizard(copy);
+    }
+
+    private void toggleSelected() {
+        Empresa selected = table.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            modalManager.alert("Empresa", "Seleccione uma empresa para alterar o estado.", "warning", null);
             return;
         }
 
         selected.setAtiva(!selected.getAtiva());
-        persistenceService.saveAsync(empresaRepository, selected, "EMPRESA", 
-                (selected.getAtiva() ? "Ativada" : "Desativada") + " empresa: " + selected.getNome(),
-                saved -> loadEmpresas());
+        persistenceService.saveAsync(
+                empresaRepository,
+                selected,
+                "EMPRESA",
+                (selected.getAtiva() ? "Activação" : "Desactivação") + " da empresa " + selected.getNome(),
+                saved -> {
+                    showDetails(saved);
+                    loadEmpresas();
+                }
+        );
     }
 
+    private void removeEmpresa(Empresa empresa) {
+        if (empresa == null) {
+            empresa = table.getSelectionModel().getSelectedItem();
+        }
+        if (empresa == null) {
+            modalManager.alert("Empresa", "Seleccione uma empresa para remover.", "warning", null);
+            return;
+        }
+
+        Empresa target = empresa;
+        VBox content = new VBox(10,
+                new Label("Está prestes a remover a empresa:"),
+                new Label(target.getNome()),
+                new Label("A remoção física pode afectar dados relacionados. Para ambientes produtivos, prefira desactivar a empresa.")
+        );
+        content.setPadding(new Insets(10));
+
+        modalManager.showConfirmModal(
+                content,
+                "Remover empresa",
+                () -> persistenceService.deleteAsync(
+                        empresaRepository,
+                        target,
+                        null,
+                        "EMPRESA",
+                        "Remoção da empresa " + target.getNome(),
+                        this::loadEmpresas
+                ),
+                null
+        );
+    }
+
+    private void loadEmpresas() {
+        if (table != null) table.setLoading(true);
+
+        Task<List<Empresa>> task = new Task<>() {
+            @Override
+            protected List<Empresa> call() {
+                return empresaRepository.findAll();
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            empresas.setAll(task.getValue());
+            updateKpis();
+            if (table != null) {
+                table.setLoading(false);
+                Empresa selected = table.getSelectionModel().getSelectedItem();
+                showDetails(selected);
+            }
+        });
+
+        task.setOnFailed(e -> {
+            if (table != null) table.setLoading(false);
+            Throwable error = task.getException();
+            modalManager.alert(
+                    "Erro ao carregar empresas",
+                    "Não foi possível obter a lista de empresas: " + safeMessage(error),
+                    "error",
+                    error
+            );
+        });
+
+        Thread thread = new Thread(task, "kubata-empresa-loader");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void filter(String query) {
+        String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+
+        table.setFilter(company -> {
+            if (q.isBlank()) return true;
+
+            return contains(company.getNome(), q)
+                    || contains(company.getNomeComercial(), q)
+                    || contains(company.getNif(), q)
+                    || contains(company.getIdentificador(), q)
+                    || contains(company.getProvincia(), q)
+                    || contains(company.getMunicipio(), q)
+                    || contains(company.getRegimeFiscal(), q);
+        });
+        updateKpis();
+    }
+
+    private void updateKpis() {
+        List<Empresa> source = table == null
+                ? empresas
+                : new ArrayList<>(table.getItems());
+
+        int total = source.size();
+        long active = source.stream().filter(Empresa::getAtiva).count();
+
+        totalLabel.setText(String.valueOf(total));
+        activeLabel.setText(String.valueOf(active));
+        inactiveLabel.setText(String.valueOf(Math.max(0, total - active)));
+
+        long activeRuntimeModules = moduleRegistry.getAllModules().stream()
+                .filter(KubataModule::isActive)
+                .count();
+        modulesLabel.setText(String.valueOf(activeRuntimeModules));
+    }
+
+    private int countCompanyModules(Empresa empresa) {
+        if (empresa == null) return 0;
+        Set<String> ids = companyModuleIds(empresa);
+        return (int) ids.stream()
+                .filter(this::isKnownModule)
+                .count();
+    }
+
+    private Set<String> companyModuleIds(Empresa empresa) {
+        if (empresa == null || empresa.getModulos() == null || empresa.getModulos().isBlank()) {
+            return new LinkedHashSet<>();
+        }
+
+        return Arrays.stream(empresa.getModulos().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(this::legacyModuleId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private String legacyModuleId(String id) {
+        return switch (id.toLowerCase(Locale.ROOT)) {
+            case "estoque", "stock" -> "inventario";
+            case "billing", "faturacao" -> "vendas";
+            case "pos" -> "vendas";
+            case "finance" -> "financeiro";
+            case "accounting" -> "contabilidade";
+            default -> id.toLowerCase(Locale.ROOT);
+        };
+    }
+
+    private boolean isKnownModule(String id) {
+        return moduleRegistry.getModule(id).isPresent();
+    }
+
+    private String moduleName(String id) {
+        return moduleRegistry.getModule(id)
+                .map(KubataModule::getModuleName)
+                .orElse(id);
+    }
+
+    private List<KubataModule> orderedModules() {
+        return moduleRegistry.getAllModules().stream()
+                .sorted(Comparator.comparing(KubataModule::getModuleName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    private boolean contains(String value, String query) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private String join(String separator, String... values) {
+        return Arrays.stream(values)
+                .filter(v -> v != null && !v.isBlank())
+                .collect(Collectors.joining(separator));
+    }
+
+    private String safeMessage(Throwable error) {
+        if (error == null || error.getMessage() == null || error.getMessage().isBlank()) {
+            return error == null ? "erro desconhecido" : error.getClass().getSimpleName();
+        }
+        return error.getMessage();
+    }
 }
