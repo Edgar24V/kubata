@@ -86,7 +86,7 @@
 
 .advanced-table .table-cell:filled:selected,
 .advanced-table .table-row-cell:selected .table-cell {
-    -fx-text-fill: white;
+    -fx-text-fill: #000000;
 }
 
 /* Linhas zebradas (apenas se a tabela tiver classe .report-table) */
@@ -388,7 +388,7 @@
 
 /* Melhor leitura de dados seleccionados */
 .advanced-table .table-row-cell:selected .table-cell {
-    -fx-text-fill: white;
+    -fx-text-fill: #000000;
 }
 
 .advanced-table .table-row-cell:selected .check-box .box {
