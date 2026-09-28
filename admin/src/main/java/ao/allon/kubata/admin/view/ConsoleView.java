@@ -249,7 +249,7 @@ public class ConsoleView extends VBox {
         // Toolbar de Comandos da Consola
         HBox toolbar = buildToolbar();
         
-        tabPane.getStyleClass().add("office365-tabs");
+        tabPane.getStyleClass().addAll("office365-tabs", "console-tab-content");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         Tab tabDash = new Tab("Painel de Controlo", buildDashboardTab());
@@ -312,15 +312,18 @@ public class ConsoleView extends VBox {
         chartArea.getChildren().addAll(cpuBox, memBox);
 
         dash.getChildren().addAll(kpiPaneTop, kpiPaneBottom, chartArea);
-        return new ScrollPane(dash) {{ setFitToWidth(true); setStyle("-fx-background-color: transparent;"); }};
+        ScrollPane scroll = new ScrollPane(dash);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("transparent-scroll");
+        return scroll;
     }
 
     private VBox buildChartBox(String title, XYChart.Series<Number, Number> series, double min, double max, String unit) {
         VBox box = new VBox(10);
-        box.getStyleClass().add("card");
+        box.getStyleClass().add("console-chart-card");
         box.setPadding(new Insets(15));
-        box.setPrefWidth(500);
-        box.setAlignment(Pos.CENTER);
+        box.setMinWidth(360);
+        HBox.setHgrow(box, Priority.ALWAYS);
 
         Label lblTitle = new Label(title, IconUtils.icon(Feather.ACTIVITY, 14));
         lblTitle.getStyleClass().add("h4");
@@ -328,32 +331,36 @@ public class ConsoleView extends VBox {
         NumberAxis xAxis = new NumberAxis();
         xAxis.setTickLabelsVisible(false);
         xAxis.setOpacity(0);
-        
-        NumberAxis yAxis = new NumberAxis(min, max, (max - min) / 5);
+
+        double safeMax = Math.max(max, min + 1);
+        NumberAxis yAxis = new NumberAxis(min, safeMax, Math.max(1, (safeMax - min) / 5));
         yAxis.setLabel(unit);
+        yAxis.setForceZeroInRange(min == 0);
 
         LineChart<Number, Number> chart = new LineChart<>(xAxis, yAxis);
         chart.setCreateSymbols(false);
         chart.setAnimated(false);
         chart.setLegendVisible(false);
-        chart.setPrefHeight(200);
+        chart.setPrefHeight(210);
+        chart.setMinHeight(180);
         chart.getData().add(series);
-        
+
         box.getChildren().addAll(lblTitle, chart);
         return box;
     }
 
     private VBox createKPI(String title, Feather icon, Label value, String valueStyle) {
-        VBox box = new VBox(10);
-        box.getStyleClass().add("card");
-        box.setPrefSize(180, 120);
-        box.setAlignment(Pos.CENTER);
+        VBox box = new VBox(8);
+        box.getStyleClass().add("console-kpi-card");
+        box.setPrefSize(190, 118);
+        box.setMinWidth(160);
+        box.setAlignment(Pos.CENTER_LEFT);
 
         Label lblTitle = new Label(title.toUpperCase(), IconUtils.icon(icon, 16));
-        lblTitle.getStyleClass().add("text-muted");
-        lblTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold;");
+        lblTitle.getStyleClass().add("console-kpi-title");
 
-        value.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; " + valueStyle);
+        value.getStyleClass().removeAll("console-kpi-value");
+        value.getStyleClass().add("console-kpi-value");
 
         box.getChildren().addAll(lblTitle, value);
         return box;
