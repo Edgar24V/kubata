@@ -363,7 +363,7 @@ public class EmpresaView extends VBox {
 
         root.getChildren().addAll(titleRow, new Separator(), facts, modulesTitle, moduleScroll, actions);
 
-        root.properties().put("moduleList", moduleList);
+        root.getProperties().put("moduleList", moduleList);
         return root;
     }
 
