@@ -5,7 +5,10 @@ import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.ModuloSistema;
+import ao.allon.kubata.core.domain.ParametroSistema;
+import ao.allon.kubata.core.module.ModuleRegistry;
 import ao.allon.kubata.core.repository.ModuloSistemaRepository;
+import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import javafx.application.Platform;
@@ -19,7 +22,10 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationInfo;
 import org.kordamp.ikonli.feather.Feather;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -38,6 +44,9 @@ public class ApplicationView extends VBox {
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
     private final NotificationService notificationService;
+    private final ParametroSistemaRepository parametroRepository;
+    private final ObjectProvider<Flyway> flywayProvider;
+    private final ModuleRegistry moduleRegistry;
 
     private final TabPane tabPane = new TabPane();
     
@@ -49,11 +58,17 @@ public class ApplicationView extends VBox {
     public ApplicationView(ModuloSistemaRepository moduloRepository,
                            ModalManager modalManager,
                            PersistenceService persistenceService,
-                           NotificationService notificationService) {
+                           NotificationService notificationService,
+                           ParametroSistemaRepository parametroRepository,
+                           ObjectProvider<Flyway> flywayProvider,
+                           ModuleRegistry moduleRegistry) {
         this.moduloRepository = moduloRepository;
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
         this.notificationService = notificationService;
+        this.parametroRepository = parametroRepository;
+        this.flywayProvider = flywayProvider;
+        this.moduleRegistry = moduleRegistry;
 
         buildUI();
         
@@ -227,17 +242,28 @@ public class ApplicationView extends VBox {
     }
 
     private void installServicePack(String version) {
-        modalManager.showConfirmModal(new Label("Deseja instalar o Service Pack " + version + "?\n\nEsta operação irá:\n1. Colocar o sistema em Modo Manutenção\n2. Realizar backup preventivo\n3. Atualizar binários e base de dados"), 
-                "Instalação de Service Pack", () -> {
-            persistenceService.executeAsync(() -> {
-                try {
-                    // Simulação de passos de instalação
-                    Thread.sleep(1000); // Backup
-                    Thread.sleep(2000); // DB Updates
-                    Thread.sleep(1000); // Binários
-                } catch (Exception e) {}
-            }, "SP_INSTALL", "APPLICATION", "Service Pack " + version + " instalado com sucesso", () -> refreshAll());
-        }, null);
+        modalManager.showConfirmModal(
+                new Label(
+                        "Aplicar as atualizações de base de dados disponíveis para o pacote "
+                                + version + "?\n\n"
+                                + "As migrações serão executadas com o mecanismo Flyway. "
+                                + "Binários externos não são alterados por esta operação."
+                ),
+                "Aplicar Atualizações",
+                () -> persistenceService.executeAsync(() -> {
+                    Flyway flyway = flywayProvider.getIfAvailable();
+
+                    if (flyway == null) {
+                        throw new IllegalStateException("Flyway não está disponível.");
+                    }
+
+                    flyway.migrate();
+                },
+                "SP_INSTALL",
+                "Aplicação de migrações associadas ao Service Pack " + version,
+                this::refreshAll),
+                null
+        );
     }
 
     private Node buildApiTab() {
@@ -298,12 +324,34 @@ public class ApplicationView extends VBox {
     }
 
     private void saveApiConfig(boolean enabled, String port, String apiKey) {
+        int parsedPort;
+
+        try {
+            parsedPort = Integer.parseInt(port);
+        } catch (NumberFormatException ex) {
+            modalManager.alert("Configuração inválida",
+                    "A porta da API deve ser numérica.",
+                    "warning", null);
+            return;
+        }
+
+        if (parsedPort < 1 || parsedPort > 65535) {
+            modalManager.alert("Configuração inválida",
+                    "A porta deve estar entre 1 e 65535.",
+                    "warning", null);
+            return;
+        }
+
         persistenceService.executeAsync(() -> {
-            try {
-                // Simulação de salvamento de parâmetros
-                Thread.sleep(1500);
-            } catch (Exception e) {}
-        }, "API_CONFIG", "APPLICATION", "API ECHO v10 configurada na porta " + port, () -> refreshAll());
+            saveGlobalParameter("API_ENABLED", String.valueOf(enabled), "BOOLEAN",
+                    "Estado da Web API", "SISTEMA");
+            saveGlobalParameter("API_PORT", String.valueOf(parsedPort), "INTEGER",
+                    "Porta de escuta da Web API", "SISTEMA");
+            saveGlobalParameter("API_KEY", apiKey == null ? "" : apiKey.trim(), "STRING",
+                    "Chave principal da Web API", "SISTEMA");
+        }, "API_CONFIG", "APPLICATION",
+                "Configuração da Web API na porta " + parsedPort,
+                this::refreshAll);
     }
 
     private Node buildLicenseTab() {
@@ -358,28 +406,85 @@ public class ApplicationView extends VBox {
     }
 
     private void initializeModule(ModuloSistema modulo) {
-        modalManager.showConfirmModal(new Label("Deseja inicializar o módulo " + modulo.getNome() + "?\n\nIsto criará as tabelas e views necessárias na base de dados."), 
-                "Inicializar Módulo", () -> {
-            persistenceService.executeAsync(() -> {
-                try {
+        if (modulo == null) {
+            return;
+        }
+
+        modalManager.showConfirmModal(
+                new Label(
+                        "Inicializar o módulo " + modulo.getNome() + "?\n\n"
+                                + "O módulo será inicializado através do ModuleRegistry "
+                                + "e o estado administrativo será atualizado."
+                ),
+                "Inicializar Módulo",
+                () -> persistenceService.executeAsync(() -> {
+                    var moduleOpt = moduleRegistry.getModule(modulo.getCodigo());
+
+                    if (moduleOpt.isEmpty()) {
+                        throw new IllegalStateException(
+                                "O módulo " + modulo.getCodigo()
+                                        + " não está registado no ModuleRegistry.");
+                    }
+
+                    moduleOpt.get().initialize();
+
                     modulo.setEstado(ModuloSistema.EstadoModulo.ACTIVO);
                     modulo.setInstaladoEm(LocalDateTime.now());
                     moduloRepository.save(modulo);
-                    Thread.sleep(1500); // Simulação de criação de tabelas
-                } catch (Exception e) {}
-            }, "MOD_INIT", "APPLICATION", "Módulo " + modulo.getNome() + " inicializado com sucesso", () -> refreshAll());
-        }, null);
+                },
+                "MOD_INIT",
+                "Inicialização do módulo " + modulo.getNome(),
+                this::refreshAll),
+                null
+        );
     }
 
     private void updateDatabaseSchema() {
-        modalManager.showConfirmModal(new Label("ATENÇÃO: Deseja forçar a atualização do schema da base de dados?\nEsta operação pode demorar alguns minutos."), 
-                "Atualizar Schema", () -> {
-            notificationService.showInfo("Atualização Iniciada", "O motor de dados está a aplicar os scripts de engenharia.");
-        }, null);
+        modalManager.showConfirmModal(
+                new Label(
+                        "Aplicar agora todas as migrações Flyway pendentes?\n\n"
+                                + "A operação será executada em segundo plano e registada no histórico."
+                ),
+                "Atualizar Estrutura da Base de Dados",
+                () -> persistenceService.executeAsync(() -> {
+                    Flyway flyway = flywayProvider.getIfAvailable();
+
+                    if (flyway == null) {
+                        throw new IllegalStateException(
+                                "Flyway não está disponível nesta configuração da aplicação.");
+                    }
+
+                    flyway.migrate();
+                },
+                "DB_MIGRATE",
+                "Aplicação manual das migrações Flyway",
+                this::refreshAll),
+                null
+        );
     }
 
     private void checkForUpdates() {
-        notificationService.showInfo("Atualizações", "O sistema está na versão mais recente (v1.2.4).");
+        persistenceService.executeAsync(() -> {
+            Flyway flyway = flywayProvider.getIfAvailable();
+            if (flyway == null) {
+                throw new IllegalStateException("Flyway não está disponível.");
+            }
+
+            MigrationInfo[] pending = flyway.info().pending();
+
+            Platform.runLater(() -> {
+                if (pending.length == 0) {
+                    notificationService.showSuccess(
+                            "Sistema Atualizado",
+                            "Não existem migrações pendentes para a base de dados.");
+                } else {
+                    notificationService.showInfo(
+                            "Atualizações Disponíveis",
+                            pending.length + " migração(ões) pendente(s). Aceda a «Manutenção BD» para aplicar.");
+                }
+            });
+        }, "DB_UPDATE_CHECK", "APPLICATION",
+                "Verificação de migrações pendentes", null);
     }
 
     // Classes Auxiliares
@@ -401,4 +506,26 @@ public class ApplicationView extends VBox {
         public String getSize() { return size; }
         public String getIndexes() { return indexes; }
     }
+    private void saveGlobalParameter(String key,
+                                     String value,
+                                     String type,
+                                     String description,
+                                     String group) {
+        ParametroSistema parametro = parametroRepository
+                .findByChaveAndEmpresaIdIsNull(key)
+                .orElseGet(ParametroSistema::new);
+
+        parametro.setEmpresa(null);
+        parametro.setChave(key);
+        parametro.setValor(value);
+        parametro.setTipoValor(type);
+        parametro.setDescricao(description);
+        parametro.setGrupo(group);
+        parametro.setEditavel(true);
+        parametro.setAtualizadoEm(LocalDateTime.now());
+        parametro.setAtualizadoPor("Kubata Administrator");
+
+        parametroRepository.save(parametro);
+    }
+
 }
