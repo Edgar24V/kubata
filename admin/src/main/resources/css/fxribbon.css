@@ -298,11 +298,13 @@
     -fx-padding: 8 9 7 9;
 }
 
-/* Impede que o conteúdo visual crie uma área maior que a janela. */
-.ribbon-content-host,
-.ribbon-content-scroll,
-.ribbon-content-scroll > .viewport {
-    -fx-max-width: Infinity;
+/* O conteúdo é controlado pelo cálculo de overflow do Ribbon. */
+.ribbon-content-host {
+    -fx-min-width: 0;
+}
+
+.ribbon-content-scroll {
+    -fx-min-width: 0;
 }
 
 /* ── Overflow ────────────────────────────────────────────────────────────── */
