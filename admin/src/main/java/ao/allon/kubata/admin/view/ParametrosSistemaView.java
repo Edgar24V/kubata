@@ -525,7 +525,6 @@ public class ParametrosSistemaView extends VBox {
             return;
         }
 
-        final Empresa empresaRef = null;
 
         TextField keyField = new TextField();
         keyField.setPromptText("Ex.: IVA_PADRAO");
@@ -652,7 +651,6 @@ public class ParametrosSistemaView extends VBox {
                 () -> saveFromForm(
                         existing,
                         scope,
-                        empresaRef,
                         keyField,
                         valueField,
                         typeCombo,
@@ -667,7 +665,6 @@ public class ParametrosSistemaView extends VBox {
 
     private void saveFromForm(ParametroSistema existing,
                                EmpresaScope scope,
-                               Empresa ignoredEmpresaRef,
                                TextField keyField,
                                TextField valueField,
                                ComboBox<String> typeCombo,
@@ -870,8 +867,7 @@ public class ParametrosSistemaView extends VBox {
     }
 
     private void auditDelete(ParametroSistema deleted,
-                             Map<String, String> before,
-                             Long empresaId) {
+                             Map<String, String> before) {
         var user = sessionManager.getUser();
         auditService.logAction(
                 user,
@@ -947,8 +943,7 @@ public class ParametrosSistemaView extends VBox {
                             "PARAMETRO_SISTEMA",
                             "Remoção do parâmetro " + key,
                             () -> {
-                                auditDelete(selected, before,
-                                        selectedScope == null ? null : selectedScope.empresaId);
+                                auditDelete(selected, before);
                                 reload();
                             }
                     );
