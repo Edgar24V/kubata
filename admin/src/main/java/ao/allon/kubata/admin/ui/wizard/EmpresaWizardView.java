@@ -1,17 +1,20 @@
 package ao.allon.kubata.admin.ui.wizard;
 
+import ao.allon.kubata.admin.service.EmpresaSetupService;
+import ao.allon.kubata.admin.service.PersistenceService;
+import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.Empresa;
-import ao.allon.kubata.core.domain.ParametroSistema;
-import ao.allon.kubata.core.domain.User;
-import ao.allon.kubata.core.domain.BackupConfig;
+import ao.allon.kubata.core.domain.ExercicioFiscal;
+import ao.allon.kubata.core.domain.ModuloSistema;
+import ao.allon.kubata.core.module.KubataModule;
+import ao.allon.kubata.core.module.ModuleRegistry;
 import ao.allon.kubata.core.repository.EmpresaRepository;
-import ao.allon.kubata.core.repository.ParametroSistemaRepository;
+import ao.allon.kubata.core.repository.ExercicioFiscalRepository;
 import ao.allon.kubata.core.repository.UserRepository;
-import ao.allon.kubata.core.repository.BackupConfigRepository;
-import ao.allon.kubata.core.service.AcessoService;
-import ao.allon.kubata.admin.service.SessionManager;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -21,191 +24,283 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Component;
-import org.controlsfx.validation.ValidationSupport;
-import org.controlsfx.validation.Validator;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.math.BigDecimal;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+/**
+ * Assistente central de instalação/configuração de empresa do Kubata.
+ *
+ * <p>O fluxo foi desenhado como um instalador empresarial: identificação,
+ * localização, fiscal, contabilidade, módulos, organização, documentos,
+ * segurança e revisão final.</p>
+ */
 @Component
 public class EmpresaWizardView extends VBox {
 
     private final ModalManager modalManager;
     private final EmpresaRepository empresaRepository;
     private final UserRepository userRepository;
-    private final BackupConfigRepository backupConfigRepository;
-    private final ParametroSistemaRepository parametroSistemaRepository;
-    private final AcessoService acessoService;
+    private final ExercicioFiscalRepository exercicioFiscalRepository;
+    private final ModuleRegistry moduleRegistry;
+    private final EmpresaSetupService empresaSetupService;
+    private final PersistenceService persistenceService;
     private final SessionManager sessionManager;
+
     private Empresa empresa;
-    private int currentStep = 0;
+    private boolean newCompany;
+    private Runnable onCompleted;
+    private int currentStep;
     private final List<WizardStep> steps = new ArrayList<>();
+    private final Set<String> selectedModuleIds = new LinkedHashSet<>();
+    private final Map<String, String> companyParameters = new LinkedHashMap<>();
 
-    private Label lblStepTitle;
-    private Label lblStepDescription;
-    private StackPane stepContentContainer;
-    private HBox progressIndicator;
+    private boolean openFiscalYear = true;
+    private boolean backupEnabled = true;
+    private String backupFrequency = "DAILY";
+    private int backupRetentionDays = 30;
+    private boolean mfaAdminRequired;
+
+    private Label stepTitle;
+    private Label stepDescription;
+    private Label stepCounter;
+    private Label helpLabel;
+    private StackPane content;
+    private HBox stepIndicators;
     private ProgressBar progressBar;
-    private Button btnPrev;
-    private Button btnNext;
-    private Button btnHelp;
+    private Button previousButton;
+    private Button nextButton;
 
-    public EmpresaWizardView(ModalManager modalManager, 
+    public EmpresaWizardView(ModalManager modalManager,
                              EmpresaRepository empresaRepository,
                              UserRepository userRepository,
-                             BackupConfigRepository backupConfigRepository,
-                             ParametroSistemaRepository parametroSistemaRepository,
-                             AcessoService acessoService,
+                             ExercicioFiscalRepository exercicioFiscalRepository,
+                             ModuleRegistry moduleRegistry,
+                             EmpresaSetupService empresaSetupService,
+                             PersistenceService persistenceService,
                              SessionManager sessionManager) {
         this.modalManager = modalManager;
         this.empresaRepository = empresaRepository;
         this.userRepository = userRepository;
-        this.backupConfigRepository = backupConfigRepository;
-        this.parametroSistemaRepository = parametroSistemaRepository;
-        this.acessoService = acessoService;
+        this.exercicioFiscalRepository = exercicioFiscalRepository;
+        this.moduleRegistry = moduleRegistry;
+        this.empresaSetupService = empresaSetupService;
+        this.persistenceService = persistenceService;
         this.sessionManager = sessionManager;
         buildUI();
     }
 
     private void buildUI() {
-        setSpacing(0);
-        setPadding(Insets.EMPTY);
-        setPrefSize(950, 700);
-        setStyle("-fx-background-color: white; -fx-background-radius: 12px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
+        getStyleClass().add("empresa-wizard");
+        setPrefSize(1120, 760);
 
-        // --- Header ---
-        VBox header = new VBox(15);
-        header.setPadding(new Insets(25, 35, 20, 35));
-        header.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 12 12 0 0;");
+        VBox header = new VBox(10);
+        header.getStyleClass().add("empresa-wizard-header");
+        header.setPadding(new Insets(22, 26, 18, 26));
 
-        HBox titleBox = new HBox();
-        titleBox.setAlignment(Pos.CENTER_LEFT);
-        
-        VBox titleText = new VBox(5);
-        lblStepTitle = new Label("Configuração Inicial");
-        lblStepTitle.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
-        
-        lblStepDescription = new Label("Siga os passos para configurar sua nova empresa.");
-        lblStepDescription.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 14px;");
-        titleText.getChildren().addAll(lblStepTitle, lblStepDescription);
-        
+        HBox titleRow = new HBox(12);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+
+        Label icon = new Label("K");
+        icon.getStyleClass().add("empresa-wizard-brand");
+
+        VBox titles = new VBox(3);
+        stepTitle = new Label();
+        stepTitle.getStyleClass().add("empresa-wizard-title");
+
+        stepDescription = new Label();
+        stepDescription.getStyleClass().add("empresa-wizard-subtitle");
+        stepDescription.setWrapText(true);
+
+        titles.getChildren().addAll(stepTitle, stepDescription);
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        
-        btnHelp = new Button("", IconUtils.icon(Feather.HELP_CIRCLE, 18));
-        btnHelp.getStyleClass().add("outlined");
-        btnHelp.setStyle("-fx-shape: 'M150 0 L75 200 L225 200 Z'; -fx-padding: 8;");
-        btnHelp.setOnAction(e -> showContextHelp());
-        
-        titleBox.getChildren().addAll(titleText, spacer, btnHelp);
 
-        // Barra de Progresso Visual
-        VBox progressBox = new VBox(8);
-        progressBar = new ProgressBar(0);
+        stepCounter = new Label();
+        stepCounter.getStyleClass().add("empresa-wizard-step-counter");
+
+        Button help = new Button("", IconUtils.icon(Feather.HELP_CIRCLE, 17));
+        help.getStyleClass().add("button-outlined");
+        help.setTooltip(new Tooltip("Ajuda desta etapa"));
+        help.setOnAction(e -> showHelp());
+
+        titleRow.getChildren().addAll(icon, titles, spacer, stepCounter, help);
+
+        stepIndicators = new HBox(7);
+        stepIndicators.setAlignment(Pos.CENTER_LEFT);
+
+        progressBar = new ProgressBar();
         progressBar.setMaxWidth(Double.MAX_VALUE);
-        progressBar.setPrefHeight(8);
-        progressBar.setStyle("-fx-accent: #27ae60;");
-        
-        progressIndicator = new HBox(10);
-        progressIndicator.setAlignment(Pos.CENTER_LEFT);
-        
-        progressBox.getChildren().addAll(progressBar, progressIndicator);
-        header.getChildren().addAll(titleBox, progressBox);
-        
-        // --- Área de Conteúdo Central ---
-        stepContentContainer = new StackPane();
-        VBox.setVgrow(stepContentContainer, Priority.ALWAYS);
-        stepContentContainer.setPadding(new Insets(30, 45, 30, 45));
-        stepContentContainer.setStyle("-fx-background-color: white;");
+        progressBar.setPrefHeight(7);
+        progressBar.getStyleClass().add("empresa-wizard-progress");
 
-        // --- Footer com Navegação ---
-        HBox footer = new HBox(15);
-        footer.setPadding(new Insets(20, 35, 25, 35));
-        footer.setAlignment(Pos.CENTER_RIGHT);
-        footer.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 0 0 12 12; -fx-border-color: #ecf0f1; -fx-border-width: 1 0 0 0;");
-        
-        btnPrev = new Button("Anterior", IconUtils.icon(Feather.ARROW_LEFT, 16));
-        btnPrev.getStyleClass().add("outlined");
-        btnPrev.setPrefWidth(120);
-        btnPrev.setPrefHeight(40);
-        btnPrev.setOnAction(e -> prevStep());
+        header.getChildren().addAll(titleRow, stepIndicators, progressBar);
 
-        btnNext = new Button("Próximo", IconUtils.icon(Feather.ARROW_RIGHT, 16));
-        btnNext.getStyleClass().add("accent");
-        btnNext.setContentDisplay(ContentDisplay.RIGHT);
-        btnNext.setPrefWidth(120);
-        btnNext.setPrefHeight(40);
-        btnNext.setOnAction(e -> nextStep());
+        content = new StackPane();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        content.getStyleClass().add("empresa-wizard-content");
+        content.setPadding(new Insets(24, 28, 24, 28));
 
-        footer.getChildren().addAll(btnPrev, btnNext);
+        HBox footer = new HBox(12);
+        footer.setAlignment(Pos.CENTER_LEFT);
+        footer.getStyleClass().add("empresa-wizard-footer");
+        footer.setPadding(new Insets(14, 22, 16, 22));
 
-        getChildren().addAll(header, stepContentContainer, footer);
+        helpLabel = new Label();
+        helpLabel.getStyleClass().add("empresa-wizard-help");
+        helpLabel.setWrapText(true);
+        HBox.setHgrow(helpLabel, Priority.ALWAYS);
+
+        previousButton = new Button("Anterior", IconUtils.icon(Feather.ARROW_LEFT, 14));
+        previousButton.getStyleClass().add("button-outlined");
+        previousButton.setOnAction(e -> previousStep());
+
+        nextButton = new Button("Próximo", IconUtils.icon(Feather.ARROW_RIGHT, 14));
+        nextButton.setContentDisplay(ContentDisplay.RIGHT);
+        nextButton.getStyleClass().add("button-primary");
+        nextButton.setOnAction(e -> nextStep());
+
+        footer.getChildren().addAll(helpLabel, previousButton, nextButton);
+        getChildren().addAll(header, content, footer);
     }
 
     public void start(Empresa empresa) {
-        this.empresa = empresa;
-        this.currentStep = 0;
-        initializeSteps();
-        updateUI();
-        
-        modalManager.setPersistent(true);
-        modalManager.showModal(this, new ModalManager.ModalConfig()
-                .title("Assistente de Instalação Kubata ERP")
-                .autoSize()
-                .resizable(false));
+        start(empresa, null);
     }
 
-    private void initializeSteps() {
+    public void start(Empresa empresa, Runnable onCompleted) {
+        this.empresa = empresa == null ? new Empresa() : empresa;
+        this.newCompany = this.empresa.getId() == null;
+        this.onCompleted = onCompleted;
+        this.currentStep = 0;
+        this.companyParameters.clear();
+        this.selectedModuleIds.clear();
+
+        if (this.empresa.getPais() == null || this.empresa.getPais().isBlank()) {
+            this.empresa.setPais("AO");
+        }
+        if (this.empresa.getMoedaBase() == null || this.empresa.getMoedaBase().isBlank()) {
+            this.empresa.setMoedaBase("AOA");
+        }
+        if (this.empresa.getCasasDecimaisValor() == null) {
+            this.empresa.setCasasDecimaisValor(2);
+        }
+        if (this.empresa.getCasasDecimaisQuantidade() == null) {
+            this.empresa.setCasasDecimaisQuantidade(3);
+        }
+        if (this.empresa.getExercicioActual() == null) {
+            this.empresa.setExercicioActual(LocalDate.now().getYear());
+        }
+
+        loadExistingModuleSelection();
+
         steps.clear();
-        steps.add(new WelcomeStep());              // 1
-        steps.add(new BasicDataStep());            // 2
-        steps.add(new SectorsStep());               // 3
-        steps.add(new UsersPermissionsStep());     // 4
-        steps.add(new FiscalStep());                // 5
-        steps.add(new BrandingStep());              // 6
-        steps.add(new ImportDataStep());            // 7
-        steps.add(new BackupSecurityStep());        // 8
-        steps.add(new SummaryStep());               // 9
-        
-        progressIndicator.getChildren().clear();
+        steps.add(new WelcomeStep());
+        steps.add(new IdentityStep());
+        steps.add(new AddressStep());
+        steps.add(new FiscalStep());
+        steps.add(new AccountingStep());
+        steps.add(new ModulesStep());
+        steps.add(new OrganizationStep());
+        steps.add(new DocumentsStep());
+        steps.add(new SecurityStep());
+        steps.add(new SummaryStep());
+
+        buildIndicators();
+        updateUI();
+
+        modalManager.setPersistent(true);
+        modalManager.showModal(this, new ModalManager.ModalConfig()
+                .title(newCompany ? "Assistente de Instalação de Empresa" : "Assistente de Configuração de Empresa")
+                .subtitle("Kubata Administrator · configuração central do ambiente empresarial")
+                .size(1160, 820)
+                .minSize(980, 700)
+                .resizable(true)
+                .closeOnOverlayClick(false)
+                .closeOnEscape(false)
+                .withConfirmButtons("", "")
+                .footerDivider(false));
+    }
+
+    private void loadExistingModuleSelection() {
+        if (empresa.getModulos() != null && !empresa.getModulos().isBlank()) {
+            for (String raw : empresa.getModulos().split(",")) {
+                String id = raw.trim().toLowerCase(Locale.ROOT);
+                if (id.isBlank()) continue;
+                selectedModuleIds.add(legacyModuleId(id));
+            }
+        }
+
+        if (selectedModuleIds.isEmpty()) {
+            moduleRegistry.getAllModules().stream()
+                    .filter(KubataModule::isActive)
+                    .sorted(Comparator.comparing(KubataModule::getModuleName, String.CASE_INSENSITIVE_ORDER))
+                    .forEach(module -> selectedModuleIds.add(module.getModuleId()));
+        }
+    }
+
+    private String legacyModuleId(String id) {
+        return switch (id) {
+            case "estoque", "stock" -> "inventario";
+            case "pos" -> "vendas";
+            case "billing", "faturacao" -> "vendas";
+            case "finance" -> "financeiro";
+            case "accounting" -> "contabilidade";
+            default -> id;
+        };
+    }
+
+    private void buildIndicators() {
+        stepIndicators.getChildren().clear();
         for (int i = 0; i < steps.size(); i++) {
             Circle dot = new Circle(5);
-            dot.setFill(Color.LIGHTGRAY);
-            progressIndicator.getChildren().add(dot);
+            dot.getStyleClass().add("empresa-wizard-dot");
+            stepIndicators.getChildren().add(dot);
         }
     }
 
     private void updateUI() {
         WizardStep step = steps.get(currentStep);
-        lblStepTitle.setText(step.getTitle());
-        lblStepDescription.setText(step.getDescription());
-        
-        stepContentContainer.getChildren().setAll(step.getContent());
-        
-        btnPrev.setDisable(currentStep == 0);
-        btnNext.setText(currentStep == steps.size() - 1 ? "Finalizar" : "Próximo");
-        
-        // Atualiza indicadores de progresso
-        double progress = (double) (currentStep) / (steps.size() - 1);
-        progressBar.setProgress(progress);
-        
-        for (int i = 0; i < progressIndicator.getChildren().size(); i++) {
-            Circle dot = (Circle) progressIndicator.getChildren().get(i);
+        stepTitle.setText(step.title());
+        stepDescription.setText(step.description());
+        helpLabel.setText(step.help());
+
+        Node node = step.content();
+        ScrollPane scroll = new ScrollPane(node);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(true);
+        scroll.getStyleClass().add("empresa-wizard-scroll");
+        content.getChildren().setAll(scroll);
+
+        stepCounter.setText("Etapa " + (currentStep + 1) + " de " + steps.size());
+        progressBar.setProgress((double) currentStep / Math.max(1, steps.size() - 1));
+
+        previousButton.setDisable(currentStep == 0);
+        nextButton.setText(currentStep == steps.size() - 1 ? "Concluir instalação" : "Próximo");
+        nextButton.setGraphic(IconUtils.icon(
+                currentStep == steps.size() - 1 ? Feather.CHECK : Feather.ARROW_RIGHT, 14
+        ));
+
+        for (int i = 0; i < stepIndicators.getChildren().size(); i++) {
+            Circle dot = (Circle) stepIndicators.getChildren().get(i);
+            dot.getStyleClass().removeAll("current", "done");
             if (i == currentStep) {
-                dot.setFill(Color.web("#27ae60")); // Verde ativo
+                dot.getStyleClass().add("current");
                 dot.setRadius(7);
             } else if (i < currentStep) {
-                dot.setFill(Color.web("#2ecc71")); // Verde concluído
+                dot.getStyleClass().add("done");
                 dot.setRadius(5);
             } else {
-                dot.setFill(Color.web("#bdc3c7")); // Cinza pendente
                 dot.setRadius(5);
             }
         }
@@ -213,595 +308,856 @@ public class EmpresaWizardView extends VBox {
 
     private void nextStep() {
         WizardStep step = steps.get(currentStep);
-        if (step.validate()) {
-            step.savePartial(); // Salva os dados desta etapa antes de prosseguir
-            logActivity("Concluiu etapa: " + step.getTitle());
-            
-            if (currentStep < steps.size() - 1) {
-                currentStep++;
-                updateUI();
-            } else {
-                finish();
-            }
+        if (!step.validate()) return;
+
+        step.save();
+        if (currentStep < steps.size() - 1) {
+            currentStep++;
+            updateUI();
+        } else {
+            finish();
         }
     }
 
-    private void prevStep() {
-        if (currentStep > 0) {
-            currentStep--;
-            updateUI();
-        }
+    private void previousStep() {
+        if (currentStep <= 0) return;
+        currentStep--;
+        updateUI();
     }
 
     private void finish() {
-        try {
-            empresaRepository.save(empresa);
-            logActivity("Assistente finalizado com sucesso.");
-            modalManager.setPersistent(false);
-            modalManager.hideModal();
-            modalManager.alert("Sucesso", "A empresa " + empresa.getNome() + " foi configurada com sucesso e está pronta para uso.", "success", null);
-        } catch (Exception e) {
-            modalManager.alert("Erro", "Falha ao salvar configurações finais: " + e.getMessage(), "error", null);
-        }
-    }
-
-    private void showContextHelp() {
         WizardStep step = steps.get(currentStep);
-        modalManager.alert("Ajuda: " + step.getTitle(), step.getHelpText(), "info", null);
+        step.save();
+
+        if (!validateBeforeFinish()) return;
+
+        nextButton.setDisable(true);
+        previousButton.setDisable(true);
+        nextButton.setText("A preparar...");
+        helpLabel.setText("A gravar a empresa e a preparar o ambiente empresarial…");
+
+        String updatedBy = sessionManager.getUser() != null
+                ? sessionManager.getUser().getNome()
+                : "Administrador";
+
+        persistenceService.executeAsync(
+                () -> empresaSetupService.saveAndProvision(
+                        empresa,
+                        openFiscalYear,
+                        backupEnabled,
+                        backupFrequency,
+                        backupRetentionDays,
+                        mfaAdminRequired,
+                        companyParameters,
+                        updatedBy
+                ),
+                "SETUP_EMPRESA",
+                "EMPRESA",
+                (newCompany ? "Instalação" : "Reconfiguração") + " da empresa " + empresa.getNome(),
+                () -> Platform.runLater(() -> {
+                    modalManager.setPersistent(false);
+                    modalManager.hideModal();
+                    if (onCompleted != null) onCompleted.run();
+                    modalManager.alert(
+                            "Empresa pronta",
+                            "A empresa “" + empresa.getNome()
+                                    + "” foi " + (newCompany ? "instalada" : "reconfigurada")
+                                    + " e está disponível no ecossistema Kubata.",
+                            "success",
+                            null
+                    );
+                })
+        );
     }
 
-    private void logActivity(String action) {
-        acessoService.registrarAuditoria(sessionManager.getUser(), "WIZARD", "EMPRESA", 
-                "127.0.0.1", "Empresa: " + empresa.getNome() + " | Ação: " + action, true);
-        System.out.println("[WIZARD LOG] " + empresa.getNome() + ": " + action);
+    private boolean validateBeforeFinish() {
+        if (empresa.getNome() == null || empresa.getNome().isBlank()) {
+            modalManager.alert("Configuração incompleta", "Indique a razão social da empresa.", "warning", null);
+            return false;
+        }
+        if (empresa.getIdentificador() == null || empresa.getIdentificador().isBlank()) {
+            modalManager.alert("Configuração incompleta", "Indique o identificador curto da empresa.", "warning", null);
+            return false;
+        }
+        if (empresa.getNif() == null || empresa.getNif().isBlank()) {
+            modalManager.alert("Configuração incompleta", "Indique o NIF da empresa.", "warning", null);
+            return false;
+        }
+        if (empresa.getMoedaBase() == null || empresa.getMoedaBase().isBlank()) {
+            modalManager.alert("Configuração incompleta", "Seleccione a moeda base.", "warning", null);
+            return false;
+        }
+        if (empresa.getExercicioActual() == null) {
+            modalManager.alert("Configuração incompleta", "Indique o exercício actual.", "warning", null);
+            return false;
+        }
+
+        String nif = empresa.getNif().trim();
+        Optional<Empresa> duplicate = empresaRepository.findByNif(nif);
+        if (duplicate.isPresent() && (empresa.getId() == null || !duplicate.get().getId().equals(empresa.getId()))) {
+            modalManager.alert("NIF já registado", "Já existe outra empresa com o NIF " + nif + ".", "warning", null);
+            return false;
+        }
+
+        if (selectedModuleIds.isEmpty()) {
+            modalManager.alert("Módulos não configurados", "Seleccione pelo menos um módulo para esta empresa.", "warning", null);
+            return false;
+        }
+
+        return true;
     }
 
-    // --- Interfaces e Classes de Etapas ---
+    private void showHelp() {
+        modalManager.info("Ajuda — " + steps.get(currentStep).title(), steps.get(currentStep).help());
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private TextField text(String prompt, String value) {
+        TextField field = new TextField(normalize(value));
+        field.setPromptText(prompt);
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private ComboBox<String> combo(String... values) {
+        ComboBox<String> combo = new ComboBox<>(FXCollections.observableArrayList(values));
+        combo.setMaxWidth(Double.MAX_VALUE);
+        return combo;
+    }
+
+    private Label section(String title, String description) {
+        Label label = new Label(title);
+        label.getStyleClass().add("empresa-wizard-section-title");
+        if (description != null && !description.isBlank()) {
+            label.setText(title + "  ·  " + description);
+        }
+        return label;
+    }
+
+    private HBox field(String label, Node editor) {
+        Label l = new Label(label);
+        l.getStyleClass().add("empresa-wizard-field-label");
+        l.setMinWidth(145);
+        HBox box = new HBox(12, l, editor);
+        box.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(editor, Priority.ALWAYS);
+        return box;
+    }
+
+    private VBox page(Node... nodes) {
+        VBox root = new VBox(16);
+        root.getStyleClass().add("empresa-wizard-page");
+        root.getChildren().addAll(nodes);
+        return root;
+    }
+
+    private VBox card(Node... nodes) {
+        VBox box = new VBox(10);
+        box.getStyleClass().add("empresa-wizard-card");
+        box.getChildren().addAll(nodes);
+        return box;
+    }
+
+    private Label hint(String text) {
+        Label label = new Label(text);
+        label.setWrapText(true);
+        label.getStyleClass().add("empresa-wizard-hint");
+        return label;
+    }
+
+    private TextArea textArea(String value) {
+        TextArea area = new TextArea(normalize(value));
+        area.setWrapText(true);
+        area.setPrefRowCount(4);
+        return area;
+    }
 
     private interface WizardStep {
-        String getTitle();
-        String getDescription();
-        Node getContent();
+        String title();
+        String description();
+        Node content();
         boolean validate();
-        void savePartial();
-        String getHelpText();
+        void save();
+        String help();
     }
 
-    // 1. Tela de Boas-vindas
     private class WelcomeStep implements WizardStep {
-        public String getTitle() { return "1. Bem-vindo"; }
-        public String getDescription() { return "Introdução ao assistente de configuração Kubata ERP."; }
-        public Node getContent() {
-            VBox box = new VBox(25);
-            box.setAlignment(Pos.CENTER);
-            
-            Label lblWelcome = new Label("Bem-vindo ao Kubata ERP!");
-            lblWelcome.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #27ae60;");
-            
-            Label lblText = new Label("Este assistente irá guiá-lo na configuração inicial da sua empresa. \n" +
-                                     "O processo leva cerca de 10 a 15 minutos e garante que o sistema \n" +
-                                     "esteja pronto para emitir faturas e gerir o seu negócio conforme a lei angolana.");
-            lblText.setStyle("-fx-font-size: 16px; -fx-text-alignment: center; -fx-line-spacing: 5;");
-            lblText.setWrapText(true);
-            
-            VBox list = new VBox(10);
-            list.setAlignment(Pos.CENTER_LEFT);
-            list.setMaxWidth(500);
-            list.getChildren().addAll(
-                new Label("✓ Dados Fiscais e Morada"),
-                new Label("✓ Estrutura Organizacional"),
-                new Label("✓ Utilizadores e Permissões"),
-                new Label("✓ Configurações da AGT"),
-                new Label("✓ Importação de Inventário")
+        public String title() { return "1 · Boas-vindas e plano de instalação"; }
+        public String description() { return "Prepare a empresa e siga o roteiro central do Kubata Administrator."; }
+        public Node content() {
+            VBox root = page(
+                    section("Instalação empresarial Kubata", "um ambiente por empresa"),
+                    new Label("Este assistente centraliza a configuração que será utilizada pelos módulos do ecossistema."),
+                    hint("Ao concluir, o Kubata grava a empresa, configura o exercício seleccionado, cria os parâmetros por empresa e regista os módulos escolhidos. Pode voltar atrás para rever cada etapa."),
+                    installationChecklist(),
+                    card(
+                            new Label("Antes de começar"),
+                            new Label("Tenha disponível o NIF, dados legais, endereço, informações bancárias e a decisão sobre quais módulos a empresa irá utilizar.")
+                    )
             );
-            list.setStyle("-fx-background-color: #f1f8e9; -fx-padding: 20px; -fx-background-radius: 8px;");
-
-            box.getChildren().addAll(lblWelcome, lblText, list);
+            return root;
+        }
+        private Node installationChecklist() {
+            VBox box = new VBox(8);
+            box.getStyleClass().add("empresa-wizard-checklist");
+            String[] items = {
+                    "Identificação legal e NIF",
+                    "Morada, contactos e localização",
+                    "Fiscalidade e parametrização financeira",
+                    "Módulos e funcionalidades por empresa",
+                    "Organização e centros de operação",
+                    "Documentos, logótipo e mensagens",
+                    "Segurança, backup e conclusão"
+            };
+            for (String item : items) {
+                box.getChildren().add(new Label("✓  " + item));
+            }
             return box;
         }
         public boolean validate() { return true; }
-        public void savePartial() {
-            logActivity("Etapa de boas-vindas confirmada.");
-        }
-        public String getHelpText() { return "Esta etapa apresenta os objetivos do assistente. Clique em Próximo para iniciar."; }
+        public void save() {}
+        public String help() { return "Esta etapa explica o que será configurado. Nenhum dado é gravado aqui."; }
     }
 
-    // 2. Dados Básicos
-    private class BasicDataStep implements WizardStep {
-        private TextField txtNome, txtNif, txtEmail, txtTelefone, txtMorada;
-        private final ValidationSupport validationSupport = new ValidationSupport();
+    private class IdentityStep implements WizardStep {
+        private TextField identifier;
+        private TextField name;
+        private TextField commercialName;
+        private TextField nif;
+        private ComboBox<String> taxpayerType;
+        private DatePicker incorporationDate;
+        private Spinner<Integer> startYear;
+        public String title() { return "2 · Identificação da empresa"; }
+        public String description() { return "Registe a identidade jurídica e comercial da empresa."; }
+        public Node content() {
+            identifier = text("Ex.: KBT", empresa.getIdentificador());
+            identifier.setPrefWidth(130);
+            name = text("Razão social / denominação", empresa.getNome());
+            commercialName = text("Nome comercial", empresa.getNomeComercial());
+            nif = text("NIF", empresa.getNif());
+            taxpayerType = combo("Pessoa Colectiva", "Pessoa Singular", "Não Residente");
+            taxpayerType.setValue(empresa.getTipoContribuinte() == null ? "Pessoa Colectiva" : empresa.getTipoContribuinte());
+            incorporationDate = new DatePicker(empresa.getDataConstituicao());
+            incorporationDate.setMaxWidth(Double.MAX_VALUE);
+            startYear = new Spinner<>(1900, 2100, empresa.getAnoInicio() == null ? LocalDate.now().getYear() : empresa.getAnoInicio());
+            startYear.setMaxWidth(Double.MAX_VALUE);
 
-        public String getTitle() { return "2. Dados Básicos"; }
-        public String getDescription() { return "Informações essenciais de identificação e contacto."; }
-        public Node getContent() {
-            GridPane grid = new GridPane();
-            grid.setHgap(20); grid.setVgap(15);
-            grid.setAlignment(Pos.CENTER);
+            VBox left = new VBox(
+                    field("Identificador *", identifier),
+                    field("NIF *", nif),
+                    field("Tipo de contribuinte *", taxpayerType),
+                    field("Data de constituição", incorporationDate)
+            );
+            VBox right = new VBox(
+                    field("Razão social *", name),
+                    field("Nome comercial", commercialName),
+                    field("Ano início actividade", startYear)
+            );
 
-            txtNome = new TextField(empresa.getNome());
-            txtNif = new TextField(empresa.getNif());
-            txtEmail = new TextField(empresa.getEmail());
-            txtTelefone = new TextField(empresa.getTelefone());
-            txtMorada = new TextField(empresa.getMorada());
+            HBox columns = new HBox(22, left, right);
+            HBox.setHgrow(left, Priority.ALWAYS);
+            HBox.setHgrow(right, Priority.ALWAYS);
 
-            validationSupport.registerValidator(txtNome, Validator.createEmptyValidator("O nome é obrigatório"));
-            validationSupport.registerValidator(txtNif, Validator.createEmptyValidator("O NIF é obrigatório"));
-            validationSupport.registerValidator(txtEmail, Validator.createRegexValidator("Email inválido", "^[A-Za-z0-9+_.-]+@(.+)$", org.controlsfx.validation.Severity.ERROR));
-
-            grid.add(new Label("Nome/Razão Social: *"), 0, 0); grid.add(txtNome, 1, 0, 3, 1);
-            grid.add(new Label("NIF: *"), 0, 1); grid.add(txtNif, 1, 1);
-            grid.add(new Label("E-mail:"), 2, 1); grid.add(txtEmail, 3, 1);
-            grid.add(new Label("Telefone:"), 0, 2); grid.add(txtTelefone, 1, 2);
-            grid.add(new Label("Endereço:"), 2, 2); grid.add(txtMorada, 3, 2);
-
-            grid.getChildren().forEach(n -> {
-                if (n instanceof TextField) ((TextField)n).setPrefWidth(250);
-            });
-            
-            return grid;
+            return page(
+                    section("Identificação legal", "dados principais"),
+                    columns,
+                    hint("O identificador é usado como referência curta dentro do ecossistema. O NIF deve ser único.")
+            );
         }
         public boolean validate() {
-            if (validationSupport.isInvalid()) {
-                modalManager.alert("Erro de Validação", "Por favor, corrija os erros nos campos destacados.", "error", null);
+            if (normalize(identifier.getText()).length() < 2) {
+                modalManager.alert("Identificador inválido", "Indique um identificador curto com pelo menos 2 caracteres.", "warning", null);
+                return false;
+            }
+            if (normalize(name.getText()).isBlank()) {
+                modalManager.alert("Nome obrigatório", "Indique a razão social da empresa.", "warning", null);
+                return false;
+            }
+            if (normalize(nif.getText()).isBlank()) {
+                modalManager.alert("NIF obrigatório", "Indique o NIF da empresa.", "warning", null);
                 return false;
             }
             return true;
         }
-        public void savePartial() {
-            empresa.setNome(txtNome.getText().trim());
-            empresa.setNif(txtNif.getText().trim());
-            empresa.setEmail(txtEmail.getText().trim());
-            empresa.setTelefone(txtTelefone.getText().trim());
-            empresa.setMorada(txtMorada.getText().trim());
+        public void save() {
+            empresa.setIdentificador(normalize(identifier.getText()).toUpperCase(Locale.ROOT));
+            empresa.setNome(normalize(name.getText()));
+            empresa.setNomeComercial(normalize(commercialName.getText()));
+            empresa.setNif(normalize(nif.getText()));
+            empresa.setTipoContribuinte(taxpayerType.getValue());
+            empresa.setDataConstituicao(incorporationDate.getValue());
+            empresa.setAnoInicio(startYear.getValue());
         }
-        public String getHelpText() { return "Preencha os dados conforme constam no certificado de NIF da sua empresa."; }
+        public String help() { return "Utilize exactamente os dados legais da empresa. O NIF não pode repetir-se noutra empresa."; }
     }
 
-    // 3. Setores e Departamentos
-    private class SectorsStep implements WizardStep {
-        private ListView<String> lvSetores;
-        public String getTitle() { return "3. Estrutura Organizacional"; }
-        public String getDescription() { return "Defina os principais setores e departamentos da empresa."; }
-        public Node getContent() {
-            VBox box = new VBox(15);
-            box.setAlignment(Pos.CENTER);
-            
-            lvSetores = new ListView<>();
-            if (empresa.getSetores() != null && !empresa.getSetores().isEmpty()) {
-                lvSetores.getItems().addAll(empresa.getSetores().split(","));
-            } else {
-                lvSetores.getItems().addAll("Administração", "Financeiro", "Vendas", "Armazém", "RH");
-            }
-            lvSetores.setPrefHeight(200);
-            lvSetores.setMaxWidth(400);
-            
-            HBox addBox = new HBox(10);
-            addBox.setAlignment(Pos.CENTER);
-            TextField txtNovo = new TextField();
-            Button btnAdd = new Button("Adicionar", IconUtils.icon(Feather.PLUS, 14));
-            btnAdd.setOnAction(e -> {
-                if (!txtNovo.getText().isBlank()) {
-                    lvSetores.getItems().add(txtNovo.getText().trim());
-                    txtNovo.clear();
-                }
-            });
-            addBox.getChildren().addAll(txtNovo, btnAdd);
-            
-            box.getChildren().addAll(new Label("Setores/Departamentos:"), lvSetores, addBox);
-            return box;
+    private class AddressStep implements WizardStep {
+        private TextField address;
+        private TextField postalCode;
+        private TextField locality;
+        private ComboBox<String> province;
+        private TextField municipality;
+        private TextField fiscalDistrict;
+        private TextField phone;
+        private TextField mobile;
+        private TextField fax;
+        private TextField email;
+        private TextField website;
+        public String title() { return "3 · Morada e contactos"; }
+        public String description() { return "Configure localização, contactos e presença digital."; }
+        public Node content() {
+            address = text("Morada completa", empresa.getMorada());
+            postalCode = text("Código postal", empresa.getCodigoPostal());
+            locality = text("Localidade", empresa.getLocalidade());
+            province = combo("Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango",
+                    "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
+                    "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico",
+                    "Namibe", "Uíge", "Zaire");
+            province.setValue(empresa.getProvincia() == null ? "Luanda" : empresa.getProvincia());
+            municipality = text("Município", empresa.getMunicipio());
+            fiscalDistrict = text("Bairro / zona fiscal", empresa.getBairroFiscal());
+            phone = text("Telefone", empresa.getTelefone());
+            mobile = text("Telemóvel", empresa.getTelemovel());
+            fax = text("Fax", empresa.getFax());
+            email = text("Email", empresa.getEmail());
+            website = text("https://...", empresa.getWebsite());
+
+            VBox left = new VBox(
+                    field("Morada *", address),
+                    field("Código postal", postalCode),
+                    field("Localidade", locality),
+                    field("Província", province),
+                    field("Município", municipality)
+            );
+            VBox right = new VBox(
+                    field("Bairro / zona fiscal", fiscalDistrict),
+                    field("Telefone", phone),
+                    field("Telemóvel", mobile),
+                    field("Fax", fax),
+                    field("Email", email),
+                    field("Website", website)
+            );
+            HBox columns = new HBox(22, left, right);
+            HBox.setHgrow(left, Priority.ALWAYS);
+            HBox.setHgrow(right, Priority.ALWAYS);
+            return page(
+                    section("Localização", "endereço fiscal e operacional"),
+                    columns,
+                    hint("Preencha o endereço usado nos documentos e contactos oficiais.")
+            );
         }
-        public boolean validate() { return true; }
-        public void savePartial() { 
-            String setores = String.join(",", lvSetores.getItems());
-            empresa.setSetores(setores);
+        public boolean validate() { return !normalize(address.getText()).isBlank(); }
+        public void save() {
+            empresa.setMorada(normalize(address.getText()));
+            empresa.setCodigoPostal(normalize(postalCode.getText()));
+            empresa.setLocalidade(normalize(locality.getText()));
+            empresa.setProvincia(province.getValue());
+            empresa.setMunicipio(normalize(municipality.getText()));
+            empresa.setBairroFiscal(normalize(fiscalDistrict.getText()));
+            empresa.setTelefone(normalize(phone.getText()));
+            empresa.setTelemovel(normalize(mobile.getText()));
+            empresa.setFax(normalize(fax.getText()));
+            empresa.setEmail(normalize(email.getText()));
+            empresa.setWebsite(normalize(website.getText()));
         }
-        public String getHelpText() { return "Defina a estrutura para facilitar a alocação de custos e funcionários futuramente."; }
+        public String help() { return "A morada e os contactos são reutilizados pelos documentos e comunicações do Kubata."; }
     }
 
-    // 4. Usuários Administrativos
-    private class UsersPermissionsStep implements WizardStep {
-        public String getTitle() { return "4. Utilizadores & Acessos"; }
-        public String getDescription() { return "Registe os utilizadores que terão acesso ao sistema."; }
-        public Node getContent() {
-            VBox box = new VBox(15);
-            box.setAlignment(Pos.CENTER);
-            
-            TableView<User> tvUsers = new TableView<>();
-            TableColumn<User, String> colNome = new TableColumn<>("Nome");
-            colNome.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getNome()));
-            
-            TableColumn<User, String> colEmail = new TableColumn<>("Email");
-            colEmail.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getEmail()));
-
-            TableColumn<User, String> colPerfil = new TableColumn<>("Perfil");
-            colPerfil.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getRole().name()));
-
-            tvUsers.getColumns().addAll(colNome, colEmail, colPerfil);
-            tvUsers.setPrefHeight(200);
-            tvUsers.setMaxWidth(600);
-            
-            // Carregar usuários reais
-            tvUsers.getItems().setAll(userRepository.findAll());
-            
-            Label lblTip = new Label("Dica: Pode definir permissões granulares no módulo Administrator após o login.");
-            lblTip.setStyle("-fx-font-style: italic; -fx-text-fill: #95a5a6;");
-            
-            box.getChildren().addAll(tvUsers, lblTip);
-            return box;
-        }
-        public boolean validate() {
-            boolean hasAdmin = userRepository.findAll().stream()
-                    .anyMatch(user -> user != null && user.getRole() == ao.allon.kubata.core.domain.Role.ADMIN);
-
-            if (!hasAdmin) {
-                modalManager.alert(
-                        "Administrador necessário",
-                        "Configure pelo menos um utilizador com perfil ADMIN antes de concluir o assistente.",
-                        "warning",
-                        null
-                );
-                return false;
-            }
-
-            return true;
-        }
-
-        public void savePartial() {
-            logActivity("Utilizadores e permissões confirmados.");
-        }
-
-        public String getHelpText() { return "Adicione pelo menos um utilizador administrador para além do master."; }
-    }
-
-    // 5. Tributação e Regime Fiscal
     private class FiscalStep implements WizardStep {
-        private ComboBox<String> cbRegime;
-        private final ValidationSupport validationSupport = new ValidationSupport();
+        private ComboBox<String> regime;
+        private TextField cae;
+        private TextField socialSecurityNif;
+        private TextField fiscalNif;
+        private TextField certificate;
+        private TextField certificateVersion;
+        private DatePicker certificateDate;
+        private TextField certificateHash;
+        public String title() { return "4 · Fiscalidade e conformidade"; }
+        public String description() { return "Configure os dados fiscais que serão partilhados pelos módulos."; }
+        public Node content() {
+            regime = combo("Regime Geral", "Regime Simplificado", "Regime de Exclusão", "Isento", "Especial");
+            regime.setValue(empresa.getRegimeFiscal() == null ? "Regime Geral" : empresa.getRegimeFiscal());
+            cae = text("CAE", empresa.getCae());
+            socialSecurityNif = text("NIF Segurança Social", empresa.getNifSegurancaSocial());
+            fiscalNif = text("NIF Fiscal", empresa.getNifFiscal());
+            certificate = text("Número do certificado AGT", empresa.getNumeroCertificadoAGT());
+            certificateVersion = text("Versão", empresa.getVersaoCertificadoAGT());
+            certificateDate = new DatePicker(empresa.getDataCertificadoAGT());
+            certificateDate.setMaxWidth(Double.MAX_VALUE);
+            certificateHash = text("Hash / impressão digital", empresa.getHashCertificadoAGT());
 
-        public String getTitle() { return "5. Configuração Fiscal (AGT)"; }
-        public String getDescription() { return "Configure o enquadramento tributário para emissão de faturas."; }
-        public Node getContent() {
-            VBox box = new VBox(20);
-            box.setAlignment(Pos.CENTER);
-            
-            cbRegime = new ComboBox<>();
-            cbRegime.getItems().addAll("Regime Geral", "Regime Simplificado", "Regime de Exclusão");
-            cbRegime.setPromptText("Selecione o Regime de IVA");
-            cbRegime.setPrefWidth(300);
-            
-            validationSupport.registerValidator(cbRegime, Validator.createEmptyValidator("Selecione o regime fiscal"));
+            CheckBox saft = new CheckBox("Preparar integração/controlo SAFT-AO");
+            saft.setSelected(Boolean.parseBoolean(companyParameters.getOrDefault("SAFT_AO_ENABLED", "true")));
 
-            CheckBox chkSaft = new CheckBox("Gerar ficheiro SAFT-AO automaticamente");
-            chkSaft.setSelected(true);
-            
-            box.getChildren().addAll(new Label("Enquadramento Tributário:"), cbRegime, chkSaft);
-            return box;
+            return page(
+                    section("Enquadramento tributário", "dados para faturação e reporting"),
+                    field("Regime fiscal *", regime),
+                    field("CAE", cae),
+                    field("NIF Fiscal", fiscalNif),
+                    field("NIF Segurança Social", socialSecurityNif),
+                    new Separator(),
+                    section("Certificação AGT", "quando aplicável"),
+                    field("Nº certificado", certificate),
+                    field("Versão certificado", certificateVersion),
+                    field("Data", certificateDate),
+                    field("Hash", certificateHash),
+                    saft
+            );
         }
         public boolean validate() {
-            if (validationSupport.isInvalid()) {
-                modalManager.alert("Erro de Validação", "Selecione um regime fiscal.", "error", null);
+            if (regime.getValue() == null || regime.getValue().isBlank()) {
+                modalManager.alert("Regime fiscal", "Seleccione o regime fiscal da empresa.", "warning", null);
                 return false;
             }
             return true;
         }
-        public void savePartial() {
-            empresa.setRegimeFiscal(cbRegime.getValue());
+        public void save() {
+            empresa.setRegimeFiscal(regime.getValue());
+            empresa.setCae(normalize(cae.getText()));
+            empresa.setNifFiscal(normalize(fiscalNif.getText()));
+            empresa.setNifSegurancaSocial(normalize(socialSecurityNif.getText()));
+            empresa.setNumeroCertificadoAGT(normalize(certificate.getText()));
+            empresa.setVersaoCertificadoAGT(normalize(certificateVersion.getText()));
+            empresa.setDataCertificadoAGT(certificateDate.getValue());
+            empresa.setHashCertificadoAGT(normalize(certificateHash.getText()));
+            companyParameters.put("SAFT_AO_ENABLED", "true");
         }
-        public String getHelpText() { return "Consulte o seu contabilista para confirmar o regime de IVA correto."; }
+        public String help() { return "Regime e dados fiscais são transversais ao ecossistema. Confirme os valores com a documentação oficial da empresa."; }
     }
 
-    // 6. Logotipo e Identidade
-    private class BrandingStep implements WizardStep {
-        private ImageView imgView;
-        private byte[] logoBytes;
-        private String mimeType;
+    private class AccountingStep implements WizardStep {
+        private Spinner<Integer> fiscalYear;
+        private ComboBox<String> baseCurrency;
+        private ComboBox<String> alternativeCurrency;
+        private Spinner<Integer> moneyDecimals;
+        private Spinner<Integer> quantityDecimals;
+        private TextField bank;
+        private TextField bankAccount;
+        private TextField iban;
+        private TextField shareCapital;
+        private TextField expectedRevenue;
+        private TextField nationalCapital;
+        private TextField foreignCapital;
+        private TextField publicCapital;
+        public String title() { return "5 · Contabilidade, moeda e dados bancários"; }
+        public String description() { return "Defina o exercício, moeda e informação financeira base."; }
+        public Node content() {
+            fiscalYear = new Spinner<>(2000, 2100, empresa.getExercicioActual());
+            fiscalYear.setMaxWidth(Double.MAX_VALUE);
+            baseCurrency = combo("AOA", "USD", "EUR", "ZAR");
+            baseCurrency.setValue(empresa.getMoedaBase() == null ? "AOA" : empresa.getMoedaBase());
+            alternativeCurrency = combo("AOA", "USD", "EUR", "ZAR");
+            alternativeCurrency.setValue(empresa.getMoedaAlternativa());
+            moneyDecimals = new Spinner<>(0, 6, empresa.getCasasDecimaisValor() == null ? 2 : empresa.getCasasDecimaisValor());
+            quantityDecimals = new Spinner<>(0, 6, empresa.getCasasDecimaisQuantidade() == null ? 3 : empresa.getCasasDecimaisQuantidade());
+            bank = text("Banco principal", empresa.getBanco());
+            bankAccount = text("Conta bancária", empresa.getContaBancaria());
+            iban = text("IBAN", empresa.getIban());
+            shareCapital = text("Capital social", decimal(empresa.getCapitalSocial()));
+            expectedRevenue = text("Volume de negócios previsto", decimal(empresa.getVolumeNegociosPrevisto()));
+            nationalCapital = text("Capital nacional", decimal(empresa.getCapitalNacional()));
+            foreignCapital = text("Capital estrangeiro", decimal(empresa.getCapitalEstrangeiro()));
+            publicCapital = text("Capital público", decimal(empresa.getCapitalPublico()));
 
-        public String getTitle() { return "6. Logótipo & Branding"; }
-        public String getDescription() { return "Personalize a aparência dos seus documentos e faturas."; }
-        public Node getContent() {
-            VBox box = new VBox(20);
-            box.setAlignment(Pos.CENTER);
-            
-            StackPane logoContainer = new StackPane();
-            logoContainer.setPrefSize(200, 120);
-            logoContainer.setStyle("-fx-background-color: #f5f6f7; -fx-background-radius: 10; -fx-border-color: #dcdde1; -fx-border-radius: 10;");
-            
-            imgView = new ImageView();
-            imgView.setFitWidth(180);
-            imgView.setFitHeight(100);
-            imgView.setPreserveRatio(true);
-            
-            if (empresa.getLogotipo() != null) {
-                logoBytes = empresa.getLogotipo();
-                mimeType = empresa.getLogotipoMimeType();
-                imgView.setImage(new Image(new java.io.ByteArrayInputStream(logoBytes)));
-            } else {
-                logoContainer.getChildren().add(new Label("Sem Logótipo", IconUtils.icon(Feather.IMAGE, 24)));
-            }
-            logoContainer.getChildren().add(imgView);
-            
-            Button btnUpload = new Button("Selecionar Logótipo", IconUtils.icon(Feather.UPLOAD, 14));
-            btnUpload.setOnAction(e -> {
-                FileChooser fileChooser = new FileChooser();
-                fileChooser.setTitle("Selecionar Logótipo");
-                fileChooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Imagens", "*.png", "*.jpg", "*.jpeg")
-                );
-                File file = fileChooser.showOpenDialog(getScene().getWindow());
-                if (file != null) {
-                    try {
-                        logoBytes = Files.readAllBytes(file.toPath());
-                        mimeType = Files.probeContentType(file.toPath());
-                        imgView.setImage(new Image(new java.io.ByteArrayInputStream(logoBytes)));
-                        logoContainer.getChildren().removeIf(n -> n instanceof Label);
-                    } catch (Exception ex) {
-                        modalManager.alert("Erro", "Falha ao carregar imagem: " + ex.getMessage(), "error", ex);
-                    }
-                }
-            });
-            
-            HBox colors = new HBox(15);
-            colors.setAlignment(Pos.CENTER);
-            ColorPicker cp = new ColorPicker(Color.web("#27ae60"));
-            colors.getChildren().addAll(new Label("Cor dos Documentos:"), cp);
-            
-            box.getChildren().addAll(new Label("Pré-visualização do Logótipo:"), logoContainer, btnUpload, colors);
-            return box;
-        }
-        public boolean validate() { return true; }
-        public void savePartial() {
-            if (logoBytes != null) {
-                empresa.setLogotipo(logoBytes);
-                empresa.setLogotipoMimeType(mimeType);
-            }
-        }
-        public String getHelpText() { return "O logótipo será impresso em todas as faturas e guias emitidas pelo sistema."; }
-    }
+            GridPane grid = new GridPane();
+            grid.setHgap(18);
+            grid.setVgap(12);
+            grid.add(field("Exercício actual *", fiscalYear), 0, 0);
+            grid.add(field("Moeda base *", baseCurrency), 1, 0);
+            grid.add(field("Moeda alternativa", alternativeCurrency), 0, 1);
+            grid.add(field("Casas decimais valor", moneyDecimals), 1, 1);
+            grid.add(field("Casas decimais quantidade", quantityDecimals), 0, 2);
+            grid.add(field("Banco", bank), 1, 2);
+            grid.add(field("Conta bancária", bankAccount), 0, 3);
+            grid.add(field("IBAN", iban), 1, 3);
+            grid.add(field("Capital social", shareCapital), 0, 4);
+            grid.add(field("Volume previsto", expectedRevenue), 1, 4);
+            grid.add(field("Capital nacional", nationalCapital), 0, 5);
+            grid.add(field("Capital estrangeiro", foreignCapital), 1, 5);
+            grid.add(field("Capital público", publicCapital), 0, 6);
+            GridPane.setHgrow(grid.getChildren().get(1), Priority.ALWAYS);
 
-    // 7. Importação de Dados
-    private class ImportDataStep implements WizardStep {
-        private File productFile;
-        private File clientFile;
-        private Label status;
-
-        public String getTitle() { return "7. Importação Inicial"; }
-        public String getDescription() { return "Selecione os ficheiros de produtos e clientes para preparar a importação."; }
-
-        public Node getContent() {
-            VBox box = new VBox(14);
-            box.setAlignment(Pos.CENTER_LEFT);
-            box.setPadding(new Insets(10, 80, 10, 80));
-
-            Label title = new Label(
-                    "Importação inicial de dados",
-                    IconUtils.icon(Feather.UPLOAD_CLOUD, 18)
-            );
-            title.getStyleClass().add("h4");
-
-            Label info = new Label(
-                    "Selecione ficheiros CSV ou Excel. A importação definitiva dos registos "
-                            + "é executada pelo módulo especializado, mantendo este assistente seguro."
-            );
-            info.setWrapText(true);
-            info.getStyleClass().add("text-muted");
-
-            Button btnImportProd = new Button(
-                    "Selecionar Produtos",
-                    IconUtils.icon(Feather.DATABASE, 14)
-            );
-            btnImportProd.getStyleClass().add("button-outlined");
-            btnImportProd.setOnAction(e -> chooseImportFile(true));
-
-            Button btnImportCli = new Button(
-                    "Selecionar Clientes",
-                    IconUtils.icon(Feather.USERS, 14)
-            );
-            btnImportCli.getStyleClass().add("button-outlined");
-            btnImportCli.setOnAction(e -> chooseImportFile(false));
-
-            Button btnTemplate = new Button(
-                    "Guardar Modelo CSV",
-                    IconUtils.icon(Feather.DOWNLOAD, 14)
-            );
-            btnTemplate.getStyleClass().add("button-secondary");
-            btnTemplate.setOnAction(e -> saveImportTemplate());
-
-            status = new Label("Nenhum ficheiro selecionado.");
-            status.setWrapText(true);
-            status.getStyleClass().add("text-muted");
-
-            HBox actions = new HBox(10, btnImportProd, btnImportCli, btnTemplate);
-            actions.setAlignment(Pos.CENTER_LEFT);
-
-            box.getChildren().addAll(title, info, actions, status);
-            return box;
-        }
-
-        private void chooseImportFile(boolean products) {
-            FileChooser chooser = new FileChooser();
-            chooser.setTitle(products
-                    ? "Selecionar ficheiro de Produtos"
-                    : "Selecionar ficheiro de Clientes");
-            chooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Excel / CSV", "*.xlsx", "*.xls", "*.csv")
-            );
-
-            File file = chooser.showOpenDialog(getScene() != null ? getScene().getWindow() : null);
-            if (file == null) {
-                return;
-            }
-
-            if (products) {
-                productFile = file;
-            } else {
-                clientFile = file;
-            }
-
-            status.setText(
-                    "Produtos: " + (productFile != null ? productFile.getName() : "—")
-                            + "\nClientes: " + (clientFile != null ? clientFile.getName() : "—")
+            return page(
+                    section("Configuração financeira", "parâmetros globais da empresa"),
+                    grid,
+                    hint("O exercício escolhido será usado para criar o primeiro exercício fiscal quando essa opção for activada na etapa de segurança.")
             );
         }
-
-        private void saveImportTemplate() {
-            FileChooser chooser = new FileChooser();
-            chooser.setTitle("Guardar modelo de importação");
-            chooser.setInitialFileName("kubata_importacao.csv");
-            chooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("CSV", "*.csv")
-            );
-
-            File target = chooser.showSaveDialog(
-                    getScene() != null ? getScene().getWindow() : null
-            );
-
-            if (target == null) {
-                return;
-            }
-
+        public boolean validate() {
+            if (fiscalYear.getValue() == null || baseCurrency.getValue() == null) return false;
+            return validDecimal("Capital social", shareCapital)
+                    && validDecimal("Volume de negócios previsto", expectedRevenue)
+                    && validDecimal("Capital nacional", nationalCapital)
+                    && validDecimal("Capital estrangeiro", foreignCapital)
+                    && validDecimal("Capital público", publicCapital);
+        }
+        private boolean validDecimal(String label, TextField field) {
+            if (normalize(field.getText()).isBlank()) return true;
             try {
-                Files.writeString(
-                        target.toPath(),
-                        "tipo;codigo;nome;descricao;quantidade;preco\n"
-                                + "PRODUTO;EXEMPLO-001;Produto Exemplo;Descrição;0;0\n",
-                        java.nio.charset.StandardCharsets.UTF_8
-                );
-
-                status.setText("Modelo guardado em: " + target.getAbsolutePath());
-            } catch (Exception ex) {
-                modalManager.alert(
-                        "Erro",
-                        "Não foi possível guardar o modelo: " + ex.getMessage(),
-                        "error",
-                        ex
-                );
+                new BigDecimal(field.getText().trim().replace(",", "."));
+                return true;
+            } catch (NumberFormatException ex) {
+                modalManager.alert("Valor inválido", label + " deve ser numérico.", "warning", null);
+                return false;
             }
         }
-
-        public boolean validate() {
-            // A etapa é opcional; ficheiros selecionados são registados no passo seguinte.
-            return true;
+        public void save() {
+            empresa.setExercicioActual(fiscalYear.getValue());
+            empresa.setMoedaBase(baseCurrency.getValue());
+            empresa.setMoedaAlternativa(alternativeCurrency.getValue());
+            empresa.setCasasDecimaisValor(moneyDecimals.getValue());
+            empresa.setCasasDecimaisQuantidade(quantityDecimals.getValue());
+            empresa.setBanco(normalize(bank.getText()));
+            empresa.setContaBancaria(normalize(bankAccount.getText()));
+            empresa.setIban(normalize(iban.getText()));
+            empresa.setCapitalSocial(decimalValue(shareCapital));
+            empresa.setVolumeNegociosPrevisto(decimalValue(expectedRevenue));
+            empresa.setCapitalNacional(decimalValue(nationalCapital));
+            empresa.setCapitalEstrangeiro(decimalValue(foreignCapital));
+            empresa.setCapitalPublico(decimalValue(publicCapital));
         }
-
-        public void savePartial() {
-            String produtos = productFile != null ? productFile.getAbsolutePath() : "não selecionado";
-            String clientes = clientFile != null ? clientFile.getAbsolutePath() : "não selecionado";
-            logActivity("Importação inicial preparada. Produtos: " + produtos + " | Clientes: " + clientes);
-        }
-
-        public String getHelpText() { return "Pode saltar esta etapa e importar os dados mais tarde nos respectivos módulos."; }
+        public String help() { return "A moeda base e o exercício definem referências importantes para contabilidade, financeiro, vendas e compras."; }
     }
 
-    // 8. Backup e Segurança
-    private class BackupSecurityStep implements WizardStep {
-        private CheckBox chkBackupDiario, chkMfa;
-        private ComboBox<String> cbRetention;
+    private class ModulesStep implements WizardStep {
+        private FlowPane cards;
+        private Label selectedCount;
+        public String title() { return "6 · Módulos e funcionalidades"; }
+        public String description() { return "Escolha os módulos que estarão disponíveis para esta empresa."; }
+        public Node content() {
+            selectedCount = new Label();
+            selectedCount.getStyleClass().add("empresa-wizard-module-summary");
+            cards = new FlowPane(14, 14);
+            cards.setPrefWrapLength(900);
 
-        public String getTitle() { return "8. Segurança & Backup"; }
-        public String getDescription() { return "Defina as políticas de proteção de dados."; }
-        public Node getContent() {
-            VBox box = new VBox(20);
-            box.setAlignment(Pos.CENTER_LEFT);
-            box.setPadding(new Insets(0, 100, 0, 100));
-            
-            chkBackupDiario = new CheckBox("Backup automático diário (Nuvem)");
-            chkBackupDiario.setSelected(true);
-            
-            chkMfa = new CheckBox("Ativar Autenticação de Dois Fatores (2FA) para Administradores");
-            
-            cbRetention = new ComboBox<>();
-            cbRetention.getItems().addAll("Manter backups por 30 dias", "Manter backups por 1 ano", "Manter backups permanentemente");
-            cbRetention.getSelectionModel().selectFirst();
-            
-            box.getChildren().addAll(chkBackupDiario, chkMfa, new Label("Retenção de Dados:"), cbRetention);
+            List<KubataModule> modules = moduleRegistry.getAllModules().stream()
+                    .sorted(Comparator.comparing(KubataModule::getModuleName, String.CASE_INSENSITIVE_ORDER))
+                    .toList();
+
+            for (KubataModule module : modules) {
+                cards.getChildren().add(moduleCard(module));
+            }
+
+            updateSelectedCount();
+
+            return page(
+                    section("Catálogo de módulos do Kubata", "configuração por empresa"),
+                    selectedCount,
+                    hint("A instalação global do módulo é gerida pelo Administrator. Aqui define-se quais módulos a empresa irá utilizar. Módulos não registados no runtime aparecem como indisponíveis e não podem ser seleccionados."),
+                    cards
+            );
+        }
+        private Node moduleCard(KubataModule module) {
+            VBox box = new VBox(9);
+            box.setPrefWidth(275);
+            box.getStyleClass().add("empresa-module-card");
+
+            HBox top = new HBox(9);
+            top.setAlignment(Pos.CENTER_LEFT);
+            Node icon = moduleIcon(module);
+            Label name = new Label(module.getModuleName());
+            name.getStyleClass().add("empresa-module-name");
+            top.getChildren().addAll(icon, name);
+
+            Label description = new Label(module.getModuleDescription());
+            description.setWrapText(true);
+            description.getStyleClass().add("empresa-wizard-hint");
+
+            Label version = new Label("Versão " + module.getVersion());
+            version.getStyleClass().add("empresa-module-meta");
+
+            CheckBox check = new CheckBox(module.isActive() ? "Disponível para esta empresa" : "Módulo não activo");
+            check.setSelected(selectedModuleIds.contains(module.getModuleId()));
+            check.setDisable(!module.isActive());
+            check.selectedProperty().addListener((obs, old, value) -> {
+                if (value) selectedModuleIds.add(module.getModuleId());
+                else selectedModuleIds.remove(module.getModuleId());
+                updateSelectedCount();
+            });
+
+            box.getChildren().addAll(top, description, version, check);
             return box;
         }
-        public boolean validate() { return true; }
-        public void savePartial() {
-            BackupConfig config = backupConfigRepository.findById(1L).orElse(new BackupConfig());
-            config.setEnabled(chkBackupDiario.isSelected());
-            config.setFrequency(BackupConfig.BackupFrequency.DAILY);
-            config.setRetentionDays(cbRetention.getSelectionModel().getSelectedIndex() == 0 ? 30 : 365);
-            backupConfigRepository.save(config);
-            
-            saveGlobalParameter(
-                    "MFA_ADMIN_REQUIRED",
-                    String.valueOf(chkMfa.isSelected()),
-                    "BOOLEAN",
-                    "Exigir MFA para administradores.",
-                    "SEGURANCA"
-            );
-            logActivity("Configuração de backup e MFA salva.");
+        private Node moduleIcon(KubataModule module) {
+            Feather feather = switch (module.getModuleId().toLowerCase(Locale.ROOT)) {
+                case "inventario" -> Feather.BOX;
+                case "vendas" -> Feather.SHOPPING_CART;
+                case "compras" -> Feather.DOWNLOAD;
+                case "financeiro" -> Feather.DOLLAR_SIGN;
+                case "contabilidade" -> Feather.BAR_CHART_2;
+                case "fiscal" -> Feather.FILE_TEXT;
+                default -> Feather.LAYERS;
+            };
+            return IconUtils.icon(feather, 18);
         }
-        public String getHelpText() { return "A segurança dos dados é fundamental para a conformidade com a lei de proteção de dados."; }
-    }
-
-    // 9. Confirmação e Resumo
-    private class SummaryStep implements WizardStep {
-        public String getTitle() { return "9. Resumo & Conclusão"; }
-        public String getDescription() { return "Confirme as configurações e ative o sistema."; }
-        public Node getContent() {
-            VBox box = new VBox(15);
-            box.setAlignment(Pos.CENTER);
-            
-            Label lblDone = new Label("Tudo Pronto!");
-            lblDone.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #27ae60;");
-            
-            VBox res = new VBox(10);
-            res.setStyle("-fx-background-color: #f8f9fa; -fx-padding: 20px; -fx-background-radius: 8px; -fx-border-color: #dcdde1; -fx-border-width: 1px;");
-            res.getChildren().addAll(
-                new Label("Resumo das Configurações:"),
-                new Label("✓ Empresa: " + empresa.getNome()),
-                new Label("✓ NIF: " + empresa.getNif()),
-                new Label("✓ Regime Fiscal: " + (empresa.getRegimeFiscal() != null ? empresa.getRegimeFiscal() : "Pendente")),
-                new Label("✓ Backup e 2FA configurados")
-            );
-            
-            Label lblFinal = new Label("Ao clicar em 'Finalizar', o sistema será preparado para o seu primeiro login.");
-            
-            box.getChildren().addAll(lblDone, res, lblFinal);
-            return box;
+        private void updateSelectedCount() {
+            if (selectedCount != null) {
+                selectedCount.setText(selectedModuleIds.size() + " módulo(s) seleccionado(s) para esta empresa");
+            }
         }
         public boolean validate() {
-            if (empresa == null || empresa.getNome() == null || empresa.getNome().isBlank()) {
-                modalManager.alert("Configuração incompleta",
-                        "A empresa precisa de um nome válido antes de finalizar.",
-                        "warning", null);
+            if (selectedModuleIds.isEmpty()) {
+                modalManager.alert("Módulos obrigatórios", "Seleccione pelo menos um módulo disponível.", "warning", null);
                 return false;
             }
             return true;
         }
-
-        public void savePartial() {
-            logActivity("Resumo final confirmado.");
+        public void save() {
+            empresa.setModulos(selectedModuleIds.stream().sorted().collect(Collectors.joining(",")));
         }
-
-        public String getHelpText() { return "Reveja os dados. Se algo estiver incorreto, utilize o botão 'Anterior'."; }
-    }
-    private void saveGlobalParameter(String key,
-                                     String value,
-                                     String type,
-                                     String description,
-                                     String group) {
-        ParametroSistema parametro = parametroSistemaRepository
-                .findByChaveAndEmpresaIdIsNull(key)
-                .orElseGet(ParametroSistema::new);
-
-        parametro.setEmpresa(null);
-        parametro.setChave(key);
-        parametro.setValor(value);
-        parametro.setTipoValor(type);
-        parametro.setDescricao(description);
-        parametro.setGrupo(group);
-        parametro.setEditavel(true);
-        parametro.setAtualizadoEm(java.time.LocalDateTime.now());
-        parametro.setAtualizadoPor(
-                sessionManager.getUser() != null
-                        ? sessionManager.getUser().getNome()
-                        : "Administrador"
-        );
-
-        parametroSistemaRepository.save(parametro);
+        public String help() { return "Cada empresa pode ter um conjunto de módulos diferente. A lista apresentada vem do ModuleRegistry real do Kubata."; }
     }
 
+    private class OrganizationStep implements WizardStep {
+        private TextArea sectors;
+        public String title() { return "7 · Estrutura operacional"; }
+        public String description() { return "Defina a estrutura que será usada como base pelos módulos."; }
+        public Node content() {
+            sectors = textArea(empresa.getSetores());
+            if (normalize(sectors.getText()).isBlank()) {
+                sectors.setText("Administração\nFinanceiro\nVendas\nCompras\nArmazém\nRecursos Humanos");
+            }
+            sectors.setPrefRowCount(9);
+
+            CheckBox active = new CheckBox("Empresa operacional");
+            active.setSelected(empresa.getAtiva());
+            active.selectedProperty().addListener((obs, old, value) -> empresa.setAtiva(value));
+
+            TextArea activity = textArea(empresa.getDescricaoActividade());
+            activity.setPromptText("Descreva resumidamente a actividade principal da empresa.");
+
+            return page(
+                    section("Estrutura organizacional", "informação reutilizável por RH, inventário, compras e financeiro"),
+                    field("Sectores / departamentos", sectors),
+                    field("Actividade principal", activity),
+                    active,
+                    hint("Utilize um sector por linha. A estrutura pode ser aprofundada posteriormente nos módulos especializados.")
+            );
+        }
+        public boolean validate() { return true; }
+        public void save() {
+            empresa.setSetores(normalize(sectors.getText()).replace("\r\n", ",").replace("\n", ","));
+            empresa.setDescricaoActividade(normalize(((TextArea) ((HBox) sectors.getParent()).getChildren().get(1)).getText()));
+        }
+        public String help() { return "A estrutura aqui criada serve como referência inicial. O cadastro detalhado de departamentos pode ser feito nos módulos especializados."; }
+    }
+
+    private class DocumentsStep implements WizardStep {
+        private byte[] logoBytes;
+        private String logoMimeType;
+        private ImageView logoView;
+        private TextArea footer;
+        private TextArea invoiceMessage;
+        public String title() { return "8 · Logótipo e documentos"; }
+        public String description() { return "Configure a identidade visual e textos utilizados nos documentos."; }
+        public Node content() {
+            logoBytes = empresa.getLogotipo();
+            logoMimeType = empresa.getLogotipoMimeType();
+
+            StackPane logoBox = new StackPane();
+            logoBox.getStyleClass().add("empresa-logo-box");
+            logoView = new ImageView();
+            logoView.setFitWidth(220);
+            logoView.setFitHeight(120);
+            logoView.setPreserveRatio(true);
+            refreshLogoView(logoBox);
+
+            Button choose = new Button("Seleccionar logótipo", IconUtils.icon(Feather.IMAGE, 14));
+            choose.getStyleClass().add("button-outlined");
+            choose.setOnAction(e -> chooseLogo(logoBox));
+
+            footer = textArea(empresa.getRodapeDocumento());
+            footer.setPromptText("Ex.: Documento emitido pelo sistema Kubata.");
+            invoiceMessage = textArea(empresa.getMensagemFatura());
+            invoiceMessage.setPromptText("Mensagem impressa nas faturas.");
+            invoiceMessage.setPrefRowCount(4);
+
+            VBox branding = card(
+                    section("Identidade visual", "logótipo"),
+                    logoBox,
+                    choose
+            );
+            VBox docs = card(
+                    section("Documentos", "textos padrão"),
+                    field("Rodapé", footer),
+                    field("Mensagem de fatura", invoiceMessage)
+            );
+
+            HBox body = new HBox(18, branding, docs);
+            HBox.setHgrow(branding, Priority.ALWAYS);
+            HBox.setHgrow(docs, Priority.ALWAYS);
+
+            return page(body, hint("O logótipo será guardado na empresa e pode ser utilizado por todos os módulos de documentos que suportem a identidade empresarial."));
+        }
+        private void refreshLogoView(StackPane logoBox) {
+            logoBox.getChildren().clear();
+            if (logoBytes != null && logoBytes.length > 0) {
+                try {
+                    logoView.setImage(new Image(new ByteArrayInputStream(logoBytes)));
+                    logoBox.getChildren().add(logoView);
+                    return;
+                } catch (Exception ignored) {}
+            }
+            logoBox.getChildren().add(new Label("Sem logótipo"));
+        }
+        private void chooseLogo(StackPane box) {
+            if (getScene() == null || getScene().getWindow() == null) return;
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Seleccionar logótipo da empresa");
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("Imagens", "*.png", "*.jpg", "*.jpeg", "*.webp")
+            );
+            File file = chooser.showOpenDialog(getScene().getWindow());
+            if (file == null) return;
+            try {
+                logoBytes = Files.readAllBytes(file.toPath());
+                logoMimeType = Files.probeContentType(file.toPath());
+                refreshLogoView(box);
+            } catch (Exception ex) {
+                modalManager.alert("Logótipo", "Não foi possível carregar a imagem: " + ex.getMessage(), "error", ex);
+            }
+        }
+        public boolean validate() { return true; }
+        public void save() {
+            empresa.setLogotipo(logoBytes);
+            empresa.setLogotipoMimeType(logoMimeType);
+            empresa.setRodapeDocumento(normalize(footer.getText()));
+            empresa.setMensagemFatura(normalize(invoiceMessage.getText()));
+        }
+        public String help() { return "Configure uma identidade consistente para os documentos empresariais."; }
+    }
+
+    private class SecurityStep implements WizardStep {
+        private CheckBox openYear;
+        private CheckBox backup;
+        private ComboBox<String> frequency;
+        private ComboBox<String> retention;
+        private CheckBox mfa;
+        public String title() { return "9 · Segurança, backup e conclusão operacional"; }
+        public String description() { return "Defina como o ambiente empresarial deve iniciar."; }
+        public Node content() {
+            openYear = new CheckBox("Criar e abrir automaticamente o exercício fiscal seleccionado");
+            openYear.setSelected(openFiscalYear);
+
+            backup = new CheckBox("Activar política de backup por empresa");
+            backup.setSelected(backupEnabled);
+
+            frequency = combo("DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY");
+            frequency.setValue(backupFrequency);
+
+            retention = combo("7", "30", "90", "180", "365");
+            retention.setValue(String.valueOf(backupRetentionDays));
+
+            mfa = new CheckBox("Exigir autenticação multifactor para administradores");
+            mfa.setSelected(mfaAdminRequired);
+
+            openYear.selectedProperty().addListener((obs, old, value) -> openFiscalYear = value);
+            backup.selectedProperty().addListener((obs, old, value) -> backupEnabled = value);
+            mfa.selectedProperty().addListener((obs, old, value) -> mfaAdminRequired = value);
+            frequency.valueProperty().addListener((obs, old, value) -> backupFrequency = value);
+            retention.valueProperty().addListener((obs, old, value) -> {
+                try { backupRetentionDays = Integer.parseInt(value); } catch (Exception ignored) {}
+            });
+
+            return page(
+                    section("Arranque do ambiente", "operações iniciais"),
+                    card(openYear, hint("Quando activo, o Kubata cria o primeiro exercício fiscal da empresa, sem duplicar exercícios já existentes.")),
+                    section("Protecção de dados", "backup"),
+                    card(
+                            backup,
+                            field("Periodicidade", frequency),
+                            field("Retenção (dias)", retention),
+                            mfa
+                    ),
+                    hint("Estas opções são guardadas como parâmetros por empresa. Não alteram a política de backup de outras empresas.")
+            );
+        }
+        public boolean validate() { return true; }
+        public void save() {
+            openFiscalYear = openYear.isSelected();
+            backupEnabled = backup.isSelected();
+            backupFrequency = frequency.getValue() == null ? "DAILY" : frequency.getValue();
+            try { backupRetentionDays = Integer.parseInt(retention.getValue()); } catch (Exception ignored) {}
+            mfaAdminRequired = mfa.isSelected();
+        }
+        public String help() { return "O Administrador centraliza a configuração. A política de backup desta etapa fica associada à empresa através dos parâmetros empresariais."; }
+    }
+
+    private class SummaryStep implements WizardStep {
+        public String title() { return "10 · Revisão e instalação"; }
+        public String description() { return "Revise o ambiente e conclua a instalação."; }
+        public Node content() {
+            VBox root = page(
+                    section("Resumo final", "pronto para instalar"),
+                    summaryLine("Empresa", empresa.getNome()),
+                    summaryLine("NIF", empresa.getNif()),
+                    summaryLine("Localização", String.join(" · ", nonBlank(empresa.getProvincia(), empresa.getMunicipio(), empresa.getLocalidade()))),
+                    summaryLine("Regime fiscal", empresa.getRegimeFiscal()),
+                    summaryLine("Exercício", String.valueOf(empresa.getExercicioActual())),
+                    summaryLine("Moeda base", empresa.getMoedaBase()),
+                    summaryLine("Módulos", selectedModuleNames()),
+                    summaryLine("Backup", backupEnabled ? backupFrequency + " · " + backupRetentionDays + " dias" : "Desactivado"),
+                    summaryLine("Exercício inicial", openFiscalYear ? "Será criado/aberto" : "Não criar automaticamente"),
+                    summaryLine("Estado", empresa.getAtiva() ? "Activa" : "Inactiva"),
+                    hint("Ao concluir, o Kubata validará a unicidade do NIF, gravará a empresa, criará o exercício quando seleccionado e persistirá os parâmetros de instalação.")
+            );
+            return root;
+        }
+        private Node summaryLine(String label, String value) {
+            Label left = new Label(label);
+            left.getStyleClass().add("empresa-summary-label");
+            Label right = new Label(value == null || value.isBlank() ? "—" : value);
+            right.getStyleClass().add("empresa-summary-value");
+            right.setWrapText(true);
+            HBox row = new HBox(14, left, right);
+            row.getStyleClass().add("empresa-summary-row");
+            HBox.setHgrow(right, Priority.ALWAYS);
+            return row;
+        }
+        private String selectedModuleNames() {
+            return moduleRegistry.getAllModules().stream()
+                    .filter(m -> selectedModuleIds.contains(m.getModuleId()))
+                    .sorted(Comparator.comparing(KubataModule::getModuleName, String.CASE_INSENSITIVE_ORDER))
+                    .map(KubataModule::getModuleName)
+                    .collect(Collectors.joining(", "));
+        }
+        public boolean validate() { return validateBeforeFinish(); }
+        public void save() {
+            empresa.setModulos(selectedModuleIds.stream().sorted().collect(Collectors.joining(",")));
+        }
+        public String help() { return "Revise todos os pontos. Utilize Anterior para corrigir qualquer informação antes da instalação."; }
+    }
+
+    private String selectedModuleNames() {
+        return moduleRegistry.getAllModules().stream()
+                .filter(m -> selectedModuleIds.contains(m.getModuleId()))
+                .map(KubataModule::getModuleName)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.joining(", "));
+    }
+
+    private String decimal(BigDecimal value) {
+        return value == null ? "" : value.toPlainString();
+    }
+
+    private BigDecimal decimalValue(TextField field) {
+        if (field == null || normalize(field.getText()).isBlank()) return null;
+        try {
+            return new BigDecimal(field.getText().trim().replace(",", "."));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private String[] nonBlank(String... values) {
+        return Arrays.stream(values).filter(v -> v != null && !v.isBlank()).toArray(String[]::new);
+    }
+
+    @Override
+    public String toString() {
+        return "EmpresaWizardView{" + (empresa == null ? "sem empresa" : empresa.getNome()) + "}";
+    }
 }
