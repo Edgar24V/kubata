@@ -7,8 +7,10 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 
 /**
- * Popup de overflow que aparece quando o Ribbon fica estreito demais
- * para mostrar todos os grupos de uma tab.
+ * Popup dos comandos que não cabem na largura disponível do Ribbon.
+ *
+ * Os grupos originais são temporariamente reposicionados aqui, portanto
+ * continuam a executar exatamente as mesmas ações.
  */
 public class RibbonOverflowPopup extends Popup {
 
@@ -22,11 +24,16 @@ public class RibbonOverflowPopup extends Popup {
         setAutoHide(true);
         setAutoFix(true);
         setHideOnEscape(true);
+        setConsumeAutoHidingEvents(true);
 
         getContent().add(container);
     }
 
     public void setGroups(List<RibbonGroup> hiddenGroups) {
-        container.getChildren().setAll(hiddenGroups);
+        container.getChildren().setAll(hiddenGroups == null ? List.of() : hiddenGroups);
+    }
+
+    public boolean hasGroups() {
+        return !container.getChildren().isEmpty();
     }
 }
