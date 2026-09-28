@@ -111,6 +111,7 @@ public class ExerciciosFiscaisView extends VBox {
         getStyleClass().add("exercicios-view");
         setSpacing(0);
         setPadding(Insets.EMPTY);
+        setFillWidth(true);
 
         HBox header = buildHeader();
         HBox kpis = buildKpis();
@@ -120,11 +121,13 @@ public class ExerciciosFiscaisView extends VBox {
         workspace.getStyleClass().add("exercicios-workspace");
         workspace.setOrientation(Orientation.HORIZONTAL);
         workspace.setDividerPositions(0.76);
-        workspace.setMinHeight(0);
+        workspace.setMinHeight(560);
+        workspace.setPrefHeight(620);
 
         StackPane tablePane = new StackPane(buildTable());
         tablePane.getStyleClass().add("exercicios-table-pane");
         tablePane.setMinWidth(420);
+        tablePane.setMaxWidth(Double.MAX_VALUE);
 
         VBox details = buildDetails();
         details.getStyleClass().add("exercicios-details-pane");
@@ -133,8 +136,26 @@ public class ExerciciosFiscaisView extends VBox {
         SplitPane.setResizableWithParent(tablePane, true);
         SplitPane.setResizableWithParent(details, false);
 
-        getChildren().addAll(header, kpis, filters, workspace);
+        VBox pageContent = new VBox();
+        pageContent.setFillWidth(true);
+        pageContent.setSpacing(0);
+        pageContent.setMinWidth(980);
+        pageContent.getChildren().addAll(header, kpis, filters, workspace);
         VBox.setVgrow(workspace, Priority.ALWAYS);
+
+        ScrollPane pageScroll = new ScrollPane(pageContent);
+        pageScroll.getStyleClass().add("exercicios-page-scroll");
+        pageScroll.setFitToWidth(true);
+        pageScroll.setFitToHeight(false);
+        pageScroll.setPannable(true);
+        pageScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        pageScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        pageScroll.setMinViewportHeight(0);
+
+        pageContent.minHeightProperty().bind(pageScroll.viewportBoundsProperty().heightProperty());
+
+        getChildren().add(pageScroll);
+        VBox.setVgrow(pageScroll, Priority.ALWAYS);
     }
 
     private HBox buildHeader() {
