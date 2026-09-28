@@ -5240,6 +5240,175 @@ Text {
     -fx-font-weight: bold;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KUBATA — TabPane principal
+   Responsivo, com cabeçalho estável, espaçamento seguro e conteúdo adaptável.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kubata-main-tabpane {
+    -fx-background-color: #F7F8F7;
+    -fx-border-color: #D9DDDA;
+    -fx-border-width: 1px 0 0 0;
+    -fx-tab-min-height: 38px;
+    -fx-tab-max-height: 38px;
+}
+
+.kubata-main-tabpane > .tab-header-area {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 5px 8px 0 8px;
+    -fx-background-insets: 0;
+    -fx-border-color: #D9DDDA;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-main-tabpane > .tab-header-area > .tab-header-background {
+    -fx-background-color: #FFFFFF;
+}
+
+.kubata-main-tabpane > .tab-header-area > .headers-region {
+    -fx-alignment: CENTER_LEFT;
+}
+
+.kubata-main-tabpane .tab {
+    -fx-background-color: #F4F6F5;
+    -fx-background-insets: 0 1px 0 0;
+    -fx-background-radius: 6px 6px 0 0;
+    -fx-border-color: #DDE2DF;
+    -fx-border-width: 1px 1px 0 1px;
+    -fx-border-radius: 6px 6px 0 0;
+    -fx-padding: 8px 10px 8px 12px;
+    -fx-margin: 0 3px 0 0;
+    -fx-cursor: hand;
+}
+
+.kubata-main-tabpane .tab:hover {
+    -fx-background-color: #EAF4EE;
+    -fx-border-color: #C5D9CC;
+}
+
+.kubata-main-tabpane .tab:selected {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C9DAD0;
+    -fx-border-width: 1px 1px 0 1px;
+    -fx-padding: 8px 10px 9px 12px;
+}
+
+.kubata-main-tabpane .tab .tab-container {
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 6px;
+}
+
+.kubata-main-tabpane .tab .tab-label {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #59615D;
+    -fx-padding: 0 2px 0 0;
+}
+
+.kubata-main-tabpane .tab:selected .tab-label {
+    -fx-text-fill: #107C41;
+    -fx-font-weight: 700;
+}
+
+.kubata-main-tabpane .tab .tab-close-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+    -fx-border-color: transparent;
+    -fx-padding: 3px;
+    -fx-min-width: 20px;
+    -fx-pref-width: 20px;
+    -fx-max-width: 20px;
+    -fx-min-height: 20px;
+    -fx-pref-height: 20px;
+    -fx-max-height: 20px;
+    -fx-opacity: 0.58;
+}
+
+.kubata-main-tabpane .tab:hover .tab-close-button,
+.kubata-main-tabpane .tab:selected .tab-close-button {
+    -fx-opacity: 1;
+}
+
+.kubata-main-tabpane .tab .tab-close-button:hover {
+    -fx-background-color: #F3D9D9;
+}
+
+.kubata-main-tabpane > .tab-header-area > .control-buttons-tab {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 0 5px;
+}
+
+.kubata-main-tabpane > .tab-header-area > .control-buttons-tab > .container {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 0 0 0 3px;
+}
+
+.kubata-main-tabpane > .tab-header-area > .control-buttons-tab > .container > .tab-down-button {
+    -fx-background-color: #F4F6F5;
+    -fx-background-radius: 5px;
+    -fx-border-color: #D7DDDA;
+    -fx-border-radius: 5px;
+    -fx-padding: 5px 7px;
+    -fx-min-width: 30px;
+    -fx-pref-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+}
+
+.kubata-main-tabpane > .tab-header-area > .control-buttons-tab > .container > .tab-down-button:hover {
+    -fx-background-color: #EAF4EE;
+    -fx-border-color: #BBD3C3;
+}
+
+.kubata-main-tabpane > .tab-header-area > .control-buttons-tab > .container > .tab-down-button > .arrow {
+    -fx-background-color: #107C41;
+}
+
+.kubata-main-tabpane > .tab-content-area {
+    -fx-background-color: #F7F8F7;
+    -fx-border-color: transparent;
+    -fx-padding: 8px;
+}
+
+.kubata-main-tabpane.kubata-tabs-compact .tab {
+    -fx-padding: 7px 8px 7px 10px;
+}
+
+.kubata-main-tabpane.kubata-tabs-compact .tab-label {
+    -fx-font-size: 11.5px;
+}
+
+.kubata-main-tabpane.kubata-tabs-small {
+    -fx-tab-min-height: 36px;
+    -fx-tab-max-height: 36px;
+}
+
+.kubata-main-tabpane.kubata-tabs-small > .tab-header-area {
+    -fx-padding: 4px 5px 0 5px;
+}
+
+.kubata-main-tabpane.kubata-tabs-small .tab {
+    -fx-padding: 6px 7px 6px 9px;
+}
+
+.kubata-main-tabpane.kubata-tabs-small .tab-label {
+    -fx-font-size: 11px;
+}
+
+.kubata-main-tabpane.kubata-tabs-small .tab-close-button {
+    -fx-min-width: 18px;
+    -fx-pref-width: 18px;
+    -fx-min-height: 18px;
+    -fx-pref-height: 18px;
+}
+
+.kubata-main-tabpane .tab-content-area > * {
+    -fx-min-width: 0;
+    -fx-min-height: 0;
+}
+ 
 /* ── Login Card ──────────────────────────────────────── */
 .login-root {
     -fx-background-color: -kubata-green;
