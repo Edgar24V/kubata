@@ -128,7 +128,6 @@
 
 .ribbon-column-separator {
     -fx-background-color: #EAECEB;
-    -fx-margin: 0 2px 0 2px;
     -fx-min-width: 1px;
     -fx-pref-width: 1px;
     -fx-max-width: 1px;
@@ -141,7 +140,6 @@
 .ribbon-button {
     -fx-background-color: transparent;
     -fx-min-width: 0;
-    -fx-max-width: Infinity;
     -fx-background-radius: 3px;
     -fx-border-color: transparent;
     -fx-border-width: 1px;
