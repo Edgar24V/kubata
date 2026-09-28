@@ -336,19 +336,6 @@
     -fx-border-color: -kub-table-row-selected;
 }
 
-@media screen and (max-width: 900px) {
-    .table-result-count {
-        -fx-font-size: 10px;
-    }
-
-    .table-toolbar {
-        -fx-padding: 7px 8px;
-    }
-
-    .table-search-field {
-        -fx-pref-width: 220px;
-    }
-}
 
 
 /* ============================================================
@@ -418,16 +405,3 @@
     -fx-max-width: 260px;
 }
 
-@media screen and (max-width: 760px) {
-    .table-toolbar {
-        -fx-spacing: 6px;
-    }
-
-    .table-page-size {
-        -fx-pref-width: 68px;
-    }
-
-    .table-page-label {
-        -fx-font-size: 10px;
-    }
-}
