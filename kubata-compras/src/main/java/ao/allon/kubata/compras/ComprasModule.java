@@ -1,6 +1,7 @@
 package ao.allon.kubata.compras;
 
 import ao.allon.kubata.core.module.AbstractKubataModule;
+import ao.allon.kubata.core.module.KubataModule;
 import ao.allon.kubata.core.module.ModuleView;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
  * Módulo de Compras - Gestão de Fornecedores
  */
 @Component
-public class ComprasModule extends AbstractKubataModule {
+public class ComprasModule extends AbstractKubataModule implements KubataModule {
     
     public static final String MODULE_ID = "compras";
     
