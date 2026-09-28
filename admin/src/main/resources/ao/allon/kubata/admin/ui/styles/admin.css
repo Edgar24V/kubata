@@ -6315,3 +6315,342 @@ Text {
   -fx-border-color: transparent;
   -fx-padding: 10px;
 }
+
+
+/* ============================================================
+   EMPRESAS — CENTRO EMPRESARIAL KUBATA
+   ============================================================ */
+
+.empresa-view {
+  -fx-background-color: #f6f8fa;
+}
+
+.empresa-header {
+  -fx-background-color: #ffffff;
+  -fx-border-color: transparent transparent #dfe5ea transparent;
+  -fx-border-width: 0 0 1px 0;
+}
+
+.empresa-title-icon {
+  -fx-min-width: 38px;
+  -fx-pref-width: 38px;
+  -fx-min-height: 38px;
+  -fx-pref-height: 38px;
+  -fx-alignment: CENTER;
+  -fx-background-color: -kubata-green-pale;
+  -fx-background-radius: 10px;
+  -fx-text-fill: -kubata-green-dark;
+  -fx-font-size: 18px;
+  -fx-font-weight: 700;
+}
+
+.empresa-search {
+  -fx-min-height: 34px;
+  -fx-pref-height: 34px;
+  -fx-background-radius: 8px;
+  -fx-border-radius: 8px;
+  -fx-border-color: #d0d7de;
+}
+
+.empresa-kpi-row {
+  -fx-background-color: #f6f8fa;
+}
+
+.empresa-kpi-card {
+  -fx-padding: 12px 14px;
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 10px;
+  -fx-border-color: #e1e6eb;
+  -fx-border-radius: 10px;
+  -fx-min-height: 66px;
+}
+
+.empresa-kpi-icon {
+  -fx-min-width: 30px;
+  -fx-pref-width: 30px;
+  -fx-min-height: 30px;
+  -fx-pref-height: 30px;
+  -fx-alignment: CENTER;
+  -fx-background-color: -kubata-green-pale;
+  -fx-background-radius: 8px;
+  -fx-text-fill: -kubata-green;
+}
+
+.empresa-kpi-title {
+  -fx-text-fill: -color-fg-muted;
+  -fx-font-size: 10.5px;
+  -fx-font-weight: 600;
+}
+
+.empresa-kpi-value {
+  -fx-text-fill: #1f2937;
+  -fx-font-size: 20px;
+  -fx-font-weight: 800;
+}
+
+.empresa-content-split {
+  -fx-background-color: transparent;
+}
+
+.empresa-content-split > .split-pane-divider {
+  -fx-background-color: transparent;
+  -fx-padding: 0 1px 0 1px;
+}
+
+.empresa-details {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 10px;
+  -fx-border-color: #e1e6eb;
+  -fx-border-radius: 10px;
+}
+
+.empresa-details-facts {
+  -fx-padding: 2px 0;
+}
+
+.empresa-fact-label {
+  -fx-text-fill: #6b7280;
+  -fx-font-size: 10.5px;
+  -fx-font-weight: 700;
+}
+
+.empresa-fact-value {
+  -fx-text-fill: #111827;
+  -fx-font-size: 12px;
+}
+
+.empresa-details-section {
+  -fx-font-size: 12px;
+  -fx-font-weight: 800;
+  -fx-text-fill: #1f2937;
+}
+
+.empresa-status {
+  -fx-font-size: 10px;
+  -fx-font-weight: 800;
+  -fx-padding: 4px 8px;
+  -fx-background-radius: 999px;
+}
+
+.empresa-status.active {
+  -fx-text-fill: #166534;
+  -fx-background-color: #dcfce7;
+}
+
+.empresa-status.inactive {
+  -fx-text-fill: #6b7280;
+  -fx-background-color: #eef2f7;
+}
+
+.empresa-module-runtime-ok {
+  -fx-text-fill: #166534;
+  -fx-font-size: 10px;
+}
+
+.empresa-module-runtime-off {
+  -fx-text-fill: #9a6700;
+  -fx-font-size: 10px;
+}
+
+.empresa-details-scroll {
+  -fx-background-color: transparent;
+  -fx-background: transparent;
+  -fx-border-color: transparent;
+}
+
+.empresa-details-scroll > .viewport {
+  -fx-background-color: transparent;
+}
+
+.empresa-wizard {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 12px;
+}
+
+.empresa-wizard-header {
+  -fx-background-color: #fbfcfd;
+  -fx-border-color: transparent transparent #e1e6eb transparent;
+  -fx-border-width: 0 0 1px 0;
+}
+
+.empresa-wizard-brand {
+  -fx-min-width: 42px;
+  -fx-pref-width: 42px;
+  -fx-min-height: 42px;
+  -fx-pref-height: 42px;
+  -fx-alignment: CENTER;
+  -fx-background-color: -kubata-green;
+  -fx-background-radius: 11px;
+  -fx-text-fill: white;
+  -fx-font-size: 20px;
+  -fx-font-weight: 800;
+}
+
+.empresa-wizard-title {
+  -fx-text-fill: #111827;
+  -fx-font-size: 19px;
+  -fx-font-weight: 800;
+}
+
+.empresa-wizard-subtitle {
+  -fx-text-fill: #6b7280;
+  -fx-font-size: 11.5px;
+}
+
+.empresa-wizard-step-counter {
+  -fx-text-fill: -kubata-green-dark;
+  -fx-font-size: 11px;
+  -fx-font-weight: 800;
+  -fx-padding: 5px 9px;
+  -fx-background-color: -kubata-green-pale;
+  -fx-background-radius: 999px;
+}
+
+.empresa-wizard-progress {
+  -fx-accent: -kubata-green;
+}
+
+.empresa-wizard-dot {
+  -fx-fill: #d7dee5;
+}
+
+.empresa-wizard-dot.done {
+  -fx-fill: #66bb6a;
+}
+
+.empresa-wizard-dot.current {
+  -fx-fill: -kubata-green;
+}
+
+.empresa-wizard-content {
+  -fx-background-color: #ffffff;
+}
+
+.empresa-wizard-scroll {
+  -fx-background-color: transparent;
+  -fx-background: transparent;
+  -fx-border-color: transparent;
+}
+
+.empresa-wizard-scroll > .viewport {
+  -fx-background-color: transparent;
+}
+
+.empresa-wizard-page {
+  -fx-padding: 3px 2px 18px 2px;
+}
+
+.empresa-wizard-section-title {
+  -fx-text-fill: #1f2937;
+  -fx-font-size: 13px;
+  -fx-font-weight: 800;
+  -fx-padding: 0 0 5px 0;
+}
+
+.empresa-wizard-field-label {
+  -fx-text-fill: #4b5563;
+  -fx-font-size: 11px;
+  -fx-font-weight: 700;
+}
+
+.empresa-wizard-hint {
+  -fx-text-fill: #6b7280;
+  -fx-font-size: 10.5px;
+  -fx-line-spacing: 2px;
+}
+
+.empresa-wizard-card {
+  -fx-padding: 14px;
+  -fx-background-color: #fbfcfd;
+  -fx-background-radius: 10px;
+  -fx-border-color: #e1e6eb;
+  -fx-border-radius: 10px;
+}
+
+.empresa-wizard-checklist {
+  -fx-spacing: 8px;
+  -fx-padding: 14px;
+  -fx-background-color: #f3faf5;
+  -fx-background-radius: 10px;
+  -fx-border-color: #cce8d2;
+  -fx-border-radius: 10px;
+}
+
+.empresa-wizard-checklist .label {
+  -fx-text-fill: #245b37;
+  -fx-font-size: 11.5px;
+}
+
+.empresa-wizard-module-summary {
+  -fx-text-fill: -kubata-green-dark;
+  -fx-font-weight: 800;
+  -fx-padding: 7px 10px;
+  -fx-background-color: -kubata-green-pale;
+  -fx-background-radius: 7px;
+}
+
+.empresa-module-card {
+  -fx-padding: 14px;
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 10px;
+  -fx-border-color: #dfe5ea;
+  -fx-border-radius: 10px;
+}
+
+.empresa-module-card:hover {
+  -fx-background-color: #fbfefc;
+  -fx-border-color: #a5d6a7;
+}
+
+.empresa-module-name {
+  -fx-text-fill: #111827;
+  -fx-font-size: 12px;
+  -fx-font-weight: 800;
+}
+
+.empresa-module-meta {
+  -fx-text-fill: #788291;
+  -fx-font-size: 10px;
+}
+
+.empresa-logo-box {
+  -fx-min-width: 250px;
+  -fx-pref-width: 250px;
+  -fx-min-height: 150px;
+  -fx-pref-height: 150px;
+  -fx-background-color: #f7f9fb;
+  -fx-background-radius: 10px;
+  -fx-border-color: #d7dee5;
+  -fx-border-radius: 10px;
+}
+
+.empresa-summary-row {
+  -fx-padding: 10px 12px;
+  -fx-background-color: #fbfcfd;
+  -fx-border-color: #e8edf1;
+  -fx-border-radius: 7px;
+  -fx-background-radius: 7px;
+}
+
+.empresa-summary-label {
+  -fx-min-width: 145px;
+  -fx-text-fill: #6b7280;
+  -fx-font-size: 10.5px;
+  -fx-font-weight: 800;
+}
+
+.empresa-summary-value {
+  -fx-text-fill: #111827;
+  -fx-font-size: 11.5px;
+}
+
+.empresa-wizard-footer {
+  -fx-background-color: #fbfcfd;
+  -fx-border-color: #e1e6eb transparent transparent transparent;
+  -fx-border-width: 1px 0 0 0;
+}
+
+.empresa-wizard-help {
+  -fx-text-fill: #6b7280;
+  -fx-font-size: 10.5px;
+}
