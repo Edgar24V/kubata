@@ -753,6 +753,46 @@ public class AdvancedTableView<S> extends TableView<S> {
             refresh();
         });
 
+        MenuItem deleteSelected = new MenuItem("Eliminar seleccionados");
+        deleteSelected.setOnAction(e -> {
+            List<S> selected = getManuallySelectedItems();
+            if (selected.isEmpty()) {
+                return;
+            }
+
+            Alert confirm = new Alert(
+                    Alert.AlertType.CONFIRMATION,
+                    "Eliminar " + selected.size() + " registo(s)?",
+                    ButtonType.YES,
+                    ButtonType.NO
+            );
+
+            confirm.showAndWait().ifPresent(button -> {
+                if (button != ButtonType.YES) {
+                    return;
+                }
+
+                List<S> copy = List.copyOf(selected);
+
+                if (onBatchDeleteCallback != null) {
+                    onBatchDeleteCallback.accept(copy);
+                } else if (filteredData != null) {
+                    filteredData.getSource().removeAll(copy);
+                }
+
+                selectedItems.clear();
+                refresh();
+            });
+        });
+
+        MenuItem exportSelected = new MenuItem("Exportar seleccionados para CSV");
+        exportSelected.setOnAction(e -> {
+            List<S> selected = getManuallySelectedItems();
+            if (!selected.isEmpty()) {
+                exportToCSV(selected);
+            }
+        });
+
         contextMenu.getItems().add(new SeparatorMenuItem());
         contextMenu.getItems().addAll(selectAll, clearSelection);
 
@@ -1102,6 +1142,15 @@ public class AdvancedTableView<S> extends TableView<S> {
 
     private void showExportFailure(Exception ex) {
         setPlaceholder(new Label("Falha ao exportar: " + safeMessage(ex)));
+    }
+
+    /**
+     * Liberta recursos temporários quando a tabela deixa de ser utilizada.
+     */
+    public void dispose() {
+        cancelActiveOperation();
+        searchDebounce.stop();
+        requestSequence.incrementAndGet();
     }
 
     private void updatePagerState() {
