@@ -3,9 +3,11 @@ package ao.allon.kubata.admin.ui.wizard;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.Empresa;
+import ao.allon.kubata.core.domain.ParametroSistema;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.BackupConfig;
 import ao.allon.kubata.core.repository.EmpresaRepository;
+import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.BackupConfigRepository;
 import ao.allon.kubata.core.service.AcessoService;
@@ -39,6 +41,7 @@ public class EmpresaWizardView extends VBox {
     private final EmpresaRepository empresaRepository;
     private final UserRepository userRepository;
     private final BackupConfigRepository backupConfigRepository;
+    private final ParametroSistemaRepository parametroSistemaRepository;
     private final AcessoService acessoService;
     private final SessionManager sessionManager;
     private Empresa empresa;
@@ -58,12 +61,14 @@ public class EmpresaWizardView extends VBox {
                              EmpresaRepository empresaRepository,
                              UserRepository userRepository,
                              BackupConfigRepository backupConfigRepository,
+                             ParametroSistemaRepository parametroSistemaRepository,
                              AcessoService acessoService,
                              SessionManager sessionManager) {
         this.modalManager = modalManager;
         this.empresaRepository = empresaRepository;
         this.userRepository = userRepository;
         this.backupConfigRepository = backupConfigRepository;
+        this.parametroSistemaRepository = parametroSistemaRepository;
         this.acessoService = acessoService;
         this.sessionManager = sessionManager;
         buildUI();
@@ -295,7 +300,9 @@ public class EmpresaWizardView extends VBox {
             return box;
         }
         public boolean validate() { return true; }
-        public void savePartial() {}
+        public void savePartial() {
+            logActivity("Etapa de boas-vindas confirmada.");
+        }
         public String getHelpText() { return "Esta etapa apresenta os objetivos do assistente. Clique em Próximo para iniciar."; }
     }
 
@@ -422,8 +429,27 @@ public class EmpresaWizardView extends VBox {
             box.getChildren().addAll(tvUsers, lblTip);
             return box;
         }
-        public boolean validate() { return true; }
-        public void savePartial() {}
+        public boolean validate() {
+            boolean hasAdmin = userRepository.findAll().stream()
+                    .anyMatch(user -> user != null && user.getRole() == ao.allon.kubata.core.domain.Role.ADMIN);
+
+            if (!hasAdmin) {
+                modalManager.alert(
+                        "Administrador necessário",
+                        "Configure pelo menos um utilizador com perfil ADMIN antes de concluir o assistente.",
+                        "warning",
+                        null
+                );
+                return false;
+            }
+
+            return true;
+        }
+
+        public void savePartial() {
+            logActivity("Utilizadores e permissões confirmados.");
+        }
+
         public String getHelpText() { return "Adicione pelo menos um utilizador administrador para além do master."; }
     }
 
@@ -534,23 +560,135 @@ public class EmpresaWizardView extends VBox {
 
     // 7. Importação de Dados
     private class ImportDataStep implements WizardStep {
+        private File productFile;
+        private File clientFile;
+        private Label status;
+
         public String getTitle() { return "7. Importação Inicial"; }
-        public String getDescription() { return "Importe os seus dados de produtos, clientes e fornecedores."; }
+        public String getDescription() { return "Selecione os ficheiros de produtos e clientes para preparar a importação."; }
+
         public Node getContent() {
-            VBox box = new VBox(15);
-            box.setAlignment(Pos.CENTER);
-            
-            Button btnImportProd = new Button("Importar Produtos (Excel/CSV)", IconUtils.icon(Feather.DATABASE, 14));
-            Button btnImportCli = new Button("Importar Clientes (Excel/CSV)", IconUtils.icon(Feather.USERS, 14));
-            
-            Label lblInfo = new Label("Descarregue os nossos modelos de planilha para garantir a compatibilidade.");
-            Hyperlink link = new Hyperlink("Descarregar Modelos");
-            
-            box.getChildren().addAll(btnImportProd, btnImportCli, lblInfo, link);
+            VBox box = new VBox(14);
+            box.setAlignment(Pos.CENTER_LEFT);
+            box.setPadding(new Insets(10, 80, 10, 80));
+
+            Label title = new Label(
+                    "Importação inicial de dados",
+                    IconUtils.icon(Feather.UPLOAD_CLOUD, 18)
+            );
+            title.getStyleClass().add("h4");
+
+            Label info = new Label(
+                    "Selecione ficheiros CSV ou Excel. A importação definitiva dos registos "
+                            + "é executada pelo módulo especializado, mantendo este assistente seguro."
+            );
+            info.setWrapText(true);
+            info.getStyleClass().add("text-muted");
+
+            Button btnImportProd = new Button(
+                    "Selecionar Produtos",
+                    IconUtils.icon(Feather.DATABASE, 14)
+            );
+            btnImportProd.getStyleClass().add("button-outlined");
+            btnImportProd.setOnAction(e -> chooseImportFile(true));
+
+            Button btnImportCli = new Button(
+                    "Selecionar Clientes",
+                    IconUtils.icon(Feather.USERS, 14)
+            );
+            btnImportCli.getStyleClass().add("button-outlined");
+            btnImportCli.setOnAction(e -> chooseImportFile(false));
+
+            Button btnTemplate = new Button(
+                    "Guardar Modelo CSV",
+                    IconUtils.icon(Feather.DOWNLOAD, 14)
+            );
+            btnTemplate.getStyleClass().add("button-secondary");
+            btnTemplate.setOnAction(e -> saveImportTemplate());
+
+            status = new Label("Nenhum ficheiro selecionado.");
+            status.setWrapText(true);
+            status.getStyleClass().add("text-muted");
+
+            HBox actions = new HBox(10, btnImportProd, btnImportCli, btnTemplate);
+            actions.setAlignment(Pos.CENTER_LEFT);
+
+            box.getChildren().addAll(title, info, actions, status);
             return box;
         }
-        public boolean validate() { return true; }
-        public void savePartial() {}
+
+        private void chooseImportFile(boolean products) {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(products
+                    ? "Selecionar ficheiro de Produtos"
+                    : "Selecionar ficheiro de Clientes");
+            chooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Excel / CSV", "*.xlsx", "*.xls", "*.csv")
+            );
+
+            File file = chooser.showOpenDialog(getScene() != null ? getScene().getWindow() : null);
+            if (file == null) {
+                return;
+            }
+
+            if (products) {
+                productFile = file;
+            } else {
+                clientFile = file;
+            }
+
+            status.setText(
+                    "Produtos: " + (productFile != null ? productFile.getName() : "—")
+                            + "\nClientes: " + (clientFile != null ? clientFile.getName() : "—")
+            );
+        }
+
+        private void saveImportTemplate() {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Guardar modelo de importação");
+            chooser.setInitialFileName("kubata_importacao.csv");
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("CSV", "*.csv")
+            );
+
+            File target = chooser.showSaveDialog(
+                    getScene() != null ? getScene().getWindow() : null
+            );
+
+            if (target == null) {
+                return;
+            }
+
+            try {
+                Files.writeString(
+                        target.toPath(),
+                        "tipo;codigo;nome;descricao;quantidade;preco\n"
+                                + "PRODUTO;EXEMPLO-001;Produto Exemplo;Descrição;0;0\n",
+                        java.nio.charset.StandardCharsets.UTF_8
+                );
+
+                status.setText("Modelo guardado em: " + target.getAbsolutePath());
+            } catch (Exception ex) {
+                modalManager.alert(
+                        "Erro",
+                        "Não foi possível guardar o modelo: " + ex.getMessage(),
+                        "error",
+                        ex
+                );
+            }
+        }
+
+        public boolean validate() {
+            // A etapa é opcional; ficheiros selecionados são registados no passo seguinte.
+            return true;
+        }
+
+        public void savePartial() {
+            String produtos = productFile != null ? productFile.getAbsolutePath() : "não selecionado";
+            String clientes = clientFile != null ? clientFile.getAbsolutePath() : "não selecionado";
+            logActivity("Importação inicial preparada. Produtos: " + produtos + " | Clientes: " + clientes);
+        }
+
         public String getHelpText() { return "Pode saltar esta etapa e importar os dados mais tarde nos respectivos módulos."; }
     }
 
@@ -586,7 +724,13 @@ public class EmpresaWizardView extends VBox {
             config.setRetentionDays(cbRetention.getSelectionModel().getSelectedIndex() == 0 ? 30 : 365);
             backupConfigRepository.save(config);
             
-            // Simulação de salvamento de MFA global (Poderia estar em ParametrosSistema)
+            saveGlobalParameter(
+                    "MFA_ADMIN_REQUIRED",
+                    String.valueOf(chkMfa.isSelected()),
+                    "BOOLEAN",
+                    "Exigir MFA para administradores.",
+                    "SEGURANCA"
+            );
             logActivity("Configuração de backup e MFA salva.");
         }
         public String getHelpText() { return "A segurança dos dados é fundamental para a conformidade com a lei de proteção de dados."; }
@@ -618,8 +762,46 @@ public class EmpresaWizardView extends VBox {
             box.getChildren().addAll(lblDone, res, lblFinal);
             return box;
         }
-        public boolean validate() { return true; }
-        public void savePartial() {}
+        public boolean validate() {
+            if (empresa == null || empresa.getNome() == null || empresa.getNome().isBlank()) {
+                modalManager.alert("Configuração incompleta",
+                        "A empresa precisa de um nome válido antes de finalizar.",
+                        "warning", null);
+                return false;
+            }
+            return true;
+        }
+
+        public void savePartial() {
+            logActivity("Resumo final confirmado.");
+        }
+
         public String getHelpText() { return "Reveja os dados. Se algo estiver incorreto, utilize o botão 'Anterior'."; }
     }
+    private void saveGlobalParameter(String key,
+                                     String value,
+                                     String type,
+                                     String description,
+                                     String group) {
+        ParametroSistema parametro = parametroSistemaRepository
+                .findByChaveAndEmpresaIdIsNull(key)
+                .orElseGet(ParametroSistema::new);
+
+        parametro.setEmpresa(null);
+        parametro.setChave(key);
+        parametro.setValor(value);
+        parametro.setTipoValor(type);
+        parametro.setDescricao(description);
+        parametro.setGrupo(group);
+        parametro.setEditavel(true);
+        parametro.setAtualizadoEm(java.time.LocalDateTime.now());
+        parametro.setAtualizadoPor(
+                sessionManager.getUser() != null
+                        ? sessionManager.getUser().getNome()
+                        : "Administrador"
+        );
+
+        parametroSistemaRepository.save(parametro);
+    }
+
 }
