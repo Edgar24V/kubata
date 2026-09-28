@@ -39,7 +39,7 @@ import java.util.Map;
 public class Ribbon extends VBox {
 
     private static final double OVERFLOW_BUTTON_WIDTH = 34.0;
-    private static final double CONTENT_HORIZONTAL_MARGIN = 6.0;
+    private static final double CONTENT_HORIZONTAL_MARGIN = 18.0;
 
     private final ObservableList<RibbonTab> tabs = FXCollections.observableArrayList();
 
