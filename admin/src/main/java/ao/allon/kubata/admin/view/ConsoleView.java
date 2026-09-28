@@ -1,6 +1,7 @@
 package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.service.NotificationService;
+import ao.allon.kubata.admin.service.MaintenanceModeService;
 import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.service.job.AdminJob;
@@ -48,7 +49,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +71,7 @@ public class ConsoleView extends VBox {
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
     private final NotificationService notificationService;
+    private final MaintenanceModeService maintenanceModeService;
     private final JobManager jobManager;
     private final ModuleRegistry moduleRegistry;
 
@@ -106,6 +107,7 @@ public class ConsoleView extends VBox {
                        ModalManager modalManager,
                        PersistenceService persistenceService,
                        NotificationService notificationService,
+                       MaintenanceModeService maintenanceModeService,
                        JobManager jobManager,
                        ModuleRegistry moduleRegistry) {
         this.systemLogRepository = systemLogRepository;
@@ -116,6 +118,7 @@ public class ConsoleView extends VBox {
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
         this.notificationService = notificationService;
+        this.maintenanceModeService = maintenanceModeService;
         this.jobManager = jobManager;
         this.moduleRegistry = moduleRegistry;
         this.backgroundProcesses = jobManager.getJobs();
@@ -131,43 +134,78 @@ public class ConsoleView extends VBox {
 
     private void startPerformanceMonitoring() {
         cpuSeries.setName("CPU (%)");
-        memSeries.setName("Memória (MB)");
-        
+        memSeries.setName("Memória usada (MB)");
+
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
             t.setDaemon(true);
             t.setName("ConsolePerformanceMonitor");
             return t;
         });
-        
-        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-        
+
+        OperatingSystemMXBean osBean =
+                ManagementFactory.getOperatingSystemMXBean();
+
         scheduler.scheduleAtFixedRate(() -> {
-            Platform.runLater(() -> {
-                double cpu;
-                if (osBean instanceof com.sun.management.OperatingSystemMXBean) {
-                    cpu = ((com.sun.management.OperatingSystemMXBean) osBean).getSystemCpuLoad() * 100;
-                } else {
-                    cpu = osBean.getSystemLoadAverage();
+            double cpu = 0.0;
+
+            try {
+                if (osBean instanceof com.sun.management.OperatingSystemMXBean sunOs) {
+                    cpu = sunOs.getSystemCpuLoad() * 100.0;
+                } else if (osBean.getSystemLoadAverage() >= 0) {
+                    cpu = Math.min(100.0,
+                            (osBean.getSystemLoadAverage()
+                                    / Math.max(1, osBean.getAvailableProcessors()))
+                                    * 100.0);
                 }
-                
-                // Fallback se não for possível obter CPU real
-                if (cpu < 0) cpu = 5 + (Math.random() * 10);
-                
-                Runtime runtime = Runtime.getRuntime();
-                double mem = (runtime.totalMemory() - runtime.freeMemory()) / (1024.0 * 1024.0);
-                
-                cpuSeries.getData().add(new XYChart.Data<>(chartTime, cpu));
-                memSeries.getData().add(new XYChart.Data<>(chartTime, mem));
-                
-                if (cpuSeries.getData().size() > 20) {
+            } catch (Exception ex) {
+                logger.debug("CPU não disponível: {}", ex.getMessage());
+            }
+
+            if (Double.isNaN(cpu) || cpu < 0) {
+                cpu = 0.0;
+            }
+
+            Runtime runtime = Runtime.getRuntime();
+            double usedMemory =
+                    (runtime.totalMemory() - runtime.freeMemory())
+                            / (1024.0 * 1024.0);
+
+            boolean dbOk = true;
+            try {
+                userRepository.count();
+            } catch (Exception ex) {
+                dbOk = false;
+                logger.warn("Health check da base de dados falhou: {}",
+                        ex.getMessage());
+            }
+
+            final double finalCpu = Math.min(100.0, cpu);
+            final double finalMemory = usedMemory;
+            final boolean finalDbOk = dbOk;
+
+            Platform.runLater(() -> {
+                cpuSeries.getData().add(
+                        new XYChart.Data<>(chartTime, finalCpu));
+                memSeries.getData().add(
+                        new XYChart.Data<>(chartTime, finalMemory));
+
+                if (cpuSeries.getData().size() > 30) {
                     cpuSeries.getData().remove(0);
                     memSeries.getData().remove(0);
                 }
+
                 chartTime++;
-                
                 updateUptime();
-                updateDBHealth();
+
+                if (lblDBStatus != null) {
+                    lblDBStatus.setText(finalDbOk ? "LIGADO" : "ERRO");
+                    lblDBStatus.setStyle(
+                            finalDbOk
+                                    ? "-fx-text-fill: #27ae60; -fx-font-weight: bold;"
+                                    : "-fx-text-fill: #e74c3c; -fx-font-weight: bold;"
+                    );
+                }
             });
         }, 0, 2, TimeUnit.SECONDS);
     }
@@ -181,21 +219,8 @@ public class ConsoleView extends VBox {
     }
 
     private void updateDBHealth() {
-        if (lblDBStatus != null) {
-            persistenceService.executeSilent(() -> {
-                userRepository.count(); // Teste de conexão simples
-            }, () -> {
-                // Sucesso
-                Platform.runLater(() -> {
-                    lblDBStatus.setText("LIGADO");
-                    lblDBStatus.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
-                });
-            });
-            
-            // Tratamento de erro via Task interno do executeSilent (logger.warn)
-            // Para atualizar a UI em caso de falha, poderíamos estender o executeSilent
-            // Mas para o health check, se falhar, o setOnFailed do Task não executa o onSuccess
-        }
+        // O health check é executado pelo scheduler de performance para
+        // evitar consultas de base de dados na JavaFX Application Thread.
     }
 
     private void simulateProcessProgress() {
@@ -672,30 +697,143 @@ public class ConsoleView extends VBox {
     }
 
     private void toggleMaintenanceMode() {
-        modalManager.showConfirmModal(new Label("Deseja ativar o MODO MANUTENÇÃO?\n\n- Impede novos logins\n- Avisa utilizadores ligados\n- Apenas administradores terão acesso"), 
-                "Modo Manutenção", () -> {
-            notificationService.showWarning("Manutenção Ativada", "O sistema entrou em modo restrito.");
-        }, null);
+        boolean enabled = maintenanceModeService.isEnabled();
+
+        String title = enabled
+                ? "Desativar Modo de Manutenção"
+                : "Ativar Modo de Manutenção";
+
+        String text = enabled
+                ? "O sistema está em modo de manutenção desde "
+                    + maintenanceModeService.getSince()
+                    + ".\n\nPretende libertar o sistema para utilizadores normais?"
+                : "Ativar o modo de manutenção?\n\n"
+                    + "Novos logins de utilizadores não administrativos serão bloqueados. "
+                    + "As operações administrativas continuarão disponíveis.";
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(5));
+
+        Label reasonLabel = new Label("Motivo:");
+        TextField reason = new TextField(
+                enabled ? maintenanceModeService.getReason() : "Manutenção programada"
+        );
+        reason.setPrefWidth(420);
+        reason.setPromptText("Motivo apresentado aos utilizadores");
+
+        grid.add(new Label(text), 0, 0, 2, 1);
+
+        if (!enabled) {
+            grid.add(reasonLabel, 0, 1);
+            grid.add(reason, 1, 1);
+        }
+
+        String user = sessionManager.getUser() != null
+                ? sessionManager.getUser().getNome()
+                : "Administrador";
+
+        modalManager.showConfirmModal(
+                grid,
+                title,
+                () -> persistenceService.executeAsync(() -> {
+                    if (enabled) {
+                        maintenanceModeService.disable(user);
+                    } else {
+                        maintenanceModeService.enable(reason.getText(), user);
+                    }
+                },
+                "MAINTENANCE",
+                (enabled ? "Desativação" : "Ativação")
+                        + " do modo de manutenção",
+                () -> {
+                    boolean nowEnabled = maintenanceModeService.isEnabled();
+                    notificationService.showInfo(
+                            nowEnabled
+                                    ? "Manutenção Ativada"
+                                    : "Manutenção Desativada",
+                            nowEnabled
+                                    ? maintenanceModeService.getReason()
+                                    : "O acesso normal foi restaurado."
+                    );
+                    refreshAll();
+                }),
+                null
+        );
     }
 
     private void showBroadcastDialog() {
         VBox content = new VBox(10);
-        TextArea txtMsg = new TextArea();
-        txtMsg.setPromptText("Digite a mensagem para todos os utilizadores ligados...");
-        txtMsg.setPrefRowCount(3);
-        
-        CheckBox chkUrgent = new CheckBox("Marcar como Urgente (Flash)");
-        
-        content.getChildren().addAll(new Label("Mensagem de Broadcast:"), txtMsg, chkUrgent);
 
-        modalManager.showConfirmModal(content, "Broadcast de Sistema", () -> {
-            String msg = txtMsg.getText();
-            if (msg == null || msg.trim().isEmpty()) return;
-            
-            persistenceService.executeAsync(() -> {
-                // TODO: Implementar lógica real de broadcast (ex: via WebSocket ou tabela de notificações)
-            }, "BROADCAST", "CONSOLE", "Broadcast enviado a " + activeSessions.size() + " utilizadores", null);
-        }, null);
+        TextArea txtMsg = new TextArea();
+        txtMsg.setPromptText(
+                "Mensagem operacional para os utilizadores..."
+        );
+        txtMsg.setPrefRowCount(4);
+        txtMsg.setWrapText(true);
+
+        CheckBox chkUrgent = new CheckBox("Marcar como urgente");
+
+        content.getChildren().addAll(
+                new Label("Mensagem do sistema:"),
+                txtMsg,
+                chkUrgent
+        );
+
+        modalManager.showConfirmModal(
+                content,
+                "Mensagem de Sistema",
+                () -> {
+                    String msg = txtMsg.getText() == null
+                            ? ""
+                            : txtMsg.getText().trim();
+
+                    if (msg.isBlank()) {
+                        modalManager.alert(
+                                "Mensagem inválida",
+                                "Introduza uma mensagem antes de enviar.",
+                                "warning",
+                                null
+                        );
+                        return;
+                    }
+
+                    persistenceService.executeAsync(() -> {
+                        SystemLog log = new SystemLog();
+                        log.setLogLevel(
+                                chkUrgent.isSelected()
+                                        ? SystemLog.LogLevel.WARN
+                                        : SystemLog.LogLevel.INFO
+                        );
+                        log.setCategory("BROADCAST");
+                        log.setSource("Kubata Administrator");
+                        log.setMessage(msg);
+                        log.setThreadName(Thread.currentThread().getName());
+                        systemLogRepository.save(log);
+                    },
+                    "BROADCAST",
+                    "CONSOLE",
+                    "Mensagem operacional registada para "
+                            + activeSessions.size()
+                            + " sessão(ões)",
+                    () -> {
+                        if (chkUrgent.isSelected()) {
+                            notificationService.showWarning(
+                                    "Mensagem do Sistema",
+                                    msg
+                            );
+                        } else {
+                            notificationService.showInfo(
+                                    "Mensagem do Sistema",
+                                    msg
+                            );
+                        }
+                        refreshAll();
+                    });
+                },
+                null
+        );
     }
 
     private void showLogDetails(SystemLog log) {
