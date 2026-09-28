@@ -602,7 +602,7 @@ public class ApplicationView extends VBox {
     }
 
     private long countRows(Connection connection, String tableName) {
-        String identifier = """ + tableName.replace(""", """") + """;
+        String identifier = "\"" + tableName.replace("\"", "\"\"") + "\"";
 
         try (Statement statement = connection.createStatement();
              var rs = statement.executeQuery(
