@@ -756,10 +756,10 @@ public class RelatoriosView extends VBox {
         String text = String.valueOf(value)
                 .replace("\r", " ")
                 .replace("\n", " ")
-                .replace(""", """");
+                .replace("\"", "\"\"");
 
         if (text.indexOf(';') >= 0 || text.indexOf('"') >= 0) {
-            return """ + text + """;
+            return "\"" + text + "\"";
         }
 
         return text;
