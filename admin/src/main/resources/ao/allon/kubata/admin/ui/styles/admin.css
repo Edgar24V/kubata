@@ -5898,3 +5898,176 @@ Text {
     -fx-background-color: rgba(211, 47, 47, 0.10);
     -fx-text-fill: #C62828;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KUBATA — PADRÃO ÚNICO DE TAB
+   Todas as abas principais e secundárias usam a mesma geometria SMALL.
+   A seleção muda apenas cor/fundo — nunca altura, largura de borda ou posição.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tab-pane {
+    -fx-tab-min-height: 32px;
+    -fx-tab-pref-height: 32px;
+    -fx-tab-max-height: 32px;
+}
+
+.tab-pane > .tab-header-area {
+    -fx-padding: 4px 7px 0 7px;
+    -fx-background-insets: 0;
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+    -fx-max-height: 36px;
+}
+
+.tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: #FFFFFF;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent transparent #D9DDDA transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.tab-pane > .tab-header-area > .headers-region {
+    -fx-alignment: CENTER_LEFT;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab,
+.office365-tabs .tab,
+.kubata-main-tabpane .tab {
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px 4px 0 0;
+    -fx-border-color: #D9DDDA;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px 4px 0 0;
+    -fx-padding: 5px 9px 5px 9px;
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:hover,
+.office365-tabs .tab:hover,
+.kubata-main-tabpane .tab:hover {
+    -fx-background-color: #F0F7F3;
+    -fx-border-color: #BFD4C7;
+}
+
+/*
+ * Selecionada: exatamente a mesma espessura, altura e padding.
+ * Apenas as cores são alteradas, evitando qualquer "salto" visual.
+ */
+.tab-pane > .tab-header-area > .headers-region > .tab:selected,
+.office365-tabs .tab:selected,
+.kubata-main-tabpane .tab:selected {
+    -fx-background-insets: 0;
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #107C41;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px 4px 0 0;
+    -fx-padding: 5px 9px 5px 9px;
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab > .tab-container,
+.office365-tabs .tab .tab-container,
+.kubata-main-tabpane .tab .tab-container {
+    -fx-alignment: CENTER;
+    -fx-spacing: 5px;
+    -fx-min-height: 20px;
+    -fx-pref-height: 20px;
+    -fx-max-height: 20px;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label,
+.office365-tabs .tab .tab-label,
+.kubata-main-tabpane .tab .tab-label {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #59615D;
+    -fx-padding: 0;
+    -fx-alignment: CENTER;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label,
+.office365-tabs .tab:selected .tab-label,
+.kubata-main-tabpane .tab:selected .tab-label {
+    -fx-text-fill: #107C41;
+    -fx-font-weight: 700;
+}
+
+/* Ícones dentro das abas seguem a mesma escala pequena. */
+.tab-pane > .tab-header-area > .headers-region > .tab .tab-label > *,
+.office365-tabs .tab .tab-label > *,
+.kubata-main-tabpane .tab .tab-label > * {
+    -fx-icon-size: 13px;
+    -fx-fill: #59615D;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label > *,
+.office365-tabs .tab:selected .tab-label > *,
+.kubata-main-tabpane .tab:selected .tab-label > * {
+    -fx-fill: #107C41;
+    -fx-icon-color: #107C41;
+}
+
+/* Fechar: mantém a mesma caixa antes e depois da seleção. */
+.tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-close-button,
+.office365-tabs .tab .tab-close-button,
+.kubata-main-tabpane .tab .tab-close-button {
+    -fx-background-color: #69736E;
+    -fx-opacity: 0.55;
+    -fx-padding: 3px;
+    -fx-min-width: 16px;
+    -fx-pref-width: 16px;
+    -fx-max-width: 16px;
+    -fx-min-height: 16px;
+    -fx-pref-height: 16px;
+    -fx-max-height: 16px;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:hover > .tab-container > .tab-close-button,
+.office365-tabs .tab:hover .tab-close-button,
+.kubata-main-tabpane .tab:hover .tab-close-button {
+    -fx-opacity: 1;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-close-button,
+.office365-tabs .tab:selected .tab-close-button,
+.kubata-main-tabpane .tab:selected .tab-close-button {
+    -fx-background-color: #107C41;
+    -fx-opacity: 1;
+}
+
+/* O conteúdo nunca recebe deslocamento por causa do cabeçalho. */
+.tab-pane > .tab-content-area,
+.office365-tabs > .tab-content-area,
+.kubata-main-tabpane > .tab-content-area {
+    -fx-padding: 8px;
+    -fx-background-color: #F7F8F7;
+    -fx-border-color: transparent;
+}
+
+/* Estados compactos mantêm exatamente a mesma altura. */
+.kubata-main-tabpane.kubata-tabs-compact,
+.kubata-main-tabpane.kubata-tabs-small {
+    -fx-tab-min-height: 32px;
+    -fx-tab-pref-height: 32px;
+    -fx-tab-max-height: 32px;
+}
+
+.kubata-main-tabpane.kubata-tabs-compact .tab,
+.kubata-main-tabpane.kubata-tabs-small .tab {
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+    -fx-padding: 5px 8px 5px 8px;
+}
+
+.kubata-main-tabpane.kubata-tabs-small .tab-label {
+    -fx-font-size: 10.5px;
+}
