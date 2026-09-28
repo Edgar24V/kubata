@@ -8,6 +8,7 @@ import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.ModuloSistema;
 import ao.allon.kubata.core.domain.ParametroSistema;
 import ao.allon.kubata.core.module.ModuleRegistry;
+import ao.allon.kubata.core.repository.BackupRecordRepository;
 import ao.allon.kubata.core.repository.ModuloSistemaRepository;
 import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
@@ -50,6 +51,7 @@ import java.util.stream.Collectors;
 public class ApplicationView extends VBox {
 
     private final ModuloSistemaRepository moduloRepository;
+    private final BackupRecordRepository backupRecordRepository;
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
     private final NotificationService notificationService;
@@ -66,7 +68,14 @@ public class ApplicationView extends VBox {
     private final ObservableList<DatabaseUpdate> updates = FXCollections.observableArrayList();
     private final ObservableList<DatabaseTable> dbTables = FXCollections.observableArrayList();
 
+    private Label databaseNameValue;
+    private Label schemaVersionValue;
+    private Label lastBackupValue;
+    private Label migrationStatusLabel;
+    private Button btnApplyMigrations;
+
     public ApplicationView(ModuloSistemaRepository moduloRepository,
+                           BackupRecordRepository backupRecordRepository,
                            ModalManager modalManager,
                            PersistenceService persistenceService,
                            NotificationService notificationService,
@@ -76,6 +85,7 @@ public class ApplicationView extends VBox {
                            ModuleInstallationService moduleInstallationService,
                            DataSource dataSource) {
         this.moduloRepository = moduloRepository;
+        this.backupRecordRepository = backupRecordRepository;
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
         this.notificationService = notificationService;
@@ -388,94 +398,209 @@ public class ApplicationView extends VBox {
     }
 
     private Node buildDatabaseTab() {
-        VBox content = new VBox(20);
+        VBox content = new VBox(16);
         content.setPadding(new Insets(20));
 
-        HBox stats = new HBox(20);
-        stats.getChildren().addAll(
-            createStatCard("Base de Dados", "KUBATA_ERP_PROD", Feather.DATABASE),
-            createStatCard("Schema Version", "2026.04.07.001", Feather.HASH),
-            createStatCard("Último Backup", "Há 2 horas", Feather.CLOCK)
+        HBox heading = new HBox(10);
+        heading.setAlignment(Pos.CENTER_LEFT);
+
+        VBox headingText = new VBox(2);
+        Label title = new Label(
+                "Manutenção da Base de Dados",
+                IconUtils.icon(Feather.DATABASE, 16)
+        );
+        title.getStyleClass().add("h4");
+
+        Label subtitle = new Label(
+                "Monitorização da ligação, versão do schema, migrações Flyway e histórico da estrutura de dados."
+        );
+        subtitle.getStyleClass().add("text-muted");
+        subtitle.setWrapText(true);
+
+        headingText.getChildren().addAll(title, subtitle);
+
+        Region headingSpacer = new Region();
+        HBox.setHgrow(headingSpacer, Priority.ALWAYS);
+
+        Button btnTestConnection = new Button(
+                "Testar Ligação",
+                IconUtils.icon(Feather.DISC, 13)
+        );
+        btnTestConnection.getStyleClass().add("button-outlined");
+        btnTestConnection.setOnAction(e -> testDatabaseConnection());
+
+        Button btnRefreshDatabase = new Button(
+                "Actualizar",
+                IconUtils.icon(Feather.REFRESH_CW, 13)
+        );
+        btnRefreshDatabase.getStyleClass().add("button-outlined");
+        btnRefreshDatabase.setOnAction(e -> refreshAll());
+
+        heading.getChildren().addAll(
+                headingText,
+                headingSpacer,
+                btnTestConnection,
+                btnRefreshDatabase
         );
 
-        // Painel de Service Packs Disponíveis
-        VBox spBox = new VBox(10);
-        spBox.getStyleClass().add("card");
-        spBox.setPadding(new Insets(15));
-        
-        Label lblSp = new Label("Service Packs e Patches Disponíveis", IconUtils.icon(Feather.GIFT, 14));
-        lblSp.getStyleClass().add("h4");
-        
-        HBox spAction = new HBox(15);
-        spAction.setAlignment(Pos.CENTER_LEFT);
-        Label lblNewSp = new Label("Service Pack 2026 Q2 (v1.3.0) disponível para instalação.");
-        lblNewSp.setStyle("-fx-text-fill: -kubata-green-dark; -fx-font-weight: bold;");
-        Button btnInstallSp = new Button("Instalar Agora", IconUtils.icon(Feather.DOWNLOAD, 12));
-        btnInstallSp.getStyleClass().add("button-success");
-        btnInstallSp.setOnAction(e -> installServicePack("v1.3.0"));
-        
-        spAction.getChildren().addAll(lblNewSp, btnInstallSp);
-        spBox.getChildren().addAll(lblSp, new Separator(), spAction);
+        HBox stats = new HBox(12);
+        databaseNameValue = createValueLabel("A carregar...");
+        schemaVersionValue = createValueLabel("A carregar...");
+        lastBackupValue = createValueLabel("A carregar...");
 
-        // Histórico de Updates
+        stats.getChildren().addAll(
+                createStatCard("Base de Dados", databaseNameValue, Feather.DATABASE),
+                createStatCard("Schema Version", schemaVersionValue, Feather.HASH),
+                createStatCard("Último Backup", lastBackupValue, Feather.ARCHIVE)
+        );
+
+        VBox migrationBox = new VBox(10);
+        migrationBox.getStyleClass().add("card");
+        migrationBox.setPadding(new Insets(15));
+
+        Label migrationTitle = new Label(
+                "Migrações da Base de Dados",
+                IconUtils.icon(Feather.GIT_COMMIT, 14)
+        );
+        migrationTitle.getStyleClass().add("h4");
+
+        HBox migrationAction = new HBox(12);
+        migrationAction.setAlignment(Pos.CENTER_LEFT);
+
+        migrationStatusLabel = new Label("A verificar migrações...");
+        migrationStatusLabel.getStyleClass().add("text-muted");
+        migrationStatusLabel.setWrapText(true);
+
+        Region migrationSpacer = new Region();
+        HBox.setHgrow(migrationSpacer, Priority.ALWAYS);
+
+        btnApplyMigrations = new Button(
+                "Aplicar Pendentes",
+                IconUtils.icon(Feather.DOWNLOAD_CLOUD, 12)
+        );
+        btnApplyMigrations.getStyleClass().add("button-primary");
+        btnApplyMigrations.setOnAction(e -> updateDatabaseSchema());
+
+        migrationAction.getChildren().addAll(
+                migrationStatusLabel,
+                migrationSpacer,
+                btnApplyMigrations
+        );
+
+        migrationBox.getChildren().addAll(
+                migrationTitle,
+                new Separator(),
+                migrationAction
+        );
+
         AdvancedTableView<DatabaseUpdate> table = new AdvancedTableView<>(updates);
         TableUtils.standardize(table);
-        table.getColumns().add(TableUtils.createTextColumn("Script / Service Pack", u -> new SimpleStringProperty(u.getValue().getName())));
-        table.getColumns().add(TableUtils.createTextColumn("Data", u -> new SimpleStringProperty(u.getValue().getDate())));
-        table.getColumns().add(TableUtils.createTextColumn("Estado", u -> new SimpleStringProperty(u.getValue().getStatus())));
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.getColumns().add(
+                TableUtils.createTextColumn(
+                        "Script / Migração",
+                        u -> new SimpleStringProperty(u.getValue().getName())
+                )
+        );
+        table.getColumns().add(
+                TableUtils.createTextColumn(
+                        "Data",
+                        u -> new SimpleStringProperty(u.getValue().getDate())
+                )
+        );
+        table.getColumns().add(
+                TableUtils.createTextColumn(
+                        "Estado",
+                        u -> new SimpleStringProperty(u.getValue().getStatus())
+                )
+        );
+        VBox.setVgrow(table, Priority.ALWAYS);
 
-        Button btnUpdateSchema = new Button("Atualizar Estrutura de Dados (Force)", IconUtils.icon(Feather.REFRESH_CW, 14));
+        HBox schemaActions = new HBox(10);
+        schemaActions.setAlignment(Pos.CENTER_LEFT);
+
+        Button btnUpdateSchema = new Button(
+                "Actualizar Estrutura da Base de Dados",
+                IconUtils.icon(Feather.REFRESH_CW, 14)
+        );
         btnUpdateSchema.getStyleClass().add("button-primary");
         btnUpdateSchema.setOnAction(e -> updateDatabaseSchema());
 
-        // Nova Secção: Tabelas e Índices
+        Button btnCheckUpdates = new Button(
+                "Verificar Pendências",
+                IconUtils.icon(Feather.SEARCH, 14)
+        );
+        btnCheckUpdates.getStyleClass().add("button-outlined");
+        btnCheckUpdates.setOnAction(e -> checkForUpdates());
+
+        schemaActions.getChildren().addAll(btnUpdateSchema, btnCheckUpdates);
+
         VBox tableStatsBox = new VBox(10);
         tableStatsBox.getStyleClass().add("card");
         tableStatsBox.setPadding(new Insets(15));
-        
-        Label lblTableStats = new Label("Estatísticas de Armazenamento por Tabela", IconUtils.icon(Feather.BAR_CHART_2, 14));
+
+        Label lblTableStats = new Label(
+                "Tabelas e Índices",
+                IconUtils.icon(Feather.BAR_CHART_2, 14)
+        );
         lblTableStats.getStyleClass().add("h4");
-        
+
+        Label tableStatsHint = new Label(
+                "Contagem real de registos e índices obtida através dos metadados JDBC."
+        );
+        tableStatsHint.getStyleClass().add("text-muted");
+
         AdvancedTableView<DatabaseTable> tableStats = new AdvancedTableView<>(dbTables);
         TableUtils.standardize(tableStats);
-        tableStats.getColumns().add(TableUtils.createTextColumn("Tabela", t -> new SimpleStringProperty(t.getValue().getName())));
-        tableStats.getColumns().add(TableUtils.createTextColumn("Registos", t -> new SimpleStringProperty(t.getValue().getRows())));
-        tableStats.getColumns().add(TableUtils.createTextColumn("Tamanho", t -> new SimpleStringProperty(t.getValue().getSize())));
-        tableStats.getColumns().add(TableUtils.createTextColumn("Índices", t -> new SimpleStringProperty(t.getValue().getIndexes())));
-        tableStats.setPrefHeight(250);
-
-        tableStatsBox.getChildren().addAll(lblTableStats, new Separator(), tableStats);
-
-        content.getChildren().addAll(new Label("Estado da Infraestrutura de Dados"), stats, spBox, new Separator(), 
-                                   new Label("Histórico de Atualizações de Schema"), table, btnUpdateSchema, 
-                                   new Separator(), tableStatsBox);
-        VBox.setVgrow(table, Priority.ALWAYS);
-        return new ScrollPane(content) {{ setFitToWidth(true); setStyle("-fx-background-color: transparent;"); }};
-    }
-
-    private void installServicePack(String version) {
-        modalManager.showConfirmModal(
-                new Label(
-                        "Aplicar as atualizações de base de dados disponíveis para o pacote "
-                                + version + "?\n\n"
-                                + "As migrações serão executadas com o mecanismo Flyway. "
-                                + "Binários externos não são alterados por esta operação."
-                ),
-                "Aplicar Atualizações",
-                () -> persistenceService.executeAsync(() -> {
-                    Flyway flyway = flywayProvider.getIfAvailable();
-
-                    if (flyway == null) {
-                        throw new IllegalStateException("Flyway não está disponível.");
-                    }
-
-                    flyway.migrate();
-                },
-                "SP_INSTALL",
-                "Aplicação de migrações associadas ao Service Pack " + version,
-                this::refreshAll),
-                null
+        tableStats.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tableStats.getColumns().add(
+                TableUtils.createTextColumn(
+                        "Tabela",
+                        t -> new SimpleStringProperty(t.getValue().getName())
+                )
         );
+        tableStats.getColumns().add(
+                TableUtils.createTextColumn(
+                        "Registos",
+                        t -> new SimpleStringProperty(t.getValue().getRows())
+                )
+        );
+        tableStats.getColumns().add(
+                TableUtils.createTextColumn(
+                        "Tamanho",
+                        t -> new SimpleStringProperty(t.getValue().getSize())
+                )
+        );
+        tableStats.getColumns().add(
+                TableUtils.createTextColumn(
+                        "Índices",
+                        t -> new SimpleStringProperty(t.getValue().getIndexes())
+                )
+        );
+        tableStats.setPrefHeight(260);
+
+        tableStatsBox.getChildren().addAll(
+                lblTableStats,
+                tableStatsHint,
+                new Separator(),
+                tableStats
+        );
+
+        content.getChildren().addAll(
+                heading,
+                stats,
+                migrationBox,
+                new Label("Histórico de Migrações"),
+                table,
+                schemaActions,
+                tableStatsBox
+        );
+
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: transparent;");
+        return scroll;
     }
 
     private Node buildApiTab() {
@@ -586,15 +711,24 @@ public class ApplicationView extends VBox {
         return content;
     }
 
-    private VBox createStatCard(String title, String value, Feather icon) {
+    private VBox createStatCard(String title, Label value, Feather icon) {
         VBox box = new VBox(5);
         box.getStyleClass().add("card");
-        box.setPrefWidth(200);
-        box.getChildren().addAll(
-            new Label(title, IconUtils.icon(icon, 12)),
-            new Label(value) {{ setStyle("-fx-font-weight: bold; -fx-font-size: 14px;"); }}
-        );
+        box.setPrefWidth(220);
+        box.setMaxWidth(Double.MAX_VALUE);
+
+        Label titleLabel = new Label(title, IconUtils.icon(icon, 12));
+        titleLabel.getStyleClass().add("text-muted");
+
+        box.getChildren().addAll(titleLabel, value);
         return box;
+    }
+
+    private Label createValueLabel(String value) {
+        Label label = new Label(value);
+        label.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        label.setWrapText(true);
+        return label;
     }
 
     private void refreshAll() {
@@ -602,11 +736,30 @@ public class ApplicationView extends VBox {
             List<ModuloSistema> mods = moduleInstallationService.synchronizeCatalog();
             List<DatabaseUpdate> migrationRows = loadMigrationHistory();
             List<DatabaseTable> tableRows = loadDatabaseTables();
+            DatabaseSummary summary = loadDatabaseSummary();
 
             Platform.runLater(() -> {
                 modulos.setAll(mods);
                 updates.setAll(migrationRows);
                 dbTables.setAll(tableRows);
+
+                if (databaseNameValue != null) {
+                    databaseNameValue.setText(summary.databaseName());
+                }
+                if (schemaVersionValue != null) {
+                    schemaVersionValue.setText(summary.schemaVersion());
+                }
+                if (lastBackupValue != null) {
+                    lastBackupValue.setText(summary.lastBackup());
+                }
+                if (migrationStatusLabel != null) {
+                    migrationStatusLabel.setText(summary.pendingMigrations() == 0
+                            ? "A base de dados está actualizada. Não existem migrações pendentes."
+                            : summary.pendingMigrations() + " migração(ões) pendente(s) disponível(eis) para aplicação.");
+                }
+                if (btnApplyMigrations != null) {
+                    btnApplyMigrations.setDisable(summary.pendingMigrations() == 0);
+                }
             });
         }, "APP_REFRESH", "APPLICATION",
                 "Atualização de dados de engenharia e infraestrutura", null);
@@ -621,6 +774,105 @@ public class ApplicationView extends VBox {
                 && modulo.getInstaladoEm() != null;
 
         openModuleInstallation(modulo, installed);
+    }
+
+    private DatabaseSummary loadDatabaseSummary() {
+        String databaseName = "Indisponível";
+        String schemaVersion = "Indisponível";
+
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData meta = connection.getMetaData();
+
+            String product = meta.getDatabaseProductName();
+            String version = meta.getDatabaseProductVersion();
+            String catalog = connection.getCatalog();
+            String schema = connection.getSchema();
+
+            String location = !isBlank(catalog)
+                    ? catalog
+                    : (!isBlank(schema) ? schema : meta.getURL());
+
+            databaseName = product + (isBlank(location) ? "" : " · " + location);
+            if (!isBlank(version)) {
+                databaseName = databaseName + " (" + version + ")";
+            }
+        } catch (Exception ex) {
+            databaseName = "Erro: " + ex.getClass().getSimpleName();
+        }
+
+        Flyway flyway = flywayProvider.getIfAvailable();
+        int pendingMigrations = 0;
+
+        if (flyway != null) {
+            MigrationInfo current = flyway.info().current();
+            MigrationInfo[] pending = flyway.info().pending();
+
+            pendingMigrations = pending == null ? 0 : pending.length;
+
+            if (current != null && current.getVersion() != null) {
+                schemaVersion = String.valueOf(current.getVersion());
+                if (!isBlank(current.getDescription())) {
+                    schemaVersion += " · " + current.getDescription();
+                }
+            } else {
+                schemaVersion = "Nenhuma migração aplicada";
+            }
+        }
+
+        String lastBackup = "Nunca";
+        try {
+            lastBackup = backupRecordRepository
+                    .findTopByStatusOrderByStartTimeDesc(
+                            ao.allon.kubata.core.domain.BackupRecord.BackupStatus.COMPLETED
+                    )
+                    .map(record -> record.getEndTime() != null
+                            ? record.getEndTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                            : record.getStartTime() != null
+                                    ? record.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                                    : "Sem data")
+                    .orElse("Nunca");
+        } catch (Exception ignored) {
+            // A manutenção da BD continua disponível mesmo que o histórico de backups não esteja acessível.
+        }
+
+        return new DatabaseSummary(databaseName, schemaVersion, lastBackup, pendingMigrations);
+    }
+
+    private void testDatabaseConnection() {
+        persistenceService.executeAsync(() -> {
+            if (dataSource == null) {
+                throw new IllegalStateException("DataSource não está disponível.");
+            }
+
+            try (Connection connection = dataSource.getConnection();
+                 Statement statement = connection.createStatement();
+                 ResultSet rs = statement.executeQuery("SELECT 1")) {
+
+                if (!rs.next()) {
+                    throw new SQLException("A ligação não devolveu um resultado.");
+                }
+
+                DatabaseMetaData meta = connection.getMetaData();
+                String message = meta.getDatabaseProductName()
+                        + " "
+                        + meta.getDatabaseProductVersion();
+
+                Platform.runLater(() -> notificationService.showSuccess(
+                        "Ligação à BD OK",
+                        "A ligação foi validada com sucesso. Motor: " + message
+                ));
+            } catch (Exception ex) {
+                Platform.runLater(() -> notificationService.showWarning(
+                        "Falha na ligação à BD",
+                        ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage()
+                ));
+            }
+        }, "DB_CONNECTION_TEST", "APPLICATION",
+                "Teste de conectividade da base de dados", null);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private void updateDatabaseSchema() {
@@ -679,6 +931,13 @@ public class ApplicationView extends VBox {
         public String getDate() { return date; }
         public String getStatus() { return status; }
     }
+
+    private record DatabaseSummary(
+            String databaseName,
+            String schemaVersion,
+            String lastBackup,
+            int pendingMigrations
+    ) {}
 
     public static class DatabaseTable {
         private final String name, rows, size, indexes;
