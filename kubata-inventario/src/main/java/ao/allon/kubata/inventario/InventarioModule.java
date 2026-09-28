@@ -1,6 +1,7 @@
 package ao.allon.kubata.inventario;
 
 import ao.allon.kubata.core.module.AbstractKubataModule;
+import ao.allon.kubata.core.module.KubataModule;
 import ao.allon.kubata.core.module.ModuleView;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
@@ -13,7 +14,7 @@ import java.util.List;
  * Módulo de Inventario - Gestão de Produtos, Categorias e Stock
  */
 @Component
-public class InventarioModule extends AbstractKubataModule {
+public class InventarioModule extends AbstractKubataModule implements KubataModule {
     
     public static final String MODULE_ID = "inventario";
     
