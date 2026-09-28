@@ -910,7 +910,12 @@ public class ParametrosSistemaView extends VBox {
             showPermissionDenied("PARAMETROS/APAGAR");
             return;
         }
-        deleteParameter(parameter);
+        if (!Boolean.TRUE.equals(parameter.getEditavel())) {
+            showWarning("Este parâmetro está protegido e não pode ser removido.");
+            return;
+        }
+
+        performDelete(parameter);
     }
 
     private void deleteParameter(ParametroSistema selected) {
@@ -919,7 +924,6 @@ public class ParametrosSistemaView extends VBox {
             return;
         }
 
-        EmpresaScope selectedScope = scopeCombo.getSelectionModel().getSelectedItem();
         String key = nullToEmpty(selected.getChave());
 
         modalManager.showConfirmModal(
@@ -933,22 +937,26 @@ public class ParametrosSistemaView extends VBox {
                         )
                 ),
                 "Remover parâmetro",
-                () -> {
-                    Map<String, String> before = snapshot(selected, selectedScope);
-
-                    persistenceService.deleteAsync(
-                            parametroRepository,
-                            selected,
-                            selected.getId(),
-                            "PARAMETRO_SISTEMA",
-                            "Remoção do parâmetro " + key,
-                            () -> {
-                                auditDelete(selected, before);
-                                reload();
-                            }
-                    );
-                },
+                () -> performDelete(selected),
                 null
+        );
+    }
+
+    private void performDelete(ParametroSistema selected) {
+        EmpresaScope selectedScope = scopeCombo.getSelectionModel().getSelectedItem();
+        String key = nullToEmpty(selected.getChave());
+        Map<String, String> before = snapshot(selected, selectedScope);
+
+        persistenceService.deleteAsync(
+                parametroRepository,
+                selected,
+                selected.getId(),
+                "PARAMETRO_SISTEMA",
+                "Remoção do parâmetro " + key,
+                () -> {
+                    auditDelete(selected, before);
+                    reload();
+                }
         );
     }
 
