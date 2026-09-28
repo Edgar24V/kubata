@@ -98,6 +98,7 @@ public class AdvancedTableView<S> extends TableView<S> {
     private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
     private TextField activeSearchField;
     private ComboBox<Integer> pageSizeCombo;
+    private final Label pageSizeLabel = new Label("Por página:");
 
     private PageProvider<S> pageProvider;
     private Future<?> activeOperation;
@@ -625,7 +626,7 @@ public class AdvancedTableView<S> extends TableView<S> {
                 new Label("Pesquisar:"),
                 searchBox,
                 resultCountLabel,
-                new Label("Por página:"),
+                pageSizeLabel,
                 pageSizeCombo
         );
         toolbar.setPadding(new Insets(7, 8, 7, 8));
@@ -858,6 +859,20 @@ public class AdvancedTableView<S> extends TableView<S> {
 
 
         setContextMenu(contextMenu);
+    }
+
+    private void updatePageSizeControlVisibility() {
+        boolean visible = pageProvider != null;
+
+        if (pageSizeLabel != null) {
+            pageSizeLabel.setVisible(visible);
+            pageSizeLabel.setManaged(visible);
+        }
+
+        if (pageSizeCombo != null) {
+            pageSizeCombo.setVisible(visible);
+            pageSizeCombo.setManaged(visible);
+        }
     }
 
     private ComboBox<Integer> createPageSizeCombo() {
@@ -1181,7 +1196,7 @@ public class AdvancedTableView<S> extends TableView<S> {
             Row headerRow = sheet.createRow(0);
 
             for (int i = 0; i < columns.size(); i++) {
-                Cell cell = headerRow.createCell(i);
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
                 cell.setCellValue(columns.get(i).getText());
                 cell.setCellStyle(headerStyle);
             }
@@ -1193,7 +1208,7 @@ public class AdvancedTableView<S> extends TableView<S> {
 
                 for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
                     Object value = columns.get(columnIndex).getCellData(item);
-                    Cell cell = row.createCell(columnIndex);
+                    org.apache.poi.ss.usermodel.Cell cell = row.createCell(columnIndex);
 
                     if (value instanceof Number number) {
                         cell.setCellValue(number.doubleValue());
@@ -1395,33 +1410,21 @@ public class AdvancedTableView<S> extends TableView<S> {
         }
 
         static Node icon(String name) {
-            try {
-                org.kordamp.ikonli.javafx.FontIcon icon =
-                        new org.kordamp.ikonli.javafx.FontIcon();
+            Label icon = new Label();
+            icon.setFocusTraversable(false);
+            icon.setMinSize(16, 16);
+            icon.setPrefSize(16, 16);
+            icon.setMaxSize(16, 16);
+            icon.setAlignment(Pos.CENTER);
 
-                switch (name) {
-                    case "PREVIOUS" -> {
-                        icon.setIconLiteral("fth-chevron-left");
-                        icon.setIconSize(13);
-                    }
-                    case "NEXT" -> {
-                        icon.setIconLiteral("fth-chevron-right");
-                        icon.setIconSize(13);
-                    }
-                    case "CLEAR" -> {
-                        icon.setIconLiteral("fth-x");
-                        icon.setIconSize(12);
-                    }
-                    default -> {
-                        icon.setIconLiteral("fth-more-horizontal");
-                        icon.setIconSize(12);
-                    }
-                }
-
-                return icon;
-            } catch (Exception ex) {
-                return new Label();
+            switch (name) {
+                case "PREVIOUS" -> icon.setText("‹");
+                case "NEXT" -> icon.setText("›");
+                case "CLEAR" -> icon.setText("×");
+                default -> icon.setText("⋯");
             }
+
+            return icon;
         }
     }
 }
