@@ -19,7 +19,6 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -69,9 +68,15 @@ public class ParametrosSistemaView extends VBox {
     private final ComboBox<EmpresaScope> scopeCombo = new ComboBox<>();
     private final TextField searchField = new TextField();
     private final ComboBox<String> groupFilter = new ComboBox<>();
-    private final AdvancedTableView<ParametroSistema> table = new AdvancedTableView<>();
     private final ObservableList<ParametroSistema> data = FXCollections.observableArrayList();
-    private final FilteredList<ParametroSistema> filteredData = new FilteredList<>(data, p -> true);
+    private final AdvancedTableView<ParametroSistema> table = AdvancedTableView
+            .<ParametroSistema>builder()
+            .data(data)
+            .entityName("Parâmetro")
+            .onEdit(this::editFromContext)
+            .onDelete(this::deleteFromContext)
+            .onRefresh(this::reload)
+            .build();
 
     private final Label totalLabel = new Label("0 parâmetros");
     private final Label editableLabel = new Label("0 editáveis");
@@ -220,7 +225,6 @@ public class ParametrosSistemaView extends VBox {
         toolbar.getChildren().addAll(top, filters, counters);
 
         TableUtils.standardize(table);
-        table.setData(filteredData);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         TableColumn<ParametroSistema, String> keyCol = TableUtils.createTextColumn(
@@ -443,7 +447,7 @@ public class ParametrosSistemaView extends VBox {
                 || group.isBlank()
                 || "Todos os grupos".equalsIgnoreCase(group);
 
-        filteredData.setPredicate(parameter -> {
+        table.setFilter(parameter -> {
             if (parameter == null) {
                 return false;
             }
@@ -469,8 +473,8 @@ public class ParametrosSistemaView extends VBox {
     }
 
     private void updateCounters() {
-        int total = filteredData.size();
-        long editable = filteredData.stream()
+        int total = table.getItems().size();
+        long editable = table.getItems().stream()
                 .filter(p -> Boolean.TRUE.equals(p.getEditavel()))
                 .count();
 
@@ -495,9 +499,10 @@ public class ParametrosSistemaView extends VBox {
                 )
         );
 
-        String scope = selected.getEmpresa() == null
+        EmpresaScope selectedScope = scopeCombo.getSelectionModel().getSelectedItem();
+        String scope = selectedScope == null || selectedScope.empresaId == null
                 ? "Global"
-                : "Empresa: " + nullToEmpty(selected.getEmpresa().getNome());
+                : "Empresa: " + selectedScope.label;
 
         String updated = formatDateTime(selected.getAtualizadoEm());
         String user = nullToEmpty(selected.getAtualizadoPor());
@@ -520,13 +525,15 @@ public class ParametrosSistemaView extends VBox {
             return;
         }
 
-        Empresa empresaRef = null;
+        final Empresa empresaRef;
         if (scope.empresaId != null) {
             empresaRef = empresaRepository.findById(scope.empresaId).orElse(null);
             if (empresaRef == null) {
                 showWarning("A empresa seleccionada já não está disponível.");
                 return;
             }
+        } else {
+            empresaRef = null;
         }
 
         TextField keyField = new TextField();
@@ -752,7 +759,7 @@ public class ParametrosSistemaView extends VBox {
                 "PARAMETRO_SISTEMA",
                 descriptionForAudit,
                 saved -> {
-                    auditChange(existing, before, saved);
+                    auditChange(existing, before, saved, scope.empresaId);
                     reload();
                 }
         );
@@ -831,46 +838,13 @@ public class ParametrosSistemaView extends VBox {
             return;
         }
 
-        if (!Boolean.TRUE.equals(selected.getEditavel())) {
-            showWarning("Este parâmetro está protegido e não pode ser removido.");
-            return;
-        }
-
-        String key = nullToEmpty(selected.getChave());
-
-        modalManager.showConfirmModal(
-                new VBox(
-                        8,
-                        new Label("Tem a certeza que pretende remover este parâmetro?"),
-                        new Label("Chave: " + key),
-                        new Label(
-                                "Esta operação remove o registo da base de dados e "
-                                        + "fica registada na auditoria."
-                        )
-                ),
-                "Remover parâmetro",
-                () -> {
-                    Map<String, String> before = snapshot(selected);
-
-                    persistenceService.deleteAsync(
-                            parametroRepository,
-                            selected,
-                            selected.getId(),
-                            "PARAMETRO_SISTEMA",
-                            "Remoção do parâmetro " + key,
-                            () -> {
-                                auditDelete(selected, before);
-                                reload();
-                            }
-                    );
-                },
-                null
-        );
+        deleteParameter(selected);
     }
 
     private void auditChange(ParametroSistema existing,
                              Map<String, String> before,
-                             ParametroSistema saved) {
+                             ParametroSistema saved,
+                             Long empresaId) {
         var user = sessionManager.getUser();
         auditService.logAction(
                 user,
@@ -880,7 +854,7 @@ public class ParametrosSistemaView extends VBox {
                 String.valueOf(saved.getId()),
                 "Parâmetro " + saved.getChave(),
                 before,
-                snapshot(saved),
+                snapshot(saved, empresaId),
                 "ADMINISTRATOR",
                 localAddress(),
                 null,
@@ -891,7 +865,8 @@ public class ParametrosSistemaView extends VBox {
     }
 
     private void auditDelete(ParametroSistema deleted,
-                             Map<String, String> before) {
+                             Map<String, String> before,
+                             Long empresaId) {
         var user = sessionManager.getUser();
         auditService.logAction(
                 user,
@@ -908,6 +883,72 @@ public class ParametrosSistemaView extends VBox {
                 null,
                 true,
                 AuditLog.AGTComplianceLevel.HIGH
+        );
+    }
+
+    private void editFromContext(ParametroSistema parameter) {
+        if (parameter == null) {
+            return;
+        }
+        if (!can(PermissaoPerfil.Operacao.EDITAR)) {
+            showPermissionDenied("PARAMETROS/EDITAR");
+            return;
+        }
+        if (!Boolean.TRUE.equals(parameter.getEditavel())) {
+            showWarning("O parâmetro seleccionado está protegido e não pode ser editado.");
+            return;
+        }
+        editParametro(parameter);
+    }
+
+    private void deleteFromContext(ParametroSistema parameter) {
+        if (parameter == null) {
+            return;
+        }
+        if (!can(PermissaoPerfil.Operacao.APAGAR) && !isElevated()) {
+            showPermissionDenied("PARAMETROS/APAGAR");
+            return;
+        }
+        deleteParameter(parameter);
+    }
+
+    private void deleteParameter(ParametroSistema selected) {
+        if (!Boolean.TRUE.equals(selected.getEditavel())) {
+            showWarning("Este parâmetro está protegido e não pode ser removido.");
+            return;
+        }
+
+        EmpresaScope selectedScope = scopeCombo.getSelectionModel().getSelectedItem();
+        String key = nullToEmpty(selected.getChave());
+
+        modalManager.showConfirmModal(
+                new VBox(
+                        8,
+                        new Label("Tem a certeza que pretende remover este parâmetro?"),
+                        new Label("Chave: " + key),
+                        new Label(
+                                "Esta operação remove o registo da base de dados e "
+                                        + "fica registada na auditoria."
+                        )
+                ),
+                "Remover parâmetro",
+                () -> {
+                    Map<String, String> before = snapshot(selected, selectedScope);
+
+                    persistenceService.deleteAsync(
+                            parametroRepository,
+                            selected,
+                            selected.getId(),
+                            "PARAMETRO_SISTEMA",
+                            "Remoção do parâmetro " + key,
+                            () -> {
+                                auditDelete(selected, before,
+                                        selectedScope == null ? null : selectedScope.empresaId);
+                                reload();
+                            }
+                    );
+                },
+                null
         );
     }
 
@@ -983,11 +1024,13 @@ public class ParametrosSistemaView extends VBox {
                 : normalized.substring(0, maxLength);
     }
 
-    private static Map<String, String> snapshot(ParametroSistema p) {
+    private static Map<String, String> snapshot(ParametroSistema p, EmpresaScope scope) {
+        Long empresaId = scope == null ? null : scope.empresaId;
+        return snapshot(p, empresaId);
+    }
+
+    private static Map<String, String> snapshot(ParametroSistema p, Long empresaId) {
         Map<String, String> snapshot = new HashMap<>();
-        snapshot.put("empresaId", p.getEmpresa() != null && p.getEmpresa().getId() != null
-                ? String.valueOf(p.getEmpresa().getId())
-                : null);
         snapshot.put("chave", p.getChave());
         snapshot.put("valor", p.getValor());
         snapshot.put("tipo", p.getTipoValor());
