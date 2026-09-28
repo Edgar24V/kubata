@@ -707,6 +707,9 @@ public class RelatoriosView extends VBox {
                     writer.write(csv(row.getDuracaoMs()));
                     writer.newLine();
                 }
+            } catch (java.io.IOException ex) {
+                throw new IllegalStateException(
+                        "Não foi possível escrever o ficheiro CSV: " + ex.getMessage(), ex);
             }
         }, "REPORT_EXPORT", "RELATORIOS",
                 "Exportação CSV do histórico de auditoria", () ->
