@@ -24,6 +24,9 @@ public class RibbonTab {
         contentPane.getStyleClass().add("ribbon-tab-content");
         contentPane.setAlignment(Pos.CENTER_LEFT);
         contentPane.setFillHeight(true);
+        contentPane.setSpacing(2);
+        contentPane.setPadding(new javafx.geometry.Insets(2, 6, 0, 6));
+        contentPane.setMinWidth(0);
 
         // Espaçador final para empurrar grupos à esquerda
         Region spacer = new Region();
