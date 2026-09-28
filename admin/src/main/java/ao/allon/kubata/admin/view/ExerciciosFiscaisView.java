@@ -31,9 +31,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 @Component
 public class ExerciciosFiscaisView extends VBox {
@@ -373,7 +371,7 @@ public class ExerciciosFiscaisView extends VBox {
                 colEmpresa, colAno, colInicio, colFim, colEstado, colActual, colObs
         );
 
-        table.setOnViewDetailsCallback(this::showDetails);
+        table.setOnViewDetails(this::showDetails);
         table.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldValue, newValue) -> showDetails(newValue));
 
@@ -689,7 +687,7 @@ public class ExerciciosFiscaisView extends VBox {
             empresaField.setValue(empresaCombo.getValue());
         } else {
             empresas.stream()
-                    .filter(Empresa::isAtiva)
+                    .filter(Empresa::getAtiva)
                     .findFirst()
                     .ifPresent(empresaField::setValue);
         }
@@ -889,11 +887,6 @@ public class ExerciciosFiscaisView extends VBox {
                         .onConfirm(action)
         );
     }
-
-    private void runOperation(String operation, Consumer<Void> ignored) {
-        // Compatibilidade interna: este overload não é utilizado.
-    }
-
     private void runOperation(String operation, Runnable action) {
         persistenceService.executeAsync(
                 action,
