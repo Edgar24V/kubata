@@ -1,55 +1,50 @@
 package ao.allon.kubata.rh.ui.util;
 
-import com.pixelduke.transit.TransitTheme;
 import com.pixelduke.transit.Style;
+import com.pixelduke.transit.TransitTheme;
 import javafx.scene.Scene;
-import java.util.Base64;
-import java.nio.charset.StandardCharsets;
 
-public class ThemeManager {
+public final class ThemeManager {
+
     private static boolean darkMode = false;
 
-    // KUBATA GREEN PALETTE
-    public static final String KUBATA_GREEN = "#2E7D32";
+    /** Cor de marca partilhada pelo ecossistema Kubata. */
+    public static final String KUBATA_GREEN = "#107C41";
+
+    private ThemeManager() {
+    }
 
     public static void applyTheme(Scene scene) {
-        if (scene != null) {
-            TransitTheme transitTheme = new TransitTheme(darkMode ? Style.DARK : Style.LIGHT);
-            transitTheme.setScene(scene);
-            
-            // Custom override for global green theme
-            scene.getRoot().setStyle(scene.getRoot().getStyle() + " -fx-accent: " + KUBATA_GREEN + ";");
+        if (scene == null) {
+            return;
+        }
 
-            // Load TabPane Office 365 styles
-            scene.getStylesheets().add(ThemeManager.class.getResource("/ao/allon/kubata/rh/ui/styles/rh-tabpane.css").toExternalForm());
+        TransitTheme transitTheme =
+                new TransitTheme(darkMode ? Style.DARK : Style.LIGHT);
+        transitTheme.setScene(scene);
 
-            // Ribbon Modern Style & Animations
-            String ribbonStyles = 
-                " .ribbon { -fx-background-color: -color-bg-subtle; -fx-border-color: -color-border-muted; -fx-border-width: 0 0 1 0; } " +
-                " .ribbon-group { -fx-padding: 5 10 5 10; -fx-border-color: transparent -color-border-muted transparent transparent; } " +
-                " .ribbon-group-title { -fx-text-fill: -color-fg-muted; -fx-font-size: 10px; } " +
-                
-                " .ribbon-button { " +
-                "    -fx-background-color: transparent; " +
-                "    -fx-background-radius: 8; " +
-                "    -fx-padding: 8 5 8 5; " +
-                "    -fx-cursor: hand; " +
-                " } " +
-                " .ribbon-button:hover { " +
-                "    -fx-background-color: " + KUBATA_GREEN + "22; " +
-                "    -fx-scale-x: 1.05; " +
-                "    -fx-scale-y: 1.05; " +
-                " } " +
-                " .ribbon-button:pressed { " +
-                "    -fx-background-color: " + KUBATA_GREEN + "44; " +
-                "    -fx-scale-x: 0.95; " +
-                "    -fx-scale-y: 0.95; " +
-                " } " +
-                " .ribbon-button .label { -fx-font-size: 11px; } " +
-                " .ribbon-button:hover .label { -fx-text-fill: " + KUBATA_GREEN + "; -fx-font-weight: bold; } ";
+        // Accent global consistente com o Admin.
+        if (scene.getRoot() != null) {
+            String currentStyle = scene.getRoot().getStyle();
+            if (currentStyle == null) {
+                currentStyle = "";
+            }
+            scene.getRoot().setStyle(currentStyle + "; -fx-accent: " + KUBATA_GREEN + ";");
+        }
 
-            String base64Styles = Base64.getEncoder().encodeToString(ribbonStyles.getBytes(StandardCharsets.UTF_8));
-            scene.getStylesheets().add("data:text/css;base64," + base64Styles);
+        addStylesheet(scene, "/ao/allon/kubata/rh/ui/styles/rh-tabpane.css");
+        addStylesheet(scene, "/ao/allon/kubata/rh/ui/styles/rh-ribbon.css");
+    }
+
+    private static void addStylesheet(Scene scene, String resource) {
+        var url = ThemeManager.class.getResource(resource);
+        if (url == null) {
+            throw new IllegalStateException("Folha de estilos não encontrada: " + resource);
+        }
+
+        String css = url.toExternalForm();
+        if (!scene.getStylesheets().contains(css)) {
+            scene.getStylesheets().add(css);
         }
     }
 
