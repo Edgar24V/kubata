@@ -1,69 +1,52 @@
 /*
- * KUBATA — Ribbon Theme
- * Excel 2024 / Microsoft 365 inspired visual language.
- *
- * PRINCÍPIOS
- * - Verde Excel como identidade do Ribbon.
- * - Superfície clara, bordas discretas e hierarquia limpa.
- * - Botões sem "cards" pesados: hover/pressed usam superfícies suaves.
- * - Compatível com a implementação atual de Ribbon/RibbonTab/RibbonGroup/RibbonButton.
- * - Sem propriedades CSS que não sejam suportadas pelo JavaFX CSS.
+ * KUBATA — Ribbon 2024 Edition
+ * Linguagem visual inspirada no Microsoft 365 / Excel 2024.
+ * A identidade visual continua a ser do Kubata.
  */
 
-/* ============================================================================
-   DESIGN TOKENS
-   ============================================================================ */
-
 .ribbon-bar {
-    -fx-background-color: #F8F9FA;
-    -fx-border-color: #D6D9DC;
+    -fx-background-color: #F7F8F7;
+    -fx-border-color: #D9DDDA;
     -fx-border-width: 0 0 1 0;
-    -kubata-excel-green: #107C41;
-    -kubata-excel-green-dark: #0B6A35;
-    -kubata-excel-green-hover: #E2F0E7;
-    -kubata-surface: #FFFFFF;
-    -kubata-surface-subtle: #F3F4F4;
-    -kubata-border: #D6D9DC;
-    -kubata-border-soft: #E6E8EA;
-    -kubata-text: #242424;
-    -kubata-text-secondary: #5F6368;
+    -kubata-ribbon-green: #107C41;
+    -kubata-ribbon-green-dark: #0B6337;
+    -kubata-ribbon-green-soft: #E7F2EB;
+    -kubata-ribbon-hover: #F2F7F4;
+    -kubata-ribbon-pressed: #DCEDE4;
+    -kubata-ribbon-border: #D7DBD8;
+    -kubata-ribbon-text: #252525;
+    -kubata-ribbon-muted: #6B6F72;
 }
 
-/* ============================================================================
-   TAB STRIP — linguagem Microsoft 365 / Excel
-   ============================================================================ */
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
 
 .ribbon-tab-strip {
     -fx-background-color: #FFFFFF;
     -fx-padding: 0 8 0 8;
     -fx-spacing: 1;
-    -fx-border-color: #E1E3E5;
+    -fx-border-color: #E2E5E3;
     -fx-border-width: 0 0 1 0;
     -fx-min-height: 34px;
     -fx-pref-height: 34px;
+    -fx-max-height: 34px;
 }
 
 .ribbon-tab-label {
     -fx-background-color: transparent;
     -fx-padding: 8 14 7 14;
-    -fx-cursor: hand;
     -fx-font-family: "Segoe UI";
     -fx-font-size: 12px;
     -fx-font-weight: normal;
-    -fx-text-fill: #424242;
+    -fx-text-fill: #3B3D3E;
     -fx-border-color: transparent;
     -fx-border-width: 0 0 2 0;
-    -fx-border-radius: 0;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
 }
 
 .ribbon-tab-label:hover {
-    -fx-background-color: #F3F4F4;
+    -fx-background-color: #F3F5F4;
     -fx-text-fill: #107C41;
-}
-
-.ribbon-tab-label:focused {
-    -fx-background-color: #F3F4F4;
-    -fx-border-color: #107C41;
 }
 
 .ribbon-tab-label-selected {
@@ -76,86 +59,70 @@
 
 .ribbon-tab-label-selected:hover {
     -fx-background-color: #FFFFFF;
-    -fx-text-fill: #0B6A35;
+    -fx-text-fill: #0B6337;
 }
 
-/* ============================================================================
-   CONTENT HOST / SCROLL
-   ============================================================================ */
+.ribbon-tab-label:focused {
+    -fx-background-color: #F3F5F4;
+    -fx-border-color: transparent transparent #107C41 transparent;
+}
+
+/* ── Content ──────────────────────────────────────────────────────────────── */
 
 .ribbon-content-host {
     -fx-background-color: #FFFFFF;
-    -fx-padding: 0;
     -fx-min-height: 104px;
     -fx-pref-height: 112px;
-    -fx-border-color: transparent;
+    -fx-max-height: 116px;
 }
 
 .ribbon-content-scroll {
     -fx-background-color: transparent;
-    -fx-background: transparent;
+    -fx-background-insets: 0;
     -fx-padding: 0;
     -fx-border-color: transparent;
 }
 
 .ribbon-content-scroll > .viewport {
     -fx-background-color: #FFFFFF;
+    -fx-padding: 0;
 }
-
-/* ============================================================================
-   TAB CONTENT
-   ============================================================================ */
 
 .ribbon-tab-content {
     -fx-background-color: #FFFFFF;
-    -fx-padding: 2 4 0 4;
+    -fx-padding: 2 2 0 2;
     -fx-spacing: 0;
 }
 
-/* ============================================================================
-   GROUPS — separadores finos como no Office
-   ============================================================================ */
+/* ── Groups ───────────────────────────────────────────────────────────────── */
 
 .ribbon-group {
     -fx-background-color: transparent;
-    -fx-border-color: transparent #E0E2E4 transparent transparent;
+    -fx-border-color: transparent #E0E3E1 transparent transparent;
     -fx-border-width: 0 1 0 0;
-    -fx-padding: 3 8 0 8;
-    -fx-alignment: top-center;
-    -fx-min-height: 102px;
+    -fx-padding: 2 7 0 7;
+    -fx-alignment: TOP_CENTER;
+    -fx-min-height: 104px;
     -fx-pref-height: 108px;
-}
-
-.ribbon-group:last-child {
-    -fx-border-color: transparent;
 }
 
 .ribbon-group-title {
     -fx-font-family: "Segoe UI";
     -fx-font-size: 10px;
     -fx-font-weight: normal;
-    -fx-text-fill: #6B6F73;
-    -fx-alignment: center;
+    -fx-text-fill: #6B6F72;
+    -fx-alignment: CENTER;
     -fx-min-height: 18px;
     -fx-pref-height: 18px;
     -fx-max-height: 18px;
-    -fx-padding: 2 5 3 5;
-}
-
-.ribbon-group-separator {
-    -fx-background-color: #ECEDEE;
-    -fx-min-height: 1px;
-    -fx-pref-height: 1px;
-    -fx-max-height: 1px;
 }
 
 .ribbon-column-container {
-    -fx-spacing: 1;
-    -fx-padding: 1 2 0 2;
+    -fx-spacing: 1px;
 }
 
 .ribbon-column-separator {
-    -fx-background-color: #ECEDEE;
+    -fx-background-color: #EAECEB;
     -fx-min-width: 1px;
     -fx-pref-width: 1px;
     -fx-max-width: 1px;
@@ -163,9 +130,7 @@
     -fx-pref-height: 70px;
 }
 
-/* ============================================================================
-   BUTTON BASE
-   ============================================================================ */
+/* ── Command buttons ──────────────────────────────────────────────────────── */
 
 .ribbon-button {
     -fx-background-color: transparent;
@@ -180,11 +145,11 @@
 
 .ribbon-button:hover {
     -fx-background-color: #F1F6F3;
-    -fx-border-color: #C9DED0;
+    -fx-border-color: #C8DDD0;
 }
 
 .ribbon-button:pressed {
-    -fx-background-color: #DCEDE3;
+    -fx-background-color: #DCEDE4;
     -fx-border-color: #107C41;
 }
 
@@ -198,13 +163,11 @@
 
 .ribbon-button-selected,
 .ribbon-button-selected:hover {
-    -fx-background-color: #E2F0E7;
+    -fx-background-color: #E5F1E9;
     -fx-border-color: #A9CDB7;
 }
 
-/* ============================================================================
-   LARGE BUTTON — comando principal
-   ============================================================================ */
+/* ── Large command ───────────────────────────────────────────────────────── */
 
 .ribbon-button-tile {
     -fx-min-width: 70px;
@@ -212,42 +175,36 @@
     -fx-max-width: 70px;
     -fx-min-height: 82px;
     -fx-pref-height: 88px;
-    -fx-max-height: 92px;
-    -fx-alignment: top-center;
-}
-
-.ribbon-button-tile:hover {
-    -fx-background-color: #F1F6F3;
+    -fx-max-height: 94px;
+    -fx-alignment: TOP_CENTER;
 }
 
 .ribbon-tile-icon-wrap {
     -fx-background-color: transparent;
-    -fx-background-radius: 3px;
-    -fx-padding: 6px;
+    -fx-padding: 5px;
     -fx-min-width: 42px;
     -fx-pref-width: 42px;
-    -fx-min-height: 42px;
-    -fx-pref-height: 42px;
-    -fx-border-color: transparent;
-    -fx-border-radius: 3px;
+    -fx-min-height: 40px;
+    -fx-pref-height: 40px;
 }
 
 .ribbon-button-tile:hover .ribbon-tile-icon-wrap {
-    -fx-background-color: #E7F2EB;
-    -fx-border-color: #C9DED0;
+    -fx-background-color: #EAF4EE;
+    -fx-background-radius: 3px;
 }
 
 .ribbon-button-tile:pressed .ribbon-tile-icon-wrap {
-    -fx-background-color: #D8EBDD;
+    -fx-background-color: #DCEDE4;
+    -fx-background-radius: 3px;
 }
 
 .ribbon-icon-tile {
-    -fx-icon-size: 24px;
+    -fx-icon-size: 25px;
     -fx-icon-color: #107C41;
 }
 
 .ribbon-button-text {
-    -fx-fill: #303030;
+    -fx-fill: #303234;
     -fx-font-family: "Segoe UI";
     -fx-font-size: 10.5px;
 }
@@ -256,22 +213,16 @@
     -fx-text-alignment: center;
 }
 
-/* ============================================================================
-   SMALL BUTTON — comandos secundários
-   ============================================================================ */
+/* ── Small command ───────────────────────────────────────────────────────── */
 
 .ribbon-button-small {
-    -fx-min-width: 82px;
-    -fx-pref-width: 82px;
+    -fx-min-width: 90px;
+    -fx-pref-width: 90px;
     -fx-max-width: 150px;
     -fx-min-height: 25px;
     -fx-pref-height: 25px;
-    -fx-alignment: center-left;
+    -fx-alignment: CENTER_LEFT;
     -fx-padding: 3 6 3 6;
-}
-
-.ribbon-button-small:hover {
-    -fx-background-color: #F1F6F3;
 }
 
 .ribbon-icon-small {
@@ -279,56 +230,92 @@
     -fx-icon-color: #107C41;
 }
 
-/* ============================================================================
-   TOOLTIP — aparência Office
-   ============================================================================ */
+/* ── Overflow ────────────────────────────────────────────────────────────── */
+
+.ribbon-overflow-button {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 3px;
+    -fx-border-color: #D7DBD8;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-text-fill: #107C41;
+    -fx-font-family: "Segoe UI Symbol";
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-min-width: 28px;
+    -fx-pref-width: 30px;
+    -fx-max-width: 32px;
+    -fx-min-height: 52px;
+    -fx-pref-height: 64px;
+    -fx-max-height: 72px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.ribbon-overflow-button:hover {
+    -fx-background-color: #EAF4EE;
+    -fx-border-color: #A9CDB7;
+}
+
+.ribbon-overflow-button:pressed {
+    -fx-background-color: #DCEDE4;
+    -fx-border-color: #107C41;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────────────── */
 
 .tooltip {
     -fx-background-color: #FFFFFF;
-    -fx-text-fill: #242424;
+    -fx-text-fill: #252525;
     -fx-font-family: "Segoe UI";
     -fx-font-size: 11px;
     -fx-padding: 6 9 6 9;
-    -fx-border-color: #BFC3C7;
+    -fx-border-color: #BEC4C0;
     -fx-border-width: 1px;
     -fx-border-radius: 2px;
     -fx-background-radius: 2px;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.16), 7, 0.12, 0, 2);
 }
 
-/* ============================================================================
-   OVERFLOW POPUP
-   ============================================================================ */
+/* ── Overflow popup ──────────────────────────────────────────────────────── */
 
 .ribbon-overflow-popup {
     -fx-background-color: #FFFFFF;
-    -fx-border-color: #C8CCCF;
+    -fx-border-color: #C9CECB;
     -fx-border-width: 1px;
     -fx-border-radius: 2px;
     -fx-background-radius: 2px;
-    -fx-padding: 4px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.20), 12, 0.12, 0, 4);
+    -fx-padding: 5px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 14, 0.14, 0, 4);
+}
+
+.ribbon-overflow-popup > .ribbon-group {
+    -fx-border-color: transparent transparent #E4E7E5 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 5 7 4 7;
+}
+
+.ribbon-overflow-popup > .ribbon-group:last-child {
+    -fx-border-color: transparent;
 }
 
 .ribbon-overflow-item-button {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-text-fill: #303030;
+    -fx-text-fill: #303234;
     -fx-font-family: "Segoe UI";
     -fx-font-size: 11px;
     -fx-padding: 7 10 7 10;
     -fx-cursor: hand;
-    -fx-alignment: center-left;
+    -fx-alignment: CENTER_LEFT;
 }
 
 .ribbon-overflow-item-button:hover {
-    -fx-background-color: #E7F2EB;
+    -fx-background-color: #EAF4EE;
     -fx-text-fill: #107C41;
 }
 
-/* ============================================================================
-   BACKSTAGE / FILE — caso o adaptador utilize estes estilos
-   ============================================================================ */
+/* ── Backstage / Ficheiro ────────────────────────────────────────────────── */
 
 .ribbon-file-button {
     -fx-background-color: #107C41;
@@ -391,12 +378,10 @@
     -fx-text-fill: #FFFFFF;
 }
 
-/* ============================================================================
-   COMPATIBILIDADE COM O ADAPTADOR OFFICE EXISTENTE
-   ============================================================================ */
+/* ── Legacy selectors from older adapter ─────────────────────────────────── */
 
 .ribbon-office-bar {
-    -fx-background-color: #F8F9FA;
+    -fx-background-color: #F7F8F7;
 }
 
 .ribbon-tab-header {
