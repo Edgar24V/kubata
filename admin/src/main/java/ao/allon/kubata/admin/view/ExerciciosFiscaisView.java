@@ -720,7 +720,7 @@ public class ExerciciosFiscaisView extends VBox {
                 new ModalManager.ModalConfig()
                         .title("Novo exercício fiscal")
                         .subtitle("Criação controlada do período fiscal")
-                        .icon(Feather.CALENDAR_PLUS)
+                        .icon(Feather.CALENDAR)
                         .tone(ModalManager.ModalTone.DEFAULT)
                         .size(680, 390)
                         .resizable(false)
@@ -903,7 +903,7 @@ public class ExerciciosFiscaisView extends VBox {
                 ef,
                 "EXERCICIO",
                 "Atualização das observações do exercício: " + ef.getAno(),
-                this::loadData
+                saved -> loadData()
         );
     }
 
