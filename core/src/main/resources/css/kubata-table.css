@@ -349,3 +349,85 @@
         -fx-pref-width: 220px;
     }
 }
+
+
+/* ============================================================
+   DENSIDADE DE DADOS
+   ============================================================ */
+
+.advanced-table.table-density-compact .table-row-cell {
+    -fx-cell-size: 30px;
+}
+
+.advanced-table.table-density-compact .table-cell {
+    -fx-padding: 4px 8px;
+    -fx-font-size: 11px;
+}
+
+.advanced-table.table-density-comfortable .table-row-cell {
+    -fx-cell-size: 36px;
+}
+
+.advanced-table.table-density-spacious .table-row-cell {
+    -fx-cell-size: 44px;
+}
+
+.advanced-table.table-density-spacious .table-cell {
+    -fx-padding: 8px 10px;
+}
+
+/* Selector de quantidade por página */
+.table-page-size {
+    -fx-min-width: 72px;
+    -fx-pref-width: 82px;
+    -fx-max-width: 95px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+}
+
+.table-page-size .list-cell {
+    -fx-padding: 5px 8px;
+}
+
+/* Estado de carregamento */
+.table-loading {
+    -fx-spacing: 8px;
+}
+
+.table-loading .label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -kub-table-muted-fg;
+}
+
+/* Melhor leitura de dados seleccionados */
+.advanced-table .table-row-cell:selected .table-cell {
+    -fx-text-fill: white;
+}
+
+.advanced-table .table-row-cell:selected .check-box .box {
+    -fx-background-color: rgba(255,255,255,0.96);
+    -fx-border-color: rgba(255,255,255,0.96);
+}
+
+.advanced-table .table-row-cell:selected .check-box:selected .mark {
+    -fx-background-color: -kub-table-row-selected;
+}
+
+/* Evita expansão excessiva de toolbars em ecrãs estreitos */
+.table-toolbar .label {
+    -fx-max-width: 260px;
+}
+
+@media screen and (max-width: 760px) {
+    .table-toolbar {
+        -fx-spacing: 6px;
+    }
+
+    .table-page-size {
+        -fx-pref-width: 68px;
+    }
+
+    .table-page-label {
+        -fx-font-size: 10px;
+    }
+}
