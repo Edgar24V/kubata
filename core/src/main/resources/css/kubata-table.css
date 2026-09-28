@@ -226,3 +226,126 @@
 .table-loading {
     -fx-background-color: rgba(255, 255, 255, 0.85);
 }
+
+/* ============================================================
+   CONTROLOS DA TABELA AVANÇADA — PAGINAÇÃO E ESTADOS
+   ============================================================ */
+
+.table-result-count,
+.table-page-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -kub-table-muted-fg;
+    -fx-font-weight: 600;
+}
+
+.table-pager {
+    -fx-background-color: -kub-table-bg;
+    -fx-border-color: -kub-table-border-soft transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 7px 10px;
+}
+
+.table-pager .button {
+    -fx-min-width: 32px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+    -fx-background-radius: 7px;
+    -fx-border-radius: 7px;
+}
+
+.table-pager .button:disabled {
+    -fx-opacity: 0.45;
+}
+
+.table-pager .table-page-label {
+    -fx-padding: 0 8px;
+}
+
+.table-toolbar {
+    -fx-spacing: 8px;
+    -fx-background-insets: 0;
+}
+
+.table-toolbar .button-icon {
+    -fx-min-width: 30px;
+    -fx-pref-width: 30px;
+    -fx-max-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+    -fx-max-height: 30px;
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
+}
+
+.table-loading {
+    -fx-background-color: rgba(255, 255, 255, 0.92);
+    -fx-padding: 24px;
+}
+
+.table-loading .progress-indicator {
+    -fx-progress-color: #217346;
+}
+
+.context-menu {
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 5px;
+}
+
+.context-menu .menu-item {
+    -fx-padding: 7px 12px;
+}
+
+.context-menu .menu-item:focused {
+    -fx-background-color: -kub-table-row-hover;
+}
+
+.advanced-table .placeholder .label {
+    -fx-text-fill: -kub-table-muted-fg;
+}
+
+.advanced-table .column-header .sort-order {
+    -fx-background-color: -kub-table-header-fg;
+}
+
+.advanced-table .table-row-cell:empty {
+    -fx-background-color: transparent;
+}
+
+.advanced-table .table-row-cell:selected {
+    -fx-background-color: derive(-kub-table-row-selected, 8%);
+}
+
+.advanced-table .table-row-cell:selected:hover {
+    -fx-background-color: derive(-kub-table-row-selected, 14%);
+}
+
+/* Selecção manual */
+.advanced-table .check-box {
+    -fx-padding: 0;
+}
+
+.advanced-table .check-box .box {
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: -kub-table-border;
+}
+
+.advanced-table .check-box:selected .box {
+    -fx-background-color: -kub-table-row-selected;
+    -fx-border-color: -kub-table-row-selected;
+}
+
+@media screen and (max-width: 900px) {
+    .table-result-count {
+        -fx-font-size: 10px;
+    }
+
+    .table-toolbar {
+        -fx-padding: 7px 8px;
+    }
+
+    .table-search-field {
+        -fx-pref-width: 220px;
+    }
+}
