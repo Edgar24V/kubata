@@ -49,7 +49,7 @@ public class PaginatedAdvancedTableView<S> extends AdvancedTableView<S> {
         firstBtn.setOnAction(e -> goToPage(0));
         prevBtn.setOnAction(e -> goToPage(currentPage - 1));
         nextBtn.setOnAction(e -> goToPage(currentPage + 1));
-        lastBtn.setOnAction(e -> goToPage(getPageCount() - 1));
+        lastBtn.setOnAction(e -> goToPage(calculatePageCount() - 1));
 
         pageSizeBox.setValue(pageSize);
         pageSizeBox.setOnAction(e -> {
@@ -84,7 +84,7 @@ public class PaginatedAdvancedTableView<S> extends AdvancedTableView<S> {
             return;
         }
 
-        int pages = getPageCount();
+        int pages = calculatePageCount();
         currentPage = Math.max(0, Math.min(page, pages - 1));
         
         int from = currentPage * pageSize;
@@ -105,7 +105,7 @@ public class PaginatedAdvancedTableView<S> extends AdvancedTableView<S> {
         lastBtn.setDisable(current >= total - 1);
     }
 
-    private int getPageCount() {
+    private int calculatePageCount() {
         if (fullData == null || fullData.isEmpty()) return 0;
         return (int) Math.ceil((double) fullData.size() / pageSize);
     }
