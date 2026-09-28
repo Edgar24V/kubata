@@ -1,0 +1,163 @@
+/*
+ * KUBATA RH — Ribbon Office 2024
+ * Visual alinhado com o Ribbon do módulo Admin.
+ *
+ * O FXRibbon da PixelDuke expõe as classes .ribbon, .ribbon-group e
+ * .ribbon-button; este ficheiro funciona como camada visual do Kubata.
+ */
+
+.root {
+    -kubata-ribbon-green: #107C41;
+    -kubata-ribbon-green-dark: #0B6337;
+    -kubata-ribbon-hover: #F1F6F3;
+    -kubata-ribbon-pressed: #DCEDE4;
+    -kubata-ribbon-border: #D7DBD8;
+    -kubata-ribbon-text: #303234;
+    -kubata-ribbon-muted: #6B6F72;
+}
+
+/* Ribbon principal */
+.ribbon {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #D9DDDA;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0;
+    -fx-spacing: 0;
+}
+
+/* Cabeçalho das tabs do FXRibbon */
+.ribbon .tab-header-area {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 0 8px 0 8px;
+}
+
+.ribbon .tab-header-background {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: transparent transparent #E2E5E3 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.ribbon .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-padding: 8px 14px 7px 14px;
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 2px 0;
+}
+
+.ribbon .tab:hover {
+    -fx-background-color: #F3F5F4;
+}
+
+.ribbon .tab:selected {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: transparent transparent #107C41 transparent;
+    -fx-border-width: 0 0 2px 0;
+}
+
+.ribbon .tab .tab-label {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 12px;
+    -fx-font-weight: normal;
+    -fx-text-fill: #3B3D3E;
+}
+
+.ribbon .tab:selected .tab-label {
+    -fx-text-fill: #107C41;
+    -fx-font-weight: bold;
+}
+
+/* Conteúdo */
+.ribbon .tab-content-area {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 0;
+}
+
+/* Grupos */
+.ribbon-group {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent #E0E3E1 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 4px 9px 3px 9px;
+}
+
+.ribbon-group-title {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 10px;
+    -fx-font-weight: normal;
+    -fx-text-fill: #6B6F72;
+}
+
+/* Comandos */
+.ribbon-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+    -fx-padding: 5px 7px 5px 7px;
+    -fx-cursor: hand;
+    -fx-font-family: "Segoe UI";
+}
+
+.ribbon-button:hover {
+    -fx-background-color: #F1F6F3;
+    -fx-border-color: #C8DDD0;
+}
+
+.ribbon-button:pressed {
+    -fx-background-color: #DCEDE4;
+    -fx-border-color: #107C41;
+}
+
+.ribbon-button .label {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #303234;
+}
+
+.ribbon-button:hover .label {
+    -fx-text-fill: #107C41;
+}
+
+.ribbon-button:disabled {
+    -fx-opacity: 0.42;
+}
+
+/* Ícones Ikonli */
+.ribbon-button .ikonli-font-icon {
+    -fx-icon-color: #107C41;
+}
+
+/* Botões de controlo do cabeçalho do FXRibbon */
+.ribbon .control-buttons-tab {
+    -fx-background-color: #FFFFFF;
+}
+
+.ribbon .control-buttons-tab .container {
+    -fx-background-color: #FFFFFF;
+}
+
+.ribbon .arrow,
+.ribbon .control-buttons-tab .arrow {
+    -fx-background-color: #107C41;
+}
+
+/* Ribbon compacto quando a janela fica menor */
+@media only screen and (max-width: 1100px) {
+    .ribbon .tab {
+        -fx-padding: 7px 10px 6px 10px;
+    }
+
+    .ribbon .tab .tab-label {
+        -fx-font-size: 11px;
+    }
+
+    .ribbon-group {
+        -fx-padding: 3px 6px 2px 6px;
+    }
+
+    .ribbon-button {
+        -fx-padding: 4px 5px 4px 5px;
+    }
+}
