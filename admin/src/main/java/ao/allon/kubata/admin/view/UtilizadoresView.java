@@ -38,7 +38,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -513,6 +513,31 @@ public class UtilizadoresView extends VBox {
     }
 
     private String generateRandomPassword() {
-        return "Admin@" + (1000 + new Random().nextInt(9000));
+        SecureRandom random = new SecureRandom();
+        final String upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        final String lower = "abcdefghijkmnopqrstuvwxyz";
+        final String digits = "23456789";
+        final String symbols = "@#$%&*!";
+
+        StringBuilder password = new StringBuilder(12);
+        password.append(upper.charAt(random.nextInt(upper.length())));
+        password.append(lower.charAt(random.nextInt(lower.length())));
+        password.append(digits.charAt(random.nextInt(digits.length())));
+        password.append(symbols.charAt(random.nextInt(symbols.length())));
+
+        String alphabet = upper + lower + digits + symbols;
+        while (password.length() < 12) {
+            password.append(alphabet.charAt(random.nextInt(alphabet.length())));
+        }
+
+        char[] chars = password.toString().toCharArray();
+        for (int i = chars.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char tmp = chars[i];
+            chars[i] = chars[j];
+            chars[j] = tmp;
+        }
+
+        return new String(chars);
     }
 }
