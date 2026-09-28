@@ -126,6 +126,8 @@ public class AdvancedTableView<S> extends TableView<S> {
         previousPageButton.setOnAction(e -> previousPage());
         nextPageButton.setOnAction(e -> nextPage());
 
+        installKeyboardShortcuts();
+
         getSortOrder().addListener((ListChangeListener<TableColumn<S, ?>>) change -> {
             updateSortIndicator();
 
@@ -148,6 +150,21 @@ public class AdvancedTableView<S> extends TableView<S> {
     public AdvancedTableView(ObservableList<S> items) {
         this();
         setData(items);
+    }
+
+    private void installKeyboardShortcuts() {
+        addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
+            if (event.isControlDown() && event.getCode() == KeyCode.F) {
+                if (activeSearchField != null) {
+                    activeSearchField.requestFocus();
+                    activeSearchField.selectAll();
+                }
+                event.consume();
+            } else if (event.isControlDown() && event.getCode() == KeyCode.C) {
+                copySelectionToClipboard();
+                event.consume();
+            }
+        });
     }
 
     /**
@@ -277,10 +294,7 @@ public class AdvancedTableView<S> extends TableView<S> {
         this.remoteSortColumn = "";
         this.remoteSortDirection = SortDirection.ASC;
 
-        if (activeLoader != null) {
-            activeLoader.shutdownNow();
-        }
-
+        cancelActiveOperation();
         setItems(FXCollections.observableArrayList());
         filteredData = null;
         selectedItems.clear();
@@ -382,18 +396,10 @@ public class AdvancedTableView<S> extends TableView<S> {
 
         long requestId = requestSequence.incrementAndGet();
 
-        if (activeLoader != null) {
-            activeLoader.shutdownNow();
-        }
-
-        activeLoader = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "kubata-table-page");
-            thread.setDaemon(true);
-            return thread;
-        });
+        cancelActiveOperation();
 
         setLoading(true);
-        activeLoader.submit(() -> {
+        activeOperation = PAGE_EXECUTOR.submit(() -> {
             try {
                 PageResult<S> result = provider.load(
                         new PageRequest(
@@ -460,6 +466,17 @@ public class AdvancedTableView<S> extends TableView<S> {
     }
 
     /**
+     * Cancela a operação assíncrona actual.
+     */
+    public void cancelActiveOperation() {
+        Future<?> operation = activeOperation;
+        if (operation != null && !operation.isDone()) {
+            operation.cancel(true);
+        }
+        activeOperation = null;
+    }
+
+    /**
      * Define um filtro remoto. O PageProvider recebe-o na próxima página.
      */
     public void setRemoteFilter(String filter) {
@@ -511,6 +528,7 @@ public class AdvancedTableView<S> extends TableView<S> {
      */
     public VBox withSearchBar() {
         TextField searchField = new TextField();
+        activeSearchField = searchField;
         searchField.setPromptText("Pesquisar...");
         searchField.getStyleClass().add("table-search-field");
         searchField.setPrefWidth(300);
@@ -555,11 +573,15 @@ public class AdvancedTableView<S> extends TableView<S> {
         resultCountLabel.getStyleClass().add("table-result-count");
         updatePagerState();
 
+        pageSizeCombo = createPageSizeCombo();
+
         HBox toolbar = new HBox(
                 10,
                 new Label("Pesquisar:"),
                 searchBox,
-                resultCountLabel
+                resultCountLabel,
+                new Label("Por página:"),
+                pageSizeCombo
         );
         toolbar.setPadding(new Insets(7, 8, 7, 8));
         toolbar.getStyleClass().add("table-toolbar");
@@ -735,6 +757,18 @@ public class AdvancedTableView<S> extends TableView<S> {
         setContextMenu(contextMenu);
     }
 
+    private ComboBox<Integer> createPageSizeCombo() {
+        ComboBox<Integer> combo = new ComboBox<>(
+                FXCollections.observableArrayList(50, 100, 250, 500, 1000)
+        );
+        combo.setValue(pageSize);
+        combo.setPrefWidth(84);
+        combo.setAccessibleText("Registos por página");
+        combo.setOnAction(e -> setPageSize(combo.getValue()));
+        combo.getStyleClass().add("table-page-size");
+        return combo;
+    }
+
     private void populateColumnsMenu(Menu columnsMenu) {
         columnsMenu.getItems().clear();
 
@@ -860,17 +894,9 @@ public class AdvancedTableView<S> extends TableView<S> {
         setLoading(true);
         long requestId = requestSequence.incrementAndGet();
 
-        if (activeLoader != null) {
-            activeLoader.shutdownNow();
-        }
+        cancelActiveOperation();
 
-        activeLoader = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "kubata-table-export");
-            thread.setDaemon(true);
-            return thread;
-        });
-
-        activeLoader.submit(() -> {
+        activeOperation = PAGE_EXECUTOR.submit(() -> {
             try (BufferedWriter writer = Files.newBufferedWriter(
                     file.toPath(),
                     StandardCharsets.UTF_8
@@ -1089,10 +1115,24 @@ public class AdvancedTableView<S> extends TableView<S> {
         }
 
         if (totalItems < 0) {
-            resultCountLabel.setText("Página " + (pageIndex + 1));
-        } else {
+            long from = pageIndex * (long) pageSize + 1;
+            int loaded = getItems() == null ? 0 : getItems().size();
+            long to = from + Math.max(0, loaded - 1);
+
             resultCountLabel.setText(
-                    totalItems + (totalItems == 1 ? " registo" : " registos")
+                    loaded == 0
+                            ? "Sem resultados"
+                            : from + "–" + to + " · total desconhecido"
+            );
+        } else {
+            long from = totalItems == 0 ? 0 : pageIndex * (long) pageSize + 1;
+            int loaded = getItems() == null ? 0 : getItems().size();
+            long to = Math.min(totalItems, from + Math.max(0, loaded - 1));
+
+            resultCountLabel.setText(
+                    totalItems == 0
+                            ? "0 registos"
+                            : from + "–" + to + " de " + totalItems
             );
         }
 
