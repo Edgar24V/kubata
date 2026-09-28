@@ -9,84 +9,98 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Construtor de menus dinâmicos baseado nos módulos carregados.
- * Cria menus JavaFX para cada módulo registrado.
+ *
+ * O componente não decide qual janela concreta deve abrir para "Gerenciar";
+ * disponibiliza um handler configurável para que o shell do Administrator
+ * mantenha o controlo da navegação.
  */
 @Component
 public class ModuleMenuBuilder {
-    
+
     private final Map<String, Menu> moduleMenus = new HashMap<>();
     private final Map<String, MenuItemClickHandler> clickHandlers = new HashMap<>();
-    
-    /**
-     * Constrói o menu para um módulo.
-     */
+    private ModuleManageHandler moduleManageHandler;
+
     public Menu buildModuleMenu(KubataModule module) {
+        Objects.requireNonNull(module, "module");
+
         Menu menu = new Menu(module.getModuleName());
         menu.setGraphic(module.getModuleIcon());
-        
-        // Adiciona views como itens de menu
+
         for (ModuleView view : module.getModuleViews()) {
             MenuItem item = new MenuItem(view.viewName());
-            item.setOnAction(e -> handleViewClick(module.getModuleId(), view.viewId()));
+            item.setOnAction(e ->
+                    handleViewClick(module.getModuleId(), view.viewId()));
             menu.getItems().add(item);
         }
-        
-        // Adiciona separador se houver views
+
         if (!module.getModuleViews().isEmpty()) {
             menu.getItems().add(new SeparatorMenuItem());
         }
-        
-        // Adiciona opção de gerenciar módulo
+
         MenuItem manageItem = new MenuItem("Gerenciar Módulo");
-        manageItem.setOnAction(e -> handleManageModule(module.getModuleId()));
+        manageItem.setOnAction(e -> handleManageModule(module));
         menu.getItems().add(manageItem);
-        
+
         moduleMenus.put(module.getModuleId(), menu);
         return menu;
     }
-    
-    /**
-     * Remove o menu de um módulo.
-     */
+
     public void removeModuleMenu(String moduleId) {
-        moduleMenus.remove(moduleId);
+        if (moduleId != null) {
+            moduleMenus.remove(moduleId);
+        }
     }
-    
-    /**
-     * Atualiza o menu de um módulo.
-     */
+
     public void updateModuleMenu(KubataModule module) {
+        Objects.requireNonNull(module, "module");
         removeModuleMenu(module.getModuleId());
         buildModuleMenu(module);
     }
-    
-    /**
-     * Registra um handler para cliques em views.
-     */
-    public void registerViewClickHandler(String viewId, MenuItemClickHandler handler) {
-        clickHandlers.put(viewId, handler);
+
+    public void registerViewClickHandler(
+            String viewId,
+            MenuItemClickHandler handler) {
+
+        if (viewId == null || viewId.isBlank()) {
+            throw new IllegalArgumentException("viewId é obrigatório.");
+        }
+
+        if (handler == null) {
+            clickHandlers.remove(viewId);
+        } else {
+            clickHandlers.put(viewId, handler);
+        }
     }
-    
+
+    public void setModuleManageHandler(ModuleManageHandler handler) {
+        this.moduleManageHandler = handler;
+    }
+
     private void handleViewClick(String moduleId, String viewId) {
         MenuItemClickHandler handler = clickHandlers.get(viewId);
         if (handler != null) {
             handler.onClick(moduleId, viewId);
         }
     }
-    
-    private void handleManageModule(String moduleId) {
-        System.out.println("Manage module: " + moduleId);
-        // TODO: Abrir tela de gestão do módulo
+
+    private void handleManageModule(KubataModule module) {
+        if (moduleManageHandler != null) {
+            moduleManageHandler.onManage(module);
+        }
     }
-    
-    /**
-     * Interface para handlers de clique em menus.
-     */
+
     @FunctionalInterface
     public interface MenuItemClickHandler {
         void onClick(String moduleId, String viewId);
+    }
+
+    @FunctionalInterface
+    public interface ModuleManageHandler {
+        void onManage(KubataModule module);
     }
 }
