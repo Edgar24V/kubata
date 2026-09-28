@@ -28,16 +28,26 @@ public final class TableUtils {
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         table.setTableMenuButtonVisible(true);
         
-        // Carrega o CSS global do Core se disponível
-        /*String css = TableUtils.class.getResource("/css/kubata-table.css") != null 
-            ? TableUtils.class.getResource("/css/kubata-table.css").toExternalForm() 
-            : null;
-        if (css != null && !table.getStylesheets().contains(css)) {
-            table.getStylesheets().add(css);
-        }*/
-        
+        loadKubataTableCss(table);
+
         // Ativa o ajuste inteligente para preencher espaço se houver sobra
         applySmartResize(table);
+    }
+
+    private static void loadKubataTableCss(TableView<?> table) {
+        try {
+            var resource = TableUtils.class.getResource("/css/kubata-table.css");
+            if (resource == null) {
+                return;
+            }
+
+            String css = resource.toExternalForm();
+            if (!table.getStylesheets().contains(css)) {
+                table.getStylesheets().add(css);
+            }
+        } catch (RuntimeException ignored) {
+            // A tabela continua funcional mesmo sem o recurso visual.
+        }
     }
 
     /**
