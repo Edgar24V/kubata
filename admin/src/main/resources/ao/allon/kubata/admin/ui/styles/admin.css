@@ -5706,3 +5706,27 @@ Text {
 .extensibilidade-view {
     -fx-background-color: -color-bg-subtle;
 }
+
+
+.console-log-badge {
+    -fx-padding: 3px 7px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+}
+
+.console-log-info {
+    -fx-background-color: rgba(16, 124, 65, 0.10);
+    -fx-text-fill: #107C41;
+}
+
+.console-log-warning {
+    -fx-background-color: rgba(237, 156, 20, 0.12);
+    -fx-text-fill: #9A6500;
+}
+
+.console-log-error {
+    -fx-background-color: rgba(211, 47, 47, 0.10);
+    -fx-text-fill: #C62828;
+}
