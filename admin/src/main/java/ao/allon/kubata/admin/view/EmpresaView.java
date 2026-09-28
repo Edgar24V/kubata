@@ -509,6 +509,14 @@ public class EmpresaView extends VBox {
         openWizard(selected);
     }
 
+    /**
+     * Compatibilidade com chamadas antigas do Ribbon e de outras views.
+     * Nova empresa abre directamente o Assistente de Instalação.
+     */
+    public void showEmpresaDialog(Empresa empresa) {
+        openWizard(empresa == null ? new Empresa() : empresa);
+    }
+
     private void openWizard(Empresa empresa) {
         empresaWizardView.start(empresa, this::loadEmpresas);
     }
