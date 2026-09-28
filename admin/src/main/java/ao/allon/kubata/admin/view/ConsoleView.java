@@ -87,6 +87,7 @@ public class ConsoleView extends VBox {
     private Label lblErrorCount;
     private Label lblUptime;
     private Label lblDBStatus;
+    private Label maintenanceStatusLabel;
     
     // Performance Chart Data
     private XYChart.Series<Number, Number> cpuSeries = new XYChart.Series<>();
