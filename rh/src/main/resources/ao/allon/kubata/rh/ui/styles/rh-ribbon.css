@@ -140,3 +140,17 @@
 
 /* O FXRibbon já gere a redução/overflow estrutural quando necessário.
    O CSS mantém o mesmo DNA visual em qualquer largura. */
+
+
+/* ── Status bar: mesma assinatura visual do Admin ─────────────────────────── */
+.rh-status-bar {
+    -fx-background-color: #107C41;
+    -fx-border-color: transparent;
+    -fx-padding: 4px 12px 4px 12px;
+}
+
+.rh-status-label {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 11px;
+}
