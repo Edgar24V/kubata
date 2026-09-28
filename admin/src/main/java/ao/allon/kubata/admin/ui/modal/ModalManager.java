@@ -148,6 +148,13 @@ public class ModalManager {
             return this;
         }
 
+        public ModalConfig singleButton(String text) {
+            this.showConfirmButtons = true;
+            this.confirmText = text == null ? "OK" : text;
+            this.cancelText = "";
+            return this;
+        }
+
         public ModalConfig confirmStyle(String styleClass) {
             this.confirmStyleClass = styleClass == null ? "button-primary" : styleClass;
             return this;
@@ -341,16 +348,17 @@ public class ModalManager {
             );
         });
         task.setOnCancelled(event -> closeLoading(targetPane));
+
+        Thread worker = new Thread(task, "kubata-modal-task");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private void closeLoading(JMetroModalPane targetPane) {
         Platform.runLater(() -> {
             targetPane.hide();
-            if (currentLoadingModal != null && currentLoadingModal.getParent() == null) {
-                currentLoadingModal = null;
-            } else {
-                currentLoadingModal = null;
-            }
+            currentLoadingModal = null;
+            resetModalPersistence();
         });
     }
 
@@ -590,17 +598,6 @@ public class ModalManager {
         HBox buttonBox = new HBox(8);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
 
-        Button cancelButton = new Button(
-                config.cancelText,
-                IconUtils.icon(Feather.X, 12)
-        );
-        cancelButton.getStyleClass().add(config.cancelStyleClass);
-        cancelButton.setOnAction(event -> {
-            config.onCancel.run();
-            targetPane.hide();
-            resetModalPersistence();
-        });
-
         Button confirmButton = new Button(
                 config.confirmText,
                 IconUtils.icon(
@@ -629,7 +626,21 @@ public class ModalManager {
             }
         });
 
-        buttonBox.getChildren().addAll(cancelButton, confirmButton);
+        if (config.cancelText != null && !config.cancelText.isBlank()) {
+            Button cancelButton = new Button(
+                    config.cancelText,
+                    IconUtils.icon(Feather.X, 12)
+            );
+            cancelButton.getStyleClass().add(config.cancelStyleClass);
+            cancelButton.setOnAction(event -> {
+                config.onCancel.run();
+                targetPane.hide();
+                resetModalPersistence();
+            });
+            buttonBox.getChildren().add(cancelButton);
+        }
+
+        buttonBox.getChildren().add(confirmButton);
         return buttonBox;
     }
 
@@ -744,7 +755,7 @@ public class ModalManager {
                         .title(title)
                         .icon(icon)
                         .tone(tone)
-                        .withConfirmButtons("OK", "")
+                        .singleButton("OK")
                         .confirmStyle("button-primary")
                         .cancelStyle("button-outlined")
         );
@@ -853,7 +864,7 @@ public class ModalManager {
                         .title(title)
                         .icon(icon)
                         .tone(tone)
-                        .withConfirmButtons("OK", "Fechar")
+                        .singleButton("OK")
                         .confirmStyle(tone == ModalTone.DANGER
                                 ? "button-danger"
                                 : "button-primary")
