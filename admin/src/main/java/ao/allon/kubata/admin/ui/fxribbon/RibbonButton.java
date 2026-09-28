@@ -1,5 +1,6 @@
 package ao.allon.kubata.admin.ui.fxribbon;
 
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -77,9 +78,16 @@ public class RibbonButton extends Button {
         text.setAlignment(Pos.CENTER);
         text.setWrapText(true);
         text.setTextOverrun(OverrunStyle.ELLIPSIS);
-        text.setMaxWidth(Double.MAX_VALUE);
         text.setMinWidth(0);
         text.setMaxHeight(34);
+        text.prefWidthProperty().bind(
+                Bindings.createDoubleBinding(
+                        () -> Math.max(28, getWidth() - 12),
+                        widthProperty()));
+        text.maxWidthProperty().bind(
+                Bindings.createDoubleBinding(
+                        () -> Math.max(28, getWidth() - 12),
+                        widthProperty()));
         VBox.setVgrow(text, javafx.scene.layout.Priority.NEVER);
 
         content.getChildren().addAll(iconWrap, text);
@@ -107,9 +115,16 @@ public class RibbonButton extends Button {
         text.setAlignment(Pos.CENTER_LEFT);
         text.setWrapText(true);
         text.setTextOverrun(OverrunStyle.ELLIPSIS);
-        text.setMaxWidth(Double.MAX_VALUE);
         text.setMinWidth(0);
-        text.setMaxHeight(24);
+        text.setMaxHeight(28);
+        text.prefWidthProperty().bind(
+                Bindings.createDoubleBinding(
+                        () -> Math.max(36, getWidth() - 38),
+                        widthProperty()));
+        text.maxWidthProperty().bind(
+                Bindings.createDoubleBinding(
+                        () -> Math.max(36, getWidth() - 38),
+                        widthProperty()));
 
         HBox.setHgrow(text, javafx.scene.layout.Priority.ALWAYS);
         content.getChildren().add(text);
