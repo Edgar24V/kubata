@@ -33,21 +33,28 @@ public class RibbonGroup extends VBox {
         getStyleClass().add("ribbon-group");
         setFillWidth(true);
         setAlignment(Pos.TOP_CENTER);
+        setMinWidth(0);
         setMaxHeight(Double.MAX_VALUE);
 
         contentBox = new HBox(2);
         contentBox.setAlignment(Pos.CENTER_LEFT);
-        contentBox.setPadding(new Insets(3, 5, 2, 5));
+        contentBox.setPadding(new Insets(4, 7, 3, 7));
+        contentBox.setMinWidth(0);
+        contentBox.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(contentBox, Priority.NEVER);
 
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("ribbon-group-title");
         titleLabel.setMaxWidth(Double.MAX_VALUE);
+        titleLabel.setWrapText(true);
         titleLabel.setAlignment(Pos.CENTER);
-        titleLabel.setPadding(new Insets(2, 4, 3, 4));
+        titleLabel.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
+        titleLabel.setPadding(new Insets(3, 7, 3, 7));
 
         VBox titleArea = new VBox();
         titleArea.setAlignment(Pos.BOTTOM_CENTER);
+        titleArea.setMinWidth(0);
+        titleArea.setMaxWidth(Double.MAX_VALUE);
         titleArea.getChildren().add(titleLabel);
 
         getChildren().addAll(contentBox, titleArea);
@@ -67,6 +74,9 @@ public class RibbonGroup extends VBox {
 
         VBox column = new VBox(1);
         column.setAlignment(Pos.TOP_LEFT);
+        column.setFillWidth(true);
+        column.setMinWidth(0);
+        column.setMaxWidth(Double.MAX_VALUE);
         column.getStyleClass().add("ribbon-column-container");
 
         for (RibbonButton btn : buttons) {
