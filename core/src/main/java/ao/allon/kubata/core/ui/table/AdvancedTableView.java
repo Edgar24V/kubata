@@ -976,10 +976,9 @@ public class AdvancedTableView<S> extends TableView<S> {
             return;
         }
 
-        setLoading(true);
-        long requestId = requestSequence.incrementAndGet();
-
         cancelActiveOperation();
+        long requestId = requestSequence.incrementAndGet();
+        setLoading(true);
 
         activeOperation = PAGE_EXECUTOR.submit(() -> {
             try (BufferedWriter writer = Files.newBufferedWriter(
