@@ -1,6 +1,7 @@
 package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.service.NotificationService;
+import ao.allon.kubata.admin.service.ModuleInstallationService;
 import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
@@ -55,6 +56,7 @@ public class ApplicationView extends VBox {
     private final ParametroSistemaRepository parametroRepository;
     private final ObjectProvider<Flyway> flywayProvider;
     private final ModuleRegistry moduleRegistry;
+    private final ModuleInstallationService moduleInstallationService;
     private final DataSource dataSource;
 
     private final TabPane tabPane = new TabPane();
@@ -71,6 +73,7 @@ public class ApplicationView extends VBox {
                            ParametroSistemaRepository parametroRepository,
                            ObjectProvider<Flyway> flywayProvider,
                            ModuleRegistry moduleRegistry,
+                           ModuleInstallationService moduleInstallationService,
                            DataSource dataSource) {
         this.moduloRepository = moduloRepository;
         this.modalManager = modalManager;
@@ -79,6 +82,7 @@ public class ApplicationView extends VBox {
         this.parametroRepository = parametroRepository;
         this.flywayProvider = flywayProvider;
         this.moduleRegistry = moduleRegistry;
+        this.moduleInstallationService = moduleInstallationService;
         this.dataSource = dataSource;
 
         buildUI();
@@ -137,53 +141,250 @@ public class ApplicationView extends VBox {
     }
 
     private Node buildModulesTab() {
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(15));
+
+        HBox heading = new HBox(10);
+        heading.setAlignment(Pos.CENTER_LEFT);
+
+        VBox headingText = new VBox(2);
+        Label title = new Label("Módulos Kubata registados no runtime");
+        title.getStyleClass().add("h4");
+        Label subtitle = new Label(
+                "O catálogo é construído a partir dos módulos reais registados pelo Spring/ModuleRegistry."
+        );
+        subtitle.getStyleClass().add("text-muted");
+        subtitle.setWrapText(true);
+        headingText.getChildren().addAll(title, subtitle);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button btnSync = new Button(
+                "Sincronizar Módulos",
+                IconUtils.icon(Feather.REFRESH_CW, 13)
+        );
+        btnSync.getStyleClass().add("button-outlined");
+        btnSync.setOnAction(e -> synchronizeModules());
+
+        heading.getChildren().addAll(headingText, spacer, btnSync);
+
         AdvancedTableView<ModuloSistema> table = new AdvancedTableView<>(modulos);
         TableUtils.standardize(table);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
-        table.getColumns().add(TableUtils.createTextColumn("Módulo", m -> new SimpleStringProperty(m.getValue().getNome())));
-        table.getColumns().add(TableUtils.createTextColumn("Código", m -> new SimpleStringProperty(m.getValue().getCodigo())));
-        table.getColumns().add(TableUtils.createTextColumn("Versão", m -> new SimpleStringProperty(m.getValue().getVersao())));
-        
-        TableColumn<ModuloSistema, String> colStatus = new TableColumn<>("Estado");
-        colStatus.setCellValueFactory(m -> new SimpleStringProperty(m.getValue().getEstado().toString()));
-        colStatus.setCellFactory(col -> new TableCell<>() {
+        TableColumn<ModuloSistema, String> colModule = TableUtils.createTextColumn(
+                "Módulo",
+                m -> new SimpleStringProperty(m.getValue().getNome())
+        );
+        colModule.setPrefWidth(185);
+
+        TableColumn<ModuloSistema, String> colCode = TableUtils.createTextColumn(
+                "Código",
+                m -> new SimpleStringProperty(m.getValue().getCodigo())
+        );
+        colCode.setPrefWidth(100);
+
+        TableColumn<ModuloSistema, String> colVersion = TableUtils.createTextColumn(
+                "Versão",
+                m -> new SimpleStringProperty(m.getValue().getVersao())
+        );
+        colVersion.setPrefWidth(85);
+
+        TableColumn<ModuloSistema, String> colViews = new TableColumn<>("Funcionalidades");
+        colViews.setCellValueFactory(cell -> {
+            ModuloSistema modulo = cell.getValue();
+            int count = moduleRegistry.getModule(modulo.getCodigo())
+                    .map(m -> m.getModuleViews().size())
+                    .orElse(0);
+            return new SimpleStringProperty(String.valueOf(count));
+        });
+        colViews.setPrefWidth(105);
+
+        TableColumn<ModuloSistema, String> colRuntime = new TableColumn<>("Runtime");
+        colRuntime.setCellValueFactory(cell -> {
+            ModuloSistema modulo = cell.getValue();
+            boolean registered = moduleRegistry.isModuleRegistered(modulo.getCodigo());
+            return new SimpleStringProperty(registered ? "Registado" : "Não registado");
+        });
+        colRuntime.setCellFactory(column -> new TableCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setGraphic(null);
-                } else {
-                    Label lbl = new Label(item.toUpperCase());
-                    lbl.getStyleClass().add("badge");
-                    if (item.contains("Activo")) lbl.getStyleClass().add("badge-success");
-                    else if (item.contains("Pendente")) lbl.getStyleClass().add("badge-warning");
-                    else lbl.getStyleClass().add("badge-info");
-                    setGraphic(lbl);
+                    return;
                 }
+
+                Label badge = new Label(item);
+                badge.getStyleClass().addAll(
+                        "badge",
+                        "badge-".concat("Registado".equals(item) ? "success" : "danger")
+                );
+                setGraphic(badge);
             }
         });
-        table.getColumns().add(colStatus);
+        colRuntime.setPrefWidth(110);
+
+        TableColumn<ModuloSistema, String> colStatus = new TableColumn<>("Estado");
+        colStatus.setCellValueFactory(cell ->
+                new SimpleStringProperty(
+                        cell.getValue().getEstado() == null
+                                ? "Desconhecido"
+                                : cell.getValue().getEstado().toString()
+                )
+        );
+        colStatus.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
+                }
+
+                Label badge = new Label(item.toUpperCase());
+                badge.getStyleClass().add("badge");
+
+                if (item.equalsIgnoreCase("Activo")) {
+                    badge.getStyleClass().add("badge-success");
+                } else if (item.equalsIgnoreCase("Disponível")
+                        || item.equalsIgnoreCase("Actualização Pendente")) {
+                    badge.getStyleClass().add("badge-warning");
+                } else if (item.equalsIgnoreCase("Erro")) {
+                    badge.getStyleClass().add("badge-danger");
+                } else {
+                    badge.getStyleClass().add("badge-info");
+                }
+
+                setGraphic(badge);
+            }
+        });
+        colStatus.setPrefWidth(125);
+
+        TableColumn<ModuloSistema, String> colInstalled = new TableColumn<>("Instalado em");
+        colInstalled.setCellValueFactory(cell -> {
+            LocalDateTime installedAt = cell.getValue().getInstaladoEm();
+            return new SimpleStringProperty(
+                    installedAt == null
+                            ? "Não instalado"
+                            : installedAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+            );
+        });
+        colInstalled.setPrefWidth(130);
 
         TableColumn<ModuloSistema, Void> colActions = new TableColumn<>("Ações");
-        colActions.setCellFactory(col -> new TableCell<>() {
-            private final Button btnInit = new Button("Inicializar", IconUtils.icon(Feather.PLAY_CIRCLE, 12));
+        colActions.setCellFactory(column -> new TableCell<>() {
+            private final Button actionButton = new Button();
+
             {
-                btnInit.getStyleClass().add("button-outlined");
-                btnInit.setOnAction(e -> initializeModule(getTableView().getItems().get(getIndex())));
+                actionButton.getStyleClass().add("button-outlined");
+                actionButton.setOnAction(e -> {
+                    ModuloSistema selected = getTableView().getItems().get(getIndex());
+                    if (selected == null) {
+                        return;
+                    }
+
+                    boolean installed = selected.getEstado() == ModuloSistema.EstadoModulo.ACTIVO
+                            && selected.getInstaladoEm() != null;
+
+                    openModuleInstallation(selected, installed);
+                });
             }
+
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : btnInit);
+
+                if (empty || getIndex() < 0 || getIndex() >= getTableView().getItems().size()) {
+                    setGraphic(null);
+                    return;
+                }
+
+                ModuloSistema modulo = getTableView().getItems().get(getIndex());
+                boolean installed = modulo.getEstado() == ModuloSistema.EstadoModulo.ACTIVO
+                        && modulo.getInstaladoEm() != null;
+
+                actionButton.setText(installed ? "Reinicializar" : "Instalar");
+                actionButton.setGraphic(
+                        IconUtils.icon(
+                                installed ? Feather.REFRESH_CW : Feather.PLAY_CIRCLE,
+                                12
+                        )
+                );
+
+                setGraphic(actionButton);
                 setAlignment(Pos.CENTER);
             }
         });
-        table.getColumns().add(colActions);
+        colActions.setPrefWidth(125);
 
-        VBox content = new VBox(10, new Label("Módulos Disponíveis no Ecossistema"), table);
-        content.setPadding(new Insets(15));
+        table.getColumns().addAll(
+                colModule,
+                colCode,
+                colVersion,
+                colViews,
+                colRuntime,
+                colStatus,
+                colInstalled,
+                colActions
+        );
+
+        Label footer = new Label(
+                "Nota: os módulos são componentes reais do projecto Kubata. "
+                        + "A instalação aqui não descarrega ficheiros externos; regista o módulo, "
+                        + "executa a inicialização real e persiste o estado administrativo."
+        );
+        footer.getStyleClass().add("text-muted");
+        footer.setWrapText(true);
+
+        content.getChildren().addAll(heading, table, footer);
         VBox.setVgrow(table, Priority.ALWAYS);
         return content;
+    }
+
+    private void synchronizeModules() {
+        persistenceService.executeAsync(
+                () -> moduleInstallationService.synchronizeCatalog(),
+                "MODULE_SYNC",
+                "MODULE",
+                "Sincronização do catálogo de módulos Kubata com o ModuleRegistry",
+                this::refreshAll
+        );
+    }
+
+    private void openModuleInstallation(ModuloSistema modulo, boolean installed) {
+        if (modulo == null) {
+            return;
+        }
+
+        String action = installed ? "reinicializar" : "instalar e inicializar";
+        String details =
+                "Módulo: " + modulo.getNome() + "\n"
+                        + "Código: " + modulo.getCodigo() + "\n"
+                        + "Versão: " + modulo.getVersao() + "\n\n"
+                        + "A operação será executada contra o módulo real registado no ModuleRegistry. "
+                        + "Depois da inicialização, o estado será persistido em adm_modulo_sistema.";
+
+        modalManager.showConfirmModal(
+                new Label(details),
+                "Confirmar " + action.substring(0, 1).toUpperCase() + action.substring(1),
+                () -> persistenceService.executeAsync(
+                        () -> {
+                            if (installed) {
+                                moduleInstallationService.initializeInstalledModule(modulo.getCodigo());
+                            } else {
+                                moduleInstallationService.installAndInitialize(modulo.getCodigo());
+                            }
+                        },
+                        installed ? "MODULE_REINIT" : "MODULE_INSTALL",
+                        "MODULE",
+                        (installed ? "Reinicialização" : "Instalação")
+                                + " do módulo " + modulo.getCodigo(),
+                        this::refreshAll
+                ),
+                null
+        );
     }
 
     private Node buildDatabaseTab() {
@@ -398,8 +599,7 @@ public class ApplicationView extends VBox {
 
     private void refreshAll() {
         persistenceService.executeAsync(() -> {
-            List<ModuloSistema> mods = moduloRepository.findAll();
-
+            List<ModuloSistema> mods = moduleInstallationService.synchronizeCatalog();
             List<DatabaseUpdate> migrationRows = loadMigrationHistory();
             List<DatabaseTable> tableRows = loadDatabaseTables();
 
@@ -417,33 +617,10 @@ public class ApplicationView extends VBox {
             return;
         }
 
-        modalManager.showConfirmModal(
-                new Label(
-                        "Inicializar o módulo " + modulo.getNome() + "?\n\n"
-                                + "O módulo será inicializado através do ModuleRegistry "
-                                + "e o estado administrativo será atualizado."
-                ),
-                "Inicializar Módulo",
-                () -> persistenceService.executeAsync(() -> {
-                    var moduleOpt = moduleRegistry.getModule(modulo.getCodigo());
+        boolean installed = modulo.getEstado() == ModuloSistema.EstadoModulo.ACTIVO
+                && modulo.getInstaladoEm() != null;
 
-                    if (moduleOpt.isEmpty()) {
-                        throw new IllegalStateException(
-                                "O módulo " + modulo.getCodigo()
-                                        + " não está registado no ModuleRegistry.");
-                    }
-
-                    moduleOpt.get().initialize();
-
-                    modulo.setEstado(ModuloSistema.EstadoModulo.ACTIVO);
-                    modulo.setInstaladoEm(LocalDateTime.now());
-                    moduloRepository.save(modulo);
-                },
-                "MOD_INIT",
-                "Inicialização do módulo " + modulo.getNome(),
-                this::refreshAll),
-                null
-        );
+        openModuleInstallation(modulo, installed);
     }
 
     private void updateDatabaseSchema() {
