@@ -12,6 +12,7 @@ import ao.allon.kubata.core.module.KubataModule;
 import ao.allon.kubata.core.module.ModuleRegistry;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.ExercicioFiscalRepository;
+import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -51,6 +52,7 @@ public class EmpresaWizardView extends VBox {
     private final EmpresaRepository empresaRepository;
     private final UserRepository userRepository;
     private final ExercicioFiscalRepository exercicioFiscalRepository;
+    private final ParametroSistemaRepository parametroSistemaRepository;
     private final ModuleRegistry moduleRegistry;
     private final EmpresaSetupService empresaSetupService;
     private final PersistenceService persistenceService;
@@ -84,6 +86,7 @@ public class EmpresaWizardView extends VBox {
                              EmpresaRepository empresaRepository,
                              UserRepository userRepository,
                              ExercicioFiscalRepository exercicioFiscalRepository,
+                             ParametroSistemaRepository parametroSistemaRepository,
                              ModuleRegistry moduleRegistry,
                              EmpresaSetupService empresaSetupService,
                              PersistenceService persistenceService,
@@ -92,6 +95,7 @@ public class EmpresaWizardView extends VBox {
         this.empresaRepository = empresaRepository;
         this.userRepository = userRepository;
         this.exercicioFiscalRepository = exercicioFiscalRepository;
+        this.parametroSistemaRepository = parametroSistemaRepository;
         this.moduleRegistry = moduleRegistry;
         this.empresaSetupService = empresaSetupService;
         this.persistenceService = persistenceService;
@@ -161,6 +165,13 @@ public class EmpresaWizardView extends VBox {
         helpLabel.setWrapText(true);
         HBox.setHgrow(helpLabel, Priority.ALWAYS);
 
+        Button cancelButton = new Button("Cancelar", IconUtils.icon(Feather.X, 14));
+        cancelButton.getStyleClass().add("button-outlined");
+        cancelButton.setOnAction(e -> {
+            modalManager.setPersistent(false);
+            modalManager.hideModal();
+        });
+
         previousButton = new Button("Anterior", IconUtils.icon(Feather.ARROW_LEFT, 14));
         previousButton.getStyleClass().add("button-outlined");
         previousButton.setOnAction(e -> previousStep());
@@ -170,7 +181,7 @@ public class EmpresaWizardView extends VBox {
         nextButton.getStyleClass().add("button-primary");
         nextButton.setOnAction(e -> nextStep());
 
-        footer.getChildren().addAll(helpLabel, previousButton, nextButton);
+        footer.getChildren().addAll(helpLabel, cancelButton, previousButton, nextButton);
         getChildren().addAll(header, content, footer);
     }
 
@@ -203,6 +214,7 @@ public class EmpresaWizardView extends VBox {
         }
 
         loadExistingModuleSelection();
+        loadExistingParameters();
 
         steps.clear();
         steps.add(new WelcomeStep());
@@ -228,8 +240,38 @@ public class EmpresaWizardView extends VBox {
                 .resizable(true)
                 .closeOnOverlayClick(false)
                 .closeOnEscape(false)
-                .withConfirmButtons("", "")
                 .footerDivider(false));
+    }
+
+    private void loadExistingParameters() {
+        if (empresa.getId() == null) {
+            return;
+        }
+
+        parametroSistemaRepository.findAllByEmpresa_IdOrderByGrupoAscChaveAsc(empresa.getId())
+                .forEach(parameter -> {
+                    if (parameter.getChave() != null) {
+                        companyParameters.put(parameter.getChave(), parameter.getValor());
+                    }
+                });
+
+        backupEnabled = Boolean.parseBoolean(
+                companyParameters.getOrDefault("BACKUP_EMPRESA_ENABLED", String.valueOf(backupEnabled))
+        );
+        backupFrequency = companyParameters.getOrDefault("BACKUP_EMPRESA_FREQUENCY", backupFrequency);
+        try {
+            backupRetentionDays = Integer.parseInt(
+                    companyParameters.getOrDefault(
+                            "BACKUP_EMPRESA_RETENTION_DAYS",
+                            String.valueOf(backupRetentionDays)
+                    )
+            );
+        } catch (NumberFormatException ignored) {
+            backupRetentionDays = 30;
+        }
+        mfaAdminRequired = Boolean.parseBoolean(
+                companyParameters.getOrDefault("MFA_ADMIN_REQUIRED", String.valueOf(mfaAdminRequired))
+        );
     }
 
     private void loadExistingModuleSelection() {
@@ -913,6 +955,7 @@ public class EmpresaWizardView extends VBox {
 
     private class OrganizationStep implements WizardStep {
         private TextArea sectors;
+        private TextArea activity;
         public String title() { return "7 · Estrutura operacional"; }
         public String description() { return "Defina a estrutura que será usada como base pelos módulos."; }
         public Node content() {
@@ -926,7 +969,7 @@ public class EmpresaWizardView extends VBox {
             active.setSelected(empresa.getAtiva());
             active.selectedProperty().addListener((obs, old, value) -> empresa.setAtiva(value));
 
-            TextArea activity = textArea(empresa.getDescricaoActividade());
+            activity = textArea(empresa.getDescricaoActividade());
             activity.setPromptText("Descreva resumidamente a actividade principal da empresa.");
 
             return page(
@@ -940,7 +983,7 @@ public class EmpresaWizardView extends VBox {
         public boolean validate() { return true; }
         public void save() {
             empresa.setSetores(normalize(sectors.getText()).replace("\r\n", ",").replace("\n", ","));
-            empresa.setDescricaoActividade(normalize(((TextArea) ((HBox) sectors.getParent()).getChildren().get(1)).getText()));
+            empresa.setDescricaoActividade(normalize(activity.getText()));
         }
         public String help() { return "A estrutura aqui criada serve como referência inicial. O cadastro detalhado de departamentos pode ser feito nos módulos especializados."; }
     }
