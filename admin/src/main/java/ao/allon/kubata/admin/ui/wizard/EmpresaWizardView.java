@@ -71,6 +71,7 @@ public class EmpresaWizardView extends VBox {
     private String backupFrequency = "DAILY";
     private int backupRetentionDays = 30;
     private boolean mfaAdminRequired;
+    private boolean saftEnabled = true;
 
     private Label stepTitle;
     private Label stepDescription;
@@ -271,6 +272,9 @@ public class EmpresaWizardView extends VBox {
         }
         mfaAdminRequired = Boolean.parseBoolean(
                 companyParameters.getOrDefault("MFA_ADMIN_REQUIRED", String.valueOf(mfaAdminRequired))
+        );
+        saftEnabled = Boolean.parseBoolean(
+                companyParameters.getOrDefault("SAFT_AO_ENABLED", String.valueOf(saftEnabled))
         );
     }
 
@@ -691,7 +695,13 @@ public class EmpresaWizardView extends VBox {
                     hint("Preencha o endereço usado nos documentos e contactos oficiais.")
             );
         }
-        public boolean validate() { return !normalize(address.getText()).isBlank(); }
+        public boolean validate() {
+            if (normalize(address.getText()).isBlank()) {
+                modalManager.alert("Morada obrigatória", "Indique a morada principal da empresa.", "warning", null);
+                return false;
+            }
+            return true;
+        }
         public void save() {
             empresa.setMorada(normalize(address.getText()));
             empresa.setCodigoPostal(normalize(postalCode.getText()));
@@ -732,7 +742,8 @@ public class EmpresaWizardView extends VBox {
             certificateHash = text("Hash / impressão digital", empresa.getHashCertificadoAGT());
 
             CheckBox saft = new CheckBox("Preparar integração/controlo SAFT-AO");
-            saft.setSelected(Boolean.parseBoolean(companyParameters.getOrDefault("SAFT_AO_ENABLED", "true")));
+            saft.setSelected(saftEnabled);
+            saft.selectedProperty().addListener((obs, old, value) -> saftEnabled = value);
 
             return page(
                     section("Enquadramento tributário", "dados para faturação e reporting"),
@@ -765,7 +776,7 @@ public class EmpresaWizardView extends VBox {
             empresa.setVersaoCertificadoAGT(normalize(certificateVersion.getText()));
             empresa.setDataCertificadoAGT(certificateDate.getValue());
             empresa.setHashCertificadoAGT(normalize(certificateHash.getText()));
-            companyParameters.put("SAFT_AO_ENABLED", "true");
+            companyParameters.put("SAFT_AO_ENABLED", String.valueOf(saftEnabled));
         }
         public String help() { return "Regime e dados fiscais são transversais ao ecossistema. Confirme os valores com a documentação oficial da empresa."; }
     }
@@ -829,7 +840,10 @@ public class EmpresaWizardView extends VBox {
             );
         }
         public boolean validate() {
-            if (fiscalYear.getValue() == null || baseCurrency.getValue() == null) return false;
+            if (fiscalYear.getValue() == null || baseCurrency.getValue() == null) {
+                modalManager.alert("Configuração financeira", "Seleccione o exercício e a moeda base.", "warning", null);
+                return false;
+            }
             return validDecimal("Capital social", shareCapital)
                     && validDecimal("Volume de negócios previsto", expectedRevenue)
                     && validDecimal("Capital nacional", nationalCapital)
