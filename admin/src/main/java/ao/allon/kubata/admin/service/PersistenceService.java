@@ -190,6 +190,13 @@ public class PersistenceService {
     }
 
     /**
+     * Atalho para operações genéricas cujo tipo de entidade não precisa de uma distinção específica.
+     */
+    public void executeAsync(Runnable operation, String actionType, String description, Runnable onSuccess) {
+        executeAsync(operation, actionType, "SYSTEM", description, onSuccess);
+    }
+
+    /**
      * Executa uma operação genérica de forma assíncrona com auditoria e notificações.
      */
     public void executeAsync(Runnable operation, String actionType, String entityType, String description, Runnable onSuccess) {
