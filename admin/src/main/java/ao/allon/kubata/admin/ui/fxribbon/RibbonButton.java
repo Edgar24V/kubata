@@ -1,12 +1,11 @@
 package ao.allon.kubata.admin.ui.fxribbon;
 
-import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
 import javafx.scene.control.OverrunStyle;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -15,8 +14,11 @@ import javafx.scene.text.TextAlignment;
 /**
  * Botão do Ribbon.
  *
- * LARGE = comando principal com ícone acima do texto.
- * SMALL = comando secundário com ícone à esquerda.
+ * LARGE: ícone acima e texto abaixo.
+ * SMALL: ícone à esquerda e texto ao lado.
+ *
+ * As dimensões são estáveis; a responsividade é tratada pelo overflow
+ * de grupos para não esmagar ou cortar os textos.
  */
 public class RibbonButton extends Button {
 
@@ -29,20 +31,19 @@ public class RibbonButton extends Button {
                         String tooltip,
                         Runnable action) {
 
-        this.size = size;
-        setId(id);
+        this.size = size == null ? RibbonButtonSize.SMALL : size;
 
+        setId(id);
         getStyleClass().add("ribbon-button");
         setFocusTraversable(true);
         setMnemonicParsing(false);
+        setText("");
 
-        if (size == RibbonButtonSize.LARGE) {
+        if (this.size == RibbonButtonSize.LARGE) {
             buildLargeLayout(label, icon);
         } else {
             buildSmallLayout(label, icon);
         }
-
-        setText("");
 
         if (tooltip != null && !tooltip.isBlank()) {
             setTooltip(new Tooltip(tooltip));
@@ -56,14 +57,19 @@ public class RibbonButton extends Button {
     private void buildLargeLayout(String label, Node icon) {
         getStyleClass().add("ribbon-button-tile");
 
-        VBox content = new VBox(4);
+        VBox content = new VBox(3);
         content.setAlignment(Pos.TOP_CENTER);
         content.setFillWidth(true);
         content.setMinWidth(0);
-        content.setMaxWidth(Double.MAX_VALUE);
+        content.setPrefWidth(70);
+        content.setMaxWidth(70);
 
         StackPane iconWrap = new StackPane();
         iconWrap.getStyleClass().add("ribbon-tile-icon-wrap");
+        iconWrap.setMinWidth(40);
+        iconWrap.setPrefWidth(40);
+        iconWrap.setMinHeight(36);
+        iconWrap.setPrefHeight(36);
 
         if (icon != null) {
             if (!icon.getStyleClass().contains("ribbon-icon-tile")) {
@@ -72,23 +78,18 @@ public class RibbonButton extends Button {
             iconWrap.getChildren().add(icon);
         }
 
-        Label text = new Label(label);
+        Label text = new Label(label == null ? "" : label);
         text.getStyleClass().addAll("ribbon-button-text", "ribbon-button-text-below");
-        text.setTextAlignment(TextAlignment.CENTER);
         text.setAlignment(Pos.CENTER);
+        text.setTextAlignment(TextAlignment.CENTER);
         text.setWrapText(true);
         text.setTextOverrun(OverrunStyle.ELLIPSIS);
         text.setMinWidth(0);
+        text.setPrefWidth(66);
+        text.setMaxWidth(66);
+        text.setMinHeight(21);
+        text.setPrefHeight(30);
         text.setMaxHeight(34);
-        text.prefWidthProperty().bind(
-                Bindings.createDoubleBinding(
-                        () -> Math.max(28, getWidth() - 12),
-                        widthProperty()));
-        text.maxWidthProperty().bind(
-                Bindings.createDoubleBinding(
-                        () -> Math.max(28, getWidth() - 12),
-                        widthProperty()));
-        VBox.setVgrow(text, javafx.scene.layout.Priority.NEVER);
 
         content.getChildren().addAll(iconWrap, text);
         setGraphic(content);
@@ -97,36 +98,34 @@ public class RibbonButton extends Button {
     private void buildSmallLayout(String label, Node icon) {
         getStyleClass().add("ribbon-button-small");
 
-        HBox content = new HBox(6);
+        HBox content = new HBox(5);
         content.setAlignment(Pos.CENTER_LEFT);
         content.setFillHeight(true);
         content.setMinWidth(0);
-        content.setMaxWidth(Double.MAX_VALUE);
+        content.setPrefWidth(104);
+        content.setMaxWidth(104);
 
         if (icon != null) {
             if (!icon.getStyleClass().contains("ribbon-icon-small")) {
                 icon.getStyleClass().add("ribbon-icon-small");
             }
-            content.getChildren().add(icon);
+            StackPane iconBox = new StackPane(icon);
+            iconBox.setMinWidth(18);
+            iconBox.setPrefWidth(18);
+            iconBox.setMaxWidth(18);
+            content.getChildren().add(iconBox);
         }
 
-        Label text = new Label(label);
+        Label text = new Label(label == null ? "" : label);
         text.getStyleClass().add("ribbon-button-text");
         text.setAlignment(Pos.CENTER_LEFT);
         text.setWrapText(true);
         text.setTextOverrun(OverrunStyle.ELLIPSIS);
         text.setMinWidth(0);
+        text.setPrefWidth(78);
+        text.setMaxWidth(78);
         text.setMaxHeight(28);
-        text.prefWidthProperty().bind(
-                Bindings.createDoubleBinding(
-                        () -> Math.max(36, getWidth() - 38),
-                        widthProperty()));
-        text.maxWidthProperty().bind(
-                Bindings.createDoubleBinding(
-                        () -> Math.max(36, getWidth() - 38),
-                        widthProperty()));
 
-        HBox.setHgrow(text, javafx.scene.layout.Priority.ALWAYS);
         content.getChildren().add(text);
         setGraphic(content);
     }
@@ -137,7 +136,6 @@ public class RibbonButton extends Button {
 
     public void setSelected(boolean selected) {
         getStyleClass().remove("ribbon-button-selected");
-
         if (selected) {
             getStyleClass().add("ribbon-button-selected");
         }
