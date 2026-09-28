@@ -270,3 +270,110 @@
 .ribbon-office-bar {
     -fx-background-color: #F7F8F7;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KUBATA — Ribbon Verde / Ícones Brancos
+   Identidade visual alinhada com o cabeçalho e o rodapé do Administrator.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ribbon-bar,
+.ribbon-content-host,
+.ribbon-content-scroll > .viewport,
+.ribbon-tab-content {
+    -fx-background-color: #217346;
+}
+
+.ribbon-bar {
+    -fx-border-color: rgba(255,255,255,0.16);
+}
+
+.ribbon-tab-strip {
+    -fx-background-color: #1A5C35;
+    -fx-border-color: rgba(255,255,255,0.18);
+}
+
+.ribbon-tab-label {
+    -fx-text-fill: rgba(255,255,255,0.88);
+}
+
+.ribbon-tab-label:hover {
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-text-fill: #FFFFFF;
+}
+
+.ribbon-tab-label-selected {
+    -fx-background-color: rgba(255,255,255,0.14);
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: transparent transparent #FFFFFF transparent;
+}
+
+.ribbon-group {
+    -fx-border-color: transparent rgba(255,255,255,0.20) transparent transparent;
+}
+
+.ribbon-group-title-area {
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-border-color: rgba(255,255,255,0.20);
+}
+
+.ribbon-group-title {
+    -fx-text-fill: #FFFFFF;
+}
+
+.ribbon-button {
+    -fx-text-fill: #FFFFFF;
+}
+
+.ribbon-button:hover {
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-border-color: rgba(255,255,255,0.26);
+}
+
+.ribbon-button:pressed {
+    -fx-background-color: rgba(255,255,255,0.20);
+    -fx-border-color: #FFFFFF;
+}
+
+.ribbon-button:focused {
+    -fx-border-color: #FFFFFF;
+}
+
+.ribbon-icon-tile,
+.ribbon-icon-small,
+.ribbon-button .font-icon,
+.ribbon-button .ikonli-font-icon {
+    -fx-icon-color: #FFFFFF;
+    -fx-fill: #FFFFFF;
+}
+
+.ribbon-tile-icon-wrap {
+    -fx-background-color: rgba(255,255,255,0.08);
+}
+
+.ribbon-button-tile:hover .ribbon-tile-icon-wrap {
+    -fx-background-color: rgba(255,255,255,0.16);
+}
+
+.ribbon-button-text {
+    -fx-text-fill: #FFFFFF;
+}
+
+.ribbon-column-separator {
+    -fx-background-color: rgba(255,255,255,0.28);
+}
+
+.ribbon-overflow-button {
+    -fx-background-color: #1A5C35;
+    -fx-border-color: rgba(255,255,255,0.30);
+    -fx-text-fill: #FFFFFF;
+}
+
+.ribbon-overflow-button:hover {
+    -fx-background-color: #217346;
+    -fx-border-color: #FFFFFF;
+}
+
+.ribbon-overflow-popup {
+    -fx-background-color: #FFFFFF;
+}
