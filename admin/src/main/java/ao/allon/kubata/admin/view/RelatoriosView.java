@@ -6,10 +6,12 @@ import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.admin.ui.util.ThemeManager;
 import ao.allon.kubata.core.domain.AuditLog;
+import ao.allon.kubata.core.domain.BackupRecord;
 import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.admin.ui.reports.JasperViewerPane;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.AuditLogRepository;
+import ao.allon.kubata.core.repository.BackupRecordRepository;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import javafx.application.Platform;
@@ -39,7 +41,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 @Component
 public class RelatoriosView extends VBox {
@@ -47,6 +48,7 @@ public class RelatoriosView extends VBox {
     private final UserRepository userRepository;
     private final EmpresaRepository empresaRepository;
     private final AuditLogRepository auditLogRepository;
+    private final BackupRecordRepository backupRecordRepository;
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
@@ -62,11 +64,13 @@ public class RelatoriosView extends VBox {
     private BarChart<String, Number> auditActivityChart;
 
     public RelatoriosView(UserRepository userRepository, EmpresaRepository empresaRepository,
-                          AuditLogRepository auditLogRepository, SessionManager sessionManager, ModalManager modalManager,
+                          AuditLogRepository auditLogRepository, BackupRecordRepository backupRecordRepository,
+                          SessionManager sessionManager, ModalManager modalManager,
                           PersistenceService persistenceService, ResourceLoader resourceLoader) {
         this.userRepository = userRepository;
         this.empresaRepository = empresaRepository;
         this.auditLogRepository = auditLogRepository;
+        this.backupRecordRepository = backupRecordRepository;
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
@@ -128,10 +132,7 @@ public class RelatoriosView extends VBox {
 
         Button btnRefresh = new Button(null, IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
         btnRefresh.getStyleClass().add("button-outlined");
-        btnRefresh.setOnAction(e -> {
-            buildUI(); // Recarrega a UI para atualizar estatísticas
-            modalManager.alert("Atualização", "Estatísticas atualizadas com sucesso.", "info", null);
-        });
+        btnRefresh.setOnAction(e -> refreshData());
 
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -469,92 +470,299 @@ public class RelatoriosView extends VBox {
     }
 
     private void exportReport() {
-        VBox content = new VBox(15);
+        VBox content = new VBox(12);
         content.setPadding(new Insets(10));
-        content.setAlignment(Pos.CENTER);
-        
-        Label lbl = new Label("Selecione o formato de exportação:");
-        
+
+        Label lbl = new Label(
+                "Exporte o histórico de auditoria do período selecionado."
+        );
+        lbl.setWrapText(true);
+        lbl.getStyleClass().add("text-muted");
+
         HBox formats = new HBox(10);
         formats.setAlignment(Pos.CENTER);
-        
-        Button btnPdf = new Button("PDF", IconUtils.icon(Feather.FILE_TEXT, IconUtils.SIZE_SMALL));
-        btnPdf.getStyleClass().add("outlined");
+
+        Button btnPdf = new Button(
+                "PDF",
+                IconUtils.icon(Feather.FILE_TEXT, IconUtils.SIZE_SMALL)
+        );
+        btnPdf.getStyleClass().add("button-primary");
         btnPdf.setOnAction(e -> {
             modalManager.hideModal();
-            modalManager.alert("Sucesso", "Relatório exportado em PDF com sucesso.", "info", null);
+            exportAuditPdf();
         });
-        
-        Button btnExcel = new Button("Excel", IconUtils.icon(Feather.FILE_TEXT, IconUtils.SIZE_SMALL));
-        btnExcel.getStyleClass().add("outlined");
-        btnExcel.setOnAction(e -> {
-            modalManager.hideModal();
-            modalManager.alert("Sucesso", "Relatório exportado em Excel com sucesso.", "info", null);
-        });
-        
-        Button btnCsv = new Button("CSV", IconUtils.icon(Feather.FILE_TEXT, IconUtils.SIZE_SMALL));
-        btnCsv.getStyleClass().add("outlined");
+
+        Button btnCsv = new Button(
+                "CSV",
+                IconUtils.icon(Feather.DOWNLOAD, IconUtils.SIZE_SMALL)
+        );
+        btnCsv.getStyleClass().add("button-outlined");
         btnCsv.setOnAction(e -> {
             modalManager.hideModal();
-            modalManager.alert("Sucesso", "Relatório exportado em CSV com sucesso.", "info", null);
+            exportAuditCsv();
         });
-        
-        formats.getChildren().addAll(btnPdf, btnExcel, btnCsv);
+
+        formats.getChildren().addAll(btnPdf, btnCsv);
         content.getChildren().addAll(lbl, formats);
-        
-        modalManager.showModalSimple(content, "Exportar Relatório");
+
+        modalManager.showModalSimple(content, "Exportar Auditoria");
     }
 
     private List<Map<String, Object>> generateAccessStatisticsData() {
         List<Map<String, Object>> data = new ArrayList<>();
-        List<User> users = userRepository.findAll();
-        Random random = new Random();
-        
-        for (User user : users) {
-            for (int i = 0; i < 3; i++) {
+
+        LocalDateTime start = dpInicio.getValue() == null
+                ? LocalDateTime.now().minusMonths(1)
+                : dpInicio.getValue().atStartOfDay();
+        LocalDateTime end = dpFim.getValue() == null
+                ? LocalDateTime.now()
+                : dpFim.getValue().plusDays(1).atStartOfDay().minusNanos(1);
+
+        List<AuditLog> logs = auditLogRepository
+                .findByTimestampBetweenOrderByTimestampDesc(start, end);
+
+        Map<String, AuditLog> openSessions = new HashMap<>();
+        Map<String, Integer> actionsBySession = new HashMap<>();
+
+        for (AuditLog log : logs) {
+            if (log == null || log.getTimestamp() == null) {
+                continue;
+            }
+
+            String sessionId = log.getSessionId();
+            String key = sessionId != null && !sessionId.isBlank()
+                    ? sessionId
+                    : (log.getUsername() == null ? "UNKNOWN" : log.getUsername());
+
+            actionsBySession.merge(key, 1, Integer::sum);
+
+            if (log.getActionType() == AuditLog.AuditActionType.LOGIN) {
+                openSessions.put(key, log);
+                continue;
+            }
+
+            if (log.getActionType() == AuditLog.AuditActionType.LOGOUT) {
+                AuditLog login = openSessions.remove(key);
+
                 Map<String, Object> record = new HashMap<>();
-                record.put("username", user.getUsername());
-                record.put("loginTime", LocalDateTime.now().minusDays(random.nextInt(30)).minusHours(random.nextInt(24)));
-                record.put("logoutTime", LocalDateTime.now().minusDays(random.nextInt(30)).minusHours(random.nextInt(24)).plusMinutes(random.nextInt(120)));
-                record.put("durationMinutes", random.nextInt(120) + 10L);
-                record.put("ipAddress", "192.168.1." + random.nextInt(255));
-                record.put("module", getRandomModule(random));
-                record.put("actionsCount", random.nextInt(50) + 5);
+                record.put("username", log.getUsername());
+                record.put("loginTime", login != null ? login.getTimestamp() : log.getTimestamp());
+                record.put("logoutTime", log.getTimestamp());
+
+                long duration = login != null
+                        ? Math.max(0, java.time.Duration.between(
+                                login.getTimestamp(), log.getTimestamp()).toMinutes())
+                        : 0L;
+
+                record.put("durationMinutes", duration);
+                record.put("ipAddress", login != null && login.getIpAddress() != null
+                        ? login.getIpAddress()
+                        : log.getIpAddress());
+                record.put("module", login != null && login.getModule() != null
+                        ? login.getModule()
+                        : (log.getModule() != null ? log.getModule() : "Sistema"));
+                record.put("actionsCount", actionsBySession.getOrDefault(key, 1));
+
                 data.add(record);
             }
         }
+
+        // Sessões que continuam abertas são igualmente úteis no relatório.
+        for (Map.Entry<String, AuditLog> entry : openSessions.entrySet()) {
+            AuditLog login = entry.getValue();
+            if (login == null || login.getTimestamp() == null) {
+                continue;
+            }
+
+            Map<String, Object> record = new HashMap<>();
+            record.put("username", login.getUsername());
+            record.put("loginTime", login.getTimestamp());
+            record.put("logoutTime", null);
+            record.put("durationMinutes",
+                    Math.max(0, java.time.Duration.between(
+                            login.getTimestamp(), LocalDateTime.now()).toMinutes()));
+            record.put("ipAddress", login.getIpAddress());
+            record.put("module", login.getModule() != null ? login.getModule() : "Sistema");
+            record.put("actionsCount", actionsBySession.getOrDefault(entry.getKey(), 1));
+
+            data.add(record);
+        }
+
+        data.sort(java.util.Comparator.comparing(
+                row -> (LocalDateTime) row.get("loginTime"),
+                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())
+        ));
+
         return data;
     }
 
     private List<Map<String, Object>> generateBackupRestoreData() {
         List<Map<String, Object>> data = new ArrayList<>();
-        Random random = new Random();
-        
-        for (int i = 0; i < 10; i++) {
-            Map<String, Object> record = new HashMap<>();
-            record.put("backupId", "BKP-" + String.format("%06d", i + 1));
-            record.put("backupDate", LocalDateTime.now().minusDays(random.nextInt(90)));
-            record.put("backupType", random.nextBoolean() ? "Completo" : "Incremental");
-            record.put("backupSize", (long) (random.nextDouble() * 500 + 50) * 1024 * 1024);
-            record.put("backupPath", "/backups/kubata_backup_" + String.format("%06d", i + 1) + ".sql");
-            record.put("status", random.nextBoolean() ? "Sucesso" : "Falha");
-            record.put("createdBy", "admin");
-            record.put("description", random.nextBoolean() ? "Backup automático diário" : "Backup manual");
-            
-            if (random.nextBoolean()) {
-                record.put("restoreDate", LocalDateTime.now().minusDays(random.nextInt(30)));
-                record.put("restoredBy", "admin");
-            } else {
-                record.put("restoreDate", null);
-                record.put("restoredBy", null);
-            }
-            data.add(record);
+
+        List<BackupRecord> records = backupRecordRepository.findAll().stream()
+                .filter(r -> r != null && r.getStartTime() != null)
+                .sorted(java.util.Comparator.comparing(
+                        BackupRecord::getStartTime,
+                        java.util.Comparator.reverseOrder()
+                ))
+                .toList();
+
+        for (BackupRecord record : records) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("backupId", String.valueOf(record.getId()));
+            row.put("backupDate", record.getStartTime());
+            row.put("backupType", formatBackupType(record.getType()));
+            row.put("backupSize", record.getFileSize() != null ? record.getFileSize() : 0L);
+            row.put("backupPath", record.getFilename());
+            row.put("status", record.getStatus() != null
+                    ? record.getStatus().getDescription()
+                    : "Desconhecido");
+            row.put("createdBy", record.getTriggeredBy() != null
+                    ? record.getTriggeredBy() : "Sistema");
+            row.put("description", record.getDescription());
+            row.put("restoreDate", record.getRestoredAt());
+            row.put("restoredBy", record.getRestoredBy());
+            data.add(row);
         }
+
         return data;
     }
 
-    private String getRandomModule(Random random) {
-        String[] modules = {"Admin", "Faturação", "Vendas", "Compras", "RH", "Financeiro", "Fiscal", "Inventário", "Relatórios"};
-        return modules[random.nextInt(modules.length)];
+    private String formatBackupType(String type) {
+        if (type == null || type.isBlank()) {
+            return "Não especificado";
+        }
+
+        return switch (type.toUpperCase()) {
+            case "AUTOMATIC" -> "Automático";
+            case "MANUAL" -> "Manual";
+            case "SCHEDULED" -> "Agendado";
+            default -> type;
+        };
     }
+
+    private List<AuditLogReportDTO> getFilteredAuditReports() {
+        LocalDateTime start = dpInicio.getValue() == null
+                ? LocalDateTime.now().minusMonths(1)
+                : dpInicio.getValue().atStartOfDay();
+        LocalDateTime end = dpFim.getValue() == null
+                ? LocalDateTime.now()
+                : dpFim.getValue().plusDays(1).atStartOfDay().minusNanos(1);
+
+        String category = cbCategoria.getValue();
+        List<AuditLog> logs = auditLogRepository
+                .findByTimestampBetweenOrderByTimestampDesc(start, end);
+
+        return logs.stream()
+                .filter(log -> category == null
+                        || category.equalsIgnoreCase("Todos")
+                        || category.equalsIgnoreCase("Audit")
+                        || category.equalsIgnoreCase(log.getModule())
+                        || category.equalsIgnoreCase(log.getEntityType()))
+                .map(AuditLogReportDTO::new)
+                .toList();
+    }
+
+    private void exportAuditCsv() {
+        java.io.FileChooser chooser = new java.io.FileChooser();
+        chooser.setTitle("Guardar auditoria");
+        chooser.setInitialFileName("kubata-auditoria-" +
+                LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE) +
+                ".csv");
+        chooser.getExtensionFilters().add(
+                new java.io.FileChooser.ExtensionFilter("CSV", "*.csv"));
+
+        java.io.File file = chooser.showSaveDialog(getScene() != null
+                ? getScene().getWindow()
+                : null);
+
+        if (file == null) {
+            return;
+        }
+
+        persistenceService.executeAsync(() -> {
+            List<AuditLogReportDTO> rows = getFilteredAuditReports();
+
+            try (java.io.BufferedWriter writer = java.nio.file.Files.newBufferedWriter(
+                    file.toPath(), java.nio.charset.StandardCharsets.UTF_8)) {
+
+                writer.write("\uFEFF");
+                writer.write("Data/Hora;Utilizador;Acção;Entidade;Alterações;Duração (ms)");
+                writer.newLine();
+
+                for (AuditLogReportDTO row : rows) {
+                    writer.write(csv(row.getTimestamp()));
+                    writer.write(";");
+                    writer.write(csv(row.getUsername()));
+                    writer.write(";");
+                    writer.write(csv(row.getActionType()));
+                    writer.write(";");
+                    writer.write(csv(row.getEntityType()));
+                    writer.write(";");
+                    writer.write(csv(row.getNewValues()));
+                    writer.write(";");
+                    writer.write(csv(row.getDuracaoMs()));
+                    writer.newLine();
+                }
+            }
+        }, "REPORT_EXPORT", "RELATORIOS",
+                "Exportação CSV do histórico de auditoria", () ->
+                        modalManager.alert("Exportação concluída",
+                                "O ficheiro foi guardado em " + file.getAbsolutePath(),
+                                "success", null));
+    }
+
+    private void exportAuditPdf() {
+        persistenceService.executeAsync(() -> {
+            try {
+                List<AuditLogReportDTO> rows = getFilteredAuditReports();
+
+                InputStream jrxml = resourceLoader
+                        .getResource("classpath:reports/audit_log.jrxml")
+                        .getInputStream();
+                JasperReport report = JasperCompileManager.compileReport(jrxml);
+
+                Map<String, Object> params = new HashMap<>();
+                params.put("PERIODO_INICIO",
+                        dpInicio.getValue() != null ? dpInicio.getValue().toString() : "");
+                params.put("PERIODO_FIM",
+                        dpFim.getValue() != null ? dpFim.getValue().toString() : "");
+
+                JasperPrint print = JasperFillManager.fillReport(
+                        report, params, new JRBeanCollectionDataSource(rows));
+
+                Platform.runLater(() -> {
+                    JasperViewerPane viewer = new JasperViewerPane(print);
+                    Stage stage = new Stage();
+                    stage.setTitle("Kubata Admin - Auditoria");
+                    stage.setScene(new Scene(viewer, 1100, 780));
+                    stage.show();
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> modalManager.alert(
+                        "Erro",
+                        "Não foi possível exportar a auditoria: " + ex.getMessage(),
+                        "error", ex));
+            }
+        }, "REPORT_PDF", "RELATORIOS",
+                "Geração PDF do histórico de auditoria", null);
+    }
+
+    private static String csv(Object value) {
+        if (value == null) {
+            return "";
+        }
+
+        String text = String.valueOf(value)
+                .replace("\r", " ")
+                .replace("\n", " ")
+                .replace(""", """");
+
+        if (text.indexOf(';') >= 0 || text.indexOf('"') >= 0) {
+            return """ + text + """;
+        }
+
+        return text;
+    }
+
 }
