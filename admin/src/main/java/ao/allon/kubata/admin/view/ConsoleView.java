@@ -38,6 +38,7 @@ import javafx.stage.FileChooser;
 import org.kordamp.ikonli.feather.Feather;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
@@ -72,6 +73,7 @@ public class ConsoleView extends VBox {
     private final PersistenceService persistenceService;
     private final NotificationService notificationService;
     private final MaintenanceModeService maintenanceModeService;
+    private final Environment environment;
     private final JobManager jobManager;
     private final ModuleRegistry moduleRegistry;
 
@@ -108,6 +110,7 @@ public class ConsoleView extends VBox {
                        PersistenceService persistenceService,
                        NotificationService notificationService,
                        MaintenanceModeService maintenanceModeService,
+                       Environment environment,
                        JobManager jobManager,
                        ModuleRegistry moduleRegistry) {
         this.systemLogRepository = systemLogRepository;
@@ -119,6 +122,7 @@ public class ConsoleView extends VBox {
         this.persistenceService = persistenceService;
         this.notificationService = notificationService;
         this.maintenanceModeService = maintenanceModeService;
+        this.environment = environment;
         this.jobManager = jobManager;
         this.moduleRegistry = moduleRegistry;
         this.backgroundProcesses = jobManager.getJobs();
@@ -293,8 +297,8 @@ public class ConsoleView extends VBox {
         kpiPaneBottom.getChildren().addAll(
             createKPI("Uptime Servidor", Feather.CLOCK, lblUptime = new Label("00h 00m 00s"), "-fx-text-fill: #3498db;"),
             createKPI("Base de Dados", Feather.DATABASE, lblDBStatus = new Label("LIGADO"), "-fx-text-fill: #27ae60;"),
-            createKPI("Versão Core", Feather.INFO, new Label("v1.2.4"), "-fx-text-fill: #7f8c8d;"),
-            createKPI("Ambiente", Feather.SERVER, new Label("PRODUÇÃO"), "-fx-text-fill: #8e44ad;")
+            createKPI("Versão Core", Feather.INFO, new Label(resolveCoreVersion()), "-fx-text-fill: #7f8c8d;"),
+            createKPI("Ambiente", Feather.SERVER, new Label(resolveEnvironmentName()), "-fx-text-fill: #8e44ad;")
         );
 
         // Gráfico de Performance Real-Time
@@ -302,7 +306,8 @@ public class ConsoleView extends VBox {
         chartArea.setAlignment(Pos.CENTER);
         
         VBox cpuBox = buildChartBox("Carga de CPU", cpuSeries, 0, 100, "%");
-        VBox memBox = buildChartBox("Consumo de Memória", memSeries, 0, 1024, "MB");
+        double maxMemoryMb = Math.max(512, Math.ceil(Runtime.getRuntime().maxMemory() / (1024.0 * 1024.0)));
+        VBox memBox = buildChartBox("Consumo de Memória", memSeries, 0, maxMemoryMb, "MB");
         
         chartArea.getChildren().addAll(cpuBox, memBox);
 
@@ -356,30 +361,64 @@ public class ConsoleView extends VBox {
 
     private HBox buildToolbar() {
         HBox box = new HBox(12);
-        box.getStyleClass().add("header-box");
+        box.getStyleClass().add("console-toolbar");
         box.setAlignment(Pos.CENTER_LEFT);
-        box.setPadding(new Insets(10, 20, 10, 20));
+        box.setPadding(new Insets(10, 18, 10, 18));
 
-        Label title = new Label("Consola de Administração", IconUtils.icon(Feather.TERMINAL, 18));
+        VBox heading = new VBox(2);
+        Label title = new Label(
+                "Consola de Administração",
+                IconUtils.icon(Feather.TERMINAL, 18)
+        );
         title.getStyleClass().add("h3");
-        title.setStyle("-fx-text-fill: -kubata-green-dark;");
+
+        Label subtitle = new Label(
+                "Monitorização operacional, sessões, segurança, logs e processos"
+        );
+        subtitle.getStyleClass().add("text-muted");
+
+        heading.getChildren().addAll(title, subtitle);
+
+        Label maintenance = new Label();
+        maintenance.getStyleClass().add("console-maintenance-badge");
+        maintenanceStatusLabel = maintenance;
+        updateMaintenanceIndicator();
 
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnRefresh = new Button("Atualizar Tudo", IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
+        Button btnRefresh = new Button(
+                "Actualizar",
+                IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
+        );
         btnRefresh.getStyleClass().add("button-outlined");
+        btnRefresh.setTooltip(new Tooltip("Actualizar todas as métricas e tabelas"));
         btnRefresh.setOnAction(e -> refreshAll());
 
-        Button btnBroadcast = new Button("Broadcast", IconUtils.icon(Feather.MESSAGE_SQUARE, IconUtils.SIZE_SMALL));
+        Button btnBroadcast = new Button(
+                "Mensagem",
+                IconUtils.icon(Feather.MESSAGE_SQUARE, IconUtils.SIZE_SMALL)
+        );
         btnBroadcast.getStyleClass().add("button-primary");
+        btnBroadcast.setTooltip(new Tooltip("Registar mensagem operacional"));
         btnBroadcast.setOnAction(e -> showBroadcastDialog());
 
-        Button btnMaintenance = new Button("Modo Manutenção", IconUtils.icon(Feather.ALERT_TRIANGLE, IconUtils.SIZE_SMALL));
+        Button btnMaintenance = new Button(
+                "Manutenção",
+                IconUtils.icon(Feather.ALERT_TRIANGLE, IconUtils.SIZE_SMALL)
+        );
         btnMaintenance.getStyleClass().add("button-danger");
+        btnMaintenance.setTooltip(new Tooltip("Activar ou desactivar o modo de manutenção"));
         btnMaintenance.setOnAction(e -> toggleMaintenanceMode());
 
-        box.getChildren().addAll(title, spacer, btnRefresh, btnBroadcast, btnMaintenance);
+        box.getChildren().addAll(
+                heading,
+                maintenance,
+                spacer,
+                btnRefresh,
+                btnBroadcast,
+                btnMaintenance
+        );
         return box;
     }
 
@@ -654,7 +693,11 @@ public class ConsoleView extends VBox {
                 lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
                 lblLockedRecordsCount.setText(String.valueOf(lockedRecords.size()));
                 
-                long errorCount = systemLogs.stream().filter(l -> l.getLogLevel() == SystemLog.LogLevel.ERROR).count();
+                LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+                long errorCount = systemLogs.stream()
+                        .filter(l -> l.getLogLevel() == SystemLog.LogLevel.ERROR)
+                        .filter(l -> l.getTimestamp() != null && !l.getTimestamp().isBefore(todayStart))
+                        .count();
                 lblErrorCount.setText(String.valueOf(errorCount));
                 
                 if (errorCount > 10) {
@@ -952,4 +995,63 @@ public class ConsoleView extends VBox {
         public String getStatus() { return status.get(); }
         public String getLastCheck() { return lastCheck.get(); }
     }
+    private void updateMaintenanceIndicator() {
+        if (maintenanceStatusLabel == null) {
+            return;
+        }
+
+        if (maintenanceModeService.isEnabled()) {
+            maintenanceStatusLabel.setText("● MANUTENÇÃO");
+            maintenanceStatusLabel.getStyleClass().removeAll(
+                    "console-maintenance-ok",
+                    "console-maintenance-warning"
+            );
+            if (!maintenanceStatusLabel.getStyleClass().contains("console-maintenance-on")) {
+                maintenanceStatusLabel.getStyleClass().add("console-maintenance-on");
+            }
+        } else {
+            maintenanceStatusLabel.setText("● OPERACIONAL");
+            maintenanceStatusLabel.getStyleClass().removeAll(
+                    "console-maintenance-on",
+                    "console-maintenance-warning"
+            );
+            if (!maintenanceStatusLabel.getStyleClass().contains("console-maintenance-ok")) {
+                maintenanceStatusLabel.getStyleClass().add("console-maintenance-ok");
+            }
+        }
+    }
+
+    private String resolveEnvironmentName() {
+        String active = environment == null
+                ? null
+                : String.join(",", environment.getActiveProfiles());
+
+        if (active == null || active.isBlank()) {
+            active = environment == null
+                    ? null
+                    : environment.getProperty("spring.profiles.active");
+        }
+
+        if (active == null || active.isBlank()) {
+            return "PADRÃO";
+        }
+
+        return active.toUpperCase();
+    }
+
+    private String resolveCoreVersion() {
+        Package pkg = User.class.getPackage();
+        String version = pkg != null ? pkg.getImplementationVersion() : null;
+
+        if (version == null || version.isBlank()) {
+            version = environment == null
+                    ? null
+                    : environment.getProperty("kubata.core.version");
+        }
+
+        return version == null || version.isBlank()
+                ? "DEV"
+                : version;
+    }
+
 }
