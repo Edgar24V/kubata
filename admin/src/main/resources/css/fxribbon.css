@@ -90,8 +90,9 @@
 
 .ribbon-tab-content {
     -fx-background-color: #FFFFFF;
-    -fx-padding: 2 2 0 2;
-    -fx-spacing: 0;
+    -fx-padding: 3 8 1 8;
+    -fx-spacing: 3px;
+    -fx-min-width: 0;
 }
 
 /* ── Groups ───────────────────────────────────────────────────────────────── */
@@ -100,9 +101,10 @@
     -fx-background-color: transparent;
     -fx-border-color: transparent #E0E3E1 transparent transparent;
     -fx-border-width: 0 1 0 0;
-    -fx-padding: 2 7 0 7;
+    -fx-padding: 2 9 1 9;
     -fx-alignment: TOP_CENTER;
-    -fx-min-height: 104px;
+    -fx-min-width: 72px;
+    -fx-min-height: 100px;
     -fx-pref-height: 108px;
 }
 
@@ -112,17 +114,21 @@
     -fx-font-weight: normal;
     -fx-text-fill: #6B6F72;
     -fx-alignment: CENTER;
-    -fx-min-height: 18px;
-    -fx-pref-height: 18px;
-    -fx-max-height: 18px;
+    -fx-text-alignment: center;
+    -fx-wrap-text: true;
+    -fx-min-height: 22px;
+    -fx-pref-height: 24px;
+    -fx-max-height: 28px;
 }
 
 .ribbon-column-container {
-    -fx-spacing: 1px;
+    -fx-spacing: 2px;
+    -fx-padding: 0 2 0 2;
 }
 
 .ribbon-column-separator {
     -fx-background-color: #EAECEB;
+    -fx-margin: 0 2px 0 2px;
     -fx-min-width: 1px;
     -fx-pref-width: 1px;
     -fx-max-width: 1px;
@@ -134,6 +140,8 @@
 
 .ribbon-button {
     -fx-background-color: transparent;
+    -fx-min-width: 0;
+    -fx-max-width: Infinity;
     -fx-background-radius: 3px;
     -fx-border-color: transparent;
     -fx-border-width: 1px;
@@ -204,13 +212,17 @@
 }
 
 .ribbon-button-text {
+    -fx-text-fill: #303234;
     -fx-fill: #303234;
     -fx-font-family: "Segoe UI";
     -fx-font-size: 10.5px;
+    -fx-wrap-text: true;
 }
 
 .ribbon-button-text-below {
     -fx-text-alignment: center;
+    -fx-alignment: CENTER;
+    -fx-max-width: 64px;
 }
 
 /* ── Small command ───────────────────────────────────────────────────────── */
@@ -222,7 +234,7 @@
     -fx-min-height: 25px;
     -fx-pref-height: 25px;
     -fx-alignment: CENTER_LEFT;
-    -fx-padding: 3 6 3 6;
+    -fx-padding: 3 7 3 7;
 }
 
 .ribbon-icon-small {
@@ -245,7 +257,8 @@
 }
 
 .ribbon-compact-medium .ribbon-button-tile .ribbon-button-text-below {
-    -fx-font-size: 10px;
+    -fx-font-size: 9.5px;
+    -fx-max-width: 56px;
 }
 
 .ribbon-compact-medium .ribbon-button-small {
@@ -265,7 +278,8 @@
 }
 
 .ribbon-compact-small .ribbon-button-tile .ribbon-button-text-below {
-    -fx-font-size: 9px;
+    -fx-font-size: 8.5px;
+    -fx-max-width: 50px;
 }
 
 .ribbon-compact-small .ribbon-tile-icon-wrap {
@@ -291,7 +305,21 @@
 }
 
 .ribbon-compact-small .ribbon-group {
-    -fx-padding: 2 4 0 4;
+    -fx-padding: 2 5 1 5;
+}
+
+.ribbon-compact-small .ribbon-group-title {
+    -fx-font-size: 9px;
+    -fx-pref-height: 26px;
+}
+
+.ribbon-compact-small .ribbon-column-container {
+    -fx-padding: 0 1 0 1;
+}
+
+.ribbon-overflow-popup .ribbon-group-title {
+    -fx-font-size: 10.5px;
+    -fx-pref-height: 26px;
 }
 
 .ribbon-compact-small .ribbon-tab-label {
