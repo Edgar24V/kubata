@@ -418,9 +418,8 @@ public class AdvancedTableView<S> extends TableView<S> {
             return;
         }
 
-        long requestId = requestSequence.incrementAndGet();
-
         cancelActiveOperation();
+        long requestId = requestSequence.incrementAndGet();
 
         setLoading(true);
         activeOperation = PAGE_EXECUTOR.submit(() -> {
@@ -452,6 +451,10 @@ public class AdvancedTableView<S> extends TableView<S> {
 
                     if (result != null) {
                         totalItems = Math.max(-1, result.totalItems());
+
+                        if (totalItems < 0 && records.size() < pageSize) {
+                            totalItems = pageIndex * (long) pageSize + records.size();
+                        }
                     }
 
                     updatePagerState();
@@ -1218,8 +1221,8 @@ public class AdvancedTableView<S> extends TableView<S> {
      */
     public void dispose() {
         cancelActiveOperation();
-        searchDebounce.stop();
         requestSequence.incrementAndGet();
+        searchDebounce.stop();
     }
 
     private void updatePagerState() {
