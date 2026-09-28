@@ -295,9 +295,6 @@
     -fx-padding: 5 7 4 7;
 }
 
-.ribbon-overflow-popup > .ribbon-group:last-child {
-    -fx-border-color: transparent;
-}
 
 .ribbon-overflow-item-button {
     -fx-background-color: transparent;
