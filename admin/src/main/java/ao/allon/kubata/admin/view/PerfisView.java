@@ -62,6 +62,7 @@ public class PerfisView extends VBox {
     private Label detailHighRisk;
     private Label detailUserHint;
 
+    private Button btnNovoPerfil;
     private Button btnEditar;
     private Button btnDuplicar;
     private Button btnRemover;
@@ -191,6 +192,7 @@ public class PerfisView extends VBox {
         super.layoutChildren();
         if (!dataLoaded && getScene() != null) {
             dataLoaded = true;
+            refreshActionPermissions();
             loadPerfis();
         }
     }
@@ -239,15 +241,15 @@ public class PerfisView extends VBox {
         refresh.getStyleClass().add("button-outlined");
         refresh.setOnAction(e -> loadPerfis());
 
-        Button newProfile = new Button(
+        btnNovoPerfil = new Button(
                 "Novo Perfil",
                 IconUtils.icon(Feather.SHIELD, 13)
         );
-        newProfile.getStyleClass().add("button-primary");
-        newProfile.setOnAction(e -> showPerfilDialog(null));
-        newProfile.setDisable(!can("CRIAR"));
+        btnNovoPerfil.getStyleClass().add("button-primary");
+        btnNovoPerfil.setOnAction(e -> showPerfilDialog(null));
+        btnNovoPerfil.setDisable(true);
 
-        titleLine.getChildren().addAll(icon, titleBox, spacer, refresh, newProfile);
+        titleLine.getChildren().addAll(icon, titleBox, spacer, refresh, btnNovoPerfil);
 
         totalValue = new Label("0");
         activeValue = new Label("0");
@@ -507,6 +509,7 @@ public class PerfisView extends VBox {
     }
 
     private void loadPerfis() {
+        refreshActionPermissions();
         try {
             perfis.setAll(perfilRepository.findAllWithEmpresa());
             refreshFilters();
@@ -616,10 +619,7 @@ public class PerfisView extends VBox {
             );
         }
 
-        boolean canEdit = has && can("EDITAR") && !(has && Boolean.TRUE.equals(selected.getSistema()));
-        btnEditar.setDisable(!canEdit);
-        btnDuplicar.setDisable(!has || !can("CRIAR"));
-        btnRemover.setDisable(!has || !can("APAGAR") || Boolean.TRUE.equals(has ? selected.getSistema() : false));
+        updateActionState(selected);
     }
 
     private List<PermissaoPerfil> safePermissions(PerfilAcesso perfil) {
@@ -1657,6 +1657,26 @@ public class PerfisView extends VBox {
         return table == null || table.getSelectionModel().getSelectedItem() == null
                 ? Optional.empty()
                 : Optional.of(table.getSelectionModel().getSelectedItem());
+    }
+
+    private void refreshActionPermissions() {
+        if (btnNovoPerfil != null) {
+            btnNovoPerfil.setDisable(!can("CRIAR"));
+        }
+
+        if (table != null && btnEditar != null) {
+            PerfilAcesso selected = table.getSelectionModel().getSelectedItem();
+            updateActionState(selected);
+        }
+    }
+
+    private void updateActionState(PerfilAcesso selected) {
+        boolean has = selected != null;
+        boolean system = has && Boolean.TRUE.equals(selected.getSistema());
+
+        btnEditar.setDisable(!has || system || !can("EDITAR"));
+        btnDuplicar.setDisable(!has || !can("CRIAR"));
+        btnRemover.setDisable(!has || system || !can("APAGAR"));
     }
 
     private boolean can(String operation) {
