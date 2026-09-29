@@ -638,6 +638,27 @@ public class OutrasBdsView extends VBox {
         grid.add(control, 1, row);
     }
 
+    private String resolveDriverClass(String configuredDriver, String jdbcUrl) {
+        if (configuredDriver != null && !configuredDriver.isBlank()) {
+            return configuredDriver.trim();
+        }
+
+        String url = jdbcUrl == null ? "" : jdbcUrl.trim().toLowerCase(Locale.ROOT);
+        if (url.startsWith("jdbc:mysql:")) {
+            return "com.mysql.cj.jdbc.Driver";
+        }
+        if (url.startsWith("jdbc:postgresql:")) {
+            return "org.postgresql.Driver";
+        }
+        if (url.startsWith("jdbc:sqlite:")) {
+            return "org.sqlite.JDBC";
+        }
+        if (url.startsWith("jdbc:h2:")) {
+            return "org.h2.Driver";
+        }
+        return "";
+    }
+
     private void testSelected() {
         selected().ifPresent(this::testConnection);
     }
@@ -656,8 +677,9 @@ public class OutrasBdsView extends VBox {
                     String pwd = decodePassword(c.getPasswordEnc());
 
                     try {
-                        if (c.getDriverClass() != null && !c.getDriverClass().isBlank()) {
-                            Class.forName(c.getDriverClass());
+                        String driverClass = resolveDriverClass(c.getDriverClass(), c.getJdbcUrl());
+                        if (driverClass != null && !driverClass.isBlank()) {
+                            Class.forName(driverClass);
                         }
 
                         try (Connection connection = DriverManager.getConnection(
