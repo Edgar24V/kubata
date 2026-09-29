@@ -115,7 +115,6 @@ public class ExerciciosFiscaisView extends VBox {
         setFillWidth(true);
 
         HBox header = buildHeader();
-        HBox kpis = buildKpis();
         HBox filters = buildFilters();
 
         SplitPane workspace = new SplitPane();
@@ -141,7 +140,12 @@ public class ExerciciosFiscaisView extends VBox {
         pageContent.setFillWidth(true);
         pageContent.setSpacing(0);
         pageContent.setMinWidth(980);
-        pageContent.getChildren().addAll(header, kpis, filters, workspace);
+        pageContent.getChildren().addAll(
+                header,
+                filters,
+                workspace,
+                buildStatusBar()
+        );
         VBox.setVgrow(workspace, Priority.ALWAYS);
 
         ScrollPane pageScroll = new ScrollPane(pageContent);
@@ -172,11 +176,11 @@ public class ExerciciosFiscaisView extends VBox {
         icon.getStyleClass().add("exercicios-title-icon");
 
         VBox titles = new VBox(2);
-        Label title = new Label("Exercícios Fiscais");
+        Label title = new Label("Gestão de Exercícios");
         title.getStyleClass().add("exercicios-title");
 
         Label subtitle = new Label(
-                "Gestão central dos períodos fiscais, abertura, encerramento e exercício actual."
+                "Gestão dos exercícios fiscais da plataforma e das empresas instaladas."
         );
         subtitle.getStyleClass().add("exercicios-subtitle");
 
@@ -221,6 +225,54 @@ public class ExerciciosFiscaisView extends VBox {
         );
 
         return row;
+    }
+
+    private HBox buildStatusBar() {
+        HBox bar = new HBox(16);
+        bar.getStyleClass().add("exercicios-status-bar");
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(new Insets(7, 12, 7, 12));
+
+        totalLabel = new Label("0");
+        abertosLabel = new Label("0");
+        encerramentoLabel = new Label("0");
+        fechadosLabel = new Label("0");
+
+        bar.getChildren().addAll(
+                statusItem("Registos", totalLabel),
+                separator(),
+                statusItem("Abertos", abertosLabel),
+                statusItem("Em encerramento", encerramentoLabel),
+                statusItem("Fechados", fechadosLabel)
+        );
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label hint = new Label("Duplo clique: consultar  •  Clique direito: operações");
+        hint.getStyleClass().add("exercicios-status-hint");
+        bar.getChildren().addAll(spacer, hint);
+
+        return bar;
+    }
+
+    private HBox statusItem(String title, Label value) {
+        HBox item = new HBox(5);
+        item.setAlignment(Pos.CENTER_LEFT);
+
+        Label titleLabel = new Label(title + ":");
+        titleLabel.getStyleClass().add("exercicios-status-label");
+
+        value.getStyleClass().add("exercicios-status-value");
+        item.getChildren().addAll(titleLabel, value);
+        return item;
+    }
+
+    private Separator separator() {
+        Separator separator = new Separator();
+        separator.setOrientation(Orientation.VERTICAL);
+        separator.setPrefHeight(18);
+        return separator;
     }
 
     private VBox kpi(String title, String caption, Label value, Feather icon) {
