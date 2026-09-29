@@ -474,8 +474,8 @@ public class LicenciamentoView extends VBox {
                 "LICENSES_REFRESH",
                 "LICENCAS",
                 "Actualização da central de licenciamento",
-                result -> Platform.runLater(() -> {
-                    modulos.setAll(result == null ? List.of() : result);
+                () -> Platform.runLater(() -> {
+                    modulos.setAll(moduloRepository.findAll());
                     applyFilters();
                     updateKpis();
                     updateDetails(table == null ? null : table.getSelectionModel().getSelectedItem());
