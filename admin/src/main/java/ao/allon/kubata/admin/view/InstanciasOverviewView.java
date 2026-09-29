@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -518,9 +519,23 @@ public class InstanciasOverviewView extends VBox {
                                 + formatBytes(Files.getFileStore(current).getTotalSpace())
                 );
 
-                statusBadge.setText("OPERACIONAL");
-                statusBadge.getStyleClass().removeAll("kubata-instance-status-warning", "kubata-instance-status-danger");
-                statusBadge.getStyleClass().add("kubata-instance-status-ok");
+                long usable = Files.getFileStore(current).getUsableSpace();
+                long total = Files.getFileStore(current).getTotalSpace();
+                double diskUsage = total <= 0 ? 0 : 1.0 - ((double) usable / total);
+                double heapUsage = heapUsageRatio();
+
+                boolean attention = diskUsage >= 0.90 || heapUsage >= 0.85;
+                statusBadge.setText(attention ? "ATENÇÃO" : "OPERACIONAL");
+                statusBadge.getStyleClass().removeAll(
+                        "kubata-instance-status-warning",
+                        "kubata-instance-status-danger",
+                        "kubata-instance-status-ok"
+                );
+                statusBadge.getStyleClass().add(
+                        attention
+                                ? "kubata-instance-status-warning"
+                                : "kubata-instance-status-ok"
+                );
 
                 lastRefreshValue.setText(LocalDateTime.now().format(DATE_TIME));
 
@@ -693,6 +708,12 @@ public class InstanciasOverviewView extends VBox {
         return value;
     }
 
+    private double heapUsageRatio() {
+        MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        if (heap.getMax() <= 0) return 0;
+        return (double) heap.getUsed() / heap.getMax();
+    }
+
     private String formatHeap() {
         MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
         MemoryUsage heap = memoryBean.getHeapMemoryUsage();
@@ -727,8 +748,9 @@ public class InstanciasOverviewView extends VBox {
 
     private String startTime() {
         long start = ManagementFactory.getRuntimeMXBean().getStartTime();
-        return LocalDateTime.now().minusNanos(
-                Math.max(0, System.currentTimeMillis() - start) * 1_000_000L
+        return LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(start),
+                java.time.ZoneId.systemDefault()
         ).format(DATE_TIME);
     }
 }
