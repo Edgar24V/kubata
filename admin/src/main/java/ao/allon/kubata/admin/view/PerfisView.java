@@ -395,7 +395,7 @@ public class PerfisView extends VBox {
 
         tv.setOnEdit(this::showPerfilDialog);
         tv.setOnViewDetails(this::showPerfilDialog);
-        tv.setOnDelete(this::removeSelectedPerfil);
+        tv.setOnDelete(selected -> removeSelectedPerfil());
         tv.setOnRefresh(this::loadPerfis);
 
         return tv;
