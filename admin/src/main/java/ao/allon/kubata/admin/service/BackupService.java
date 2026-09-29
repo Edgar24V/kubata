@@ -137,13 +137,14 @@ public class BackupService {
                     while ((entry = zis.getNextEntry()) != null) {
                         if (entry.isDirectory()) continue;
                         String name = entry.getName().toLowerCase();
-                        if (name.endsWith(".db") || name.endsWith(".sqlite") || name.contains("kubata")) {
+                        if (!foundDb
+                                && (name.endsWith(".db") || name.endsWith(".sqlite") || name.contains("kubata"))) {
                             Files.copy(zis, extracted, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                             foundDb = true;
-                            break;
-                        }
-                        while (zis.read() != -1) {
-                            // Consome a entrada para validar CRC da ZIP.
+                        } else {
+                            while (zis.read() != -1) {
+                                // Consome a entrada para validar o CRC de toda a ZIP.
+                            }
                         }
                     }
                 } catch (Exception ex) {
