@@ -32,13 +32,14 @@ public final class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         return "/api/v1/health".equals(path)
                 || "/api/v1/info".equals(path)
-                || "/api/v1/openapi".equals(path)
-                || "/api/v1/openapi/".equals(path);
+                || path.startsWith("/api/v1/openapi");
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         String requestId = request.getHeader("X-Request-Id");
         if (!StringUtils.hasText(requestId)) {
@@ -49,18 +50,23 @@ public final class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         boolean enabled = readBoolean("INTEGRACAO_API_ENABLED", false);
         if (!enabled) {
             writeError(response, requestId, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                    "API_DISABLED", "A API REST está desactivada nas configurações de integração.", request.getRequestURI());
+                    "API_DISABLED",
+                    "A API REST está desactivada nas configurações de integração.",
+                    request.getRequestURI());
             return;
         }
 
         String configuredKey = read("INTEGRACAO_API_KEY");
         if (!StringUtils.hasText(configuredKey)) {
             writeError(response, requestId, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                    "API_KEY_NOT_CONFIGURED", "A API está activa, mas não existe uma API Key configurada.", request.getRequestURI());
+                    "API_KEY_NOT_CONFIGURED",
+                    "A API está activa, mas não existe uma API Key configurada.",
+                    request.getRequestURI());
             return;
         }
 
         String suppliedKey = request.getHeader(API_KEY_HEADER);
+
         if (!StringUtils.hasText(suppliedKey)) {
             String authorization = request.getHeader("Authorization");
             if (authorization != null && authorization.startsWith(API_KEY_AUTHORIZATION_PREFIX)) {
@@ -69,9 +75,11 @@ public final class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (!StringUtils.hasText(suppliedKey) || !constantTimeEquals(configuredKey, suppliedKey)) {
-            response.setHeader("WWW-Authenticate", "ApiKey realm="Kubata API"");
+            response.setHeader("WWW-Authenticate", "ApiKey realm=\"Kubata API\"");
             writeError(response, requestId, HttpServletResponse.SC_UNAUTHORIZED,
-                    "INVALID_API_KEY", "API Key inválida ou ausente.", request.getRequestURI());
+                    "INVALID_API_KEY",
+                    "API Key inválida ou ausente.",
+                    request.getRequestURI());
             return;
         }
 
@@ -96,19 +104,37 @@ public final class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         );
     }
 
-    private void writeError(HttpServletResponse response, String requestId, int status,
-                            String error, String message, String path) throws IOException {
+    private void writeError(
+            HttpServletResponse response,
+            String requestId,
+            int status,
+            String error,
+            String message,
+            String path) throws IOException {
+
         response.setStatus(status);
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
         String json = """
                 {"requestId":"%s","status":%d,"error":"%s","message":"%s","path":"%s"}
-                """.formatted(escape(requestId), status, escape(error), escape(message), escape(path)).trim();
+                """.formatted(
+                escape(requestId),
+                status,
+                escape(error),
+                escape(message),
+                escape(path)
+        ).trim();
+
         response.getWriter().write(json);
     }
 
     private String escape(String value) {
-        if (value == null) return "";
-        return value.replace("\\", "\\\\").replace(""", "\"");
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\"");
     }
 }
