@@ -555,6 +555,9 @@ public class BackupView extends VBox {
         TextField txtEmails = new TextField(config.getEmailNotifications());
         txtEmails.setPromptText("emails@empresa.com (separados por vírgula)");
 
+        CheckBox chkEnabled = new CheckBox("Agendamento automático activo");
+        chkEnabled.setSelected(!Boolean.FALSE.equals(config.getEnabled()));
+
         grid.add(new Label("Frequência:"), 0, 0);
         grid.add(cmbFreq, 1, 0);
         grid.add(new Label("Horário:"), 0, 1);
@@ -563,7 +566,13 @@ public class BackupView extends VBox {
         grid.add(locationBox, 1, 2);
         grid.add(new Label("Retenção técnica (dias):"), 0, 3);
         grid.add(spnRetention, 1, 3);
-        VBox policy = new VBox(7, chkCompress, chkAttachments, chkNotifySuccess, chkNotifyFailure);
+        VBox policy = new VBox(7,
+                chkEnabled,
+                chkCompress,
+                chkAttachments,
+                chkNotifySuccess,
+                chkNotifyFailure
+        );
         grid.add(policy, 1, 4);
         grid.add(new Label("Email de notificações:"), 0, 5);
         grid.add(txtEmails, 1, 5);
@@ -586,7 +595,7 @@ public class BackupView extends VBox {
             config.setNotifyOnSuccess(chkNotifySuccess.isSelected());
             config.setNotifyOnFailure(chkNotifyFailure.isSelected());
             config.setEmailNotifications(txtEmails.getText());
-            config.setEnabled(true);
+            config.setEnabled(chkEnabled.isSelected());
 
             if (txtLocation.getText() == null || txtLocation.getText().isBlank()) {
                 throw new IllegalArgumentException("Seleccione um destino para os backups.");
