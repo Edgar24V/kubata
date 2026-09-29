@@ -16,4 +16,11 @@ public interface SerieDocumentoRepository extends JpaRepository<SerieDocumento, 
     List<SerieDocumento> findByEmpresaId(Long empresaId);
     Optional<SerieDocumento> findByEmpresaIdAndTipoDocumentoAndSerieAndExercicio(
         Long empresaId, TipoDocumentoSAFT tipo, String serie, Integer exercicio);
+    @org.springframework.data.jpa.repository.Query("""
+        select s
+        from SerieDocumento s
+        join fetch s.empresa
+        order by s.exercicio desc, s.tipoDocumento asc, s.serie asc
+        """)
+    List<SerieDocumento> findAllWithEmpresa();
 }
