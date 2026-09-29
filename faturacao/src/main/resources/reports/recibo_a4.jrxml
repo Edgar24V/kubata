@@ -2,6 +2,16 @@
 <!-- Created with Jaspersoft Studio version 6.20.0.final using JasperReports Library version 6.20.0-2bc7ab61d56f459e8176eb05c7705e145cd400ad  -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="recibo_a4" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="4eedbb89-b4f6-4469-9ab6-f642a1688cf7">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	<style name="KDocBase" fontName="DejaVu Sans" fontSize="9" forecolor="#263238"/>
+	<style name="KDocCompany" parentStyle="KDocBase" fontSize="16" isBold="true" forecolor="#0A6B4A"/>
+	<style name="KDocTitle" parentStyle="KDocBase" fontSize="15" isBold="true" forecolor="#0A6B4A"/>
+	<style name="KDocDetail" parentStyle="KDocBase" backcolor="#FFFFFF" mode="Opaque">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></conditionExpression>
+			<style backcolor="#F7FAF8" mode="Opaque"/>
+		</conditionalStyle>
+	</style>
+	<style name="KDocFooter" parentStyle="KDocBase" fontSize="7" forecolor="#78909C"/>
 	<parameter name="EMPRESA_NOME" class="java.lang.String"/>
 	<parameter name="EMPRESA_NIF" class="java.lang.String"/>
 	<parameter name="EMPRESA_ENDERECO" class="java.lang.String"/>
@@ -56,7 +66,7 @@
 				<imageExpression><![CDATA[$P{EMPRESA_LOGO}]]></imageExpression>
 			</image>
 			<textField textAdjust="ScaleFont">
-				<reportElement x="120" y="0" width="280" height="25" uuid="1a2b3c4d-5e6f-7890-1234-567890abcdef"/>
+				<reportElement style="KDocCompany" x="120" y="0" width="280" height="25" uuid="1a2b3c4d-5e6f-7890-1234-567890abcdef"/>
 				<textElement>
 					<font size="16" isBold="true"/>
 				</textElement>
@@ -81,7 +91,7 @@
 				</graphicElement>
 			</line>
 			<textField>
-				<reportElement x="410" y="0" width="145" height="20" uuid="6f789012-3456-7890-1234-def123456789"/>
+				<reportElement style="KDocTitle" x="410" y="0" width="145" height="20" uuid="6f789012-3456-7890-1234-def123456789"/>
 				<textElement textAlignment="Right">
 					<font size="14" isBold="true"/>
 				</textElement>
@@ -207,7 +217,7 @@
 	<columnHeader>
 		<band height="25" splitType="Stretch">
 			<rectangle>
-				<reportElement x="0" y="0" width="555" height="25" backcolor="#E0E0E0" uuid="67890123-4567-8901-2345-890123456789"/>
+				<reportElement x="0" y="0" width="555" height="25" backcolor="#0A6B4A" uuid="67890123-4567-8901-2345-890123456789"/>
 				<graphicElement>
 					<pen lineWidth="0.0"/>
 				</graphicElement>
@@ -277,7 +287,7 @@
 				<textFieldExpression><![CDATA[$F{total}]]></textFieldExpression>
 			</textField>
 			<line>
-				<reportElement x="0" y="19" width="555" height="1" forecolor="#EEEEEE" uuid="78901234-5678-9012-3456-901234567890"/>
+				<reportElement x="0" y="19" width="555" height="1" forecolor="#D7E2DE" uuid="78901234-5678-9012-3456-901234567890"/>
 			</line>
 		</band>
 	</detail>
@@ -336,7 +346,7 @@
 	<summary>
 		<band height="160" splitType="Stretch">
 			<rectangle>
-				<reportElement x="350" y="10" width="205" height="80" backcolor="#F5F5F5" uuid="12345678-9012-3456-7890-345678901234"/>
+				<reportElement x="350" y="10" width="205" height="80" backcolor="#F3F8F5" uuid="12345678-9012-3456-7890-345678901234"/>
 				<graphicElement>
 					<pen lineWidth="0.0"/>
 				</graphicElement>
