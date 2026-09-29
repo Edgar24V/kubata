@@ -7772,3 +7772,37 @@ Text {
 .kubata-users-filter-bar .button {
     -fx-min-height: 32px;
 }
+
+
+/* Formulário de utilizadores — ficha ERP */
+.kubata-users-form-page {
+    -fx-background-color: -kubata-white;
+    -fx-padding: 14px;
+}
+
+.kubata-users-form-page .kubata-users-section-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+}
+
+.kubata-users-form .text-field,
+.kubata-users-form .combo-box,
+.kubata-users-security-card .text-field,
+.kubata-users-security-card .password-field,
+.kubata-users-security-card .date-picker,
+.kubata-users-security-card .combo-box,
+.kubata-users-security-card .spinner {
+    -fx-min-height: 36px;
+}
+
+.kubata-users-form-page .label {
+    -fx-font-smoothing-type: lcd;
+}
+
+.kubata-users-form-page > .kubata-users-form {
+    -fx-border-color: transparent;
+}
+
+.kubata-users-details .button:disabled {
+    -fx-opacity: 0.42;
+}
