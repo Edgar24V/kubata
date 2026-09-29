@@ -127,7 +127,7 @@ public class JrxmlStudioView extends VBox {
                 kpi("TEMPLATES", totalValue, Feather.FILE_TEXT),
                 kpi("VÁLIDOS", validValue, Feather.CHECK_CIRCLE),
                 kpi("COM ERROS", invalidValue, Feather.ALERT_CIRCLE),
-                kpi("SELECCIONADO", selectedValue, Feather.CROSSHAIRS)
+                kpi("SELECCIONADO", selectedValue, Feather.FILE)
         );
         return box;
     }
