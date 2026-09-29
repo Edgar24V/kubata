@@ -3,6 +3,7 @@ package ao.allon.kubata.admin.view;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.admin.service.BackupService;
+import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
@@ -11,6 +12,7 @@ import ao.allon.kubata.core.domain.BackupConfig;
 import ao.allon.kubata.core.domain.BackupRecord;
 import ao.allon.kubata.core.repository.BackupConfigRepository;
 import ao.allon.kubata.core.repository.BackupRecordRepository;
+import ao.allon.kubata.faturacao.service.BackupConfigService;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -45,6 +47,8 @@ public class BackupView extends VBox {
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
     private final BackupService backupService;
+    private final BackupConfigService backupConfigService;
+    private final ao.allon.kubata.core.service.AcessoService acessoService;
     private final Environment environment;
 
     private final TabPane tabPane = new TabPane();
@@ -67,6 +71,8 @@ public class BackupView extends VBox {
                       SessionManager sessionManager, ModalManager modalManager,
                       PersistenceService persistenceService,
                       BackupService backupService,
+                      BackupConfigService backupConfigService,
+                      ao.allon.kubata.core.service.AcessoService acessoService,
                       Environment environment) {
         this.backupConfigRepository = backupConfigRepository;
         this.backupRecordRepository = backupRecordRepository;
@@ -74,6 +80,8 @@ public class BackupView extends VBox {
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
         this.backupService = backupService;
+        this.backupConfigService = backupConfigService;
+        this.acessoService = acessoService;
         this.environment = environment;
 
         buildUI();
@@ -135,12 +143,20 @@ public class BackupView extends VBox {
         Button btnExecutarAgora = new Button("Backup Instantâneo", IconUtils.icon(Feather.ZAP, IconUtils.SIZE_SMALL));
         btnExecutarAgora.getStyleClass().add("button-success");
         btnExecutarAgora.setOnAction(e -> executeInstantBackup());
+        btnExecutarAgora.setDisable(!hasCreatePermission());
+
+        Button btnTestarDestino = new Button(
+                "Testar destino",
+                IconUtils.icon(Feather.CHECK_CIRCLE, IconUtils.SIZE_SMALL)
+        );
+        btnTestarDestino.getStyleClass().add("button-outlined");
+        btnTestarDestino.setOnAction(e -> testBackupDestination());
 
         Button btnRefresh = new Button("Sincronizar", IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
         btnRefresh.getStyleClass().add("button-outlined");
         btnRefresh.setOnAction(e -> loadData());
 
-        box.getChildren().addAll(title, spacer, btnExecutarAgora, btnRefresh);
+        box.getChildren().addAll(title, spacer, btnTestarDestino, btnExecutarAgora, btnRefresh);
         return box;
     }
 
@@ -187,11 +203,13 @@ public class BackupView extends VBox {
         btnPurge.setMaxWidth(Double.MAX_VALUE);
         btnPurge.getStyleClass().addAll("button-outlined", "button-danger");
         btnPurge.setOnAction(e -> purgeOldBackups());
+        btnPurge.setDisable(!hasCreatePermission());
 
         Button btnVerify = new Button("Verificar Integridade Global", IconUtils.icon(Feather.CHECK_CIRCLE, 14));
         btnVerify.setMaxWidth(Double.MAX_VALUE);
         btnVerify.getStyleClass().add("button-outlined");
         btnVerify.setOnAction(e -> verifyAllIntegrity());
+        btnVerify.setDisable(!hasViewPermission());
 
         quickActions.getChildren().addAll(lblActionsTitle, new Separator(), btnPurge, btnVerify);
 
@@ -205,9 +223,9 @@ public class BackupView extends VBox {
         Label lblInfoTitle = new Label("Dicas de Segurança");
         lblInfoTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
         
-        Label tip1 = new Label("• Mantenha cópias em discos externos.");
-        Label tip2 = new Label("• Verifique a integridade mensalmente.");
-        Label tip3 = new Label("• Backups comprimidos poupam 70% de espaço.");
+        Label tip1 = new Label("• Mantenha pelo menos uma cópia fora do computador principal.");
+        Label tip2 = new Label("• Verifique os backups e faça testes de restauração de forma periódica.");
+        Label tip3 = new Label("• Backup técnico não substitui o arquivo fiscal legalmente exigido.");
         tip1.setWrapText(true); tip2.setWrapText(true); tip3.setWrapText(true);
 
         infoPanel.getChildren().addAll(lblInfoTitle, new Separator(), tip1, tip2, tip3);
@@ -462,8 +480,51 @@ public class BackupView extends VBox {
             config.setEmailNotifications(txtEmails.getText());
             config.setEnabled(true);
 
-            persistenceService.saveAsync(backupConfigRepository, config, "BACKUP_CONFIG", "Salva configuração de backup", saved -> loadData());
+            backupConfigService.saveConfig(config);
+            loadData();
         }, null);
+    }
+
+    private void testBackupDestination() {
+        if (!hasViewPermission()) {
+            modalManager.alert(
+                    "Acesso negado",
+                    "Não possui permissão para consultar a configuração de backup.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        Path directory = resolveBackupDirectory();
+        persistenceService.executeAsync(
+                () -> {
+                    try {
+                        backupService.testDestination(directory);
+                        Platform.runLater(() -> modalManager.alert(
+                                "Destino validado",
+                                "O Kubata conseguiu criar, escrever e remover um ficheiro de teste em:\n"
+                                        + directory.toAbsolutePath(),
+                                "info",
+                                null
+                        ));
+                    } catch (Exception ex) {
+                        Platform.runLater(() -> modalManager.alert(
+                                "Destino indisponível",
+                                "Não foi possível validar o destino:\n"
+                                        + directory.toAbsolutePath()
+                                        + "\n\n"
+                                        + (ex.getMessage() == null ? "Verifique permissões e espaço em disco." : ex.getMessage()),
+                                "error",
+                                ex
+                        ));
+                    }
+                },
+                "BACKUP_TEST_DESTINATION",
+                "BACKUP",
+                "Teste do destino de backup: " + directory.toAbsolutePath(),
+                null
+        );
     }
 
     private void executeInstantBackup() {
@@ -519,6 +580,18 @@ public class BackupView extends VBox {
                     persistenceService.executeAsync(() -> {
                         try {
                             Path backupFile = Paths.get(record.getFilename());
+                            BackupService.IntegrityCheck integrity =
+                                    backupService.verifyBackup(backupFile, record.getChecksum());
+
+                            if (!integrity.checksumMatches()
+                                    || !integrity.archiveReadable()
+                                    || !integrity.databaseHealthy()) {
+                                throw new SecurityException(
+                                        "Restauro bloqueado: a integridade do backup não foi confirmada. "
+                                                + integrity.message()
+                                );
+                            }
+
                             Path pending = backupService.prepareRestoreToPending(backupFile);
 
                             record.incrementRestoreCount();
@@ -548,11 +621,23 @@ public class BackupView extends VBox {
                     throw new IllegalStateException("Ficheiro não existe: " + file);
                 }
 
-                String sha = backupService.sha256Of(file);
-                record.setChecksum(sha);
-                record.setStatus(BackupRecord.BackupStatus.VERIFIED);
-                record.setErrorMessage(null);
-                backupRecordRepository.save(record);
+                BackupService.IntegrityCheck result =
+                        backupService.verifyBackup(file, record.getChecksum());
+
+                if (result.checksumMatches()
+                        && result.archiveReadable()
+                        && result.databaseHealthy()) {
+                    record.setStatus(BackupRecord.BackupStatus.VERIFIED);
+                    record.setErrorMessage(null);
+                    backupRecordRepository.save(record);
+                } else {
+                    record.setStatus(BackupRecord.BackupStatus.FAILED);
+                    record.setErrorMessage(result.message());
+                    backupRecordRepository.save(record);
+                    throw new SecurityException(
+                            "Integridade não confirmada. " + result.message()
+                    );
+                }
             } catch (Exception ex) {
                 record.setStatus(BackupRecord.BackupStatus.FAILED);
                 record.setErrorMessage(ex.getMessage());
@@ -593,10 +678,17 @@ public class BackupView extends VBox {
                 try {
                     Path file = Paths.get(r.getFilename());
                     if (!Files.exists(file)) continue;
-                    String sha = backupService.sha256Of(file);
-                    r.setChecksum(sha);
-                    r.setStatus(BackupRecord.BackupStatus.VERIFIED);
-                    r.setErrorMessage(null);
+                    BackupService.IntegrityCheck result =
+                            backupService.verifyBackup(file, r.getChecksum());
+                    if (result.checksumMatches()
+                            && result.archiveReadable()
+                            && result.databaseHealthy()) {
+                        r.setStatus(BackupRecord.BackupStatus.VERIFIED);
+                        r.setErrorMessage(null);
+                    } else {
+                        r.setStatus(BackupRecord.BackupStatus.FAILED);
+                        r.setErrorMessage(result.message());
+                    }
                     backupRecordRepository.save(r);
                 } catch (Exception ex) {
                     r.setStatus(BackupRecord.BackupStatus.FAILED);
@@ -605,6 +697,26 @@ public class BackupView extends VBox {
                 }
             }
         }, "BACKUP_VERIFY_ALL", "BACKUP", "Verificação em lote de integridade", this::loadData);
+    }
+
+    private boolean hasViewPermission() {
+        User user = sessionManager.getUser();
+        if (user == null) return false;
+        if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
+        return acessoService.temAcesso(
+                user, "ADMINISTRATOR", "BACKUP",
+                ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.VER
+        );
+    }
+
+    private boolean hasCreatePermission() {
+        User user = sessionManager.getUser();
+        if (user == null) return false;
+        if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
+        return acessoService.temAcesso(
+                user, "ADMINISTRATOR", "BACKUP",
+                ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.CRIAR
+        );
     }
 
     private Path resolveBackupDirectory() {
