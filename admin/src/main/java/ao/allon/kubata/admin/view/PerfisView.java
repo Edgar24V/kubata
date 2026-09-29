@@ -623,10 +623,12 @@ public class PerfisView extends VBox {
     }
 
     private List<PermissaoPerfil> safePermissions(PerfilAcesso perfil) {
+        if (perfil == null || perfil.getId() == null) {
+            return List.of();
+        }
+
         try {
-            return perfil == null
-                    ? List.of()
-                    : new ArrayList<>(permissaoRepository.findByPerfil(perfil));
+            return new ArrayList<>(permissaoRepository.findByPerfil(perfil));
         } catch (Exception ex) {
             return List.of();
         }
