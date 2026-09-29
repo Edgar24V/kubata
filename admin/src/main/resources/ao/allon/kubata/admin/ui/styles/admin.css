@@ -9106,3 +9106,252 @@ Text {
     -fx-text-fill: #b42318;
     -fx-border-color: #f0b4ad;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KUBATA — FISCAL AGT · Centro de conformidade
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kubata-fiscal-agt-page {
+    -fx-background-color: #f8fafc;
+}
+
+.kubata-fiscal-agt-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-fiscal-agt-title-icon {
+    -fx-min-width: 44px;
+    -fx-min-height: 44px;
+    -fx-max-width: 44px;
+    -fx-max-height: 44px;
+    -fx-background-color: #ecfdf5;
+    -fx-background-radius: 12px;
+    -fx-alignment: center;
+}
+
+.kubata-fiscal-agt-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: 850;
+    -fx-text-fill: #0f172a;
+}
+
+.kubata-fiscal-agt-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+}
+
+.kubata-fiscal-agt-compliance-strip {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-fiscal-agt-score-card,
+.kubata-fiscal-agt-mini-card {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 10px 13px;
+}
+
+.kubata-fiscal-agt-score-card {
+    -fx-border-color: #bbf7d0;
+    -fx-background-color: #f0fdf4;
+}
+
+.kubata-fiscal-agt-kpi-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #64748b;
+}
+
+.kubata-fiscal-agt-score {
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #0f766e;
+}
+
+.kubata-fiscal-agt-score-state {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.kubata-fiscal-agt-score-good {
+    -fx-text-fill: #15803d;
+}
+
+.kubata-fiscal-agt-score-warning {
+    -fx-text-fill: #b45309;
+}
+
+.kubata-fiscal-agt-mini-value {
+    -fx-font-size: 12px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #0f172a;
+}
+
+.kubata-fiscal-agt-tabs {
+    -fx-background-color: transparent;
+    -fx-padding: 0 14px 0 14px;
+}
+
+.kubata-fiscal-agt-tabs > .tab-header-area {
+    -fx-background-color: #ffffff;
+    -fx-padding: 0 8px 0 8px;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-background-radius: 10px 10px 0 0;
+}
+
+.kubata-fiscal-agt-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8px 8px 0 0;
+    -fx-padding: 10px 14px;
+}
+
+.kubata-fiscal-agt-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: #ecfdf5;
+}
+
+.kubata-fiscal-agt-tabs > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: #047857;
+    -fx-font-weight: 800;
+}
+
+.kubata-fiscal-agt-tabs > .tab-content-area {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 0 1px 1px 1px;
+    -fx-background-radius: 0 0 10px 10px;
+}
+
+.kubata-fiscal-agt-content {
+    -fx-background-color: #f8fafc;
+}
+
+.kubata-fiscal-agt-section {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 14px;
+}
+
+.kubata-fiscal-agt-section-icon,
+.kubata-fiscal-agt-rule-icon {
+    -fx-text-fill: #0f766e;
+}
+
+.kubata-fiscal-agt-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 850;
+    -fx-text-fill: #0f172a;
+}
+
+.kubata-fiscal-agt-section-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-fiscal-agt-form-grid {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 16px;
+}
+
+.kubata-fiscal-agt-field-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #334155;
+}
+
+.kubata-fiscal-agt-note,
+.kubata-fiscal-agt-footer-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748b;
+}
+
+.kubata-fiscal-agt-rule-card,
+.kubata-fiscal-agt-info-card,
+.kubata-fiscal-agt-warning-card,
+.kubata-fiscal-agt-deadline-card,
+.kubata-fiscal-agt-check-panel {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 14px;
+}
+
+.kubata-fiscal-agt-warning-card {
+    -fx-background-color: #fffbeb;
+    -fx-border-color: #fde68a;
+}
+
+.kubata-fiscal-agt-card-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 850;
+    -fx-text-fill: #0f172a;
+}
+
+.kubata-fiscal-agt-card-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748b;
+}
+
+.kubata-fiscal-agt-deadline-value {
+    -fx-font-weight: 800;
+    -fx-text-fill: #0f766e;
+}
+
+.kubata-fiscal-agt-check-row,
+.kubata-fiscal-agt-diagnostic-row {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 9px;
+    -fx-background-radius: 9px;
+    -fx-padding: 9px 11px;
+}
+
+.kubata-fiscal-agt-check-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #334155;
+}
+
+.kubata-fiscal-agt-check-ok,
+.kubata-fiscal-agt-status-ok {
+    -fx-text-fill: #15803d;
+}
+
+.kubata-fiscal-agt-check-warning,
+.kubata-fiscal-agt-status-warning {
+    -fx-text-fill: #b45309;
+}
+
+.kubata-fiscal-agt-status-ok,
+.kubata-fiscal-agt-status-warning {
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
+}
+
+.kubata-fiscal-agt-footer {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.kubata-fiscal-agt-scroll,
+.kubata-fiscal-agt-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
