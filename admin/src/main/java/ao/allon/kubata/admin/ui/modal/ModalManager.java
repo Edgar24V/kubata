@@ -922,7 +922,7 @@ public class ModalManager {
                 frame.title,
                 IconUtils.icon(frame.maximized ? Feather.MINIMIZE_2 : Feather.MAXIMIZE_2, 11)
         );
-        restore.setTooltip(new Tooltip("Restaurar "" + frame.title + """));
+        restore.setTooltip(new Tooltip("Restaurar " + frame.title));
         restore.setAccessibleText("Restaurar " + frame.title);
         restore.getStyleClass().addAll("button-icon", "flat", "kubata-modal-minimized-restore");
         restore.setOnAction(event -> restoreModal(frame.pane));
@@ -931,7 +931,7 @@ public class ModalManager {
                 "",
                 IconUtils.icon(Feather.X, 11)
         );
-        close.setTooltip(new Tooltip("Fechar "" + frame.title + """));
+        close.setTooltip(new Tooltip("Fechar " + frame.title));
         close.setAccessibleText("Fechar " + frame.title);
         close.getStyleClass().addAll("button-icon", "flat", "kubata-modal-minimized-close");
         close.setOnAction(event -> closeModalPane(frame.pane));
