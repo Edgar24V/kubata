@@ -182,11 +182,16 @@ public class UtilizadoresView extends VBox {
 
         titleLine.getChildren().addAll(spacer, btnRefresh, btnNovo);
 
+        totalValue = new Label("0");
+        activeValue = new Label("0");
+        blockedValue = new Label("0");
+        mfaValue = new Label("0");
+
         HBox kpis = new HBox(10,
-                createKpi("UTILIZADORES", Feather.USERS, () -> totalValue),
-                createKpi("ACTIVOS", Feather.CHECK_CIRCLE, () -> activeValue),
-                createKpi("BLOQUEADOS", Feather.LOCK, () -> blockedValue),
-                createKpi("MFA", Feather.SHIELD, () -> mfaValue)
+                createKpi("UTILIZADORES", Feather.USERS, totalValue),
+                createKpi("ACTIVOS", Feather.CHECK_CIRCLE, activeValue),
+                createKpi("BLOQUEADOS", Feather.LOCK, blockedValue),
+                createKpi("MFA", Feather.SHIELD, mfaValue)
         );
         kpis.setFillHeight(true);
 
@@ -194,7 +199,7 @@ public class UtilizadoresView extends VBox {
         return header;
     }
 
-    private VBox createKpi(String title, Feather icon, java.util.function.Supplier<Label> valueSupplier) {
+    private VBox createKpi(String title, Feather icon, Label value) {
         VBox card = new VBox(2);
         card.getStyleClass().add("kubata-users-kpi");
         card.setPadding(new Insets(10, 14, 10, 14));
@@ -210,8 +215,6 @@ public class UtilizadoresView extends VBox {
         titleLabel.getStyleClass().add("kubata-users-kpi-title");
         top.getChildren().addAll(iconLabel, titleLabel);
 
-        Label value = valueSupplier.get();
-        value.setText("0");
         value.getStyleClass().add("kubata-users-kpi-value");
 
         card.getChildren().addAll(top, value);
@@ -236,7 +239,6 @@ public class UtilizadoresView extends VBox {
         searchField = new TextField();
         searchField.setPromptText("Pesquisar por nome, email, NIF, telefone, departamento ou cargo...");
         searchField.setPrefWidth(360);
-        searchField.setGraphic(IconUtils.icon(Feather.SEARCH, 14));
         searchField.textProperty().addListener((obs, old, value) -> applyFilters());
 
         empresaFilter = new ComboBox<>();
@@ -817,7 +819,7 @@ public class UtilizadoresView extends VBox {
 
         if (isNew) {
             txtSenha.setText(generateRandomPassword());
-        } else if (user.getPasswordProvisoria()) {
+        } else if (user.isPasswordProvisoria()) {
             txtSenha.setPromptText("A senha actual é provisória");
         }
 
@@ -1156,17 +1158,18 @@ public class UtilizadoresView extends VBox {
         modalManager.showConfirm(
                 next ? "Activar utilizador" : "Desactivar utilizador",
                 "Confirma a alteração do estado de " + safe(selected.getNome(), selected.getEmail()) + "?",
-                () -> persistenceService.saveAsync(
-                        userRepository,
-                        selected,
-                        "UTILIZADOR",
-                        (next ? "Activado" : "Desactivado")
-                                + " utilizador: " + selected.getEmail(),
-                        saved -> loadUsers()
-                )
+                () -> {
+                    selected.setActive(next);
+                    persistenceService.saveAsync(
+                            userRepository,
+                            selected,
+                            "UTILIZADOR",
+                            (next ? "Activado" : "Desactivado")
+                                    + " utilizador: " + selected.getEmail(),
+                            saved -> loadUsers()
+                    );
+                }
         );
-
-        selected.setActive(next);
     }
 
     private void unlockSelectedUser() {
