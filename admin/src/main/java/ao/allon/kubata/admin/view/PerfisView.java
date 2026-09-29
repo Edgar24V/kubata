@@ -508,7 +508,7 @@ public class PerfisView extends VBox {
 
     private void loadPerfis() {
         try {
-            perfis.setAll(perfilRepository.findAll());
+            perfis.setAll(perfilRepository.findAllWithEmpresa());
             refreshFilters();
             applyFilters();
             updateKpis();
