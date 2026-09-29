@@ -1,136 +1,98 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="audit_log" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="b1e690a3-5977-4467-85f8-6b0bcd5b7210">
-	<parameter name="EMPRESA_NOME" class="java.lang.String"/>
-	<parameter name="EMPRESA_NIF" class="java.lang.String"/>
-	<parameter name="PERIODO_INICIO" class="java.lang.String"/>
-	<parameter name="PERIODO_FIM" class="java.lang.String"/>
-	<field name="timestamp" class="java.time.LocalDateTime"/>
-	<field name="username" class="java.lang.String"/>
-	<field name="actionType" class="java.lang.String"/>
-	<field name="entityType" class="java.lang.String"/>
-	<field name="newValues" class="java.lang.String"/>
-	<field name="duracaoMs" class="java.lang.Long"/>
-	<background><band splitType="Stretch"/></background>
-	<title>
-		<band height="60">
-			<textField>
-				<reportElement x="0" y="0" width="400" height="25" uuid="a1b2c3d4-5678-90ab-cdef-123456789001"/>
-				<textElement>
-					<font size="16" isBold="true"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="500" y="0" width="302" height="25" uuid="b2c3d4e5-6789-01ab-cdef-234567890012"/>
-				<textElement textAlignment="Right">
-					<font size="14" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Histórico de Auditoria]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="0" y="25" width="400" height="15" uuid="c3d4e5f6-7890-12ab-cdef-345678900123"/>
-				<textFieldExpression><![CDATA["NIF: " + $P{EMPRESA_NIF}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="0" y="40" width="802" height="15" uuid="d4e5f6a7-8901-23ab-cdef-456789001234"/>
-				<textElement textAlignment="Center">
-					<font isItalic="true"/>
-				</textElement>
-				<textFieldExpression><![CDATA["Período: " + $P{PERIODO_INICIO} + " a " + $P{PERIODO_FIM}]]></textFieldExpression>
-			</textField>
-		</band>
-	</title>
-	<columnHeader>
-		<band height="20">
-			<staticText>
-				<reportElement x="0" y="0" width="120" height="20" uuid="e5f6a7b8-9012-34ab-cdef-567890012345"/>
-				<box>
-					<bottomPen lineWidth="1.0"/>
-				</box>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[Data/Hora]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="120" y="0" width="80" height="20" uuid="f6a7b8c9-0123-45ab-cdef-678900123456"/>
-				<box>
-					<bottomPen lineWidth="1.0"/>
-				</box>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[Usuário]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="200" y="0" width="100" height="20" uuid="a7b8c9d0-1234-56ab-cdef-789001234567"/>
-				<box>
-					<bottomPen lineWidth="1.0"/>
-				</box>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[Ação]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="300" y="0" width="100" height="20" uuid="b8c9d0e1-2345-67ab-cdef-890012345678"/>
-				<box>
-					<bottomPen lineWidth="1.0"/>
-				</box>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[Entidade]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="400" y="0" width="342" height="20" uuid="c9d0e1f2-3456-78ab-cdef-901234567890"/>
-				<box>
-					<bottomPen lineWidth="1.0"/>
-				</box>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[Detalhes]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="742" y="0" width="60" height="20" uuid="d0e1f2a3-4567-89ab-cdef-012345678901"/>
-				<box>
-					<bottomPen lineWidth="1.0"/>
-				</box>
-				<textElement textAlignment="Right">
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[Ms]]></text>
-			</staticText>
-		</band>
-	</columnHeader>
-	<detail>
-		<band height="15">
-			<textField>
-				<reportElement x="0" y="0" width="120" height="15" uuid="e1f2a3b4-5678-90ab-cdef-123456789002"/>
-				<textFieldExpression><![CDATA[$F{timestamp}.toString()]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="120" y="0" width="80" height="15" uuid="f2a3b4c5-6789-01ab-cdef-234567890013"/>
-				<textFieldExpression><![CDATA[$F{username}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="200" y="0" width="100" height="15" uuid="a3b4c5d6-7890-12ab-cdef-345678900124"/>
-				<textFieldExpression><![CDATA[$F{actionType}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="300" y="0" width="100" height="15" uuid="b4c5d6e7-8901-23ab-cdef-456789001235"/>
-				<textFieldExpression><![CDATA[$F{entityType}]]></textFieldExpression>
-			</textField>
-			<textField isStretchWithOverflow="true">
-				<reportElement x="400" y="0" width="342" height="15" uuid="c5d6e7f8-9012-34ab-cdef-567890012346"/>
-				<textFieldExpression><![CDATA[$F{newValues}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="742" y="0" width="60" height="15" uuid="d6e7f8a9-0123-45ab-cdef-678900123457"/>
-				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[$F{duracaoMs}]]></textFieldExpression>
-			</textField>
-		</band>
-	</detail>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="audit_log" pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20"
+              uuid="b1e690a3-5977-4467-85f8-6b0bcd5b7210">
+
+    <style name="KBase" fontName="DejaVu Sans" fontSize="8" forecolor="#263238"/>
+    <style name="KTitle" parentStyle="KBase" fontSize="18" isBold="true" forecolor="#0A6B4A"/>
+    <style name="KMuted" parentStyle="KBase" fontSize="8" forecolor="#607D8B"/>
+    <style name="KHeader" parentStyle="KBase" fontSize="8" isBold="true" forecolor="#FFFFFF"
+           backcolor="#0A6B4A" mode="Opaque"/>
+    <style name="KDetail" parentStyle="KBase" backcolor="#FFFFFF" mode="Opaque">
+        <conditionalStyle>
+            <conditionExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></conditionExpression>
+            <style backcolor="#F5F8F7" mode="Opaque"/>
+        </conditionalStyle>
+    </style>
+    <style name="KFooter" parentStyle="KBase" fontSize="7" forecolor="#607D8B"/>
+
+    <parameter name="EMPRESA_NOME" class="java.lang.String"/>
+    <parameter name="EMPRESA_NIF" class="java.lang.String"/>
+    <parameter name="PERIODO_INICIO" class="java.lang.String"/>
+    <parameter name="PERIODO_FIM" class="java.lang.String"/>
+
+    <field name="timestamp" class="java.time.LocalDateTime"/>
+    <field name="username" class="java.lang.String"/>
+    <field name="actionType" class="java.lang.String"/>
+    <field name="entityType" class="java.lang.String"/>
+    <field name="newValues" class="java.lang.String"/>
+    <field name="duracaoMs" class="java.lang.Long"/>
+
+    <background><band splitType="Stretch"/></background>
+
+    <title>
+        <band height="76">
+            <rectangle>
+                <reportElement x="0" y="0" width="802" height="76" backcolor="#F4F8F6"/>
+                <graphicElement><pen lineWidth="0"/></graphicElement>
+            </rectangle>
+            <textField style="KTitle">
+                <reportElement x="18" y="9" width="430" height="25"/>
+                <textElement verticalAlignment="Middle"/>
+                <textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression>
+            </textField>
+            <staticText style="KBase">
+                <reportElement x="500" y="9" width="284" height="25"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="13" isBold="true"/></textElement>
+                <text><![CDATA[Histórico de Auditoria]]></text>
+            </staticText>
+            <textField style="KMuted">
+                <reportElement x="18" y="36" width="350" height="16"/>
+                <textFieldExpression><![CDATA["NIF: " + ($P{EMPRESA_NIF} == null ? "—" : $P{EMPRESA_NIF})]]></textFieldExpression>
+            </textField>
+            <textField style="KMuted">
+                <reportElement x="380" y="36" width="404" height="16"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Período: " + ($P{PERIODO_INICIO} == null ? "Início" : $P{PERIODO_INICIO}) + " → " + ($P{PERIODO_FIM} == null ? "Fim" : $P{PERIODO_FIM})]]></textFieldExpression>
+            </textField>
+            <staticText style="KMuted">
+                <reportElement x="18" y="56" width="766" height="13"/>
+                <text><![CDATA[Trilha de auditoria · registo operacional do Kubata · os detalhes apresentados correspondem aos dados recebidos pelo relatório]]></text>
+            </staticText>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="26">
+            <staticText style="KHeader"><reportElement x="0" y="0" width="120" height="26" uuid="e5f6a7b8-9012-34ab-cdef-567890012345"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Data/Hora]]></text></staticText>
+            <staticText style="KHeader"><reportElement x="120" y="0" width="80" height="26" uuid="f6a7b8c9-0123-45ab-cdef-678900123456"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Utilizador]]></text></staticText>
+            <staticText style="KHeader"><reportElement x="200" y="0" width="100" height="26" uuid="a7b8c9d0-1234-56ab-cdef-789001234567"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Acção]]></text></staticText>
+            <staticText style="KHeader"><reportElement x="300" y="0" width="100" height="26" uuid="b8c9d0e1-2345-67ab-cdef-890012345678"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Entidade]]></text></staticText>
+            <staticText style="KHeader"><reportElement x="400" y="0" width="342" height="26" uuid="c9d0e1f2-3456-78ab-cdef-901234567890"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Detalhes]]></text></staticText>
+            <staticText style="KHeader"><reportElement x="742" y="0" width="60" height="26" uuid="d0e1f2a3-4567-89ab-cdef-012345678901"/><textElement textAlignment="Right" verticalAlignment="Middle"><paragraph rightIndent="6"/></textElement><text><![CDATA[Ms]]></text></staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="24" splitType="Stretch">
+            <textField style="KDetail"><reportElement x="0" y="0" width="120" height="24" uuid="e1f2a3b4-5678-90ab-cdef-123456789002"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{timestamp} == null ? "—" : $F{timestamp}.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))]]></textFieldExpression></textField>
+            <textField style="KDetail"><reportElement x="120" y="0" width="80" height="24" uuid="f2a3b4c5-6789-01ab-cdef-234567890013"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{username} == null ? "—" : $F{username}]]></textFieldExpression></textField>
+            <textField style="KDetail"><reportElement x="200" y="0" width="100" height="24" uuid="a3b4c5d6-7890-12ab-cdef-345678900124"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{actionType} == null ? "—" : $F{actionType}]]></textFieldExpression></textField>
+            <textField style="KDetail"><reportElement x="300" y="0" width="100" height="24" uuid="b4c5d6e7-8901-23ab-cdef-456789001235"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{entityType} == null ? "—" : $F{entityType}]]></textFieldExpression></textField>
+            <textField style="KDetail" isStretchWithOverflow="true"><reportElement x="400" y="0" width="342" height="24" uuid="c5d6e7f8-9012-34ab-cdef-567890012346"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{newValues} == null ? "—" : $F{newValues}]]></textFieldExpression></textField>
+            <textField style="KDetail"><reportElement x="742" y="0" width="60" height="24" uuid="d6e7f8a9-0123-45ab-cdef-678900123457"/><textElement textAlignment="Right" verticalAlignment="Middle"><paragraph rightIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{duracaoMs} == null ? 0 : $F{duracaoMs}]]></textFieldExpression></textField>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="34">
+            <line><reportElement x="0" y="0" width="802" height="1"/><graphicElement><pen lineWidth="0.5" lineColor="#D7E2DE"/></graphicElement></line>
+            <staticText style="KFooter"><reportElement x="0" y="9" width="390" height="18"/><textElement verticalAlignment="Middle"/><text><![CDATA[Kubata · Trilha de auditoria · acesso controlado]]></text></staticText>
+            <textField style="KFooter"><reportElement x="645" y="9" width="75" height="18"/><textElement textAlignment="Right" verticalAlignment="Middle"/><textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+            <textField style="KFooter" evaluationTime="Report"><reportElement x="720" y="9" width="82" height="18"/><textElement textAlignment="Left" verticalAlignment="Middle"/><textFieldExpression><![CDATA[" de " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+        </band>
+    </pageFooter>
 </jasperReport>
