@@ -66,6 +66,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 tab("Personalização",Feather.CPU,personalization()),tab("Base de Dados",Feather.DATABASE,database()),
                 tab("Listagens",Feather.LIST,definitions("LISTAGEM","Listagens configuráveis")),
                 tab("Mapas",Feather.MAP,definitions("MAPA","Mapas de processos")),
+                tab("Instalação & Registry",Feather.CPU,installation()),
                 tab("Segurança & Certificados",Feather.SHIELD,security()));
         setTop(header);setCenter(tabs);
     }
@@ -120,6 +121,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         VBox r=page();TableView<AdmPlataformaItem> rules=table("ALERTA_REGRA");TableView<AdmPlataformaItem> incidents=table("ALERTA");
         r.getChildren().addAll(section("Central de alertas","Regras armazenadas e ocorrências técnicas reais."),
                 actions(button("Verificar agora",Feather.SEARCH,()->{String x=automation.evaluateAndPersistAlerts(user());show("Alertas",x);reload(incidents,"ALERTA");}),
+                        button("Resolver seleccionado",Feather.CHECK_CIRCLE,()->{AdmPlataformaItem i=selected(incidents);if(i!=null){automation.resolveAlert(i);reload(incidents,"ALERTA");}}),
                         button("Nova regra",Feather.PLUS,()->alertRule(rules)),button("Actualizar",Feather.REFRESH_CW,()->{reload(rules,"ALERTA_REGRA");reload(incidents,"ALERTA");})),
                 new Label("Regras"),rules,new Label("Ocorrências"),incidents);
         return scroll(r);
@@ -212,6 +214,33 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
     private void showJson(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=selected(t);if(i==null)return;TextArea a=new TextArea(i.getConfigJson()==null?"{}":i.getConfigJson());a.setEditable(false);a.setWrapText(true);a.setPrefRowCount(18);dialog(i.getNome(),a).showAndWait();}
     private void toggleGeneric(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=selected(t);if(i!=null){automation.toggle(i);reload(t,i.getTipo());}}
+
+    private Node installation(){
+        VBox r=page();
+        TableView<AdmPlataformaItem> defs=table("INSTALACAO");
+        TextField prefix=new TextField(global("PLATAFORMA.INSTALACAO.PREFIXO","KUBATA"));
+        TextField environmentField=new TextField(global("PLATAFORMA.INSTALACAO.AMBIENTE","local"));
+        TextField registry=new TextField(global("PLATAFORMA.REGISTRY.LOCAL","classpath:modules"));
+        Button save=button("Guardar parâmetros",Feather.SAVE,()->{
+            saveGlobal("PLATAFORMA.INSTALACAO.PREFIXO",prefix.getText(),"STRING","Prefixo de instalação");
+            saveGlobal("PLATAFORMA.INSTALACAO.AMBIENTE",environmentField.getText(),"STRING","Ambiente de instalação");
+            saveGlobal("PLATAFORMA.REGISTRY.LOCAL",registry.getText(),"STRING","Catálogo/registry local");
+            show("Instalação","Parâmetros de instalação guardados.");
+        });
+        GridPane g=form();field(g,0,"Prefixo",prefix);field(g,1,"Ambiente",environmentField);field(g,2,"Registry",registry);
+        List<String> modules=automation.databaseTables().stream().filter(s->s.toLowerCase(Locale.ROOT).contains("modulo")).toList();
+        r.getChildren().addAll(
+                section("Parâmetros de instalação e registry","Catálogo dos parâmetros de implantação e referência ao registry local da plataforma."),
+                card(g,save),
+                section("Catálogo administrativo","Definições de instalação persistidas, quando existentes."),
+                actions(button("Nova definição",Feather.PLUS,()->definitionDialog(defs,"INSTALACAO")),
+                        button("Activar/Pausar",Feather.POWER,()->toggleGeneric(defs)),
+                        button("Actualizar",Feather.REFRESH_CW,()->reload(defs,"INSTALACAO"))),
+                defs,
+                info("Módulos","As aplicações instaladas continuam a ser geridas pelo ModuleRegistry e pela área Aplicações Instaladas; esta página centraliza apenas parâmetros e metadata da instalação.")
+        );
+        return scroll(r);
+    }
 
     private Node security(){
         VBox r=page();TextField attempts=new TextField(global("SEGURANCA.MAX_TENTATIVAS","5")),lock=new TextField(global("SEGURANCA.MINUTOS_BLOQUEIO","30")),days=new TextField(global("SEGURANCA.DIAS_VALIDADE_PW","90"));CheckBox mfa=new CheckBox("Exigir MFA para administradores");mfa.setSelected(Boolean.parseBoolean(global("SEGURANCA.MFA_ADMIN","false")));
