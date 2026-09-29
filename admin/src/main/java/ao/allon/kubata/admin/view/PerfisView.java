@@ -639,7 +639,7 @@ public class PerfisView extends VBox {
     private void showPerfilDialog(
             PerfilAcesso perfil,
             Set<String> initialPermissionKeys) {
-        boolean isNew = perfil == null;
+        boolean isNew = perfil == null || perfil.getId() == null;
         if (!can(isNew ? "CRIAR" : "EDITAR")) {
             modalManager.alert(
                     "Acesso negado",
