@@ -49,7 +49,7 @@
             </textField>
             <staticText style="KBase">
                 <reportElement x="385" y="10" width="150" height="26" uuid="42c8d28e-671c-43f1-b9e3-28f08f1f5168"/>
-                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="13" isBold="true" forecolor="#263238"/></textElement>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="13" isBold="true"/></textElement>
                 <text><![CDATA[Lista de Utilizadores]]></text>
             </staticText>
             <textField style="KSubtitle">
