@@ -6,6 +6,7 @@ import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.core.domain.PerfilAcesso;
+import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.EmpresaRepository;
@@ -816,7 +817,20 @@ public class UtilizadoresView extends VBox {
         addFormRow(general, 6, "Departamento:", txtDepartamento);
         addFormRow(general, 7, "Cargo:", txtCargo);
 
-        Tab tabGeral = new Tab("Geral", general);
+        VBox generalPage = new VBox(12);
+        generalPage.getStyleClass().add("kubata-users-form-page");
+        generalPage.getChildren().add(
+                sectionHeader("Identidade e organização",
+                        "Defina os dados principais, a empresa e a função do utilizador.")
+        );
+        generalPage.getChildren().add(general);
+        VBox.setVgrow(general, Priority.ALWAYS);
+
+        Tab tabGeral = new Tab(
+                "Geral",
+                IconUtils.icon(Feather.USER, 13),
+                generalPage
+        );
 
         VBox security = new VBox(12);
         security.setPadding(new Insets(18));
@@ -865,7 +879,11 @@ public class UtilizadoresView extends VBox {
 
         security.getChildren().add(passwordCard);
 
-        Tab tabSeguranca = new Tab("Segurança", security);
+        Tab tabSeguranca = new Tab(
+                "Segurança",
+                IconUtils.icon(Feather.SHIELD, 13),
+                security
+        );
 
         VBox perfisBox = new VBox(10);
         perfisBox.setPadding(new Insets(18));
@@ -900,7 +918,11 @@ public class UtilizadoresView extends VBox {
         perfisBox.getChildren().addAll(perfisHint, listPerfis);
         VBox.setVgrow(listPerfis, Priority.ALWAYS);
 
-        Tab tabPerfis = new Tab("Perfis e permissões", perfisBox);
+        Tab tabPerfis = new Tab(
+                "Perfis e permissões",
+                IconUtils.icon(Feather.KEY, 13),
+                perfisBox
+        );
 
         VBox preferencias = new VBox(12);
         preferencias.setPadding(new Insets(18));
@@ -927,7 +949,11 @@ public class UtilizadoresView extends VBox {
                 hint("As preferências são guardadas no perfil do utilizador.")
         );
 
-        Tab tabPreferencias = new Tab("Preferências", preferencias);
+        Tab tabPreferencias = new Tab(
+                "Preferências",
+                IconUtils.icon(Feather.SETTINGS, 13),
+                preferencias
+        );
 
         tabs.getTabs().addAll(tabGeral, tabSeguranca, tabPerfis, tabPreferencias);
 
@@ -1018,6 +1044,17 @@ public class UtilizadoresView extends VBox {
                 null,
                 config
         );
+    }
+
+    private VBox sectionHeader(String title, String description) {
+        VBox box = new VBox(3);
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-users-section-title");
+        Label descriptionLabel = new Label(description);
+        descriptionLabel.setWrapText(true);
+        descriptionLabel.getStyleClass().add("kubata-users-form-hint");
+        box.getChildren().addAll(titleLabel, descriptionLabel);
+        return box;
     }
 
     private TextField field(String label, String value, String prompt) {
@@ -1330,11 +1367,29 @@ public class UtilizadoresView extends VBox {
     }
 
     private boolean can(String operation) {
-        return securityService.hasPermission(
-                sessionManager.getUser(),
-                "UTILIZADORES",
-                operation
-        );
+        User currentUser = sessionManager.getUser();
+        if (currentUser == null) {
+            return false;
+        }
+
+        if (currentUser.isSuperadmin() || currentUser.getRole() == Role.ADMIN) {
+            return true;
+        }
+
+        String normalized = "REMOVER".equalsIgnoreCase(operation)
+                ? "APAGAR"
+                : operation;
+
+        try {
+            return securityService.hasPermission(
+                    currentUser,
+                    "ADMINISTRATOR",
+                    "UTILIZADORES",
+                    PermissaoPerfil.Operacao.valueOf(normalized.toUpperCase())
+            );
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     private java.util.Optional<User> selectedUser() {
