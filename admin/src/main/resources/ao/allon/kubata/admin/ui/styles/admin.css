@@ -9554,3 +9554,217 @@ Text {
     -fx-font-size: 10px;
     -fx-text-fill: #89948e;
 }
+
+
+/* KUBATA AUDITORIA GERAL — Central protegida */
+.kubata-audit-page {
+    -fx-background-color: #f7f9fb;
+}
+
+.kubata-audit-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #e6e9ed transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-audit-title-icon {
+    -fx-min-width: 44px;
+    -fx-min-height: 44px;
+    -fx-max-width: 44px;
+    -fx-max-height: 44px;
+    -fx-background-color: #eaf5ef;
+    -fx-background-radius: 12px;
+    -fx-alignment: center;
+}
+
+.kubata-audit-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #17201a;
+}
+
+.kubata-audit-subtitle {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #68756d;
+}
+
+.kubata-audit-protected-badge {
+    -fx-padding: 6px 9px;
+    -fx-background-color: #eef2f5;
+    -fx-background-radius: 999px;
+    -fx-text-fill: #53615a;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.kubata-audit-kpi {
+    -fx-background-color: #fbfcfd;
+    -fx-border-color: #e5e9ed;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.kubata-audit-kpi-icon {
+    -fx-text-fill: #2f7d4b;
+}
+
+.kubata-audit-kpi-label {
+    -fx-text-fill: #748078;
+    -fx-font-size: 9.5px;
+    -fx-font-weight: 800;
+}
+
+.kubata-audit-kpi-value {
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #17201a;
+}
+
+.kubata-audit-filterbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #e6e9ed transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-audit-filterbar .text-field,
+.kubata-audit-filterbar .combo-box,
+.kubata-audit-filterbar .date-picker {
+    -fx-background-color: #f8fafb;
+    -fx-border-color: #dce2e6;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.kubata-audit-page .table-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent;
+}
+
+.kubata-audit-action-safe {
+    -fx-text-fill: #33784a;
+    -fx-font-weight: 700;
+}
+
+.kubata-audit-action-danger {
+    -fx-text-fill: #b44141;
+    -fx-font-weight: 800;
+}
+
+.kubata-audit-action-warning {
+    -fx-text-fill: #966b18;
+    -fx-font-weight: 750;
+}
+
+.kubata-audit-result-success {
+    -fx-text-fill: #33784a;
+    -fx-font-weight: 700;
+}
+
+.kubata-audit-result-failure {
+    -fx-text-fill: #b44141;
+    -fx-font-weight: 800;
+}
+
+.kubata-audit-compliance-badge {
+    -fx-padding: 4px 7px;
+    -fx-background-radius: 999px;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.kubata-audit-badge-critical {
+    -fx-background-color: #fde8e8;
+    -fx-text-fill: #a52d2d;
+}
+
+.kubata-audit-badge-high {
+    -fx-background-color: #fff1db;
+    -fx-text-fill: #946515;
+}
+
+.kubata-audit-badge-normal {
+    -fx-background-color: #eaf5ef;
+    -fx-text-fill: #2f7248;
+}
+
+.kubata-audit-badge-low {
+    -fx-background-color: #eef2f5;
+    -fx-text-fill: #5d6a63;
+}
+
+.kubata-audit-footer {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e3e7ea transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.kubata-audit-footer-text {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #718078;
+}
+
+.kubata-audit-detail-icon {
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-max-width: 40px;
+    -fx-max-height: 40px;
+    -fx-background-color: #eaf5ef;
+    -fx-background-radius: 10px;
+    -fx-alignment: center;
+}
+
+.kubata-audit-detail-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #17201a;
+}
+
+.kubata-audit-detail-subtitle {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: #68756d;
+}
+
+.kubata-audit-detail-grid {
+    -fx-padding: 10px 0 4px 0;
+}
+
+.kubata-audit-detail-label {
+    -fx-font-size: 9.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #7a867f;
+}
+
+.kubata-audit-detail-value {
+    -fx-font-size: 12px;
+    -fx-font-weight: 650;
+    -fx-text-fill: #27312b;
+}
+
+.kubata-audit-detail-section {
+    -fx-padding: 10px 0 0 0;
+}
+
+.kubata-audit-detail-section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #4d5a52;
+}
+
+.kubata-audit-detail-section .text-area {
+    -fx-control-inner-background: #f6f8f9;
+    -fx-background-color: #f6f8f9;
+    -fx-border-color: #dce2e6;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 11px;
+}
+
+.kubata-audit-page .button-primary {
+    -fx-font-weight: 800;
+}
+
+.kubata-audit-page .table-row-cell:selected {
+    -fx-background-insets: 1px;
+}
