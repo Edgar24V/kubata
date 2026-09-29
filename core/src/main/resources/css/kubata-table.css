@@ -7,77 +7,77 @@
    TOKENS GLOBAIS (prefixo -kub- para a marca)
    ----------------------------------------------- */
 .root {
-    -kub-table-bg:              #ffffff;
-    -kub-table-header-bg:       #f6f8fb;
-    -kub-table-header-fg:       #1f3a5f;
-    -kub-table-row-hover:       #e8f5e9;
-    -kub-table-row-selected:    #4e9452;
-    -kub-table-row-alt:         #fbfcfe;
-    -kub-table-border:          #d7dee8;
-    -kub-table-border-soft:     rgba(31, 58, 95, 0.12);
-    -kub-table-shadow:          rgba(16, 24, 40, 0.08);
-    -kub-table-focus:           #3b82f6;
-    -kub-table-muted-fg:        rgba(31, 58, 95, 0.75);
-    -kub-table-error:           #dc2626;
-    -kub-table-error-bg:        #fee2e2;
-    -kub-cell-padding-v:        6px;
-    -kub-cell-padding-h:        10px;
-    -kub-table-radius:          10px;
+    #ffffff:              #ffffff;
+    #f6f8fb:       #f6f8fb;
+    #1f3a5f:       #1f3a5f;
+    #e8f5e9:       #e8f5e9;
+    #4e9452:    #4e9452;
+    #fbfcfe:         #fbfcfe;
+    #d7dee8:          #d7dee8;
+    #d7dee8-soft:     rgba(31, 58, 95, 0.12);
+    rgba(16, 24, 40, 0.08):          rgba(16, 24, 40, 0.08);
+    #3b82f6:           #3b82f6;
+    rgba(31, 58, 95, 0.75):        rgba(31, 58, 95, 0.75);
+    #dc2626:           #dc2626;
+    #dc2626-bg:        #fee2e2;
+    6px:        6px;
+    10px:        10px;
+    10px:          10px;
 }
 
 /* ============================================================
    TABELA BASE
    ============================================================ */
 .advanced-table {
-    -fx-background-color: -kub-table-bg;
-    -fx-border-color: -kub-table-border-soft;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d7dee8-soft;
     -fx-border-width: 1px;
-    -fx-border-radius: -kub-table-radius;
-    -fx-background-radius: -kub-table-radius;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
     -fx-background-insets: 0;
     -fx-padding: 0;
 }
 
 .advanced-table:focused {
-    -fx-border-color: -kub-table-focus;
+    -fx-border-color: #3b82f6;
     -fx-border-width: 1.2px;
-    -fx-effect: dropshadow(three-pass-box, -kub-table-shadow, 10, 0, 0, 2);
+    -fx-effect: dropshadow(three-pass-box, rgba(16, 24, 40, 0.08), 10, 0, 0, 2);
 }
 
 /* Cabeçalho */
 .advanced-table .column-header {
-    -fx-background-color: -kub-table-header-bg;
-    -fx-text-fill: -kub-table-header-fg;
+    -fx-background-color: #f6f8fb;
+    -fx-text-fill: #1f3a5f;
     -fx-font-weight: 700;
     -fx-font-size: 12px;
-    -fx-padding: 10px -kub-cell-padding-h;
-    -fx-border-color: transparent -kub-table-border-soft transparent transparent;
+    -fx-padding: 10px 10px;
+    -fx-border-color: transparent #d7dee8-soft transparent transparent;
 }
 
 .advanced-table .column-header-background {
-    -fx-background-color: -kub-table-header-bg;
-    -fx-background-radius: -kub-table-radius -kub-table-radius 0 0;
+    -fx-background-color: #f6f8fb;
+    -fx-background-radius: 10px 10px 0 0;
 }
 
 /* Linhas */
 .advanced-table .table-row-cell {
     -fx-cell-size: 36px;
-    -fx-border-color: transparent transparent -kub-table-border-soft transparent;
+    -fx-border-color: transparent transparent #d7dee8-soft transparent;
     -fx-background-insets: 0;
 }
 
 .advanced-table .table-row-cell:hover {
-    -fx-background-color: -kub-table-row-hover;
+    -fx-background-color: #e8f5e9;
 }
 
 .advanced-table .table-row-cell:selected {
-    -fx-background-color: -kub-table-row-selected;
+    -fx-background-color: #4e9452;
 }
 
 /* Células */
 .advanced-table .table-cell {
-    -fx-padding: -kub-cell-padding-v -kub-cell-padding-h;
-    -fx-text-fill: -kub-table-muted-fg;
+    -fx-padding: 6px 10px;
+    -fx-text-fill: rgba(31, 58, 95, 0.75);
     -fx-alignment: CENTER-LEFT;  /* alinhamento profissional, padrão à esquerda */
 }
 
@@ -91,20 +91,20 @@
 
 /* Linhas zebradas (apenas se a tabela tiver classe .report-table) */
 .report-table .table-row-cell:even {
-    -fx-background-color: -kub-table-row-alt;
+    -fx-background-color: #fbfcfe;
 }
 
 /* ============================================================
    CÉLULAS EDITÁVEIS
    ============================================================ */
 .editable-table-cell {
-    -fx-padding: -kub-cell-padding-v -kub-cell-padding-h;
+    -fx-padding: 6px 10px;
     -fx-cursor: text;
 }
 
 .cell-editor {
     -fx-background-color: white;
-    -fx-border-color: -kub-table-header-fg;
+    -fx-border-color: #1f3a5f;
     -fx-border-width: 0 0 2px 0;
     -fx-background-radius: 3px 3px 0 0;
     -fx-padding: 3px 6px;
@@ -112,13 +112,13 @@
 }
 
 .cell-error {
-    -fx-background-color: -kub-table-error-bg;
-    -fx-border-color: -kub-table-error;
+    -fx-background-color: #dc2626-bg;
+    -fx-border-color: #dc2626;
     -fx-border-width: 0 0 2px 0;
 }
 
 .error-tooltip {
-    -fx-background-color: -kub-table-error;
+    -fx-background-color: #dc2626;
     -fx-text-fill: white;
     -fx-font-size: 11px;
     -fx-padding: 4px 8px;
@@ -149,7 +149,7 @@
 }
 
 .star-empty {
-    -fx-text-fill: -kub-table-border;
+    -fx-text-fill: #d7dee8;
     -fx-font-size: 16px;
     -fx-cursor: hand;
 }
@@ -158,49 +158,49 @@
    BARRA DE PESQUISA
    ============================================================ */
 .table-toolbar {
-    -fx-background-color: -kub-table-bg;
-    -fx-border-color: transparent transparent -kub-table-border-soft transparent;
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #d7dee8-soft transparent;
     -fx-padding: 10px 12px;
 }
 
 .table-toolbar .label {
-    -fx-text-fill: -kub-table-muted-fg;
+    -fx-text-fill: rgba(31, 58, 95, 0.75);
 }
 
 .table-search-field {
     -fx-background-color: #ffffff;
     -fx-background-radius: 999px;
     -fx-border-radius: 999px;
-    -fx-border-color: -kub-table-border-soft;
+    -fx-border-color: #d7dee8-soft;
     -fx-padding: 8px 14px;
     -fx-prompt-text-fill: rgba(31, 58, 95, 0.45);
 }
 
 .table-search-field:focused {
-    -fx-border-color: -kub-table-focus;
-    -fx-effect: dropshadow(three-pass-box, -kub-table-shadow, 10, 0, 0, 2);
+    -fx-border-color: #3b82f6;
+    -fx-effect: dropshadow(three-pass-box, rgba(16, 24, 40, 0.08), 10, 0, 0, 2);
 }
 
 /* ============================================================
    PAGINAÇÃO
    ============================================================ */
 .pagination-bar {
-    -fx-background-color: -kub-table-bg;
-    -fx-border-color: -kub-table-border-soft transparent transparent transparent;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d7dee8-soft transparent transparent transparent;
     -fx-padding: 10px 12px;
 }
 
 .pagination-bar .button {
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
-    -fx-border-color: -kub-table-border-soft;
+    -fx-border-color: #d7dee8-soft;
     -fx-background-color: #ffffff;
     -fx-padding: 6px 12px;
     -fx-cursor: hand;
 }
 
 .pagination-bar .button:hover {
-    -fx-background-color: -kub-table-row-hover;
+    -fx-background-color: #e8f5e9;
 }
 
 /* ============================================================
@@ -234,13 +234,13 @@
 .table-result-count,
 .table-page-label {
     -fx-font-size: 11px;
-    -fx-text-fill: -kub-table-muted-fg;
+    -fx-text-fill: rgba(31, 58, 95, 0.75);
     -fx-font-weight: 600;
 }
 
 .table-pager {
-    -fx-background-color: -kub-table-bg;
-    -fx-border-color: -kub-table-border-soft transparent transparent transparent;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d7dee8-soft transparent transparent transparent;
     -fx-border-width: 1px 0 0 0;
     -fx-padding: 7px 10px;
 }
@@ -297,15 +297,15 @@
 }
 
 .context-menu .menu-item:focused {
-    -fx-background-color: -kub-table-row-hover;
+    -fx-background-color: #e8f5e9;
 }
 
 .advanced-table .placeholder .label {
-    -fx-text-fill: -kub-table-muted-fg;
+    -fx-text-fill: rgba(31, 58, 95, 0.75);
 }
 
 .advanced-table .column-header .sort-order {
-    -fx-background-color: -kub-table-header-fg;
+    -fx-background-color: #1f3a5f;
 }
 
 .advanced-table .table-row-cell:empty {
@@ -313,11 +313,11 @@
 }
 
 .advanced-table .table-row-cell:selected {
-    -fx-background-color: derive(-kub-table-row-selected, 8%);
+    -fx-background-color: derive(#4e9452, 8%);
 }
 
 .advanced-table .table-row-cell:selected:hover {
-    -fx-background-color: derive(-kub-table-row-selected, 14%);
+    -fx-background-color: derive(#4e9452, 14%);
 }
 
 /* Selecção manual */
@@ -328,12 +328,12 @@
 .advanced-table .check-box .box {
     -fx-background-radius: 4px;
     -fx-border-radius: 4px;
-    -fx-border-color: -kub-table-border;
+    -fx-border-color: #d7dee8;
 }
 
 .advanced-table .check-box:selected .box {
-    -fx-background-color: -kub-table-row-selected;
-    -fx-border-color: -kub-table-row-selected;
+    -fx-background-color: #4e9452;
+    -fx-border-color: #4e9452;
 }
 
 
@@ -383,7 +383,7 @@
 
 .table-loading .label {
     -fx-font-size: 11px;
-    -fx-text-fill: -kub-table-muted-fg;
+    -fx-text-fill: rgba(31, 58, 95, 0.75);
 }
 
 /* Melhor leitura de dados seleccionados */
@@ -397,7 +397,7 @@
 }
 
 .advanced-table .table-row-cell:selected .check-box:selected .mark {
-    -fx-background-color: -kub-table-row-selected;
+    -fx-background-color: #4e9452;
 }
 
 /* Evita expansão excessiva de toolbars em ecrãs estreitos */
