@@ -752,37 +752,101 @@ public class UtilizadoresView extends VBox {
         }
 
         final User formUser = user;
-
-        boolean isSelf = !isNew
+        final boolean isSelf = !isNew
                 && sessionManager.getUser() != null
                 && sessionManager.getUser().getId() != null
-                && sessionManager.getUser().getId().equals(user.getId());
+                && sessionManager.getUser().getId().equals(formUser.getId());
 
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabs.getStyleClass().add("kubata-users-form-tabs");
 
-        GridPane general = new GridPane();
-        general.setHgap(14);
-        general.setVgap(11);
-        general.setPadding(new Insets(18));
-        general.getStyleClass().add("kubata-users-form");
+        // ================================================================
+        // GERAL — identidade + organização
+        // ================================================================
+        VBox generalPage = new VBox(14);
+        generalPage.setPadding(new Insets(16));
+        generalPage.getStyleClass().add("kubata-users-form-page");
 
-        ColumnConstraints labelCol = new ColumnConstraints(115);
-        ColumnConstraints fieldCol = new ColumnConstraints();
-        fieldCol.setHgrow(Priority.ALWAYS);
-        fieldCol.setFillWidth(true);
-        general.getColumnConstraints().addAll(labelCol, fieldCol);
+        HBox identityCard = new HBox(14);
+        identityCard.getStyleClass().add("kubata-users-identity-card");
+        identityCard.setPadding(new Insets(14));
+        identityCard.setAlignment(Pos.CENTER_LEFT);
 
-        TextField txtNome = field("Nome completo", user == null ? "" : user.getNome(), "Nome e apelido");
-        TextField txtEmail = field("Email", user == null ? "" : user.getEmail(), "Email corporativo");
-        TextField txtNif = field("NIF", user == null ? "" : safe(user.getNif(), ""), "NIF");
-        TextField txtTelefone = field("Telefone", user == null ? "" : safe(user.getTelefone(), ""), "Contacto telefónico");
-        TextField txtDepartamento = field("Departamento", user == null ? "" : safe(user.getDepartamento(), ""), "Ex.: Financeiro");
-        TextField txtCargo = field("Cargo", user == null ? "" : safe(user.getCargo(), ""), "Ex.: Operador");
+        StackPane avatar = new StackPane();
+        avatar.getStyleClass().add("kubata-users-form-avatar");
+        Label avatarText = new Label(initials(isNew ? "Utilizador" : formUser.getNome()));
+        avatarText.getStyleClass().add("kubata-users-form-avatar-text");
+        avatar.getChildren().add(avatarText);
+
+        VBox identityInfo = new VBox(3);
+        Label identityName = new Label(
+                safe(isNew ? "" : formUser.getNome(), "Novo utilizador")
+        );
+        identityName.getStyleClass().add("kubata-users-form-identity-name");
+
+        Label identityMeta = new Label(
+                isNew
+                        ? "Preencha os dados para criar uma nova conta."
+                        : "Ficha de utilizador · " + safe(formUser.getEmail(), "sem email")
+        );
+        identityMeta.getStyleClass().add("kubata-users-form-identity-meta");
+
+        Label identityStatus = new Label(
+                isNew
+                        ? "NOVA CONTA"
+                        : userStatus(formUser).toUpperCase()
+        );
+        identityStatus.getStyleClass().add("kubata-users-form-identity-status");
+
+        identityInfo.getChildren().addAll(identityName, identityMeta, identityStatus);
+        identityCard.getChildren().addAll(avatar, identityInfo);
+
+        generalPage.getChildren().add(identityCard);
+
+        VBox identitySection = sectionCard(
+                "Dados pessoais",
+                "Informação principal utilizada para identificação e contacto."
+        );
+
+        GridPane personalGrid = formGrid();
+
+        TextField txtNome = field(
+                "Nome completo",
+                isNew ? "" : formUser.getNome(),
+                "Nome e apelido"
+        );
+        TextField txtEmail = field(
+                "Email",
+                isNew ? "" : formUser.getEmail(),
+                "Email corporativo"
+        );
+        TextField txtNif = field(
+                "NIF",
+                isNew ? "" : safe(formUser.getNif(), ""),
+                "Número de identificação fiscal"
+        );
+        TextField txtTelefone = field(
+                "Telefone",
+                isNew ? "" : safe(formUser.getTelefone(), ""),
+                "Contacto telefónico"
+        );
+
+        addFormPair(personalGrid, 0, "Nome:*", txtNome, "Email:*", txtEmail);
+        addFormPair(personalGrid, 1, "NIF:", txtNif, "Telefone:", txtTelefone);
+
+        identitySection.getChildren().add(personalGrid);
+
+        VBox organizationSection = sectionCard(
+                "Organização e função",
+                "Associe o utilizador à empresa e defina o contexto funcional."
+        );
+
+        GridPane organizationGrid = formGrid();
 
         ComboBox<Empresa> cbEmpresa = new ComboBox<>();
         cbEmpresa.getItems().addAll(empresaRepository.findAll());
-        cbEmpresa.setValue(user == null ? null : user.getEmpresa());
+        cbEmpresa.setValue(isNew ? null : formUser.getEmpresa());
         cbEmpresa.setPromptText("Seleccionar empresa");
         cbEmpresa.setMaxWidth(Double.MAX_VALUE);
         cbEmpresa.setConverter(new StringConverter<>() {
@@ -797,8 +861,10 @@ public class UtilizadoresView extends VBox {
             }
         });
 
-        ComboBox<Role> cmbRole = new ComboBox<>(FXCollections.observableArrayList(Role.values()));
-        cmbRole.setValue(user == null ? Role.USER : user.getRole());
+        ComboBox<Role> cmbRole = new ComboBox<>(
+                FXCollections.observableArrayList(Role.values())
+        );
+        cmbRole.setValue(isNew ? Role.USER : formUser.getRole());
         cmbRole.setMaxWidth(Double.MAX_VALUE);
         cmbRole.setConverter(new StringConverter<>() {
             @Override
@@ -812,147 +878,479 @@ public class UtilizadoresView extends VBox {
             }
         });
 
-        addFormRow(general, 0, "Nome:*", txtNome);
-        addFormRow(general, 1, "Email:*", txtEmail);
-        addFormRow(general, 2, "Empresa:*", cbEmpresa);
-        addFormRow(general, 3, "Função:", cmbRole);
-        addFormRow(general, 4, "NIF:", txtNif);
-        addFormRow(general, 5, "Telefone:", txtTelefone);
-        addFormRow(general, 6, "Departamento:", txtDepartamento);
-        addFormRow(general, 7, "Cargo:", txtCargo);
-
-        VBox generalPage = new VBox(12);
-        generalPage.getStyleClass().add("kubata-users-form-page");
-        generalPage.getChildren().add(
-                sectionHeader("Identidade e organização",
-                        "Defina os dados principais, a empresa e a função do utilizador.")
+        TextField txtDepartamento = field(
+                "Departamento",
+                isNew ? "" : safe(formUser.getDepartamento(), ""),
+                "Ex.: Financeiro"
         );
-        generalPage.getChildren().add(general);
-        VBox.setVgrow(general, Priority.ALWAYS);
+        TextField txtCargo = field(
+                "Cargo",
+                isNew ? "" : safe(formUser.getCargo(), ""),
+                "Ex.: Operador de facturação"
+        );
+
+        addFormPair(organizationGrid, 0, "Empresa:*", cbEmpresa, "Função:", cmbRole);
+        addFormPair(organizationGrid, 1, "Departamento:", txtDepartamento, "Cargo:", txtCargo);
+
+        organizationSection.getChildren().add(organizationGrid);
+        generalPage.getChildren().addAll(identitySection, organizationSection);
+
+        Runnable refreshIdentityPreview = () -> {
+            String name = txtNome.getText().trim();
+            identityName.setText(name.isBlank() ? "Novo utilizador" : name);
+            identityMeta.setText(
+                    txtEmail.getText().isBlank()
+                            ? "Preencha os dados para criar a conta."
+                            : txtEmail.getText().trim()
+            );
+            avatarText.setText(initials(name.isBlank() ? "Utilizador" : name));
+            identityStatus.setText(isNew
+                    ? "NOVA CONTA"
+                    : userStatus(formUser).toUpperCase());
+        };
+
+        txtNome.textProperty().addListener((obs, old, value) -> refreshIdentityPreview.run());
+        txtEmail.textProperty().addListener((obs, old, value) -> refreshIdentityPreview.run());
 
         Tab tabGeral = new Tab("Geral", generalPage);
         tabGeral.setGraphic(IconUtils.icon(Feather.USER, 13));
 
-        VBox security = new VBox(12);
-        security.setPadding(new Insets(18));
+        // ================================================================
+        // SEGURANÇA — credenciais + controlos
+        // ================================================================
+        VBox securityPage = new VBox(14);
+        securityPage.setPadding(new Insets(16));
+        securityPage.getStyleClass().add("kubata-users-form-page");
+
+        VBox passwordCard = sectionCard(
+                "Credenciais",
+                isNew
+                        ? "Defina a credencial inicial desta conta."
+                        : "Actualize a credencial apenas quando necessário."
+        );
+
+        GridPane passwordGrid = formGrid();
 
         PasswordField txtSenha = new PasswordField();
-        txtSenha.setPromptText(isNew ? "Senha inicial" : "Nova senha (deixe vazio para manter)");
+        txtSenha.setPromptText(
+                isNew ? "Senha inicial" : "Nova senha (opcional)"
+        );
         txtSenha.setMaxWidth(Double.MAX_VALUE);
+
+        PasswordField txtConfirmarSenha = new PasswordField();
+        txtConfirmarSenha.setPromptText(
+                isNew ? "Confirmar senha" : "Confirmar nova senha"
+        );
+        txtConfirmarSenha.setMaxWidth(Double.MAX_VALUE);
 
         if (isNew) {
             txtSenha.setText(generateRandomPassword());
-        } else if (user.isPasswordProvisoria()) {
-            txtSenha.setPromptText("A senha actual é provisória");
+            txtConfirmarSenha.setText(txtSenha.getText());
         }
+
+        ProgressBar passwordStrengthBar = new ProgressBar();
+        passwordStrengthBar.setProgress(0);
+        passwordStrengthBar.setMaxWidth(Double.MAX_VALUE);
+        passwordStrengthBar.getStyleClass().add("kubata-users-password-strength");
+
+        Label passwordStrengthLabel = new Label("Força da senha");
+        passwordStrengthLabel.getStyleClass().add("kubata-users-password-strength-label");
+
+        Button generatePassword = new Button(
+                "Gerar senha segura",
+                IconUtils.icon(Feather.REFRESH_CW, 12)
+        );
+        generatePassword.getStyleClass().add("button-outlined");
+        generatePassword.setOnAction(e -> {
+            String password = generateRandomPassword();
+            txtSenha.setText(password);
+            txtConfirmarSenha.setText(password);
+        });
+
+        Button copyPassword = new Button(
+                "Copiar",
+                IconUtils.icon(Feather.COPY, 12)
+        );
+        copyPassword.getStyleClass().add("button-outlined");
+        copyPassword.setDisable(txtSenha.getText().isBlank());
+        copyPassword.setOnAction(e -> {
+            javafx.scene.input.ClipboardContent clipboard =
+                    new javafx.scene.input.ClipboardContent();
+            clipboard.putString(txtSenha.getText());
+            javafx.scene.input.Clipboard.getSystemClipboard().setContent(clipboard);
+        });
+
+        txtSenha.textProperty().addListener((obs, old, value) -> {
+            updatePasswordStrength(value, passwordStrengthBar, passwordStrengthLabel);
+            copyPassword.setDisable(value == null || value.isBlank());
+        });
+        updatePasswordStrength(
+                txtSenha.getText(),
+                passwordStrengthBar,
+                passwordStrengthLabel
+        );
+
+        VBox passwordControls = new VBox(6);
+        HBox passwordButtons = new HBox(7, generatePassword, copyPassword);
+        passwordButtons.setAlignment(Pos.CENTER_LEFT);
+        passwordControls.getChildren().addAll(
+                passwordStrengthLabel,
+                passwordStrengthBar,
+                passwordButtons
+        );
+
+        addFormPair(
+                passwordGrid,
+                0,
+                "Senha" + (isNew ? ":*" : ":"),
+                txtSenha,
+                "Confirmar:",
+                txtConfirmarSenha
+        );
+
+        passwordCard.getChildren().add(passwordGrid);
+        passwordCard.getChildren().add(passwordControls);
+
+        VBox accountCard = sectionCard(
+                "Políticas da conta",
+                "Controlos de acesso e ciclo de vida das credenciais."
+        );
 
         DatePicker dataExpiracao = new DatePicker();
         dataExpiracao.setMaxWidth(Double.MAX_VALUE);
-        dataExpiracao.setValue(user == null ? LocalDate.now().plusDays(90) : user.getDataExpiracaoPassword());
+        dataExpiracao.setValue(
+                isNew
+                        ? LocalDate.now().plusDays(90)
+                        : formUser.getDataExpiracaoPassword()
+        );
 
-        CheckBox chkProvisoria = new CheckBox("Exigir troca de senha no próximo acesso");
-        chkProvisoria.setSelected(isNew || user.isPasswordProvisoria());
+        CheckBox chkProvisoria = new CheckBox(
+                "Exigir troca de senha no próximo acesso"
+        );
+        chkProvisoria.setSelected(
+                isNew || formUser.isPasswordProvisoria()
+        );
 
-        CheckBox chkMfa = new CheckBox("Autenticação multifactor (MFA)");
-        chkMfa.setSelected(!isNew && user.isMfaEnabled());
+        CheckBox chkMfa = new CheckBox(
+                "Autenticação multifactor (MFA)"
+        );
+        chkMfa.setSelected(
+                !isNew && formUser.isMfaEnabled()
+        );
 
         CheckBox chkAtivo = new CheckBox("Conta activa");
-        chkAtivo.setSelected(user == null || Boolean.TRUE.equals(user.getActive()));
+        chkAtivo.setSelected(
+                isNew || Boolean.TRUE.equals(formUser.getActive())
+        );
         chkAtivo.setDisable(isSelf);
 
         CheckBox chkSuperadmin = new CheckBox("Superadministrador");
-        chkSuperadmin.setSelected(!isNew && user.isSuperadmin());
-        boolean canManageSuperadmin = sessionManager.getUser() != null
-                && sessionManager.getUser().isSuperadmin();
+        chkSuperadmin.setSelected(
+                !isNew && formUser.isSuperadmin()
+        );
+
+        boolean canManageSuperadmin =
+                sessionManager.getUser() != null
+                        && sessionManager.getUser().isSuperadmin();
         chkSuperadmin.setDisable(!canManageSuperadmin);
 
-        VBox passwordCard = new VBox(8);
-        passwordCard.getStyleClass().add("kubata-users-security-card");
-        passwordCard.getChildren().addAll(
-                labelled("Senha", txtSenha),
-                hint("Ao criar ou redefinir uma senha, é possível obrigar a troca no próximo acesso."),
-                labelled("Expiração da senha", dataExpiracao),
-                chkProvisoria,
-                chkMfa,
-                chkAtivo,
-                chkSuperadmin
+        GridPane accountGrid = formGrid();
+        addFormPair(accountGrid, 0, "Expiração:", dataExpiracao, "", new Label());
+        accountGrid.getChildren().removeIf(node ->
+                node instanceof Label label && label.getText().isBlank()
         );
 
-        security.getChildren().add(passwordCard);
+        HBox policyLine = new HBox(18, chkProvisoria, chkMfa);
+        policyLine.setAlignment(Pos.CENTER_LEFT);
 
-        Tab tabSeguranca = new Tab("Segurança", security);
+        HBox stateLine = new HBox(18, chkAtivo, chkSuperadmin);
+        stateLine.setAlignment(Pos.CENTER_LEFT);
+
+        accountCard.getChildren().addAll(
+                accountGrid,
+                policyLine,
+                stateLine,
+                hint(
+                        "MFA protege a conta com um segundo factor. "
+                                + "Senhas provisórias podem ser expiradas conforme a política definida."
+                )
+        );
+
+        securityPage.getChildren().addAll(passwordCard, accountCard);
+
+        Tab tabSeguranca = new Tab("Segurança", securityPage);
         tabSeguranca.setGraphic(IconUtils.icon(Feather.SHIELD, 13));
 
-        VBox perfisBox = new VBox(10);
-        perfisBox.setPadding(new Insets(18));
+        // ================================================================
+        // PERFIS — atribuição produtiva
+        // ================================================================
+        VBox profilesPage = new VBox(12);
+        profilesPage.setPadding(new Insets(16));
+        profilesPage.getStyleClass().add("kubata-users-form-page");
 
-        Label perfisHint = new Label(
-                "Associe os perfis globais ou específicos da empresa. As permissões são herdadas dos perfis."
+        VBox profileHeader = new VBox(4);
+        Label profileTitle = new Label("Perfis de acesso");
+        profileTitle.getStyleClass().add("kubata-users-section-title");
+
+        Label profileHint = new Label(
+                "Os perfis determinam as permissões funcionais disponíveis para este utilizador."
         );
-        perfisHint.setWrapText(true);
-        perfisHint.getStyleClass().add("kubata-users-form-hint");
+        profileHint.setWrapText(true);
+        profileHint.getStyleClass().add("kubata-users-form-hint");
+
+        profileHeader.getChildren().addAll(profileTitle, profileHint);
+
+        HBox profileTools = new HBox(8);
+        profileTools.setAlignment(Pos.CENTER_LEFT);
+
+        TextField profileSearch = new TextField();
+        profileSearch.setPromptText("Pesquisar perfil...");
+        profileSearch.setPrefWidth(260);
+
+        Label selectedProfiles = new Label("0 seleccionados");
+        selectedProfiles.getStyleClass().add("kubata-users-profile-count");
+
+        Button selectAllProfiles = new Button(
+                "Seleccionar todos",
+                IconUtils.icon(Feather.CHECK_SQUARE, 12)
+        );
+        selectAllProfiles.getStyleClass().add("button-outlined");
+
+        Button clearProfiles = new Button(
+                "Limpar",
+                IconUtils.icon(Feather.X, 12)
+        );
+        clearProfiles.getStyleClass().add("button-outlined");
+
+        profileTools.getChildren().addAll(
+                profileSearch,
+                selectAllProfiles,
+                clearProfiles,
+                new Pane(),
+                selectedProfiles
+        );
+        HBox.setHgrow(profileTools.getChildren().get(3), Priority.ALWAYS);
 
         ListView<PerfilAcesso> listPerfis = new ListView<>();
-        listPerfis.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        listPerfis.getSelectionModel().setSelectionMode(
+                SelectionMode.MULTIPLE
+        );
+        listPerfis.setPrefHeight(330);
+        listPerfis.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(PerfilAcesso item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+
+                VBox box = new VBox(2);
+                Label code = new Label(
+                        safe(item.getCodigo(), "PERFIL")
+                );
+                code.getStyleClass().add("kubata-users-profile-code");
+
+                Label description = new Label(
+                        safe(item.getDescricao(), "Sem descrição")
+                );
+                description.getStyleClass().add("kubata-users-profile-description");
+
+                box.getChildren().addAll(code, description);
+                setText(null);
+                setGraphic(box);
+            }
+        });
+
+        final List<PerfilAcesso> availableProfiles = new ArrayList<>();
 
         Runnable refreshProfiles = () -> {
-            List<PerfilAcesso> available = new ArrayList<>();
-            available.addAll(perfilRepository.findByEmpresaIsNull());
+            availableProfiles.clear();
+            availableProfiles.addAll(
+                    perfilRepository.findByEmpresaIsNull()
+            );
+
             if (cbEmpresa.getValue() != null) {
-                available.addAll(perfilRepository.findByEmpresa(cbEmpresa.getValue()));
+                availableProfiles.addAll(
+                        perfilRepository.findByEmpresa(cbEmpresa.getValue())
+                );
             }
-            listPerfis.setItems(FXCollections.observableArrayList(available));
+
+            String query = profileSearch.getText() == null
+                    ? ""
+                    : profileSearch.getText().trim().toLowerCase();
+
+            List<PerfilAcesso> visible = availableProfiles.stream()
+                    .filter(p -> query.isBlank()
+                            || contains(p.getCodigo(), query)
+                            || contains(p.getDescricao(), query))
+                    .collect(Collectors.toList());
+
+            listPerfis.setItems(
+                    FXCollections.observableArrayList(visible)
+            );
 
             if (formUser != null && formUser.getPerfis() != null) {
                 for (PerfilAcesso p : formUser.getPerfis()) {
-                    listPerfis.getSelectionModel().select(p);
+                    if (visible.contains(p)) {
+                        listPerfis.getSelectionModel().select(p);
+                    }
                 }
             }
+
+            selectedProfiles.setText(
+                    listPerfis.getSelectionModel().getSelectedItems().size()
+                            + " seleccionados"
+            );
         };
 
-        cbEmpresa.valueProperty().addListener((obs, old, value) -> refreshProfiles.run());
+        profileSearch.textProperty().addListener(
+                (obs, old, value) -> refreshProfiles.run()
+        );
+        cbEmpresa.valueProperty().addListener(
+                (obs, old, value) -> refreshProfiles.run()
+        );
+
+        listPerfis.getSelectionModel().getSelectedItems().addListener(
+                (javafx.collections.ListChangeListener<PerfilAcesso>) change ->
+                        selectedProfiles.setText(
+                                listPerfis.getSelectionModel()
+                                        .getSelectedItems().size()
+                                        + " seleccionados"
+                        )
+        );
+
+        selectAllProfiles.setOnAction(e ->
+                listPerfis.getSelectionModel().selectAll()
+        );
+
+        clearProfiles.setOnAction(e ->
+                listPerfis.getSelectionModel().clearSelection()
+        );
+
         refreshProfiles.run();
 
-        perfisBox.getChildren().addAll(perfisHint, listPerfis);
+        VBox profileCard = new VBox(10);
+        profileCard.getStyleClass().add("kubata-users-profile-card");
+        profileCard.getChildren().addAll(
+                profileTools,
+                listPerfis,
+                hint(
+                        "Os perfis globais ficam disponíveis para todas as empresas. "
+                                + "Os perfis da empresa são apresentados quando uma empresa é seleccionada."
+                )
+        );
         VBox.setVgrow(listPerfis, Priority.ALWAYS);
 
-        Tab tabPerfis = new Tab("Perfis e permissões", perfisBox);
+        profilesPage.getChildren().addAll(profileHeader, profileCard);
+
+        Tab tabPerfis = new Tab(
+                "Perfis e permissões",
+                profilesPage
+        );
         tabPerfis.setGraphic(IconUtils.icon(Feather.KEY, 13));
 
-        VBox preferencias = new VBox(12);
-        preferencias.setPadding(new Insets(18));
+        // ================================================================
+        // PREFERÊNCIAS — produtividade
+        // ================================================================
+        VBox preferencesPage = new VBox(14);
+        preferencesPage.setPadding(new Insets(16));
+        preferencesPage.getStyleClass().add("kubata-users-form-page");
+
+        VBox appearanceCard = sectionCard(
+                "Experiência de utilização",
+                "Personalize idioma, tema e densidade de informação."
+        );
 
         ComboBox<String> cmbIdioma = new ComboBox<>(
-                FXCollections.observableArrayList("pt-AO", "pt-PT", "pt-BR", "en")
+                FXCollections.observableArrayList(
+                        "pt-AO", "pt-PT", "pt-BR", "en"
+                )
         );
-        cmbIdioma.setValue(user == null ? "pt-AO" : safe(user.getIdioma(), "pt-AO"));
+        cmbIdioma.setValue(
+                isNew ? "pt-AO" : safe(formUser.getIdioma(), "pt-AO")
+        );
         cmbIdioma.setMaxWidth(Double.MAX_VALUE);
 
         ComboBox<String> cmbTema = new ComboBox<>(
-                FXCollections.observableArrayList("VERDE_ADMIN", "CLARO", "ESCURO")
+                FXCollections.observableArrayList(
+                        "VERDE_ADMIN", "CLARO", "ESCURO"
+                )
         );
-        cmbTema.setValue(user == null ? "VERDE_ADMIN" : safe(user.getTema(), "VERDE_ADMIN"));
+        cmbTema.setValue(
+                isNew ? "VERDE_ADMIN" : safe(formUser.getTema(), "VERDE_ADMIN")
+        );
         cmbTema.setMaxWidth(Double.MAX_VALUE);
 
-        Spinner<Integer> linhas = new Spinner<>(10, 500, user == null ? 50 : user.getLinhasPorPagina(), 10);
+        int currentRows = isNew
+                ? 50
+                : Math.max(10, Math.min(500, formUser.getLinhasPorPagina()));
+        Spinner<Integer> linhas = new Spinner<>(
+                10, 500, currentRows, 10
+        );
         linhas.setMaxWidth(Double.MAX_VALUE);
 
-        preferencias.getChildren().addAll(
-                labelled("Idioma", cmbIdioma),
-                labelled("Tema", cmbTema),
-                labelled("Linhas por página", linhas),
-                hint("As preferências são guardadas no perfil do utilizador.")
+        GridPane preferencesGrid = formGrid();
+        addFormPair(
+                preferencesGrid,
+                0,
+                "Idioma:",
+                cmbIdioma,
+                "Tema:",
+                cmbTema
+        );
+        preferencesGrid.add(
+                new Label("Linhas por página:"),
+                0,
+                1
+        );
+        preferencesGrid.add(linhas, 1, 1);
+        GridPane.setHgrow(linhas, Priority.ALWAYS);
+
+        appearanceCard.getChildren().addAll(
+                preferencesGrid,
+                hint(
+                        "As preferências são guardadas no perfil e aplicadas "
+                                + "à experiência do utilizador."
+                )
         );
 
-        Tab tabPreferencias = new Tab("Preferências", preferencias);
-        tabPreferencias.setGraphic(IconUtils.icon(Feather.SETTINGS, 13));
+        VBox preferencesInfo = sectionCard(
+                "Atalhos e produtividade",
+                "Configurações práticas para utilização diária do Administrator."
+        );
+        preferencesInfo.getChildren().addAll(
+                shortcutRow("Ctrl + F", "Focar rapidamente a pesquisa"),
+                shortcutRow("Duplo clique", "Abrir os detalhes do registo"),
+                shortcutRow("Botão direito", "Operações e exportação da grelha")
+        );
 
-        tabs.getTabs().addAll(tabGeral, tabSeguranca, tabPerfis, tabPreferencias);
+        preferencesPage.getChildren().addAll(
+                appearanceCard,
+                preferencesInfo
+        );
+
+        Tab tabPreferencias = new Tab(
+                "Preferências",
+                preferencesPage
+        );
+        tabPreferencias.setGraphic(
+                IconUtils.icon(Feather.SETTINGS, 13)
+        );
+
+        tabs.getTabs().addAll(
+                tabGeral,
+                tabSeguranca,
+                tabPerfis,
+                tabPreferencias
+        );
 
         ModalManager.ModalConfig config = new ModalManager.ModalConfig()
-                .size(860, 650)
-                .minSize(720, 520)
-                .maxSize(1200, 860)
+                .size(980, 720)
+                .minSize(800, 600)
+                .maxSize(1300, 900)
                 .maximizable(true)
                 .minimizable(true)
                 .windowControls(true)
@@ -960,10 +1358,17 @@ public class UtilizadoresView extends VBox {
 
         modalManager.showConfirmModal(
                 tabs,
-                isNew ? "Novo utilizador" : "Editar utilizador — " + safe(user.getNome(), ""),
+                isNew
+                        ? "Novo utilizador"
+                        : "Editar utilizador — " + safe(formUser.getNome(), ""),
                 () -> {
                     if (!can(isNew ? "CRIAR" : "EDITAR")) {
-                        modalManager.alert("Acesso negado", "Não possui permissão para esta operação.", "warning", null);
+                        modalManager.alert(
+                                "Acesso negado",
+                                "Não possui permissão para esta operação.",
+                                "warning",
+                                null
+                        );
                         return;
                     }
 
@@ -973,6 +1378,49 @@ public class UtilizadoresView extends VBox {
                         modalManager.alert(
                                 "Dados incompletos",
                                 "Nome, email e empresa são obrigatórios.",
+                                "warning",
+                                null
+                        );
+                        return;
+                    }
+
+                    if (!txtEmail.getText().contains("@")) {
+                        modalManager.alert(
+                                "Email inválido",
+                                "Introduza um endereço de email válido.",
+                                "warning",
+                                null
+                        );
+                        return;
+                    }
+
+                    String password = txtSenha.getText();
+                    if (isNew && password.isBlank()) {
+                        modalManager.alert(
+                                "Senha obrigatória",
+                                "Defina uma senha inicial para o novo utilizador.",
+                                "warning",
+                                null
+                        );
+                        return;
+                    }
+
+                    if (!password.isBlank()
+                            && !password.equals(txtConfirmarSenha.getText())) {
+                        modalManager.alert(
+                                "Confirmação inválida",
+                                "A confirmação da senha não coincide.",
+                                "warning",
+                                null
+                        );
+                        return;
+                    }
+
+                    if (!password.isBlank()
+                            && password.length() < 8) {
+                        modalManager.alert(
+                                "Senha fraca",
+                                "A senha deve ter pelo menos 8 caracteres.",
                                 "warning",
                                 null
                         );
@@ -990,6 +1438,7 @@ public class UtilizadoresView extends VBox {
                     }
 
                     User target = isNew ? new User() : formUser;
+
                     target.setNome(txtNome.getText().trim());
                     target.setEmail(txtEmail.getText().trim());
                     target.setEmpresa(cbEmpresa.getValue());
@@ -1002,26 +1451,31 @@ public class UtilizadoresView extends VBox {
                     target.setMfaEnabled(chkMfa.isSelected());
                     target.setSuperadmin(chkSuperadmin.isSelected());
                     target.setPasswordProvisoria(chkProvisoria.isSelected());
-                    target.setDataExpiracaoPassword(dataExpiracao.getValue());
+                    target.setDataExpiracaoPassword(
+                            dataExpiracao.getValue()
+                    );
                     target.setIdioma(cmbIdioma.getValue());
                     target.setTema(cmbTema.getValue());
                     target.setLinhasPorPagina(linhas.getValue());
 
                     Set<PerfilAcesso> selectedPerfis =
-                            new HashSet<>(listPerfis.getSelectionModel().getSelectedItems());
+                            new HashSet<>(
+                                    listPerfis.getSelectionModel()
+                                            .getSelectedItems()
+                            );
                     target.setPerfis(selectedPerfis);
 
-                    if (!txtSenha.getText().isBlank()) {
-                        target.setPassword(passwordEncoder.encode(txtSenha.getText()));
-                        target.setPasswordChangedAt(LocalDateTime.now());
-                    } else if (isNew) {
-                        modalManager.alert(
-                                "Senha obrigatória",
-                                "Defina uma senha inicial para o novo utilizador.",
-                                "warning",
-                                null
+                    if (!password.isBlank()) {
+                        target.setPassword(
+                                passwordEncoder.encode(password)
                         );
-                        return;
+                        target.setPasswordChangedAt(LocalDateTime.now());
+                    }
+
+                    if (isNew) {
+                        target.setPasswordProvisoria(true);
+                        target.setFailedAttempts(0);
+                        target.setLockoutEnd(null);
                     }
 
                     persistenceService.saveAsync(
@@ -1036,17 +1490,6 @@ public class UtilizadoresView extends VBox {
                 null,
                 config
         );
-    }
-
-    private VBox sectionHeader(String title, String description) {
-        VBox box = new VBox(3);
-        Label titleLabel = new Label(title);
-        titleLabel.getStyleClass().add("kubata-users-section-title");
-        Label descriptionLabel = new Label(description);
-        descriptionLabel.setWrapText(true);
-        descriptionLabel.getStyleClass().add("kubata-users-form-hint");
-        box.getChildren().addAll(titleLabel, descriptionLabel);
-        return box;
     }
 
     private TextField field(String label, String value, String prompt) {
