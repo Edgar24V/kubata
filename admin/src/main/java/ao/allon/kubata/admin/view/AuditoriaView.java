@@ -907,7 +907,7 @@ public class AuditoriaView extends VBox {
     private String csv(String value) {
         if (value == null || "—".equals(value)) return "";
         String normalized = value.replace("\r", " ").replace("\n", " ");
-        if (normalized.contains(";") || normalized.indexOf('\\"') >= 0) {
+        if (normalized.contains(";") || normalized.indexOf('"') >= 0) {
             return "\"" + normalized.replace("\"", "\"\"") + "\"";
         }
         return normalized;
