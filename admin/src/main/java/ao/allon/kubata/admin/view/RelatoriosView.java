@@ -120,80 +120,157 @@ public class RelatoriosView extends VBox {
     }
 
     private HBox buildToolbar() {
-        HBox box = new HBox(10);
-        box.getStyleClass().add("header-box");
+        HBox box = new HBox(12);
+        box.getStyleClass().add("kubata-reports-toolbar");
         box.setAlignment(Pos.CENTER_LEFT);
+        box.setPadding(new Insets(14, 20, 12, 20));
 
-        Label title = new Label("Relatórios Administrativos");
-        title.getStyleClass().add("h3");
+        StackPane icon = new StackPane();
+        icon.getStyleClass().add("kubata-reports-toolbar-icon");
+        icon.getChildren().add(new Label("", IconUtils.icon(Feather.BAR_CHART_2, 20)));
 
-        Button btnExportar = new Button("Exportar Relatório", IconUtils.icon(Feather.DOWNLOAD, IconUtils.SIZE_SMALL));
-        btnExportar.getStyleClass().add("button-primary");
-        btnExportar.setOnAction(e -> exportReport());
+        VBox titleBox = new VBox(2);
+        Label title = new Label("Central de Relatórios");
+        title.getStyleClass().add("kubata-reports-title");
 
-        Button btnRefresh = new Button(null, IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
-        btnRefresh.getStyleClass().add("button-outlined");
-        btnRefresh.setOnAction(e -> refreshData());
+        Label subtitle = new Label(
+                "Indicadores administrativos, auditoria, utilizadores, empresas, acessos e continuidade."
+        );
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("kubata-reports-subtitle");
+
+        titleBox.getChildren().addAll(title, subtitle);
 
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        box.getChildren().addAll(title, spacer, btnExportar, btnRefresh);
+        Button btnExportar = new Button(
+                "Exportar auditoria",
+                IconUtils.icon(Feather.DOWNLOAD, IconUtils.SIZE_SMALL)
+        );
+        btnExportar.getStyleClass().add("button-primary");
+        btnExportar.setOnAction(e -> exportReport());
+
+        Button btnRefresh = new Button(
+                "Actualizar",
+                IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
+        );
+        btnRefresh.getStyleClass().add("button-outlined");
+        btnRefresh.setOnAction(e -> refreshData());
+
+        box.getChildren().addAll(icon, titleBox, spacer, btnExportar, btnRefresh);
         return box;
     }
 
     private HBox buildFiltersBox() {
-        HBox box = new HBox(15);
-        box.getStyleClass().add("filters-pane");
-        box.setPadding(new Insets(15, 20, 15, 20));
+        HBox box = new HBox(10);
+        box.getStyleClass().add("kubata-reports-filterbar");
+        box.setPadding(new Insets(10, 20, 12, 20));
         box.setAlignment(Pos.CENTER_LEFT);
-        box.setStyle("-fx-background-color: #fcfcfc; -fx-border-color: #eeeeee; -fx-border-width: 0 0 1 0;");
 
-        Label lblFiltros = new Label("Filtros:", IconUtils.icon(Feather.FILTER, 14));
-        lblFiltros.getStyleClass().add("text-bold");
+        Label filterIcon = new Label("", IconUtils.icon(Feather.FILTER, 13));
+        filterIcon.getStyleClass().add("kubata-reports-filter-icon");
+
+        Label periodo = new Label("Período");
+        periodo.getStyleClass().add("kubata-reports-filter-label");
 
         dpInicio = new DatePicker(LocalDate.now().minusMonths(1));
-        dpInicio.setPromptText("Data Início");
-        dpInicio.setPrefWidth(150);
+        dpInicio.setPrefWidth(145);
+
+        Label arrow = new Label("→");
+        arrow.getStyleClass().add("kubata-reports-filter-arrow");
 
         dpFim = new DatePicker(LocalDate.now());
-        dpFim.setPromptText("Data Fim");
-        dpFim.setPrefWidth(150);
+        dpFim.setPrefWidth(145);
 
-        cbCategoria = new ComboBox<>(FXCollections.observableArrayList("Todos", "Utilizadores", "Audit", "Segurança", "Sistema"));
+        Label categoria = new Label("Categoria");
+        categoria.getStyleClass().add("kubata-reports-filter-label");
+
+        cbCategoria = new ComboBox<>(FXCollections.observableArrayList(
+                "Todos",
+                "Utilizadores",
+                "Audit",
+                "Segurança",
+                "Sistema"
+        ));
         cbCategoria.setValue("Todos");
-        cbCategoria.setPrefWidth(150);
+        cbCategoria.setPrefWidth(155);
 
-        Button btnAplicar = new Button("Aplicar", IconUtils.icon(Feather.CHECK, 14));
+        Button btnHoje = new Button("Hoje");
+        btnHoje.getStyleClass().add("button-outlined");
+        btnHoje.setOnAction(e -> {
+            LocalDate today = LocalDate.now();
+            dpInicio.setValue(today);
+            dpFim.setValue(today);
+            refreshData();
+        });
+
+        Button btnMes = new Button("Este mês");
+        btnMes.getStyleClass().add("button-outlined");
+        btnMes.setOnAction(e -> {
+            LocalDate today = LocalDate.now();
+            dpInicio.setValue(today.withDayOfMonth(1));
+            dpFim.setValue(today);
+            refreshData();
+        });
+
+        Button btnAplicar = new Button(
+                "Aplicar filtros",
+                IconUtils.icon(Feather.CHECK, 13)
+        );
         btnAplicar.getStyleClass().add("button-primary");
         btnAplicar.setOnAction(e -> refreshData());
 
-        box.getChildren().addAll(lblFiltros, new Label("Início:"), dpInicio, new Label("Fim:"), dpFim, new Label("Categoria:"), cbCategoria, btnAplicar);
+        Pane spacer = new Pane();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label scope = new Label("Dados do Kubata Administrator");
+        scope.getStyleClass().add("kubata-reports-filter-scope");
+
+        box.getChildren().addAll(
+                filterIcon, periodo, dpInicio, arrow, dpFim,
+                categoria, cbCategoria, btnHoje, btnMes, btnAplicar,
+                spacer, scope
+        );
         return box;
     }
 
     private VBox buildKPISection() {
-        VBox section = new VBox(15);
-        
-        Label lblTitle = new Label("Indicadores de Desempenho", IconUtils.icon(Feather.ACTIVITY, 16));
-        lblTitle.getStyleClass().add("h4");
-        lblTitle.setStyle("-fx-font-weight: bold;");
+        VBox section = new VBox(10);
 
-        // Labels para os valores (serão atualizados no refreshData)
-        lblTotalUsers = new Label("...");
-        lblActiveUsers = new Label("...");
-        lblTotalEmpresas = new Label("...");
-        lblTotalLogs = new Label("...");
+        HBox heading = new HBox(8);
+        heading.setAlignment(Pos.CENTER_LEFT);
 
-        FlowPane kpiPane = new FlowPane(20, 20);
+        Label icon = new Label("", IconUtils.icon(Feather.ACTIVITY, 16));
+        icon.getStyleClass().add("kubata-reports-section-icon");
+
+        VBox titleBox = new VBox(2);
+        Label title = new Label("Visão executiva");
+        title.getStyleClass().add("kubata-reports-section-title");
+
+        Label subtitle = new Label(
+                "Estado actual do ambiente administrativo e actividade registada no período seleccionado."
+        );
+        subtitle.getStyleClass().add("kubata-reports-section-subtitle");
+
+        titleBox.getChildren().addAll(title, subtitle);
+        heading.getChildren().addAll(icon, titleBox);
+
+        lblTotalUsers = new Label("—");
+        lblActiveUsers = new Label("—");
+        lblTotalEmpresas = new Label("—");
+        lblTotalLogs = new Label("—");
+
+        FlowPane kpiPane = new FlowPane(12, 12);
+        kpiPane.getStyleClass().add("kubata-reports-kpi-grid");
         kpiPane.getChildren().addAll(
-            createStatCard("Utilizadores",       lblTotalUsers,    Feather.USERS),
-            createStatCard("Utilizadores Ativos", lblActiveUsers,   Feather.USER_CHECK),
-            createStatCard("Empresas",           lblTotalEmpresas,  Feather.BRIEFCASE),
-            createStatCard("Total Logs",         lblTotalLogs,      Feather.ACTIVITY)
+                createStatCard("Utilizadores", "Total registado", lblTotalUsers, Feather.USERS),
+                createStatCard("Utilizadores activos", "Contas activas", lblActiveUsers, Feather.USER_CHECK),
+                createStatCard("Empresas", "Entidades registadas", lblTotalEmpresas, Feather.BRIEFCASE),
+                createStatCard("Eventos de auditoria", "No período seleccionado", lblTotalLogs, Feather.ACTIVITY)
         );
 
-        section.getChildren().addAll(lblTitle, kpiPane);
+        section.getChildren().addAll(heading, kpiPane);
         return section;
     }
 
@@ -203,7 +280,7 @@ public class RelatoriosView extends VBox {
 
         // Gráfico de Pizza - Status de Utilizadores
         VBox userChartBox = new VBox(10);
-        userChartBox.getStyleClass().add("card");
+        userChartBox.getStyleClass().add("kubata-reports-chart-card");
         HBox.setHgrow(userChartBox, Priority.ALWAYS);
         
         Label lblUserChart = new Label("Status dos Utilizadores", IconUtils.icon(Feather.PIE_CHART, 14));
@@ -216,7 +293,7 @@ public class RelatoriosView extends VBox {
 
         // Gráfico de Barras - Atividade de Auditoria (Últimos 7 dias)
         VBox auditChartBox = new VBox(10);
-        auditChartBox.getStyleClass().add("card");
+        auditChartBox.getStyleClass().add("kubata-reports-chart-card");
         HBox.setHgrow(auditChartBox, Priority.ALWAYS);
 
         Label lblAuditChart = new Label("Atividade de Auditoria (Frequência)", IconUtils.icon(Feather.BAR_CHART_2, 14));
@@ -237,145 +314,93 @@ public class RelatoriosView extends VBox {
     }
 
     private VBox buildReportsSection() {
-        VBox section = new VBox(15);
-        
-        Label lblTitle = new Label("Catálogo de Relatórios", IconUtils.icon(Feather.LIST, 16));
-        lblTitle.getStyleClass().add("h4");
-        lblTitle.setStyle("-fx-font-weight: bold;");
+        VBox section = new VBox(10);
 
-        VBox reportsBox = new VBox(10);
+        HBox heading = new HBox(8);
+        heading.setAlignment(Pos.CENTER_LEFT);
+
+        Label icon = new Label("", IconUtils.icon(Feather.FILE_TEXT, 16));
+        icon.getStyleClass().add("kubata-reports-section-icon");
+
+        VBox titleBox = new VBox(2);
+        Label title = new Label("Catálogo de relatórios");
+        title.getStyleClass().add("kubata-reports-section-title");
+
+        Label subtitle = new Label(
+                "Modelos preparados para consulta, controlo e análise administrativa."
+        );
+        subtitle.getStyleClass().add("kubata-reports-section-subtitle");
+
+        titleBox.getChildren().addAll(title, subtitle);
+        heading.getChildren().addAll(icon, titleBox);
+
+        VBox reportsBox = new VBox(8);
+        reportsBox.getStyleClass().add("kubata-reports-catalog");
+
         reportsBox.getChildren().addAll(
-                createReportItem("Utilizadores por Perfil",  "Lista detalhada de utilizadores agrupados por perfil de acesso", Feather.SHIELD),
-                createReportItem("Empresas Ativas",          "Relatório consolidado de empresas ativas e parametrização fiscal", Feather.CHECK_CIRCLE),
-                createReportItem("Histórico de Auditoria",   "Log completo de transações e alterações de sistema (AGT Compliance)", Feather.CLOCK),
-                createReportItem("Estatísticas de Acesso",   "Análise temporal de acessos e atividade concorrente", Feather.BAR_CHART_2),
-                createReportItem("Backup e Restore",         "Registo histórico de cópias de segurança e integridade", Feather.ARCHIVE)
+                createReportItem(
+                        "Utilizadores por Perfil",
+                        "Lista detalhada de utilizadores, perfil e estado da conta.",
+                        Feather.SHIELD
+                ),
+                createReportItem(
+                        "Empresas Activas",
+                        "Relação das empresas registadas e respectiva parametrização.",
+                        Feather.BRIEFCASE
+                ),
+                createReportItem(
+                        "Histórico de Auditoria",
+                        "Trilha de eventos do sistema para revisão e controlo.",
+                        Feather.EYE
+                ),
+                createReportItem(
+                        "Estatísticas de Acesso",
+                        "Sessões, duração e actividade do utilizador por período.",
+                        Feather.BAR_CHART_2
+                ),
+                createReportItem(
+                        "Backup e Restore",
+                        "Histórico de cópias, tamanhos, estados e restaurações.",
+                        Feather.ARCHIVE
+                )
         );
 
-        section.getChildren().addAll(lblTitle, reportsBox);
+        section.getChildren().addAll(heading, reportsBox);
         return section;
     }
 
-    private Label lblTotalUsers, lblActiveUsers, lblTotalEmpresas, lblTotalLogs;
-
-    private void refreshData() {
-        // Mostrar Loading nos labels
-        lblTotalUsers.setText("...");
-        lblActiveUsers.setText("...");
-        lblTotalEmpresas.setText("...");
-        lblTotalLogs.setText("...");
-
-        persistenceService.executeSilent(() -> {
-            try {
-                long totalUtilizadores = userRepository.count();
-                long totalEmpresas = empresaRepository.count();
-                long totalLogs = auditLogRepository.count();
-                long utilizadoresAtivos = userRepository.findAll().stream()
-                        .filter(User::getActive).count();
-                long utilizadoresInativos = totalUtilizadores - utilizadoresAtivos;
-
-                Platform.runLater(() -> {
-                    lblTotalUsers.setText(String.valueOf(totalUtilizadores));
-                    lblActiveUsers.setText(String.valueOf(utilizadoresAtivos));
-                    lblTotalEmpresas.setText(String.valueOf(totalEmpresas));
-                    lblTotalLogs.setText(String.valueOf(totalLogs));
-
-                    // Atualizar Gráfico de Pizza
-                    userStatusChart.getData().clear();
-                    userStatusChart.getData().add(new PieChart.Data("Ativos (" + utilizadoresAtivos + ")", utilizadoresAtivos));
-                    userStatusChart.getData().add(new PieChart.Data("Inativos (" + utilizadoresInativos + ")", utilizadoresInativos));
-
-                    // Atualizar Gráfico de Barras (Dados reais baseados no AuditLog)
-                    auditActivityChart.getData().clear();
-                    XYChart.Series<String, Number> series = new XYChart.Series<>();
-                    
-                    LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
-                    List<Object[]> dailyCounts = auditLogRepository.countByDay(weekAgo, LocalDateTime.now());
-                    
-                    // Mapa para facilitar o preenchimento dos dias (garantindo que todos os dias apareçam)
-                    Map<String, Long> countMap = new HashMap<>();
-                    DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                    for (int i = 6; i >= 6; i--) { // Corrigido loop para 7 dias
-                        countMap.put(LocalDate.now().minusDays(i).format(dayFormatter), 0L);
-                    }
-                    // Reinicializar countMap corretamente
-                    countMap.clear();
-                    for (int i = 6; i >= 0; i--) {
-                        countMap.put(LocalDate.now().minusDays(i).format(dayFormatter), 0L);
-                    }
-                    
-                    for (Object[] row : dailyCounts) {
-                        if (row != null && row.length >= 2 && row[0] != null) {
-                            countMap.put(row[0].toString(), ((Number) row[1]).longValue());
-                        }
-                    }
-                    
-                    countMap.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey())
-                        .forEach(entry -> {
-                            String label = entry.getKey().substring(8); // Só o dia
-                            series.getData().add(new XYChart.Data<>(label, entry.getValue()));
-                        });
-
-                    auditActivityChart.getData().add(series);
-                });
-            } catch (Exception e) {
-                Platform.runLater(() ->
-                    modalManager.alert("Erro", "Falha ao processar estatísticas: " + e.getMessage(), "error", e));
-            }
-        }, null);
-    }
-
-    private HBox createStatCard(String title, Label valueLbl, Feather icon) {
-        HBox card = new HBox(15);
-        card.getStyleClass().add("card-container");
-        card.setAlignment(Pos.CENTER_LEFT);
-        card.setPrefWidth(220);
-        card.setStyle("-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 4); -fx-border-color: #f0f0f0; -fx-border-width: 1;");
-
-        VBox textBox = new VBox(5);
-        Label lblTitle = new Label(title.toUpperCase());
-        lblTitle.setStyle("-fx-text-fill: #999999; -fx-font-size: 11px; -fx-font-weight: bold; -fx-letter-spacing: 1px;");
-
-        valueLbl.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
-
-        textBox.getChildren().addAll(lblTitle, valueLbl);
-        
-        StackPane iconPane = new StackPane(IconUtils.icon(icon, 28));
-        iconPane.setStyle("-fx-background-color: #f1f8e9; -fx-padding: 10; -fx-background-radius: 10; -fx-text-fill: -kubata-green;");
-        
-        card.getChildren().addAll(iconPane, textBox);
-        return card;
-    }
-
     private HBox createReportItem(String title, String description, Feather icon) {
-        HBox item = new HBox(15);
-        item.getStyleClass().add("card-item");
+        HBox item = new HBox(12);
+        item.getStyleClass().add("kubata-reports-report-card");
         item.setAlignment(Pos.CENTER_LEFT);
-        item.setPrefWidth(600);
-        item.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);");
+        item.setPrefHeight(76);
 
-        Label iconLabel = new Label();
-        iconLabel.setGraphic(IconUtils.icon(icon, IconUtils.SIZE_LARGE));
-        iconLabel.setStyle("-fx-text-fill: -kubata-green;");
+        StackPane iconPane = new StackPane();
+        iconPane.getStyleClass().add("kubata-reports-report-icon");
+        iconPane.getChildren().add(new Label("", IconUtils.icon(icon, 17)));
 
         VBox textBox = new VBox(3);
         Label lblTitle = new Label(title);
-        lblTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        lblTitle.getStyleClass().add("kubata-reports-report-title");
 
         Label lblDesc = new Label(description);
-        lblDesc.setStyle("-fx-text-fill: #666666; -fx-font-size: 12px;");
+        lblDesc.setWrapText(true);
+        lblDesc.getStyleClass().add("kubata-reports-report-desc");
 
         textBox.getChildren().addAll(lblTitle, lblDesc);
+        HBox.setHgrow(textBox, Priority.ALWAYS);
 
-        Button btnGerar = new Button("Gerar", IconUtils.icon(Feather.PLAY, IconUtils.SIZE_SMALL));
-        btnGerar.getStyleClass().add("button-success");
+        Label format = new Label("JASPER");
+        format.getStyleClass().add("kubata-reports-report-format");
+
+        Button btnGerar = new Button(
+                "Gerar",
+                IconUtils.icon(Feather.PLAY, 11)
+        );
+        btnGerar.getStyleClass().add("button-outlined");
         btnGerar.setOnAction(e -> gerarRelatorioReal(title, btnGerar));
 
-        Pane spacer = new Pane();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        item.getChildren().addAll(iconLabel, textBox, spacer, btnGerar);
+        item.getChildren().addAll(iconPane, textBox, format, btnGerar);
         return item;
     }
 
