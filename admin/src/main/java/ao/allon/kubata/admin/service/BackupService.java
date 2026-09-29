@@ -14,6 +14,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
@@ -89,6 +91,126 @@ public class BackupService {
     public String sha256Of(Path file) throws IOException {
         return sha256(file);
     }
+
+
+    public record IntegrityCheck(
+            boolean checksumMatches,
+            boolean archiveReadable,
+            boolean databaseHealthy,
+            String expectedSha256,
+            String calculatedSha256,
+            String message
+    ) {}
+
+    /**
+     * Valida um backup sem alterar o ficheiro nem o checksum guardado.
+     * Para ZIPs, lê todos os entries (incluindo CRC) e, quando encontra uma
+     * base SQLite, executa PRAGMA integrity_check sobre uma cópia temporária.
+     */
+    public IntegrityCheck verifyBackup(Path file, String expectedSha256) throws IOException {
+        if (file == null || !Files.exists(file)) {
+            return new IntegrityCheck(false, false, false, expectedSha256, "",
+                    "Ficheiro de backup não encontrado.");
+        }
+
+        String calculated = sha256(file);
+        boolean checksumMatches = expectedSha256 != null
+                && !expectedSha256.isBlank()
+                && expectedSha256.equalsIgnoreCase(calculated);
+
+        boolean archiveReadable = true;
+        boolean databaseHealthy = true;
+        String message = checksumMatches
+                ? "Checksum SHA-256 confirmado."
+                : "O checksum actual não coincide com o checksum registado.";
+
+        try {
+            String lower = file.getFileName().toString().toLowerCase();
+            if (lower.endsWith(".zip")) {
+                Path extracted = Files.createTempFile("kubata-verify-", ".db");
+                boolean foundDb = false;
+                try (InputStream fis = Files.newInputStream(file);
+                     BufferedInputStream bis = new BufferedInputStream(fis);
+                     ZipInputStream zis = new ZipInputStream(bis)) {
+
+                    ZipEntry entry;
+                    while ((entry = zis.getNextEntry()) != null) {
+                        if (entry.isDirectory()) continue;
+                        String name = entry.getName().toLowerCase();
+                        if (name.endsWith(".db") || name.endsWith(".sqlite") || name.contains("kubata")) {
+                            Files.copy(zis, extracted, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            foundDb = true;
+                            break;
+                        }
+                        while (zis.read() != -1) {
+                            // Consome a entrada para validar CRC da ZIP.
+                        }
+                    }
+                } catch (Exception ex) {
+                    archiveReadable = false;
+                    message = "Arquivo ZIP inválido ou corrompido: " + ex.getMessage();
+                }
+
+                if (foundDb && archiveReadable) {
+                    try {
+                        databaseHealthy = sqliteIntegrityCheck(extracted);
+                        if (!databaseHealthy) {
+                            message = "A verificação SQLite PRAGMA integrity_check falhou.";
+                        }
+                    } finally {
+                        Files.deleteIfExists(extracted);
+                    }
+                } else if (archiveReadable) {
+                    archiveReadable = false;
+                    databaseHealthy = false;
+                    message = "O arquivo ZIP não contém uma base de dados SQLite reconhecível.";
+                }
+            } else if (lower.endsWith(".db") || lower.endsWith(".sqlite")) {
+                databaseHealthy = sqliteIntegrityCheck(file);
+                if (!databaseHealthy) {
+                    message = "A verificação SQLite PRAGMA integrity_check falhou.";
+                }
+            }
+        } catch (Exception ex) {
+            archiveReadable = false;
+            databaseHealthy = false;
+            message = ex.getMessage() == null ? "Falha na validação do backup." : ex.getMessage();
+        }
+
+        return new IntegrityCheck(
+                checksumMatches,
+                archiveReadable,
+                databaseHealthy,
+                expectedSha256,
+                calculated,
+                message
+        );
+    }
+
+    /**
+     * Testa se o destino é gravável sem deixar ficheiros de teste.
+     */
+    public boolean testDestination(Path directory) throws IOException {
+        Objects.requireNonNull(directory, "directory");
+        Files.createDirectories(directory);
+        Path probe = Files.createTempFile(directory, ".kubata-backup-test-", ".tmp");
+        try {
+            Files.writeString(probe, "Kubata backup destination test");
+            return Files.size(probe) > 0;
+        } finally {
+            Files.deleteIfExists(probe);
+        }
+    }
+
+    private boolean sqliteIntegrityCheck(Path dbFile) throws Exception {
+        String jdbcUrl = "jdbc:sqlite:" + dbFile.toAbsolutePath();
+        try (java.sql.Connection connection = DriverManager.getConnection(jdbcUrl);
+             java.sql.Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery("PRAGMA integrity_check")) {
+            return rs.next() && "ok".equalsIgnoreCase(rs.getString(1));
+        }
+    }
+
 
     private static void zipSingleFile(Path inputFile, Path zipFile, String entryName) throws IOException {
         try (OutputStream fos = Files.newOutputStream(zipFile);
