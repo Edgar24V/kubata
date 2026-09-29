@@ -15,6 +15,7 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.ui.table.TextTableCell;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -152,7 +153,10 @@ public class ExerciciosFiscaisView extends VBox {
         pageScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         pageScroll.setMinViewportHeight(0);
 
-        pageContent.minHeightProperty().bind(pageScroll.viewportBoundsProperty().heightProperty());
+        pageContent.minHeightProperty().bind(Bindings.createDoubleBinding(
+                () -> pageScroll.getViewportBounds().getHeight(),
+                pageScroll.viewportBoundsProperty()
+        ));
 
         getChildren().add(pageScroll);
         VBox.setVgrow(pageScroll, Priority.ALWAYS);
