@@ -9906,3 +9906,141 @@ Text {
     -fx-font-weight: 700;
 }
 
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA BACKUP — Centro moderno de protecção e continuidade
+   ════════════════════════════════════════════════════════════════════════════ */
+.backup-view {
+  -fx-background-color: -color-bg-default;
+}
+.kubata-backup-title {
+  -fx-font-size: 1.18em;
+  -fx-font-weight: 800;
+  -fx-text-fill: -color-fg-default;
+}
+.kubata-backup-subtitle {
+  -fx-font-size: 0.82em;
+  -fx-text-fill: -color-fg-muted;
+}
+.kubata-backup-dashboard {
+  -fx-background-color: -color-bg-subtle;
+}
+.kubata-backup-scroll {
+  -fx-background-color: transparent;
+}
+.kubata-backup-scroll > .viewport {
+  -fx-background-color: transparent;
+}
+.kubata-backup-hero {
+  -fx-padding: 16px;
+  -fx-background-color: -color-bg-default;
+  -fx-background-radius: 10px;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 10px;
+}
+.kubata-backup-hero-icon,
+.kubata-backup-metric-icon,
+.kubata-backup-action-icon,
+.kubata-backup-panel-icon {
+  -fx-background-color: -color-accent-subtle;
+  -fx-background-radius: 8px;
+  -fx-min-width: 34px;
+  -fx-min-height: 34px;
+  -fx-pref-width: 34px;
+  -fx-pref-height: 34px;
+  -fx-alignment: center;
+}
+.kubata-backup-hero-title {
+  -fx-font-size: 1.24em;
+  -fx-font-weight: 800;
+  -fx-text-fill: -color-fg-default;
+}
+.kubata-backup-hero-subtitle {
+  -fx-font-size: 0.86em;
+  -fx-text-fill: -color-fg-muted;
+}
+.kubata-backup-metric-card {
+  -fx-padding: 13px;
+  -fx-background-color: -color-bg-default;
+  -fx-background-radius: 9px;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 9px;
+}
+.kubata-backup-metric-label {
+  -fx-font-size: 0.70em;
+  -fx-font-weight: 700;
+  -fx-text-fill: -color-fg-muted;
+}
+.kubata-backup-metric-value {
+  -fx-font-size: 1.16em;
+  -fx-font-weight: 800;
+  -fx-text-fill: -color-fg-default;
+}
+.kubata-backup-panel {
+  -fx-background-color: -color-bg-default;
+  -fx-background-radius: 10px;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 10px;
+}
+.kubata-backup-panel-title {
+  -fx-font-size: 0.95em;
+  -fx-font-weight: 800;
+  -fx-text-fill: -color-fg-default;
+}
+.kubata-backup-action {
+  -fx-padding: 8px;
+  -fx-background-color: -color-bg-default;
+  -fx-border-color: -color-border-muted;
+  -fx-border-radius: 7px;
+  -fx-background-radius: 7px;
+  -fx-alignment: CENTER_LEFT;
+}
+.kubata-backup-action:hover {
+  -fx-background-color: -color-base-1;
+  -fx-border-color: -color-accent-emphasis;
+}
+.kubata-backup-action-title {
+  -fx-font-weight: 700;
+  -fx-text-fill: -color-fg-default;
+}
+.kubata-backup-action-text,
+.kubata-backup-detail-muted,
+.kubata-backup-detail-text {
+  -fx-font-size: 0.78em;
+  -fx-text-fill: -color-fg-muted;
+}
+.kubata-backup-policy-summary {
+  -fx-font-size: 0.84em;
+  -fx-font-weight: 700;
+  -fx-text-fill: -color-fg-default;
+  -fx-line-spacing: 3px;
+}
+.kubata-backup-readiness {
+  -fx-font-size: 0.82em;
+  -fx-font-weight: 800;
+  -fx-text-fill: -color-success-fg;
+}
+.kubata-backup-detail-label {
+  -fx-font-size: 0.76em;
+  -fx-font-weight: 700;
+  -fx-text-fill: -color-fg-muted;
+}
+.kubata-backup-detail-value {
+  -fx-font-size: 0.82em;
+  -fx-font-weight: 700;
+  -fx-text-fill: -color-fg-default;
+  -fx-text-alignment: RIGHT;
+}
+.kubata-backup-checkup-title {
+  -fx-font-size: 1.12em;
+  -fx-font-weight: 800;
+  -fx-text-fill: -color-fg-default;
+}
+.kubata-backup-check-row {
+  -fx-padding: 9px 10px;
+  -fx-background-color: -color-bg-default;
+  -fx-background-radius: 7px;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 7px;
+}
