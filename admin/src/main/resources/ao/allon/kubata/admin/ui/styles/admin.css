@@ -10776,3 +10776,187 @@ Text {
     -fx-font-size: 10px;
     -fx-text-fill: -color-base-5;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA — INSTÂNCIAS · Operations Center
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-instances-page {
+    -fx-background-color: #f6f8f7;
+}
+
+.kubata-instances-header {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #e3e9e6 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-instances-title-icon {
+    -fx-background-color: #e8f5ee;
+    -fx-background-radius: 12;
+    -fx-min-width: 42;
+    -fx-min-height: 42;
+    -fx-max-width: 42;
+    -fx-max-height: 42;
+}
+
+.kubata-instances-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #173328;
+}
+
+.kubata-instances-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6b7a73;
+}
+
+.kubata-instance-summary-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #e3e9e6;
+    -fx-border-radius: 10;
+    -fx-padding: 10 12;
+}
+
+.kubata-instance-summary-icon {
+    -fx-text-fill: #4d7660;
+}
+
+.kubata-instance-summary-title {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #74817c;
+}
+
+.kubata-instance-summary-value {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #20352b;
+}
+
+.kubata-instance-status-ok {
+    -fx-text-fill: #19734d;
+}
+
+.kubata-instance-status-warning {
+    -fx-text-fill: #a66400;
+}
+
+.kubata-instance-status-danger {
+    -fx-text-fill: #b83a3a;
+}
+
+.kubata-instances-tabs {
+    -fx-background-color: transparent;
+}
+
+.kubata-instances-tabs .tab-header-area {
+    -fx-padding: 0 22px;
+}
+
+.kubata-instances-content {
+    -fx-background-color: transparent;
+}
+
+.kubata-instances-section {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #e3e9e6;
+    -fx-border-radius: 10;
+    -fx-padding: 13 15;
+}
+
+.kubata-instances-section-icon {
+    -fx-text-fill: #4d7660;
+}
+
+.kubata-instances-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #20352b;
+}
+
+.kubata-instances-section-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: #697771;
+}
+
+.kubata-instances-info-grid {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #e3e9e6;
+    -fx-border-radius: 10;
+    -fx-padding: 14 16;
+}
+
+.kubata-instance-field-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #78857f;
+}
+
+.kubata-instance-field-value {
+    -fx-font-size: 12px;
+    -fx-text-fill: #23382e;
+}
+
+.kubata-instance-callout,
+.kubata-instance-warning,
+.kubata-instance-operation-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #e3e9e6;
+    -fx-border-radius: 10;
+    -fx-padding: 13;
+}
+
+.kubata-instance-warning {
+    -fx-border-color: #ecd7a6;
+    -fx-background-color: #fffaf0;
+}
+
+.kubata-instance-callout-title,
+.kubata-instance-operation-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #20352b;
+}
+
+.kubata-instance-callout-text,
+.kubata-instance-operation-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: #697771;
+}
+
+.kubata-instance-operation-icon {
+    -fx-background-color: #eef5f1;
+    -fx-background-radius: 9;
+    -fx-min-width: 34;
+    -fx-min-height: 34;
+    -fx-max-width: 34;
+    -fx-max-height: 34;
+    -fx-alignment: center;
+}
+
+.kubata-instance-diagnostics {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 11px;
+    -fx-control-inner-background: #16231e;
+    -fx-text-fill: #e7f1eb;
+    -fx-highlight-fill: #3a6d57;
+}
+
+.kubata-instance-properties-table {
+    -fx-background-color: white;
+    -fx-border-color: #e3e9e6;
+}
+
+.kubata-instances-scroll {
+    -fx-background-color: transparent;
+}
+
+.kubata-instances-scroll > .viewport {
+    -fx-background-color: transparent;
+}
