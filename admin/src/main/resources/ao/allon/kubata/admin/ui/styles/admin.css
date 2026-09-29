@@ -7990,3 +7990,44 @@ Text {
 .kubata-users-profile-card .button {
     -fx-min-height: 31px;
 }
+
+
+.kubata-users-form-identity-meta {
+    -fx-max-width: 520px;
+}
+
+.kubata-users-form-card-title {
+    -fx-padding: 0 0 1px 0;
+}
+
+.kubata-users-form-page .text-field:focused,
+.kubata-users-form-page .password-field:focused,
+.kubata-users-form-page .combo-box:focused,
+.kubata-users-form-page .date-picker:focused,
+.kubata-users-form-page .spinner:focused {
+    -fx-border-color: #7db48e;
+    -fx-effect: dropshadow(gaussian, rgba(33, 115, 70, 0.14), 7, 0.12, 0, 1);
+}
+
+.kubata-users-shortcut-key {
+    -fx-min-width: 78px;
+    -fx-padding: 4px 7px;
+    -fx-alignment: center;
+    -fx-background-color: #eef3f0;
+    -fx-border-color: #d6dfda;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #43534b;
+}
+
+.kubata-users-profile-card .list-cell:hover {
+    -fx-background-color: #f5faf7;
+}
+
+.kubata-users-form-avatar > .ikonli-font-icon {
+    -fx-icon-size: 18px;
+    -fx-icon-color: -kubata-green-dark;
+    -fx-fill: -kubata-green-dark;
+}
