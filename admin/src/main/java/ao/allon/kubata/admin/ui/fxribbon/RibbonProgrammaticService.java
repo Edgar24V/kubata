@@ -165,6 +165,55 @@ public class RibbonProgrammaticService {
                 () -> opener.open("instancias", "Instâncias", () -> bl.apply(InstanciasOverviewView.class), true)));
         tab.addGroup(plataforma);
 
+        RibbonGroup avancado = new RibbonGroup("Plataforma Avançada");
+        avancado.addLargeButton(largeBtn(
+                "plataforma_centro",
+                "Centro",
+                Feather.CPU,
+                "Centro avançado da plataforma",
+                () -> opener.open(
+                        "plataforma_centro",
+                        "Centro da Plataforma",
+                        () -> bl.apply(PlataformaCentroView.class),
+                        true
+                )));
+        avancado.addSmallButtons(List.of(
+                smallBtn(
+                        "aplicacoes_instaladas",
+                        "Aplicações",
+                        Feather.PACKAGE,
+                        "Aplicações instaladas",
+                        () -> opener.open(
+                                "aplicacoes_instaladas",
+                                "Aplicações Instaladas",
+                                () -> bl.apply(AplicacoesInstaladasView.class),
+                                true
+                        )),
+                smallBtn(
+                        "moedas_cambios",
+                        "Moedas",
+                        Feather.DOLLAR_SIGN,
+                        "Moedas e câmbios",
+                        () -> opener.open(
+                                "moedas_cambios",
+                                "Moedas e Câmbios",
+                                () -> bl.apply(MoedasCambiosView.class),
+                                true
+                        )),
+                smallBtn(
+                        "sessoes",
+                        "Sessões",
+                        Feather.USERS,
+                        "Sessões do sistema",
+                        () -> opener.open(
+                                "sessoes",
+                                "Sessões do Sistema",
+                                () -> bl.apply(SessoesView.class),
+                                true
+                        ))
+        ));
+        tab.addGroup(avancado);
+
         RibbonGroup monitor = new RibbonGroup("Monitorização");
         monitor.addSmallButtons(List.of(
                 smallBtn("system_monitor", "Monitor", Feather.ACTIVITY, "Monitor do sistema",
