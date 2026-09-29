@@ -28,6 +28,8 @@ import org.kordamp.ikonli.feather.Feather;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+import java.awt.Desktop;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,6 +66,10 @@ public class BackupView extends VBox {
     private Label lblLastBackup;
     private Label lblStorageUsed;
     private Label lblHealthStatus;
+    private Label lblBackupCount;
+    private Label lblVerifiedCount;
+    private Label lblFailureCount;
+    private Label lblFreeSpace;
 
     public BackupView(BackupConfigRepository backupConfigRepository,
                       BackupRecordRepository backupRecordRepository,
@@ -130,9 +136,13 @@ public class BackupView extends VBox {
         box.setAlignment(Pos.CENTER_LEFT);
         box.setPadding(new Insets(10, 20, 10, 20));
 
-        Label title = new Label("Centro de Backup Empresarial");
-        title.getStyleClass().add("h3");
-        title.setStyle("-fx-text-fill: -kubata-green-dark;");
+        VBox titleBox = new VBox(2);
+        Label title = new Label("Protecção de Dados");
+        title.getStyleClass().add("kubata-backup-title");
+
+        Label subtitle = new Label("Centro de backup, recuperação e continuidade do Kubata");
+        subtitle.getStyleClass().add("kubata-backup-subtitle");
+        titleBox.getChildren().addAll(title, subtitle);
 
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -157,128 +167,432 @@ public class BackupView extends VBox {
         btnConfigurar.setDisable(!hasCreatePermission());
         btnConfigurar.setOnAction(e -> openPrimaryConfig());
 
-        Button btnRefresh = new Button("Sincronizar", IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
+        Button btnPasta = new Button(
+                "Abrir destino",
+                IconUtils.icon(Feather.FOLDER, IconUtils.SIZE_SMALL)
+        );
+        btnPasta.getStyleClass().add("button-outlined");
+        btnPasta.setOnAction(e -> openBackupDirectory());
+
+        Button btnRefresh = new Button(
+                "Sincronizar",
+                IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
+        );
         btnRefresh.getStyleClass().add("button-outlined");
         btnRefresh.setOnAction(e -> loadData());
 
-        box.getChildren().addAll(title, spacer, btnTestarDestino, btnConfigurar, btnExecutarAgora, btnRefresh);
+        box.getChildren().addAll(
+                titleBox, spacer, btnPasta, btnTestarDestino, btnConfigurar,
+                btnExecutarAgora, btnRefresh
+        );
         return box;
     }
 
     private Node buildDashboardTab() {
-        VBox dash = new VBox(25);
-        dash.setPadding(new Insets(30));
-        dash.setAlignment(Pos.TOP_CENTER);
-        dash.setStyle("-fx-background-color: #f8f9fa;");
+        VBox dash = new VBox(18);
+        dash.setPadding(new Insets(22));
+        dash.getStyleClass().add("kubata-backup-dashboard");
 
-        // Título e Resumo
-        VBox header = new VBox(10);
-        header.setAlignment(Pos.CENTER);
-        Label title = new Label("Estado da Proteção de Dados");
-        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
-        Label subtitle = new Label("Monitorização em tempo real das cópias de segurança do sistema");
-        subtitle.getStyleClass().add("text-muted");
-        header.getChildren().addAll(title, subtitle);
+        VBox hero = new VBox(5);
+        hero.getStyleClass().add("kubata-backup-hero");
 
-        // Grid de Cartões de Status (Estilo Profissional)
-        HBox cards = new HBox(14);
-        cards.setAlignment(Pos.CENTER);
-        HBox.setHgrow(cards, Priority.ALWAYS);
+        HBox heroLine = new HBox(12);
+        heroLine.setAlignment(Pos.CENTER_LEFT);
 
-        cards.getChildren().addAll(
-                createStatusCard("Último backup", Feather.CLOCK,
-                        lblLastBackup = new Label("A calcular..."), "#3498db"),
-                createStatusCard("Arquivo protegido", Feather.DATABASE,
-                        lblStorageUsed = new Label("0.00 MB"), "#9b59b6"),
-                createStatusCard("Estado operacional", Feather.SHIELD,
-                        lblHealthStatus = new Label("A VALIDAR"), "#27ae60")
+        StackPane shield = new StackPane();
+        shield.getStyleClass().add("kubata-backup-hero-icon");
+        shield.getChildren().add(new Label("", IconUtils.icon(Feather.SHIELD, 22)));
+
+        VBox heroText = new VBox(3);
+        Label heroTitle = new Label("Estado da protecção");
+        heroTitle.getStyleClass().add("kubata-backup-hero-title");
+
+        Label heroSubtitle = new Label(
+                "Uma visão operacional da última cópia, integridade, armazenamento e política de retenção."
         );
+        heroSubtitle.setWrapText(true);
+        heroSubtitle.getStyleClass().add("kubata-backup-hero-subtitle");
 
-        // Painel de Ações e Informações
-        HBox contentArea = new HBox(20);
-        contentArea.setAlignment(Pos.CENTER);
+        heroText.getChildren().addAll(heroTitle, heroSubtitle);
+        heroLine.getChildren().addAll(shield, heroText);
+        hero.getChildren().add(heroLine);
 
-        // Ações Rápidas
-        VBox quickActions = new VBox(15);
-        quickActions.setPadding(new Insets(25));
-        quickActions.getStyleClass().add("card");
-        quickActions.setPrefWidth(350);
-        quickActions.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
+        GridPane metrics = new GridPane();
+        metrics.setHgap(12);
+        metrics.setVgap(12);
 
-        Label lblActionsTitle = new Label("Operações de Manutenção");
-        lblActionsTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        metrics.add(createMetricCard(
+                "Último backup",
+                Feather.CLOCK,
+                lblLastBackup = new Label("A calcular...")
+        ), 0, 0);
 
-        Button btnPurge = new Button("Limpar Backups Antigos", IconUtils.icon(Feather.TRASH_2, 14));
-        btnPurge.setMaxWidth(Double.MAX_VALUE);
-        btnPurge.getStyleClass().addAll("button-outlined", "button-danger");
-        btnPurge.setOnAction(e -> purgeOldBackups());
-        btnPurge.setDisable(!hasCreatePermission());
+        metrics.add(createMetricCard(
+                "Backups concluídos",
+                Feather.CHECK_CIRCLE,
+                lblBackupCount = new Label("0")
+        ), 1, 0);
 
-        Button btnVerify = new Button("Verificar Integridade Global", IconUtils.icon(Feather.CHECK_CIRCLE, 14));
-        btnVerify.setMaxWidth(Double.MAX_VALUE);
-        btnVerify.getStyleClass().add("button-outlined");
-        btnVerify.setOnAction(e -> verifyAllIntegrity());
-        btnVerify.setDisable(!hasViewPermission());
+        metrics.add(createMetricCard(
+                "Backups verificados",
+                Feather.SHIELD,
+                lblVerifiedCount = new Label("0")
+        ), 2, 0);
 
-        quickActions.getChildren().addAll(lblActionsTitle, new Separator(), btnPurge, btnVerify);
+        metrics.add(createMetricCard(
+                "Falhas registadas",
+                Feather.ALERT_TRIANGLE,
+                lblFailureCount = new Label("0")
+        ), 3, 0);
 
-        // Dicas e Status Informativo
-        VBox infoPanel = new VBox(15);
-        infoPanel.setPadding(new Insets(25));
-        infoPanel.getStyleClass().add("card");
-        infoPanel.setPrefWidth(350);
-        infoPanel.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
+        metrics.add(createMetricCard(
+                "Espaço livre",
+                Feather.HARD_DRIVE,
+                lblFreeSpace = new Label("A calcular...")
+        ), 0, 1);
 
-        Label lblInfoTitle = new Label("Dicas de Segurança");
-        lblInfoTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        
-        Label tip1 = new Label("• Mantenha pelo menos uma cópia fora do computador principal.");
-        Label tip2 = new Label("• Verifique os backups e faça testes de restauração de forma periódica.");
-        Label tip3 = new Label("• Backup técnico não substitui o arquivo fiscal legalmente exigido.");
-        tip1.setWrapText(true); tip2.setWrapText(true); tip3.setWrapText(true);
+        metrics.add(createMetricCard(
+                "Arquivo protegido",
+                Feather.DATABASE,
+                lblStorageUsed = new Label("0.00 MB")
+        ), 1, 1);
 
-        infoPanel.getChildren().addAll(lblInfoTitle, new Separator(), tip1, tip2, tip3);
+        metrics.add(createMetricCard(
+                "Estado operacional",
+                Feather.ACTIVITY,
+                lblHealthStatus = new Label("A VALIDAR")
+        ), 2, 1);
 
-        VBox compliance = new VBox(12);
-        compliance.setPadding(new Insets(20));
-        compliance.getStyleClass().add("card");
-        compliance.setPrefWidth(420);
+        metrics.add(createMetricCard(
+                "Automação",
+                Feather.CALENDAR,
+                new Label("Consultar política")
+        ), 3, 1);
 
-        Label complianceTitle = new Label("Continuidade e disponibilidade fiscal");
-        complianceTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        for (Node node : metrics.getChildren()) {
+            GridPane.setHgrow(node, Priority.ALWAYS);
+        }
 
+        VBox.setVgrow(metrics, Priority.NEVER);
+
+        HBox lower = new HBox(14);
+        lower.setAlignment(Pos.TOP_LEFT);
+
+        VBox quick = panel("Operações rápidas", Feather.ZAP);
+        Button instant = actionButton(
+                "Executar backup agora",
+                "Cria uma cópia manual imediatamente.",
+                Feather.CLOUD,
+                this::executeInstantBackup,
+                hasCreatePermission()
+        );
+        Button integrity = actionButton(
+                "Verificar integridade",
+                "Confirma checksum, arquivo e saúde da base.",
+                Feather.SHIELD,
+                this::verifyAllIntegrity,
+                hasViewPermission()
+        );
+        Button destination = actionButton(
+                "Testar destino",
+                "Valida criação e escrita no destino configurado.",
+                Feather.CHECK,
+                this::testBackupDestination,
+                hasViewPermission()
+        );
+        Button retention = actionButton(
+                "Executar retenção",
+                "Limpa ficheiros que ultrapassaram a retenção técnica.",
+                Feather.TRASH_2,
+                this::purgeOldBackups,
+                hasCreatePermission()
+        );
+        quick.getChildren().addAll(instant, integrity, destination, retention);
+
+        VBox policy = panel("Política de continuidade", Feather.LOCK);
+        Label policySummary = new Label();
+        policySummary.getStyleClass().add("kubata-backup-policy-summary");
+        policySummary.setWrapText(true);
+
+        Label destinationLabel = new Label();
+        destinationLabel.getStyleClass().add("kubata-backup-detail-muted");
+        destinationLabel.setWrapText(true);
+
+        Button openFolder = new Button(
+                "Abrir pasta de backup",
+                IconUtils.icon(Feather.FOLDER, 12)
+        );
+        openFolder.getStyleClass().add("button-outlined");
+        openFolder.setOnAction(e -> openBackupDirectory());
+
+        Button copyPath = new Button(
+                "Copiar caminho",
+                IconUtils.icon(Feather.COPY, 12)
+        );
+        copyPath.getStyleClass().add("button-outlined");
+        copyPath.setOnAction(e -> copyBackupDirectory());
+
+        policy.getChildren().addAll(policySummary, new Separator(), destinationLabel, openFolder, copyPath);
+
+        VBox compliance = panel("Continuidade fiscal", Feather.SHIELD);
         Label complianceText = new Label(
-                "A central mantém cópias de segurança dos dados e permite verificar a "
-                        + "integridade antes de um restauro. A cópia de segurança técnica "
-                        + "é complementar ao arquivo fiscal e às demais obrigações de conservação."
+                "O backup técnico deve ser tratado como mecanismo de recuperação e continuidade. "
+                        + "A retenção técnica configurada no Kubata não substitui os prazos legais de "
+                        + "conservação, arquivo e disponibilidade dos documentos e dados fiscalmente relevantes."
         );
         complianceText.setWrapText(true);
+        complianceText.getStyleClass().add("kubata-backup-detail-text");
 
-        Label dest = new Label("Destino actual: " + resolveBackupDirectory().toAbsolutePath());
-        dest.setWrapText(true);
-        dest.getStyleClass().add("text-muted");
+        Label readiness = new Label("A verificar...");
+        readiness.getStyleClass().add("kubata-backup-readiness");
 
-        Button btnTestCompliance = new Button(
-                "Validar destino e integridade",
-                IconUtils.icon(Feather.SHIELD, 13)
+        Button checkup = new Button(
+                "Executar check-up",
+                IconUtils.icon(Feather.CHECK_SQUARE, 12)
         );
-        btnTestCompliance.getStyleClass().add("button-outlined");
-        btnTestCompliance.setOnAction(e -> {
-            testBackupDestination();
-            verifyAllIntegrity();
-        });
+        checkup.getStyleClass().add("button-outlined");
+        checkup.setOnAction(e -> showBackupCheckup());
 
-        compliance.getChildren().addAll(
-                complianceTitle, new Separator(), complianceText, dest, btnTestCompliance
+        compliance.getChildren().addAll(complianceText, readiness, checkup);
+
+        lower.getChildren().addAll(quick, policy, compliance);
+        HBox.setHgrow(quick, Priority.ALWAYS);
+        HBox.setHgrow(policy, Priority.ALWAYS);
+        HBox.setHgrow(compliance, Priority.ALWAYS);
+
+        Runnable refreshPolicy = () -> {
+            BackupConfig cfg = configs.stream().findFirst().orElse(null);
+            if (cfg == null) {
+                policySummary.setText("Nenhuma política configurada.");
+            } else {
+                String freq = cfg.getFrequency() == null ? "Não definida" : cfg.getFrequency().getDescription();
+                String time = cfg.getFormattedTime() == null ? "—" : cfg.getFormattedTime();
+                String retentionDays = cfg.getRetentionDays() == null ? "—" : String.valueOf(cfg.getRetentionDays());
+                String destinationValue = cfg.getBackupLocation() == null || cfg.getBackupLocation().isBlank()
+                        ? "backups"
+                        : cfg.getBackupLocation();
+
+                policySummary.setText(
+                        "Estado: " + (Boolean.TRUE.equals(cfg.getEnabled()) ? "ACTIVA" : "INACTIVA")
+                                + "\nFrequência: " + freq
+                                + "\nHorário: " + time
+                                + "\nRetenção técnica: " + retentionDays + " dias"
+                );
+                destinationLabel.setText("Destino actual: " + destinationValue);
+
+                readiness.setText(
+                        Boolean.TRUE.equals(cfg.getEnabled())
+                                ? "● Política automática activa"
+                                : "○ Automação desactivada"
+                );
+            }
+        };
+
+        // Atualização inicial e após carregamento dos dados.
+        refreshPolicy.run();
+        configs.addListener((javafx.collections.ListChangeListener<BackupConfig>) change ->
+                Platform.runLater(refreshPolicy));
+
+        dash.getChildren().addAll(hero, metrics, lower);
+
+        ScrollPane scroll = new ScrollPane(dash);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("kubata-backup-scroll");
+        return scroll;
+    }
+
+    private VBox createMetricCard(String title, Feather icon, Label value) {
+        VBox card = new VBox(5);
+        card.setMinWidth(155);
+        card.setPrefWidth(190);
+        card.setPrefHeight(86);
+        card.getStyleClass().add("kubata-backup-metric-card");
+
+        HBox heading = new HBox(7);
+        heading.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-backup-metric-icon");
+        iconBox.getChildren().add(new Label("", IconUtils.icon(icon, 14)));
+
+        Label label = new Label(title.toUpperCase());
+        label.getStyleClass().add("kubata-backup-metric-label");
+
+        heading.getChildren().addAll(iconBox, label);
+        value.getStyleClass().add("kubata-backup-metric-value");
+        card.getChildren().addAll(heading, value);
+
+        return card;
+    }
+
+    private VBox panel(String title, Feather icon) {
+        VBox box = new VBox(10);
+        box.setPadding(new Insets(15));
+        box.setMinHeight(190);
+        box.getStyleClass().add("kubata-backup-panel");
+
+        HBox heading = new HBox(8);
+        heading.setAlignment(Pos.CENTER_LEFT);
+
+        Label iconLabel = new Label("", IconUtils.icon(icon, 14));
+        iconLabel.getStyleClass().add("kubata-backup-panel-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-backup-panel-title");
+
+        heading.getChildren().addAll(iconLabel, titleLabel);
+        box.getChildren().add(heading);
+        return box;
+    }
+
+    private Button actionButton(
+            String title,
+            String description,
+            Feather icon,
+            Runnable action,
+            boolean enabled
+    ) {
+        Button button = new Button();
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setDisable(!enabled);
+        button.getStyleClass().add("kubata-backup-action");
+
+        HBox content = new HBox(9);
+        content.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-backup-action-icon");
+        iconBox.getChildren().add(new Label("", IconUtils.icon(icon, 13)));
+
+        VBox text = new VBox(1);
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-backup-action-title");
+
+        Label desc = new Label(description);
+        desc.setWrapText(true);
+        desc.getStyleClass().add("kubata-backup-action-text");
+
+        text.getChildren().addAll(titleLabel, desc);
+        HBox.setHgrow(text, Priority.ALWAYS);
+        content.getChildren().addAll(iconBox, text);
+
+        button.setGraphic(content);
+        button.setOnAction(e -> action.run());
+        return button;
+    }
+
+    private void openBackupDirectory() {
+        Path directory = resolveBackupDirectory();
+        try {
+            Files.createDirectories(directory);
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(directory.toFile());
+            } else {
+                modalManager.alert(
+                        "Destino de backup",
+                        directory.toAbsolutePath().toString(),
+                        "info",
+                        null
+                );
+            }
+        } catch (Exception ex) {
+            modalManager.alert(
+                    "Não foi possível abrir o destino",
+                    directory.toAbsolutePath() + "\n\n"
+                            + (ex.getMessage() == null ? "Verifique o caminho e as permissões." : ex.getMessage()),
+                    "error",
+                    ex
+            );
+        }
+    }
+
+    private void copyBackupDirectory() {
+        javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+        content.putString(resolveBackupDirectory().toAbsolutePath().toString());
+        javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+        modalManager.alert("Caminho copiado", "O destino do backup foi copiado para a área de transferência.", "info", null);
+    }
+
+    private void showBackupCheckup() {
+        Path directory = resolveBackupDirectory();
+        long completed = records.stream()
+                .filter(r -> r.getStatus() == BackupRecord.BackupStatus.COMPLETED
+                        || r.getStatus() == BackupRecord.BackupStatus.VERIFIED)
+                .count();
+        long failed = records.stream()
+                .filter(r -> r.getStatus() == BackupRecord.BackupStatus.FAILED)
+                .count();
+
+        String disk;
+        try {
+            Files.createDirectories(directory);
+            var store = Files.getFileStore(directory);
+            disk = formatBytes(store.getUsableSpace()) + " livres de " + formatBytes(store.getTotalSpace());
+        } catch (Exception ex) {
+            disk = "Não foi possível determinar o espaço disponível.";
+        }
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(6));
+
+        Label title = new Label("Check-up de continuidade");
+        title.getStyleClass().add("kubata-backup-checkup-title");
+
+        content.getChildren().addAll(
+                title,
+                checkLine("Destino acessível", Files.isDirectory(directory)
+                        ? "OK · " + directory.toAbsolutePath()
+                        : "Pendente · será criado na próxima operação"),
+                checkLine("Backups válidos no histórico", String.valueOf(completed)),
+                checkLine("Falhas registadas", String.valueOf(failed)),
+                checkLine("Espaço disponível", disk),
+                checkLine("Política automática", configs.stream().anyMatch(c -> Boolean.TRUE.equals(c.getEnabled()))
+                        ? "Activa"
+                        : "Não configurada/activa"),
+                checkLine("Integridade", failed == 0 ? "Sem falhas no histórico" : "Existem falhas para revisão")
         );
 
-        contentArea.getChildren().addAll(quickActions, infoPanel, compliance);
+        Label note = new Label(
+                "Este check-up avalia a prontidão técnica do ambiente local. Não constitui declaração "
+                        + "de conformidade, certificação ou validação da AGT."
+        );
+        note.setWrapText(true);
+        note.getStyleClass().add("kubata-backup-detail-muted");
+        content.getChildren().add(note);
 
-        dash.getChildren().addAll(header, cards, contentArea);
-        return new ScrollPane(dash) {{
-            setFitToWidth(true);
-            setStyle("-fx-background-color: transparent;");
-        }};
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .size(620, 470)
+                        .minSize(520, 400)
+                        .title("Check-up de backup")
+                        .icon(Feather.CHECK_SQUARE)
+        );
+    }
+
+    private HBox checkLine(String label, String value) {
+        Label left = new Label(label);
+        left.getStyleClass().add("kubata-backup-detail-label");
+        HBox.setHgrow(left, Priority.ALWAYS);
+
+        Label right = new Label(value);
+        right.setWrapText(true);
+        right.getStyleClass().add("kubata-backup-detail-value");
+
+        HBox row = new HBox(10, left, right);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("kubata-backup-check-row");
+        return row;
+    }
+
+    private String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        double kb = bytes / 1024.0;
+        if (kb < 1024) return String.format("%.1f KB", kb);
+        double mb = kb / 1024.0;
+        if (mb < 1024) return String.format("%.1f MB", mb);
+        return String.format("%.1f GB", mb / 1024.0);
     }
 
     private Node buildHistoryTab() {
@@ -428,26 +742,6 @@ public class BackupView extends VBox {
         }};
     }
 
-    private VBox createStatusCard(String title, Feather icon, Label value, String accentColor) {
-        VBox card = new VBox(10);
-        card.setPadding(new Insets(20));
-        card.setPrefSize(220, 130);
-        card.setAlignment(Pos.CENTER);
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5); -fx-border-color: " + accentColor + "; -fx-border-width: 0 0 4 0;");
-
-        StackPane iconCircle = new StackPane(IconUtils.icon(icon, 24));
-        iconCircle.setPrefSize(45, 45);
-        iconCircle.setStyle("-fx-background-color: " + accentColor + "22; -fx-background-radius: 50; -fx-text-fill: " + accentColor + ";");
-
-        Label lblTitle = new Label(title);
-        lblTitle.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 13px; -fx-font-weight: bold;");
-
-        value.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
-
-        card.getChildren().addAll(iconCircle, lblTitle, value);
-        return card;
-    }
-
     private void loadData() {
         persistenceService.executeAsync(() -> {
             List<BackupRecord> recordList = backupRecordRepository.findAll();
@@ -465,17 +759,47 @@ public class BackupView extends VBox {
         if (records.isEmpty()) {
             lblLastBackup.setText("Nenhum");
             lblStorageUsed.setText("0.00 MB");
+            lblBackupCount.setText("0");
+            lblVerifiedCount.setText("0");
+            lblFailureCount.setText("0");
         } else {
             BackupRecord last = records.stream()
-                    .filter(r -> r.getStatus() == BackupRecord.BackupStatus.COMPLETED)
+                    .filter(r -> r.getStatus() == BackupRecord.BackupStatus.COMPLETED
+                            || r.getStatus() == BackupRecord.BackupStatus.VERIFIED)
+                    .filter(r -> r.getStartTime() != null)
                     .max(Comparator.comparing(BackupRecord::getStartTime))
                     .orElse(null);
 
-            lblLastBackup.setText(last != null ? last.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM HH:mm")) : "Nenhum");
+            lblLastBackup.setText(
+                    last != null
+                            ? last.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+                            : "Nenhum"
+            );
 
-            long totalSize = records.stream().mapToLong(r -> r.getFileSize() != null ? r.getFileSize() : 0L).sum();
-            if (totalSize < 1024 * 1024) lblStorageUsed.setText(String.format("%.2f KB", totalSize / 1024.0));
-            else lblStorageUsed.setText(String.format("%.2f MB", totalSize / (1024.0 * 1024.0)));
+            long totalSize = records.stream()
+                    .mapToLong(r -> r.getFileSize() != null ? r.getFileSize() : 0L)
+                    .sum();
+            lblStorageUsed.setText(formatBytes(totalSize));
+
+            lblBackupCount.setText(String.valueOf(
+                    records.stream().filter(r -> r.getStatus() == BackupRecord.BackupStatus.COMPLETED
+                            || r.getStatus() == BackupRecord.BackupStatus.VERIFIED).count()
+            ));
+            lblVerifiedCount.setText(String.valueOf(
+                    records.stream().filter(r -> r.getStatus() == BackupRecord.BackupStatus.VERIFIED).count()
+            ));
+            lblFailureCount.setText(String.valueOf(
+                    records.stream().filter(r -> r.getStatus() == BackupRecord.BackupStatus.FAILED).count()
+            ));
+        }
+
+        try {
+            Path directory = resolveBackupDirectory();
+            Files.createDirectories(directory);
+            var store = Files.getFileStore(directory);
+            lblFreeSpace.setText(formatBytes(store.getUsableSpace()));
+        } catch (Exception ex) {
+            lblFreeSpace.setText("Indisponível");
         }
 
         BackupRecord latest = records.stream()
