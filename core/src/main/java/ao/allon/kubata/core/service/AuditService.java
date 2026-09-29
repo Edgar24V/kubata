@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +93,7 @@ public class AuditService {
         log.setErrorMessage(errorMessage);
         log.setSaftRelevant(false);
         log.setAgtComplianceLevel(AuditLog.AGTComplianceLevel.NORMAL);
+        log.setHashIntegrity(generateIntegrityHash(log));
         
         return auditLogRepository.save(log);
     }
@@ -212,9 +216,44 @@ public class AuditService {
         return stats;
     }
 
-    // Geração de hash de integridade (simplificado)
+    /**
+     * Gera SHA-256 determinístico sobre os principais campos de contexto do evento.
+     * O hash funciona como controlo de integridade do registo; não é uma assinatura
+     * digital nem substitui mecanismos externos de preservação de evidência.
+     */
     private String generateIntegrityHash(AuditLog log) {
-        String data = log.getUsername() + log.getActionType() + log.getTimestamp() + log.getEntityType() + log.getEntityId();
-        return Integer.toHexString(data.hashCode());
+        String data = String.join("|",
+                safe(log.getUsername()),
+                safe(log.getActionType() == null ? null : log.getActionType().name()),
+                safe(log.getTimestamp() == null ? null : log.getTimestamp().toString()),
+                safe(log.getEntityType()),
+                safe(log.getEntityId()),
+                safe(log.getEntityDescription()),
+                safe(log.getModule()),
+                safe(log.getIpAddress()),
+                safe(log.getSessionId()),
+                safe(log.getOldValues()),
+                safe(log.getNewValues()),
+                String.valueOf(Boolean.TRUE.equals(log.getSuccess())),
+                safe(log.getErrorMessage()),
+                String.valueOf(Boolean.TRUE.equals(log.getSaftRelevant())),
+                safe(log.getAgtComplianceLevel() == null ? null : log.getAgtComplianceLevel().name())
+        );
+
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(bytes.length * 2);
+            for (byte b : bytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 indisponível no runtime.", ex);
+        }
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 }
