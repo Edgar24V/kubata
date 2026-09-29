@@ -15,6 +15,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
@@ -275,7 +276,10 @@ public class PlataformaCentroView extends BorderPane {
         Button apps = actionButton(
                 "Aplicações Instaladas",
                 Feather.PACKAGE,
-                () -> tabs.getSelectionModel().select(findTab("Aplicações"))
+                () -> notificationService.showInfo(
+                        "Aplicações Instaladas",
+                        "Abra «Aplicações Instaladas» no Ribbon da Infraestrutura para gerir módulos."
+                )
         );
 
         Button currencies = actionButton(
