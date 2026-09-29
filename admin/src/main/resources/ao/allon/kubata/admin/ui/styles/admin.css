@@ -9355,3 +9355,202 @@ Text {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KUBATA — SISTEMA · EXTENSIBILIDADE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kubata-extensibility-page {
+    -fx-background-color: #eef2f0;
+}
+
+.kubata-extensibility-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-extensibility-title-icon {
+    -fx-min-width: 44px;
+    -fx-min-height: 44px;
+    -fx-max-width: 44px;
+    -fx-max-height: 44px;
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 12px;
+    -fx-alignment: center;
+}
+
+.kubata-extensibility-title-icon .ikonli-font-icon,
+.kubata-extensibility-kpi-icon,
+.kubata-extensibility-detail-icon .ikonli-font-icon,
+.kubata-extensibility-capability-icon {
+    -fx-icon-color: #217346;
+    -fx-fill: #217346;
+}
+
+.kubata-extensibility-title {
+    -fx-font-size: 21px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #26323b;
+}
+
+.kubata-extensibility-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: #738078;
+}
+
+.kubata-extensibility-kpi {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #dce3df;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-min-height: 60px;
+}
+
+.kubata-extensibility-kpi-title {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #75817b;
+}
+
+.kubata-extensibility-kpi-value {
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #28342e;
+}
+
+.kubata-extensibility-toolbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-extensibility-toolbar .text-field {
+    -fx-min-height: 34px;
+}
+
+.kubata-extensibility-toolbar-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: #89948e;
+}
+
+.kubata-extensibility-details-scroll,
+.kubata-extensibility-details-scroll > .viewport {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent;
+}
+
+.kubata-extensibility-details {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-extensibility-detail-icon {
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-max-width: 40px;
+    -fx-max-height: 40px;
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 20px;
+    -fx-alignment: center;
+}
+
+.kubata-extensibility-detail-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #26323b;
+}
+
+.kubata-extensibility-detail-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: #7a867f;
+}
+
+.kubata-extensibility-detail-row {
+    -fx-padding: 7px 0;
+    -fx-border-color: transparent transparent #edf1ef transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-extensibility-detail-label {
+    -fx-font-size: 8.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #8a958f;
+}
+
+.kubata-extensibility-detail-value {
+    -fx-font-size: 11px;
+    -fx-text-fill: #344139;
+}
+
+.kubata-extensibility-section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #344139;
+}
+
+.kubata-extensibility-info-card,
+.kubata-extensibility-capability-card {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #dce4df;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px;
+}
+
+.kubata-extensibility-info-title,
+.kubata-extensibility-capability-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #344139;
+}
+
+.kubata-extensibility-info-text,
+.kubata-extensibility-capability-text {
+    -fx-font-size: 10px;
+    -fx-text-fill: #6f7b74;
+}
+
+.kubata-extensibility-capability-card {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-extensibility-capability-icon {
+    -fx-padding: 2px;
+}
+
+.kubata-extensibility-dialog-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: #69766f;
+    -fx-background-color: #f3f7f4;
+    -fx-border-color: #dce4df;
+    -fx-border-width: 1px;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+    -fx-padding: 8px 10px;
+}
+
+.kubata-extensibility-field-label {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #35423b;
+}
+
+.kubata-extensibility-statusbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.kubata-extensibility-status-text {
+    -fx-font-size: 10px;
+    -fx-font-weight: 650;
+    -fx-text-fill: #536059;
+}
+
+.kubata-extensibility-status-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: #89948e;
+}
