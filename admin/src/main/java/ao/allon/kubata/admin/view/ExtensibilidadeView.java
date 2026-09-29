@@ -1,8 +1,8 @@
 package ao.allon.kubata.admin.view;
 
-import ao.allon.kubata.admin.extensibilidade.AdministradorExtensibilidadeRegistry;
 import ao.allon.kubata.admin.extensibilidade.AplicacaoAdministrador;
 import ao.allon.kubata.admin.extensibilidade.AplicacaoConfiguravel;
+import ao.allon.kubata.admin.extensibilidade.AdministradorExtensibilidadeRegistry;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
@@ -13,18 +13,19 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
- * Gestão de aplicações externas do Kubata Administrator.
+ * Central profissional de extensibilidade do Kubata Administrator.
  *
- * Permite registar conectores por metadados, consultar capacidades do contrato,
- * remover integrações e manter o catálogo entre reinícios.
+ * <p>Permite gerir o catálogo de aplicações externas através do contrato de
+ * extensibilidade já existente, visualizar capacidades de segurança/operação/
+ * serviços e remover integrações registadas.</p>
  */
 @Component
 public class ExtensibilidadeView extends VBox {
@@ -36,199 +37,614 @@ public class ExtensibilidadeView extends VBox {
             FXCollections.observableArrayList();
 
     private AdvancedTableView<AplicacaoAdministrador> table;
+    private TextField searchField;
+
+    private Label totalValue;
+    private Label securityValue;
+    private Label servicesValue;
+    private Label operationsValue;
+
+    private Label detailName;
+    private Label detailCode;
+    private Label detailSecurity;
+    private Label detailOperations;
+    private Label detailServices;
+    private Label detailAuditLog;
+    private Label detailStatus;
+
+    private Button btnDetails;
+    private Button btnRemove;
 
     public ExtensibilidadeView(
             AdministradorExtensibilidadeRegistry registry,
-            ModalManager modalManager) {
-
+            ModalManager modalManager
+    ) {
         this.registry = registry;
         this.modalManager = modalManager;
+
+        setSpacing(0);
+        getStyleClass().add("kubata-extensibility-page");
 
         buildUI();
         refreshList();
     }
 
     private void buildUI() {
-        setSpacing(0);
-        getStyleClass().add("extensibilidade-view");
+        VBox header = buildHeader();
 
-        HBox toolbar = new HBox(10);
-        toolbar.getStyleClass().add("header-box");
-        toolbar.setPadding(new Insets(10, 15, 10, 15));
-        toolbar.setAlignment(Pos.CENTER_LEFT);
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildToolbar());
 
-        Label title = new Label(
-                "Extensibilidade",
-                IconUtils.icon(Feather.LAYERS, 18)
+        SplitPane split = new SplitPane(
+                new StackPane(buildTable()),
+                buildDetailsPane()
         );
-        title.getStyleClass().add("h3");
+        split.setDividerPositions(0.68);
+        workspace.setCenter(split);
+
+        getChildren().addAll(header, workspace, buildStatusBar());
+        VBox.setVgrow(workspace, Priority.ALWAYS);
+    }
+
+    private VBox buildHeader() {
+        VBox header = new VBox(10);
+        header.setPadding(new Insets(18, 22, 15, 22));
+        header.getStyleClass().add("kubata-extensibility-header");
+
+        HBox titleLine = new HBox(12);
+        titleLine.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-extensibility-title-icon");
+        iconBox.getChildren().add(
+                new Label("", IconUtils.icon(Feather.LAYERS, 22))
+        );
+
+        VBox titleBox = new VBox(2);
+        Label title = new Label("Extensibilidade");
+        title.getStyleClass().add("kubata-extensibility-title");
 
         Label subtitle = new Label(
-                "Conectores e aplicações externas registados no Administrator."
+                "Centro de integração para aplicações externas, contratos, segurança e serviços do Administrator."
         );
-        subtitle.getStyleClass().add("text-muted");
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("kubata-extensibility-subtitle");
 
-        VBox heading = new VBox(2, title, subtitle);
+        titleBox.getChildren().addAll(title, subtitle);
 
-        Pane spacer = new Pane();
+        Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnNovo = new Button(
-                "Adicionar Aplicação",
-                IconUtils.icon(Feather.PLUS, IconUtils.SIZE_SMALL)
+        Button add = new Button(
+                "Adicionar aplicação",
+                IconUtils.icon(Feather.PLUS, 13)
         );
-        btnNovo.getStyleClass().add("button-primary");
-        btnNovo.setOnAction(e -> showRegisterDialog());
+        add.getStyleClass().add("button-primary");
+        add.setOnAction(e -> showRegisterDialog());
 
-        Button btnDetalhes = new Button(
-                "Detalhes",
-                IconUtils.icon(Feather.INFO, IconUtils.SIZE_SMALL)
-        );
-        btnDetalhes.getStyleClass().add("button-outlined");
-        btnDetalhes.setOnAction(e -> showSelectedDetails());
-
-        Button btnRemover = new Button(
-                "Remover",
-                IconUtils.icon(Feather.TRASH_2, IconUtils.SIZE_SMALL)
-        );
-        btnRemover.getStyleClass().add("button-danger");
-        btnRemover.setOnAction(e -> removeSelected());
-
-        Button btnRefresh = new Button(
+        Button refresh = new Button(
                 "",
-                IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
+                IconUtils.icon(Feather.REFRESH_CW, 13)
         );
-        btnRefresh.setTooltip(new Tooltip("Atualizar catálogo"));
-        btnRefresh.getStyleClass().add("button-outlined");
-        btnRefresh.setOnAction(e -> refreshList());
+        refresh.setTooltip(new Tooltip("Actualizar catálogo"));
+        refresh.getStyleClass().add("button-outlined");
+        refresh.setOnAction(e -> refreshList());
 
-        toolbar.getChildren().addAll(
-                heading, spacer, btnNovo, btnDetalhes, btnRemover, btnRefresh
+        titleLine.getChildren().addAll(iconBox, titleBox, spacer, add, refresh);
+
+        totalValue = new Label("0");
+        securityValue = new Label("0");
+        servicesValue = new Label("0");
+        operationsValue = new Label("0");
+
+        HBox kpis = new HBox(
+                10,
+                kpi("APLICAÇÕES", Feather.GRID, totalValue),
+                kpi("SEGURANÇA", Feather.SHIELD, securityValue),
+                kpi("SERVIÇOS", Feather.ZAP, servicesValue),
+                kpi("OPERAÇÕES", Feather.ACTIVITY, operationsValue)
         );
 
+        header.getChildren().addAll(titleLine, kpis);
+        return header;
+    }
+
+    private VBox kpi(String title, Feather icon, Label value) {
+        VBox card = new VBox(2);
+        card.setMinWidth(155);
+        card.setPadding(new Insets(9, 13, 9, 13));
+        card.getStyleClass().add("kubata-extensibility-kpi");
+
+        HBox line = new HBox(7);
+        line.setAlignment(Pos.CENTER_LEFT);
+
+        Label iconLabel = new Label("", IconUtils.icon(icon, 13));
+        iconLabel.getStyleClass().add("kubata-extensibility-kpi-icon");
+
+        Label caption = new Label(title);
+        caption.getStyleClass().add("kubata-extensibility-kpi-title");
+
+        line.getChildren().addAll(iconLabel, caption);
+
+        value.getStyleClass().add("kubata-extensibility-kpi-value");
+        card.getChildren().addAll(line, value);
+        return card;
+    }
+
+    private HBox buildToolbar() {
+        HBox toolbar = new HBox(9);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        toolbar.setPadding(new Insets(9, 14, 9, 14));
+        toolbar.getStyleClass().add("kubata-extensibility-toolbar");
+
+        searchField = new TextField();
+        searchField.setPromptText("Pesquisar por nome ou código...");
+        searchField.setPrefWidth(320);
+        searchField.textProperty().addListener((obs, old, value) -> applyFilter());
+
+        Button clear = new Button(
+                "Limpar",
+                IconUtils.icon(Feather.X, 12)
+        );
+        clear.getStyleClass().add("button-outlined");
+        clear.setOnAction(e -> searchField.clear());
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label hint = new Label("Duplo clique para ver os detalhes");
+        hint.getStyleClass().add("kubata-extensibility-toolbar-hint");
+
+        toolbar.getChildren().addAll(searchField, clear, spacer, hint);
+        return toolbar;
+    }
+
+    private AdvancedTableView<AplicacaoAdministrador> buildTable() {
         table = new AdvancedTableView<>(apps);
-        TableUtils.standardize(table);
+        table.setEntityName("Aplicação");
         table.setPlaceholder(new Label("Nenhuma aplicação externa registada."));
+        TableUtils.standardize(table);
 
-        TableColumn<AplicacaoAdministrador, String> colAbrev =
-                new TableColumn<>("Código");
-        colAbrev.setCellValueFactory(cell ->
-                new SimpleStringProperty(cell.getValue().getAbreviatura()));
-        colAbrev.setPrefWidth(90);
+        TableColumn<AplicacaoAdministrador, String> code =
+                TableUtils.createTextColumn(
+                        "Código",
+                        c -> new SimpleStringProperty(safe(c.getValue().getAbreviatura()))
+                );
+        code.setPrefWidth(80);
 
-        TableColumn<AplicacaoAdministrador, String> colNome =
-                new TableColumn<>("Aplicação");
-        colNome.setCellValueFactory(cell ->
-                new SimpleStringProperty(cell.getValue().getNome()));
-        colNome.setPrefWidth(290);
+        TableColumn<AplicacaoAdministrador, String> name =
+                TableUtils.createTextColumn(
+                        "Aplicação",
+                        c -> new SimpleStringProperty(safe(c.getValue().getNome()))
+                );
+        name.setPrefWidth(260);
 
-        TableColumn<AplicacaoAdministrador, String> colAudit =
-                new TableColumn<>("Segurança");
-        colAudit.setCellValueFactory(cell -> new SimpleStringProperty(
-                cell.getValue().getAudit() != null ? "Disponível" : "N/D"
-        ));
-        colAudit.setPrefWidth(110);
+        TableColumn<AplicacaoAdministrador, String> security =
+                TableUtils.createTextColumn(
+                        "Segurança",
+                        c -> new SimpleStringProperty(
+                                c.getValue().getAudit() == null ? "N/D" : "Disponível"
+                        )
+                );
+        security.setPrefWidth(105);
 
-        TableColumn<AplicacaoAdministrador, String> colOps =
-                new TableColumn<>("Operações");
-        colOps.setCellValueFactory(cell -> new SimpleStringProperty(
-                String.valueOf(
-                        cell.getValue().getOperacoesAplicacao() != null
-                                ? cell.getValue().getOperacoesAplicacao()
-                                   .getOperacoesDisponiveis().size()
-                                : 0
-                )
-        ));
-        colOps.setPrefWidth(100);
+        TableColumn<AplicacaoAdministrador, String> operations =
+                TableUtils.createTextColumn(
+                        "Operações",
+                        c -> new SimpleStringProperty(
+                                operationCount(c.getValue())
+                        )
+                );
+        operations.setPrefWidth(95);
 
-        TableColumn<AplicacaoAdministrador, String> colServicos =
-                new TableColumn<>("Serviços");
-        colServicos.setCellValueFactory(cell -> new SimpleStringProperty(
-                cell.getValue().getServicos() != null ? "Ativos" : "N/D"
-        ));
-        colServicos.setPrefWidth(100);
+        TableColumn<AplicacaoAdministrador, String> services =
+                TableUtils.createTextColumn(
+                        "Serviços",
+                        c -> new SimpleStringProperty(
+                                c.getValue().getServicos() == null ? "N/D" : "Disponível"
+                        )
+                );
+        services.setPrefWidth(105);
 
-        TableColumn<AplicacaoAdministrador, String> colLogins =
-                new TableColumn<>("Logins");
-        colLogins.setCellValueFactory(cell -> new SimpleStringProperty(
-                cell.getValue().getLoginsAssociados() != null
-                        ? String.valueOf(
-                            cell.getValue().getLoginsAssociados()
-                                .getMapeamentoLogins().size())
-                        : "0"
-        ));
-        colLogins.setPrefWidth(90);
+        TableColumn<AplicacaoAdministrador, String> auditLog =
+                TableUtils.createTextColumn(
+                        "Auditoria",
+                        c -> new SimpleStringProperty(
+                                c.getValue().getOperacoesLog() == null ? "N/D" : "Disponível"
+                        )
+                );
+        auditLog.setPrefWidth(100);
 
         table.getColumns().addAll(
-                colAbrev, colNome, colAudit, colOps, colServicos, colLogins
+                code, name, security, operations, services, auditLog
         );
 
-        getChildren().addAll(toolbar, table);
-        VBox.setVgrow(table, Priority.ALWAYS);
+        table.getSelectionModel().selectedItemProperty()
+                .addListener((obs, old, selected) -> updateDetails(selected));
+
+        table.setOnViewDetails(this::showSelectedDetails);
+        table.setOnDelete(selected -> removeSelected());
+        table.setRowFactory(view -> {
+            TableRow<AplicacaoAdministrador> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    showSelectedDetails();
+                }
+            });
+            return row;
+        });
+
+        return table;
+    }
+
+    private ScrollPane buildDetailsPane() {
+        VBox root = new VBox(12);
+        root.setPadding(new Insets(16));
+        root.getStyleClass().add("kubata-extensibility-details");
+
+        HBox identity = new HBox(10);
+        identity.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane icon = new StackPane();
+        icon.getStyleClass().add("kubata-extensibility-detail-icon");
+        icon.getChildren().add(
+                new Label("", IconUtils.icon(Feather.LAYERS, 18))
+        );
+
+        VBox identityText = new VBox(2);
+        detailName = new Label("Nenhuma aplicação seleccionada");
+        detailName.getStyleClass().add("kubata-extensibility-detail-title");
+
+        detailCode = new Label("Seleccione uma aplicação no catálogo.");
+        detailCode.getStyleClass().add("kubata-extensibility-detail-subtitle");
+
+        identityText.getChildren().addAll(detailName, detailCode);
+        identity.getChildren().addAll(icon, identityText);
+
+        detailSecurity = detailItem(root, "SEGURANÇA", "—");
+        detailOperations = detailItem(root, "OPERAÇÕES", "—");
+        detailServices = detailItem(root, "SERVIÇOS", "—");
+        detailAuditLog = detailItem(root, "AUDITORIA", "—");
+        detailStatus = detailItem(root, "ESTADO", "—");
+
+        Separator separator = new Separator();
+
+        Label capabilities = new Label("Capacidades expostas");
+        capabilities.getStyleClass().add("kubata-extensibility-section-title");
+
+        VBox governance = new VBox(7);
+        governance.getStyleClass().add("kubata-extensibility-info-card");
+
+        Label governanceTitle = new Label("Contrato de integração");
+        governanceTitle.getStyleClass().add("kubata-extensibility-info-title");
+
+        Label governanceText = new Label(
+                "A aplicação externa é integrada através das interfaces do Administrator. "
+                        + "As capacidades apresentadas aqui correspondem ao contrato fornecido "
+                        + "pela integração, e não a uma certificação ou validação externa."
+        );
+        governanceText.setWrapText(true);
+        governanceText.getStyleClass().add("kubata-extensibility-info-text");
+
+        governance.getChildren().addAll(governanceTitle, governanceText);
+
+        btnDetails = new Button(
+                "Abrir detalhes completos",
+                IconUtils.icon(Feather.INFO, 12)
+        );
+        btnDetails.getStyleClass().add("button-outlined");
+        btnDetails.setMaxWidth(Double.MAX_VALUE);
+        btnDetails.setOnAction(e -> showSelectedDetails());
+
+        btnRemove = new Button(
+                "Remover aplicação",
+                IconUtils.icon(Feather.TRASH_2, 12)
+        );
+        btnRemove.getStyleClass().add("button-danger");
+        btnRemove.setMaxWidth(Double.MAX_VALUE);
+        btnRemove.setOnAction(e -> removeSelected());
+
+        root.getChildren().addAll(
+                identity,
+                new Separator(),
+                detailSecurity,
+                detailOperations,
+                detailServices,
+                detailAuditLog,
+                detailStatus,
+                separator,
+                capabilities,
+                governance,
+                btnDetails,
+                btnRemove
+        );
+
+        updateDetails(null);
+
+        ScrollPane scroll = new ScrollPane(root);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("kubata-extensibility-details-scroll");
+        return scroll;
+    }
+
+    private Label detailItem(VBox root, String caption, String initial) {
+        VBox row = new VBox(2);
+        row.getStyleClass().add("kubata-extensibility-detail-row");
+
+        Label title = new Label(caption);
+        title.getStyleClass().add("kubata-extensibility-detail-label");
+
+        Label value = new Label(initial);
+        value.setWrapText(true);
+        value.getStyleClass().add("kubata-extensibility-detail-value");
+
+        row.getChildren().addAll(title, value);
+        root.getChildren().add(row);
+        return value;
+    }
+
+    private void updateDetails(AplicacaoAdministrador app) {
+        if (detailName == null) return;
+
+        if (app == null) {
+            detailName.setText("Nenhuma aplicação seleccionada");
+            detailCode.setText("Seleccione uma aplicação no catálogo.");
+            detailSecurity.setText("—");
+            detailOperations.setText("—");
+            detailServices.setText("—");
+            detailAuditLog.setText("—");
+            detailStatus.setText("A aguardar selecção");
+
+            if (btnDetails != null) btnDetails.setDisable(true);
+            if (btnRemove != null) btnRemove.setDisable(true);
+            return;
+        }
+
+        detailName.setText(safe(app.getNome(), "Aplicação"));
+        detailCode.setText("Código · " + safe(app.getAbreviatura(), "—"));
+        detailSecurity.setText(
+                app.getAudit() == null ? "Não disponibilizada" : "Disponibilizada"
+        );
+        detailOperations.setText(
+                app.getOperacoesAplicacao() == null
+                        ? "Não disponibilizadas"
+                        : operationList(app)
+        );
+        detailServices.setText(
+                app.getServicos() == null
+                        ? "Não disponibilizados"
+                        : "Contrato de serviços disponível"
+        );
+        detailAuditLog.setText(
+                app.getOperacoesLog() == null
+                        ? "Não disponibilizada"
+                        : "Entidades de auditoria disponíveis"
+        );
+        detailStatus.setText("Registada no catálogo local");
+
+        if (btnDetails != null) btnDetails.setDisable(false);
+        if (btnRemove != null) btnRemove.setDisable(false);
     }
 
     private void showRegisterDialog() {
         GridPane grid = new GridPane();
-        grid.setHgap(12);
-        grid.setVgap(10);
+        grid.setHgap(14);
+        grid.setVgap(11);
         grid.setPadding(new Insets(8));
 
         TextField nome = new TextField();
-        nome.setPromptText("Ex.: Gestão de Ativos Fixos");
+        nome.setPromptText("Ex.: Gestão de Activos Fixos");
+        nome.setPrefWidth(360);
 
-        TextField abrev = new TextField();
-        abrev.setPromptText("ABC");
-        abrev.setPrefColumnCount(6);
+        TextField code = new TextField();
+        code.setPromptText("Ex.: AFX");
+        code.setPrefColumnCount(7);
 
-        Label hint = new Label(
-                "A abreviatura deve ter exatamente 3 caracteres alfanuméricos."
+        Label guidance = new Label(
+                "Use exactamente 3 caracteres alfanuméricos. O código identifica a integração "
+                        + "dentro do Administrator e não deve coincidir com abreviaturas reservadas."
         );
-        hint.getStyleClass().add("text-muted");
-        hint.setWrapText(true);
+        guidance.setWrapText(true);
+        guidance.getStyleClass().add("kubata-extensibility-dialog-hint");
 
-        grid.add(new Label("Nome:"), 0, 0);
+        grid.add(label("Nome da aplicação"), 0, 0);
         grid.add(nome, 1, 0);
-        grid.add(new Label("Código:"), 0, 1);
-        grid.add(abrev, 1, 1);
-        grid.add(hint, 1, 2);
+        grid.add(label("Código"), 0, 1);
+        grid.add(code, 1, 1);
+        grid.add(guidance, 1, 2);
 
         modalManager.showConfirmModal(
                 grid,
-                "Adicionar aplicação externa",
+                "Nova aplicação externa",
                 () -> {
                     try {
-                        if (nome.getText() == null || nome.getText().isBlank()) {
+                        String appName = safe(nome.getText()).trim();
+                        String appCode = safe(code.getText()).trim().toUpperCase(Locale.ROOT);
+
+                        if (appName.isBlank()) {
                             throw new IllegalArgumentException(
-                                    "Introduza o nome da aplicação.");
+                                    "O nome da aplicação é obrigatório."
+                            );
                         }
 
-                        if (abrev.getText() == null
-                                || !abrev.getText().trim()
-                                .matches("[A-Za-z0-9]{3}")) {
+                        if (!appCode.matches("[A-Z0-9]{3}")) {
                             throw new IllegalArgumentException(
-                                    "O código deve ter exatamente 3 caracteres alfanuméricos.");
+                                    "O código deve ter exactamente 3 caracteres alfanuméricos."
+                            );
                         }
 
                         AplicacaoAdministrador app =
-                                new AplicacaoConfiguravel(
-                                        nome.getText(),
-                                        abrev.getText()
-                                );
+                                new AplicacaoConfiguravel(appName, appCode);
 
                         registry.registarAplicacao(app);
                         refreshList();
 
                         modalManager.alert(
                                 "Aplicação registada",
-                                "A aplicação " + app.getNome()
-                                        + " foi adicionada ao catálogo.",
+                                "A integração «" + appName
+                                        + "» foi adicionada ao catálogo de extensibilidade.",
                                 "success",
                                 null
                         );
                     } catch (Exception ex) {
                         modalManager.alert(
                                 "Não foi possível registar",
-                                ex.getMessage(),
+                                message(ex, "Verifique os dados da aplicação."),
+                                "error",
+                                ex
+                        );
+                    }
+                },
+                null
+        );
+    }
+
+    private void showSelectedDetails() {
+        AplicacaoAdministrador app = getSelected();
+        if (app == null) {
+            modalManager.alert(
+                    "Extensibilidade",
+                    "Seleccione uma aplicação para consultar os detalhes.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(4));
+
+        HBox identity = new HBox(10);
+        identity.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane icon = new StackPane();
+        icon.getStyleClass().add("kubata-extensibility-detail-icon");
+        icon.getChildren().add(
+                new Label("", IconUtils.icon(Feather.LAYERS, 18))
+        );
+
+        VBox titleBox = new VBox(2);
+        Label title = new Label(app.getNome());
+        title.getStyleClass().add("kubata-extensibility-detail-title");
+
+        Label code = new Label("Código · " + safe(app.getAbreviatura(), "—"));
+        code.getStyleClass().add("kubata-extensibility-detail-subtitle");
+
+        titleBox.getChildren().addAll(title, code);
+        identity.getChildren().addAll(icon, titleBox);
+
+        content.getChildren().addAll(
+                identity,
+                capabilityCard(
+                        Feather.SHIELD,
+                        "Segurança",
+                        app.getAudit() == null
+                                ? "A integração não disponibiliza políticas de segurança."
+                                : "Políticas de segurança disponíveis: "
+                                + String.join(", ", app.getAudit().getApplicationRoles())
+                ),
+                capabilityCard(
+                        Feather.ACTIVITY,
+                        "Operações",
+                        app.getOperacoesAplicacao() == null
+                                ? "Nenhuma operação declarada."
+                                : String.join(
+                                        ", ",
+                                        app.getOperacoesAplicacao().getOperacoesDisponiveis()
+                                )
+                ),
+                capabilityCard(
+                        Feather.ZAP,
+                        "Serviços",
+                        app.getServicos() == null
+                                ? "Contrato de serviços não disponibilizado."
+                                : "Inicialização e encerramento de serviços suportados."
+                ),
+                capabilityCard(
+                        Feather.FILE_TEXT,
+                        "Auditoria",
+                        app.getOperacoesLog() == null
+                                ? "Entidades de auditoria não declaradas."
+                                : String.join(
+                                        ", ",
+                                        app.getOperacoesLog().getEntidadesLog()
+                                )
+                )
+        );
+
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(420);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("kubata-extensibility-details-scroll");
+
+        modalManager.showModal(
+                scroll,
+                new ModalManager.ModalConfig()
+                        .size(700, 560)
+                        .minSize(600, 480)
+                        .title("Detalhes da integração")
+                        .icon(Feather.LAYERS)
+        );
+    }
+
+    private VBox capabilityCard(Feather icon, String title, String text) {
+        VBox card = new VBox(5);
+        card.getStyleClass().add("kubata-extensibility-capability-card");
+
+        HBox heading = new HBox(8);
+        heading.setAlignment(Pos.CENTER_LEFT);
+
+        Label iconLabel = new Label("", IconUtils.icon(icon, 13));
+        iconLabel.getStyleClass().add("kubata-extensibility-capability-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-extensibility-capability-title");
+
+        heading.getChildren().addAll(iconLabel, titleLabel);
+
+        Label body = new Label(text);
+        body.setWrapText(true);
+        body.getStyleClass().add("kubata-extensibility-capability-text");
+
+        card.getChildren().addAll(heading, body);
+        return card;
+    }
+
+    private void removeSelected() {
+        AplicacaoAdministrador app = getSelected();
+        if (app == null) {
+            modalManager.alert(
+                    "Extensibilidade",
+                    "Seleccione uma aplicação para remover.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        modalManager.showConfirmModal(
+                new Label(
+                        "Confirma a remoção de «" + app.getNome()
+                                + "» (" + app.getAbreviatura() + ")?"
+                ),
+                "Remover aplicação",
+                () -> {
+                    try {
+                        registry.removerAplicacao(app.getAbreviatura());
+                        refreshList();
+
+                        modalManager.alert(
+                                "Aplicação removida",
+                                "A integração foi removida do catálogo local.",
+                                "success",
+                                null
+                        );
+                    } catch (Exception ex) {
+                        modalManager.alert(
+                                "Erro ao remover",
+                                message(ex, "Não foi possível remover a aplicação."),
                                 "error",
                                 ex
                         );
@@ -244,111 +660,98 @@ public class ExtensibilidadeView extends VBox {
                 : table.getSelectionModel().getSelectedItem();
     }
 
-    private void showSelectedDetails() {
-        AplicacaoAdministrador app = getSelected();
-
-        if (app == null) {
-            modalManager.alert(
-                    "Extensibilidade",
-                    "Selecione uma aplicação para consultar os detalhes.",
-                    "warning",
-                    null
-            );
-            return;
-        }
-
-        VBox content = new VBox(12);
-        content.setPadding(new Insets(5));
-
-        Label title = new Label(
-                app.getNome(),
-                IconUtils.icon(Feather.LAYERS, 18)
-        );
-        title.getStyleClass().add("h4");
-
-        Label code = new Label("Código: " + app.getAbreviatura());
-        Label audit = new Label(
-                "Perfis de segurança: "
-                        + (app.getAudit() != null
-                        ? String.join(", ", app.getAudit().getApplicationRoles())
-                        : "N/D")
-        );
-        Label operations = new Label(
-                "Operações: "
-                        + (app.getOperacoesAplicacao() != null
-                        ? String.join(", ",
-                            app.getOperacoesAplicacao()
-                                .getOperacoesDisponiveis())
-                        : "N/D")
-        );
-        Label entities = new Label(
-                "Entidades auditadas: "
-                        + (app.getOperacoesLog() != null
-                        ? String.join(", ",
-                            app.getOperacoesLog().getEntidadesLog())
-                        : "N/D")
-        );
-
-        for (Label label : List.of(code, audit, operations, entities)) {
-            label.setWrapText(true);
-        }
-
-        content.getChildren().addAll(title, code, audit, operations, entities);
-
-        modalManager.showModalSimple(
-                new ScrollPane(content) {{
-                    setFitToWidth(true);
-                    setPrefViewportHeight(280);
-                    setStyle("-fx-background-color: transparent;");
-                }},
-                "Detalhes da aplicação"
-        );
-    }
-
-    private void removeSelected() {
-        AplicacaoAdministrador app = getSelected();
-
-        if (app == null) {
-            modalManager.alert(
-                    "Extensibilidade",
-                    "Selecione uma aplicação para remover.",
-                    "warning",
-                    null
-            );
-            return;
-        }
-
-        modalManager.showConfirmModal(
-                new Label(
-                        "Remover a integração " + app.getNome()
-                                + " (" + app.getAbreviatura() + ")?"
-                ),
-                "Remover aplicação",
-                () -> {
-                    try {
-                        registry.removerAplicacao(app.getAbreviatura());
-                        refreshList();
-
-                        modalManager.alert(
-                                "Aplicação removida",
-                                "A integração foi removida do catálogo.",
-                                "success",
-                                null
-                        );
-                    } catch (Exception ex) {
-                        modalManager.alert(
-                                "Erro",
-                                ex.getMessage(),
-                                "error",
-                                ex
-                        );
-                    }
-                },
-                null
-        );
-    }
-
     private void refreshList() {
         apps.setAll(registry.getAplicacoesRegistadas());
+        applyFilter();
+        updateKpis();
+        updateDetails(getSelected());
+    }
+
+    private void applyFilter() {
+        if (table == null || searchField == null) return;
+
+        String q = safe(searchField.getText()).trim().toLowerCase(Locale.ROOT);
+        table.setFilter(app -> app != null
+                && (q.isBlank()
+                || safe(app.getNome()).toLowerCase(Locale.ROOT).contains(q)
+                || safe(app.getAbreviatura()).toLowerCase(Locale.ROOT).contains(q)));
+    }
+
+    private void updateKpis() {
+        totalValue.setText(String.valueOf(apps.size()));
+        securityValue.setText(String.valueOf(
+                apps.stream().filter(app -> app.getAudit() != null).count()
+        ));
+        servicesValue.setText(String.valueOf(
+                apps.stream().filter(app -> app.getServicos() != null).count()
+        ));
+        operationsValue.setText(String.valueOf(
+                apps.stream()
+                        .filter(app -> app.getOperacoesAplicacao() != null)
+                        .mapToLong(app -> app.getOperacoesAplicacao()
+                                .getOperacoesDisponiveis().size())
+                        .sum()
+        ));
+    }
+
+    private String operationCount(AplicacaoAdministrador app) {
+        return app.getOperacoesAplicacao() == null
+                ? "0"
+                : String.valueOf(
+                        app.getOperacoesAplicacao()
+                                .getOperacoesDisponiveis()
+                                .size()
+                );
+    }
+
+    private String operationList(AplicacaoAdministrador app) {
+        if (app.getOperacoesAplicacao() == null) {
+            return "Nenhuma";
+        }
+        List<String> values = app.getOperacoesAplicacao().getOperacoesDisponiveis();
+        return values.isEmpty() ? "Nenhuma declarada" : String.join(", ", values);
+    }
+
+    private Label label(String value) {
+        Label label = new Label(value);
+        label.getStyleClass().add("kubata-extensibility-field-label");
+        return label;
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String message(Exception ex, String fallback) {
+        return ex.getMessage() == null || ex.getMessage().isBlank()
+                ? fallback
+                : ex.getMessage();
+    }
+
+    private HBox buildStatusBar() {
+        HBox bar = new HBox(10);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(new Insets(7, 14, 7, 14));
+        bar.getStyleClass().add("kubata-extensibility-statusbar");
+
+        Label left = new Label();
+        left.getStyleClass().add("kubata-extensibility-status-text");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label right = new Label(
+                "Integrações externas são mantidas pelo catálogo de extensibilidade."
+        );
+        right.getStyleClass().add("kubata-extensibility-status-hint");
+
+        bar.getChildren().addAll(left, spacer, right);
+
+        apps.addListener((javafx.collections.ListChangeListener<AplicacaoAdministrador>) change ->
+                left.setText(apps.size() + " aplicação(ões) registada(s)")
+        );
+
+        left.setText(apps.size() + " aplicação(ões) registada(s)");
+        return bar;
     }
 }
