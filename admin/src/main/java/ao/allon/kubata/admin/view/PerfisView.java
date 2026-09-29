@@ -150,7 +150,21 @@ public class PerfisView extends VBox {
                 entry("BACKUP", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.CRIAR,
                         PermissaoPerfil.Operacao.APROVAR),
                 entry("RELATORIOS", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.IMPRIMIR,
-                        PermissaoPerfil.Operacao.EXPORTAR)
+                        PermissaoPerfil.Operacao.EXPORTAR),
+                entry("MOEDAS", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.CRIAR,
+                        PermissaoPerfil.Operacao.EDITAR, PermissaoPerfil.Operacao.APAGAR),
+                entry("OPERACOES", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.CRIAR,
+                        PermissaoPerfil.Operacao.EDITAR),
+                entry("SCHEDULER", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.CRIAR,
+                        PermissaoPerfil.Operacao.EDITAR),
+                entry("ALERTAS", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.EDITAR),
+                entry("SEGURANCA_AVANCADA", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.EDITAR),
+                entry("CERTIFICADOS", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.EDITAR),
+                entry("DOCUMENTOS", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.EDITAR),
+                entry("COMUNICACOES", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.EDITAR),
+                entry("PREFERENCIAS", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.EDITAR),
+                entry("PERSONALIZACAO", PermissaoPerfil.Operacao.VER, PermissaoPerfil.Operacao.EDITAR),
+                entry("SESSOES", PermissaoPerfil.Operacao.VER)
         ));
     }
 
