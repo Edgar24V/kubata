@@ -8992,3 +8992,117 @@ Text {
 .kubata-series-page .date-picker:focused {
     -fx-border-color: #7db48e;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA SERIES — Assistentes de Instalação
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-series-assistant-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 800;
+}
+
+.kubata-series-assistant-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.kubata-series-assistant-company {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #0f766e;
+    -fx-background-color: #ecfdf5;
+    -fx-padding: 6px 10px;
+    -fx-background-radius: 8px;
+}
+
+.kubata-series-assistant-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe3ea;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.07), 14, 0.12, 0, 4);
+}
+
+.kubata-series-assistant-card:hover {
+    -fx-border-color: #94a3b8;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.12), 18, 0.14, 0, 6);
+}
+
+.kubata-series-assistant-icon {
+    -fx-min-width: 38px;
+    -fx-min-height: 38px;
+    -fx-max-width: 38px;
+    -fx-max-height: 38px;
+    -fx-background-color: #f0fdfa;
+    -fx-background-radius: 10px;
+    -fx-alignment: center;
+}
+
+.kubata-series-assistant-card-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+}
+
+.kubata-series-assistant-card-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-series-assistant-step {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #0f766e;
+    -fx-background-color: #f0fdfa;
+    -fx-padding: 7px 10px;
+    -fx-background-radius: 8px;
+}
+
+.kubata-series-assistant-typebox {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 10px;
+}
+
+.kubata-series-assistant-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.kubata-series-assistant-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.kubata-series-assistant-info {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748b;
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 9px 10px;
+}
+
+.kubata-series-assistant-result {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 9px 11px;
+}
+
+.kubata-series-assistant-result-value {
+    -fx-font-weight: 800;
+    -fx-text-fill: #0f172a;
+}
+
+.button-danger-outlined {
+    -fx-text-fill: #b42318;
+    -fx-border-color: #f0b4ad;
+}
