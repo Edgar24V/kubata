@@ -11,7 +11,6 @@ import ao.allon.kubata.core.service.AcessoService;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -26,8 +25,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -35,7 +32,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -75,14 +71,6 @@ public class AuditoriaView extends VBox {
     private Button exportButton;
 
     private boolean dataLoaded;
-
-    public AuditoriaView(
-            AuditLogRepository auditLogRepository,
-            SessionManager sessionManager,
-            ModalManager modalManager
-    ) {
-        this(auditLogRepository, sessionManager, modalManager, null);
-    }
 
     public AuditoriaView(
             AuditLogRepository auditLogRepository,
