@@ -100,7 +100,7 @@ public class OutrasBdsView extends VBox {
         title.getStyleClass().add("kubata-other-db-title");
 
         Label subtitle = new Label(
-                "Ligaçōes JDBC auxiliares para integração com sistemas externos, migração, consulta e interoperabilidade."
+                "Ligações JDBC auxiliares para integração com sistemas externos, migração, consulta e interoperabilidade."
         );
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("kubata-other-db-subtitle");
