@@ -8385,3 +8385,378 @@ Text {
     -fx-font-size: 10px;
     -fx-text-fill: #738078;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA — Central de Licenças / Activação
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-licenses-page {
+    -fx-background-color: #eef2f0;
+}
+
+.kubata-licenses-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-licenses-title-icon {
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 9px;
+    -fx-padding: 9px;
+    -fx-text-fill: #217346;
+}
+
+.kubata-licenses-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #26323b;
+}
+
+.kubata-licenses-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: #738078;
+}
+
+.kubata-licenses-header-meta {
+    -fx-font-size: 10px;
+    -fx-font-weight: 650;
+    -fx-text-fill: #68746e;
+    -fx-padding: 5px 8px;
+    -fx-background-color: #f6f8f7;
+    -fx-background-radius: 6px;
+    -fx-border-color: #dde4e0;
+    -fx-border-radius: 6px;
+}
+
+.kubata-licenses-kpi {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #dce3df;
+    -fx-border-width: 1px;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+    -fx-min-height: 62px;
+}
+
+.kubata-licenses-kpi-icon {
+    -fx-text-fill: #217346;
+}
+
+.kubata-licenses-kpi-title {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #75817b;
+}
+
+.kubata-licenses-kpi-value {
+    -fx-font-size: 20px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #28342e;
+}
+
+.kubata-licenses-filter-bar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-licenses-filter-bar .text-field,
+.kubata-licenses-filter-bar .combo-box {
+    -fx-min-height: 34px;
+}
+
+.kubata-licenses-filter-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: #89948e;
+}
+
+.kubata-licenses-table-pane,
+.kubata-licenses-details-wrapper {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d4ddd8;
+    -fx-border-width: 1px;
+    -fx-padding: 0;
+}
+
+.kubata-licenses-details-wrapper {
+    -fx-border-width: 1px 0 1px 1px;
+}
+
+.kubata-licenses-details-wrapper .viewport {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-licenses-details {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-licenses-detail-icon {
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-max-width: 40px;
+    -fx-max-height: 40px;
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 20px;
+    -fx-alignment: center;
+}
+
+.kubata-licenses-detail-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #26323b;
+}
+
+.kubata-licenses-detail-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: #77837c;
+}
+
+.kubata-licenses-detail-row {
+    -fx-padding: 6px 0 6px 0;
+    -fx-border-color: transparent transparent #edf1ef transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-licenses-detail-label,
+.kubata-licenses-info-label {
+    -fx-font-size: 8.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #8a958f;
+}
+
+.kubata-licenses-detail-value {
+    -fx-font-size: 11px;
+    -fx-text-fill: #344139;
+}
+
+.kubata-licenses-section-title {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #344139;
+}
+
+.kubata-licenses-statusbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.kubata-licenses-status-text {
+    -fx-font-size: 10px;
+    -fx-font-weight: 650;
+    -fx-text-fill: #536059;
+}
+
+.kubata-licenses-status-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: #89948e;
+}
+
+.kubata-license-badge {
+    -fx-padding: 4px 8px;
+    -fx-background-radius: 99px;
+    -fx-border-radius: 99px;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+}
+
+.kubata-license-badge-success {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: #217346;
+    -fx-border-color: #b9d6c3;
+}
+
+.kubata-license-badge-warning {
+    -fx-background-color: #fff8e1;
+    -fx-text-fill: #9a6700;
+    -fx-border-color: #ead9a4;
+}
+
+.kubata-license-badge-danger {
+    -fx-background-color: #ffebe9;
+    -fx-text-fill: #cf222e;
+    -fx-border-color: #f2b8b5;
+}
+
+.kubata-license-badge-neutral {
+    -fx-background-color: #f1f3f2;
+    -fx-text-fill: #68736d;
+    -fx-border-color: #d7dfdb;
+}
+
+.kubata-licenses-info-card {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #dce4df;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+    -fx-padding: 10px;
+}
+
+.kubata-licenses-info-value {
+    -fx-font-size: 11px;
+    -fx-text-fill: #344139;
+    -fx-font-weight: 650;
+}
+
+.kubata-licenses-modal-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #26323b;
+}
+
+.kubata-licenses-policy-text {
+    -fx-font-size: 10px;
+    -fx-text-fill: #6f7b74;
+}
+
+.kubata-license-wizard-page {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-license-wizard-stepper {
+    -fx-padding: 3px 4px 5px 4px;
+}
+
+.kubata-license-wizard-step {
+    -fx-padding: 6px 12px;
+    -fx-background-color: #f0f3f1;
+    -fx-background-radius: 99px;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #78847e;
+}
+
+.kubata-license-wizard-step-active {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: #217346;
+}
+
+.kubata-license-wizard-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #25322b;
+    -fx-padding: 2px 4px 0 4px;
+}
+
+.kubata-license-wizard-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #75817b;
+    -fx-padding: 0 4px 4px 4px;
+}
+
+.kubata-license-wizard-section {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #dce4df;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 13px;
+}
+
+.kubata-license-wizard-section-title {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #2d3933;
+}
+
+.kubata-license-wizard-section-description {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #75817b;
+}
+
+.kubata-license-wizard-footer {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dde4e0 transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 10px 2px 2px 2px;
+}
+
+.kubata-license-module-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dce4df;
+    -fx-border-radius: 9px;
+    -fx-background-radius: 9px;
+    -fx-padding: 14px;
+}
+
+.kubata-license-module-icon {
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-max-width: 40px;
+    -fx-max-height: 40px;
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 20px;
+    -fx-alignment: center;
+}
+
+.kubata-license-module-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #26323b;
+}
+
+.kubata-license-module-meta {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #78847e;
+}
+
+.kubata-license-review-row {
+    -fx-padding: 7px 0;
+    -fx-border-color: transparent transparent #e6ebe8 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-license-review-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #7c8781;
+}
+
+.kubata-license-review-value {
+    -fx-font-size: 11px;
+    -fx-font-weight: 650;
+    -fx-text-fill: #344139;
+}
+
+.kubata-license-field-label {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #35423b;
+}
+
+.kubata-license-field-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: #78847e;
+}
+
+.kubata-license-validity-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dce4df;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 11px;
+}
+
+.kubata-license-warning-danger {
+    -fx-background-color: #fff5f4;
+    -fx-border-color: #efb7b4;
+}
+
+.kubata-licenses-details .button:disabled {
+    -fx-opacity: 0.42;
+}
+
+.kubata-licenses-details .button {
+    -fx-min-height: 32px;
+}
+
+.kubata-license-wizard-page .text-field,
+.kubata-license-wizard-page .date-picker,
+.kubata-license-wizard-page .radio-button {
+    -fx-min-height: 36px;
+}
+
+.kubata-license-wizard-page .radio-button {
+    -fx-padding: 2px 0;
+}
