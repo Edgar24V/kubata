@@ -495,7 +495,7 @@
 			<textField>
 				<reportElement x="450" y="60" width="95" height="20" uuid="78901234-5678-9012-3456-901234567890"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
-					<font size="13" isBold="true" forecolor="#0A6B4A"/>
+					<font size="13" isBold="true"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$P{FATURA_TOTAL}]]></textFieldExpression>
 			</textField>
