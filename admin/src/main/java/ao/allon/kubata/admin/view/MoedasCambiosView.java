@@ -9,6 +9,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.feather.Feather;
@@ -24,6 +25,9 @@ public class MoedasCambiosView extends BorderPane {
     private final MoedaRepository repository;
     private final ObservableList<Moeda> moedas = FXCollections.observableArrayList();
     private final TableView<Moeda> table = new TableView<>(moedas);
+    private final Label totalValue = new Label("0");
+    private final Label activeValue = new Label("0");
+    private final Label baseValue = new Label("—");
 
     public MoedasCambiosView(MoedaRepository repository) {
         this.repository = repository;
@@ -78,32 +82,34 @@ public class MoedasCambiosView extends BorderPane {
     private HBox buildSummary() {
         HBox row = new HBox(12);
 
-        Label total = metric("MOEDAS", "0");
-        Label active = metric("ACTIVAS", "0");
-        Label base = metric("MOEDA BASE", "—");
+        Label total = metric("MOEDAS", totalValue);
+        Label active = metric("ACTIVAS", activeValue);
+        Label base = metric("MOEDA BASE", baseValue);
 
         HBox.setHgrow(total, Priority.ALWAYS);
         HBox.setHgrow(active, Priority.ALWAYS);
         HBox.setHgrow(base, Priority.ALWAYS);
 
         row.getChildren().addAll(total, active, base);
-
-        row.setUserData(new Label[]{total, active, base});
         return row;
     }
 
-    private Label metric(String label, String value) {
-        Label node = new Label(label + "\n" + value);
+    private Label metric(String title, Label value) {
+        Label node = new Label();
         node.setMinHeight(58);
         node.setMaxWidth(Double.MAX_VALUE);
         node.setPadding(new Insets(12));
+        VBox box = new VBox(2);
+        Label caption = new Label(title);
+        caption.setStyle("-fx-font-size:9px;-fx-font-weight:800;-fx-text-fill:#6e7781;");
+        value.setStyle("-fx-font-size:16px;-fx-font-weight:800;-fx-text-fill:#24292f;");
+        box.getChildren().addAll(caption, value);
+        node.setGraphic(box);
         node.setStyle(
                 "-fx-background-color:#ffffff;" +
                 "-fx-border-color:#d0d7de;" +
                 "-fx-border-radius:9px;" +
-                "-fx-background-radius:9px;" +
-                "-fx-font-size:11px;" +
-                "-fx-font-weight:700;"
+                "-fx-background-radius:9px;"
         );
         return node;
     }
@@ -171,12 +177,15 @@ public class MoedasCambiosView extends BorderPane {
     }
 
     private void updateSummary() {
-        Scene scene = getScene();
-        if (scene == null) {
-            return;
-        }
-        Node userDataNode = getTop() == null ? null : getTop().getUserData();
-        // O resumo é secundário; a tabela é a fonte principal de informação.
+        totalValue.setText(Integer.toString(moedas.size()));
+        activeValue.setText(Long.toString(moedas.stream()
+                .filter(m -> Boolean.TRUE.equals(m.getActiva()))
+                .count()));
+        baseValue.setText(moedas.stream()
+                .filter(m -> Boolean.TRUE.equals(m.getMoedaBase()))
+                .map(m -> safe(m.getCodigoISO()))
+                .findFirst()
+                .orElse("—"));
     }
 
     private void openDialog(Moeda current) {
