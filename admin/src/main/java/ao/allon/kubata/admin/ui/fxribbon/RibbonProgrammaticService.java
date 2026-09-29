@@ -170,11 +170,11 @@ public class RibbonProgrammaticService {
                 "plataforma_centro",
                 "Centro",
                 Feather.CPU,
-                "Centro avançado da plataforma",
+                "Centro completo da plataforma",
                 () -> opener.open(
                         "plataforma_centro",
                         "Centro da Plataforma",
-                        () -> bl.apply(PlataformaCentroView.class),
+                        () -> bl.apply(PlataformaCentroCompletoView.class),
                         true
                 )));
         avancado.addSmallButtons(List.of(
