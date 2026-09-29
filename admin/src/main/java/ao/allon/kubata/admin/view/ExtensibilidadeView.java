@@ -262,7 +262,7 @@ public class ExtensibilidadeView extends VBox {
         table.getSelectionModel().selectedItemProperty()
                 .addListener((obs, old, selected) -> updateDetails(selected));
 
-        table.setOnViewDetails(this::showSelectedDetails);
+        table.setOnViewDetails(selected -> {\n            if (selected != null) {\n                table.getSelectionModel().select(selected);\n            }\n            showSelectedDetails();\n        });
         table.setOnDelete(selected -> removeSelected());
         table.setRowFactory(view -> {
             TableRow<AplicacaoAdministrador> row = new TableRow<>();
@@ -720,6 +720,11 @@ public class ExtensibilidadeView extends VBox {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private String safe(String value, String fallback) {
+        String result = safe(value);
+        return result.isBlank() ? fallback : result;
     }
 
     private String message(Exception ex, String fallback) {
