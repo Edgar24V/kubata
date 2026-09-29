@@ -89,6 +89,7 @@ public class UtilizadoresView extends VBox {
     private Label detailPassword;
     private Label detailFalhas;
 
+    private Button btnNovo;
     private Button btnEditar;
     private Button btnClonar;
     private Button btnStatus;
@@ -124,6 +125,7 @@ public class UtilizadoresView extends VBox {
         super.layoutChildren();
         if (!dataLoaded && getScene() != null) {
             dataLoaded = true;
+            refreshActionPermissions();
             loadUsers();
         }
     }
@@ -167,13 +169,13 @@ public class UtilizadoresView extends VBox {
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnNovo = new Button(
+        btnNovo = new Button(
                 "Novo Utilizador",
                 IconUtils.icon(Feather.USER_PLUS, IconUtils.SIZE_SMALL)
         );
         btnNovo.getStyleClass().add("button-primary");
         btnNovo.setOnAction(e -> showUserDialog(null));
-        btnNovo.setDisable(!can("CRIAR"));
+        btnNovo.setDisable(true);
 
         Button btnRefresh = new Button(
                 "Actualizar",
@@ -630,6 +632,8 @@ public class UtilizadoresView extends VBox {
     }
 
     private void loadUsers() {
+        refreshActionPermissions();
+
         if (table != null) {
             table.setLoading(true);
         }
@@ -1364,6 +1368,25 @@ public class UtilizadoresView extends VBox {
             card.getChildren().add(row);
         }
         return card;
+    }
+
+    private void refreshActionPermissions() {
+        if (btnNovo != null) {
+            btnNovo.setDisable(!can("CRIAR"));
+        }
+
+        User current = sessionManager.getUser();
+        if (btnEditar != null && table != null) {
+            User selected = table.getSelectionModel().getSelectedItem();
+            boolean hasSelection = selected != null;
+            btnEditar.setDisable(!hasSelection || !can("EDITAR"));
+            btnClonar.setDisable(!hasSelection || !can("CRIAR"));
+            btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
+            btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
+            btnStatus.setDisable(!hasSelection || !can("EDITAR")
+                    || (current != null && selected != null
+                    && current.getId() != null && current.getId().equals(selected.getId())));
+        }
     }
 
     private boolean can(String operation) {
