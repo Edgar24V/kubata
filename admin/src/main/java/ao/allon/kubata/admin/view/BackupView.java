@@ -152,11 +152,19 @@ public class BackupView extends VBox {
         btnTestarDestino.getStyleClass().add("button-outlined");
         btnTestarDestino.setOnAction(e -> testBackupDestination());
 
+        Button btnConfigurar = new Button(
+                "Configurar política",
+                IconUtils.icon(Feather.SETTINGS, IconUtils.SIZE_SMALL)
+        );
+        btnConfigurar.getStyleClass().add("button-outlined");
+        btnConfigurar.setDisable(!hasCreatePermission());
+        btnConfigurar.setOnAction(e -> openPrimaryConfig());
+
         Button btnRefresh = new Button("Sincronizar", IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
         btnRefresh.getStyleClass().add("button-outlined");
         btnRefresh.setOnAction(e -> loadData());
 
-        box.getChildren().addAll(title, spacer, btnTestarDestino, btnExecutarAgora, btnRefresh);
+        box.getChildren().addAll(title, spacer, btnTestarDestino, btnConfigurar, btnExecutarAgora, btnRefresh);
         return box;
     }
 
@@ -176,13 +184,17 @@ public class BackupView extends VBox {
         header.getChildren().addAll(title, subtitle);
 
         // Grid de Cartões de Status (Estilo Profissional)
-        HBox cards = new HBox(20);
+        HBox cards = new HBox(14);
         cards.setAlignment(Pos.CENTER);
+        HBox.setHgrow(cards, Priority.ALWAYS);
 
         cards.getChildren().addAll(
-                createStatusCard("Último Backup", Feather.CLOCK, lblLastBackup = new Label("A calcular..."), "#3498db"),
-                createStatusCard("Espaço em Disco", Feather.DATABASE, lblStorageUsed = new Label("0.00 MB"), "#9b59b6"),
-                createStatusCard("Saúde do Backup", Feather.SHIELD, lblHealthStatus = new Label("OK"), "#27ae60")
+                createStatusCard("Último backup", Feather.CLOCK,
+                        lblLastBackup = new Label("A calcular..."), "#3498db"),
+                createStatusCard("Arquivo protegido", Feather.DATABASE,
+                        lblStorageUsed = new Label("0.00 MB"), "#9b59b6"),
+                createStatusCard("Estado operacional", Feather.SHIELD,
+                        lblHealthStatus = new Label("A VALIDAR"), "#27ae60")
         );
 
         // Painel de Ações e Informações
@@ -230,7 +242,40 @@ public class BackupView extends VBox {
 
         infoPanel.getChildren().addAll(lblInfoTitle, new Separator(), tip1, tip2, tip3);
 
-        contentArea.getChildren().addAll(quickActions, infoPanel);
+        VBox compliance = new VBox(12);
+        compliance.setPadding(new Insets(20));
+        compliance.getStyleClass().add("card");
+        compliance.setPrefWidth(420);
+
+        Label complianceTitle = new Label("Continuidade e disponibilidade fiscal");
+        complianceTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        Label complianceText = new Label(
+                "A central mantém cópias de segurança dos dados e permite verificar a "
+                        + "integridade antes de um restauro. A cópia de segurança técnica "
+                        + "é complementar ao arquivo fiscal e às demais obrigações de conservação."
+        );
+        complianceText.setWrapText(true);
+
+        Label dest = new Label("Destino actual: " + resolveBackupDirectory().toAbsolutePath());
+        dest.setWrapText(true);
+        dest.getStyleClass().add("text-muted");
+
+        Button btnTestCompliance = new Button(
+                "Validar destino e integridade",
+                IconUtils.icon(Feather.SHIELD, 13)
+        );
+        btnTestCompliance.getStyleClass().add("button-outlined");
+        btnTestCompliance.setOnAction(e -> {
+            testBackupDestination();
+            verifyAllIntegrity();
+        });
+
+        compliance.getChildren().addAll(
+                complianceTitle, new Separator(), complianceText, dest, btnTestCompliance
+        );
+
+        contentArea.getChildren().addAll(quickActions, infoPanel, compliance);
 
         dash.getChildren().addAll(header, cards, contentArea);
         return new ScrollPane(dash) {{
@@ -433,9 +478,26 @@ public class BackupView extends VBox {
             else lblStorageUsed.setText(String.format("%.2f MB", totalSize / (1024.0 * 1024.0)));
         }
 
-        boolean hasFailures = records.stream().anyMatch(r -> r.getStatus() == BackupRecord.BackupStatus.FAILED);
-        lblHealthStatus.setText(hasFailures ? "AVISO" : "SAUDÁVEL");
-        lblHealthStatus.setStyle("-fx-text-fill: " + (hasFailures ? "red" : "green") + "; -fx-font-weight: bold;");
+        BackupRecord latest = records.stream()
+                .filter(r -> r.getStartTime() != null)
+                .max(Comparator.comparing(BackupRecord::getStartTime))
+                .orElse(null);
+
+        if (latest == null) {
+            lblHealthStatus.setText("SEM DADOS");
+        } else {
+            switch (latest.getStatus()) {
+                case COMPLETED, VERIFIED -> lblHealthStatus.setText("SAUDÁVEL");
+                case FAILED -> lblHealthStatus.setText("ATENÇÃO");
+                case IN_PROGRESS -> lblHealthStatus.setText("EM CURSO");
+            }
+        }
+        lblHealthStatus.setStyle("-fx-font-weight: bold;");
+    }
+
+    private void openPrimaryConfig() {
+        BackupConfig config = configs.stream().findFirst().orElseGet(BackupConfig::new);
+        showConfigDialog(config);
     }
 
     private void showConfigDialog(BackupConfig config) {
@@ -451,10 +513,44 @@ public class BackupView extends VBox {
         txtTime.setPromptText("HH:mm:ss");
 
         TextField txtLocation = new TextField(config.getBackupLocation());
-        Spinner<Integer> spnRetention = new Spinner<>(7, 365, config.getRetentionDays() != null ? config.getRetentionDays() : 30);
+        txtLocation.setPrefWidth(360);
+        Button btnBrowse = new Button("", IconUtils.icon(Feather.FOLDER, 13));
+        btnBrowse.setTooltip(new Tooltip("Escolher pasta de destino"));
+        btnBrowse.setOnAction(e -> {
+            javafx.stage.DirectoryChooser chooser = new javafx.stage.DirectoryChooser();
+            chooser.setTitle("Seleccionar destino de backups");
+            try {
+                Path current = Paths.get(txtLocation.getText().isBlank() ? "backups" : txtLocation.getText());
+                if (Files.isDirectory(current)) {
+                    chooser.setInitialDirectory(current.toAbsolutePath().toFile());
+                }
+            } catch (Exception ignored) {
+            }
+            java.io.File selected = chooser.showDialog(txtLocation.getScene().getWindow());
+            if (selected != null) {
+                txtLocation.setText(selected.getAbsolutePath());
+            }
+        });
+        HBox locationBox = new HBox(8, txtLocation, btnBrowse);
+        HBox.setHgrow(txtLocation, Priority.ALWAYS);
+
+        Spinner<Integer> spnRetention = new Spinner<>(
+                7, 3650,
+                config.getRetentionDays() != null ? config.getRetentionDays() : 30
+        );
+        spnRetention.setEditable(true);
 
         CheckBox chkCompress = new CheckBox("Comprimir (ZIP)");
-        chkCompress.setSelected(config.getCompressBackup());
+        chkCompress.setSelected(!Boolean.FALSE.equals(config.getCompressBackup()));
+
+        CheckBox chkAttachments = new CheckBox("Incluir anexos quando a rotina os suportar");
+        chkAttachments.setSelected(!Boolean.FALSE.equals(config.getIncludeAttachments()));
+
+        CheckBox chkNotifySuccess = new CheckBox("Notificar sucesso");
+        chkNotifySuccess.setSelected(Boolean.TRUE.equals(config.getNotifyOnSuccess()));
+
+        CheckBox chkNotifyFailure = new CheckBox("Notificar falha");
+        chkNotifyFailure.setSelected(!Boolean.FALSE.equals(config.getNotifyOnFailure()));
 
         TextField txtEmails = new TextField(config.getEmailNotifications());
         txtEmails.setPromptText("emails@empresa.com (separados por vírgula)");
@@ -464,12 +560,21 @@ public class BackupView extends VBox {
         grid.add(new Label("Horário:"), 0, 1);
         grid.add(txtTime, 1, 1);
         grid.add(new Label("Destino:"), 0, 2);
-        grid.add(txtLocation, 1, 2);
-        grid.add(new Label("Retenção (dias):"), 0, 3);
+        grid.add(locationBox, 1, 2);
+        grid.add(new Label("Retenção técnica (dias):"), 0, 3);
         grid.add(spnRetention, 1, 3);
-        grid.add(chkCompress, 1, 4);
-        grid.add(new Label("Notificar por Email:"), 0, 5);
+        VBox policy = new VBox(7, chkCompress, chkAttachments, chkNotifySuccess, chkNotifyFailure);
+        grid.add(policy, 1, 4);
+        grid.add(new Label("Email de notificações:"), 0, 5);
         grid.add(txtEmails, 1, 5);
+
+        Label retentionNote = new Label(
+                "A retenção técnica controla cópias de recuperação. Ela não define nem substitui "
+                        + "o prazo legal de conservação do arquivo fiscal."
+        );
+        retentionNote.setWrapText(true);
+        retentionNote.getStyleClass().add("text-muted");
+        grid.add(retentionNote, 1, 6);
 
         modalManager.showConfirmModal(grid, "Configuração de Backup Automático", () -> {
             config.setFrequency(cmbFreq.getValue());
@@ -477,8 +582,15 @@ public class BackupView extends VBox {
             config.setBackupLocation(txtLocation.getText());
             config.setRetentionDays(spnRetention.getValue());
             config.setCompressBackup(chkCompress.isSelected());
+            config.setIncludeAttachments(chkAttachments.isSelected());
+            config.setNotifyOnSuccess(chkNotifySuccess.isSelected());
+            config.setNotifyOnFailure(chkNotifyFailure.isSelected());
             config.setEmailNotifications(txtEmails.getText());
             config.setEnabled(true);
+
+            if (txtLocation.getText() == null || txtLocation.getText().isBlank()) {
+                throw new IllegalArgumentException("Seleccione um destino para os backups.");
+            }
 
             backupConfigService.saveConfig(config);
             loadData();
@@ -733,7 +845,12 @@ public class BackupView extends VBox {
         if (location == null || location.isBlank()) {
             location = "backups";
         }
-        return Paths.get(location);
+
+        Path path = Paths.get(location).normalize();
+        if (path.toString().isBlank()) {
+            return Paths.get("backups");
+        }
+        return path;
     }
 
     private boolean resolveCompressDefault() {
