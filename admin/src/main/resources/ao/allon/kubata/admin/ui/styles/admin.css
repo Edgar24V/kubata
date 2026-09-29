@@ -7806,3 +7806,187 @@ Text {
 .kubata-users-details .button:disabled {
     -fx-opacity: 0.42;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Ficha de utilizador — experiência ERP
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-users-form-tabs {
+    -fx-background-color: -kubata-white;
+}
+
+.kubata-users-form-tabs .tab-header-area {
+    -fx-padding: 0 10px;
+}
+
+.kubata-users-form-tabs .tab {
+    -fx-padding: 9px 13px;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+}
+
+.kubata-users-form-tabs .tab:selected {
+    -fx-font-weight: 700;
+}
+
+.kubata-users-form-tabs .tab .ikonli-font-icon {
+    -fx-icon-size: 13px;
+    -fx-icon-color: -kubata-green;
+    -fx-fill: -kubata-green;
+}
+
+.kubata-users-form-page {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-users-form-card,
+.kubata-users-identity-card,
+.kubata-users-profile-card {
+    -fx-background-color: #fbfcfd;
+    -fx-border-color: #dce3e7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 9px;
+    -fx-background-radius: 9px;
+    -fx-padding: 13px;
+}
+
+.kubata-users-identity-card {
+    -fx-background-color: #f5faf7;
+    -fx-border-color: #b9d6c3;
+}
+
+.kubata-users-form-avatar {
+    -fx-min-width: 52px;
+    -fx-min-height: 52px;
+    -fx-max-width: 52px;
+    -fx-max-height: 52px;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 26px;
+    -fx-alignment: center;
+}
+
+.kubata-users-form-avatar-text {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-users-form-identity-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: 750;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-form-identity-meta {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-users-form-identity-status {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-padding: 3px 7px;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 99px;
+}
+
+.kubata-users-form-card-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 750;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-password-strength-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-users-password-strength {
+    -fx-pref-height: 6px;
+    -fx-min-height: 6px;
+    -fx-max-height: 6px;
+}
+
+.kubata-users-password-strength .track {
+    -fx-background-color: #e8edf0;
+    -fx-background-radius: 99px;
+}
+
+.kubata-users-password-strength .bar {
+    -fx-background-radius: 99px;
+}
+
+.kubata-users-password-strength.password-weak .bar {
+    -fx-background-color: #d9534f;
+}
+
+.kubata-users-password-strength.password-medium .bar {
+    -fx-background-color: #d99a24;
+}
+
+.kubata-users-password-strength.password-strong .bar {
+    -fx-background-color: #2e8b57;
+}
+
+.kubata-users-password-strength-label.password-weak {
+    -fx-text-fill: #b44945;
+}
+
+.kubata-users-password-strength-label.password-medium {
+    -fx-text-fill: #a66d00;
+}
+
+.kubata-users-password-strength-label.password-strong {
+    -fx-text-fill: #28764d;
+}
+
+.kubata-users-profile-count {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-padding: 4px 8px;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 99px;
+}
+
+.kubata-users-profile-card .list-view {
+    -fx-background-color: white;
+    -fx-border-color: #dce3e7;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+}
+
+.kubata-users-profile-card .list-cell {
+    -fx-padding: 8px 10px;
+    -fx-border-color: transparent transparent #eef1f3 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-users-profile-card .list-cell:selected {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-profile-code {
+    -fx-font-size: 11px;
+    -fx-font-weight: 750;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-users-profile-description {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-users-form-card .check-box,
+.kubata-users-security-card .check-box {
+    -fx-font-size: 11px;
+}
+
+.kubata-users-form-card .button,
+.kubata-users-profile-card .button {
+    -fx-min-height: 31px;
+}
