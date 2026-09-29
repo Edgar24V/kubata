@@ -74,6 +74,7 @@ public class LicenciamentoView extends VBox {
     private Label detailInstallation;
     private Label detailRequired;
 
+    private Button btnHeaderConfigure;
     private Button btnConfigure;
     private Button btnClearLicense;
 
@@ -145,16 +146,16 @@ public class LicenciamentoView extends VBox {
         refresh.getStyleClass().add("button-outlined");
         refresh.setOnAction(e -> reload());
 
-        btnConfigure = new Button(
+        btnHeaderConfigure = new Button(
                 "Configurar licença",
                 IconUtils.icon(Feather.KEY, 13)
         );
-        btnConfigure.getStyleClass().add("button-primary");
-        btnConfigure.setOnAction(e ->
+        btnHeaderConfigure.getStyleClass().add("button-primary");
+        btnHeaderConfigure.setOnAction(e ->
                 selectedModulo().ifPresent(this::showLicenseWizard)
         );
 
-        titleLine.getChildren().addAll(icon, titleBox, spacer, users, refresh, btnConfigure);
+        titleLine.getChildren().addAll(icon, titleBox, spacer, users, refresh, btnHeaderConfigure);
 
         totalValue = new Label("0");
         licensedValue = new Label("0");
@@ -560,6 +561,7 @@ public class LicenciamentoView extends VBox {
         if (btnConfigure == null) return;
 
         boolean canEdit = hasEditPermission();
+        btnHeaderConfigure.setDisable(!canEdit);
         btnConfigure.setDisable(!canEdit);
 
         boolean canClear = canEdit && selectedModulo().isPresent() && hasLicense(selectedModulo().orElse(null));
