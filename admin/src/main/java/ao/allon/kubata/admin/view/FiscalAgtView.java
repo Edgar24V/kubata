@@ -182,9 +182,9 @@ public class FiscalAgtView extends VBox {
         VBox regime = miniInfo(
                 "REGIME / AMBIENTE",
                 () -> {
-                    String regime = safe(cmbRegimeIva.getValue());
+                    String regimeValue = safe(cmbRegimeIva.getValue());
                     String ambiente = safe(cmbAmbiente.getValue());
-                    return (regime.isBlank() ? "Não definido" : regime)
+                    return (regimeValue.isBlank() ? "Não definido" : regimeValue)
                             + " · "
                             + (ambiente.isBlank() ? "—" : ambiente);
                 }
@@ -303,7 +303,7 @@ public class FiscalAgtView extends VBox {
         return scroll(root);
     }
 
-    private VBox buildSoftwareTab() {
+    private ScrollPane buildSoftwareTab() {
         VBox root = contentRoot();
 
         root.getChildren().add(section(
@@ -348,7 +348,7 @@ public class FiscalAgtView extends VBox {
         return scroll(root);
     }
 
-    private VBox buildElectronicTab() {
+    private ScrollPane buildElectronicTab() {
         VBox root = contentRoot();
 
         root.getChildren().add(section(
@@ -394,7 +394,7 @@ public class FiscalAgtView extends VBox {
         return scroll(root);
     }
 
-    private VBox buildSaftTab() {
+    private ScrollPane buildSaftTab() {
         VBox root = contentRoot();
 
         root.getChildren().add(section(
@@ -431,7 +431,7 @@ public class FiscalAgtView extends VBox {
         return scroll(root);
     }
 
-    private VBox buildIntegrityTab() {
+    private ScrollPane buildIntegrityTab() {
         VBox root = contentRoot();
 
         root.getChildren().add(section(
@@ -632,9 +632,9 @@ public class FiscalAgtView extends VBox {
 
         ColumnConstraints label = new ColumnConstraints();
         label.setMinWidth(200);
-        ColumnConstraints field = new ColumnConstraints();
-        field.setHgrow(Priority.ALWAYS);
-        grid.getColumnConstraints().addAll(label, field);
+        ColumnConstraints valueColumn = new ColumnConstraints();
+        valueColumn.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(label, valueColumn);
 
         txtSaft.setPromptText("Ex.: SAF-T AO utilizado pelo exportador");
         txtIva.setPromptText("Ex.: 14");
