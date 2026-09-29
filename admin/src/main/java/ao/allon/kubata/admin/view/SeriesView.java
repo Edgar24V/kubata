@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -76,6 +77,7 @@ public class SeriesView extends VBox {
     private Label detailValidity;
     private Label detailAgT;
     private Label detailDefault;
+    private Label detailState;
 
     private Button btnNovo;
     private Button btnLote;
@@ -415,7 +417,7 @@ public class SeriesView extends VBox {
                 Label badge = new Label(item);
                 badge.getStyleClass().addAll(
                         "kubata-series-badge",
-                        Boolean.parseBoolean("Registada".equals(item))
+                        "Registada".equals(item)
                                 ? "kubata-series-badge-success"
                                 : "kubata-series-badge-neutral"
                 );
@@ -962,7 +964,7 @@ public class SeriesView extends VBox {
                 serie,
                 "SERIE",
                 "Actualização inline da série: " + serie.getSerie(),
-                () -> Platform.runLater(this::loadSeries)
+                saved -> Platform.runLater(this::loadSeries)
         );
     }
 
