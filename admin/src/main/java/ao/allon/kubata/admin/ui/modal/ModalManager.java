@@ -9,6 +9,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
@@ -52,6 +53,7 @@ public class ModalManager {
      * correspondente é fechado, evitando acumulação de nós na Scene.
      */
     private final List<JMetroModalPane> modalPanes = new ArrayList<>();
+    private final FlowPane minimizedDock = new FlowPane(Orientation.HORIZONTAL, 8, 8);
 
     private StackPane attachedRoot;
     private boolean persistent = false;
@@ -95,6 +97,9 @@ public class ModalManager {
         private Runnable onConfirm = () -> {};
         private Runnable onCancel = () -> {};
         private ModalType modalType = ModalType.DEFAULT;
+        private boolean showWindowControls = true;
+        private boolean minimizable = true;
+        private boolean maximizable = true;
 
         public ModalConfig title(String title) {
             this.title = title == null ? "" : title;
@@ -210,6 +215,21 @@ public class ModalManager {
             return this;
         }
 
+        public ModalConfig windowControls(boolean enabled) {
+            this.showWindowControls = enabled;
+            return this;
+        }
+
+        public ModalConfig minimizable(boolean enabled) {
+            this.minimizable = enabled;
+            return this;
+        }
+
+        public ModalConfig maximizable(boolean enabled) {
+            this.maximizable = enabled;
+            return this;
+        }
+
         public ModalType getModalType() {
             return modalType;
         }
@@ -238,12 +258,20 @@ public class ModalManager {
 
         attachedRoot = stackPane;
 
+        if (!stackPane.getChildren().contains(minimizedDock)) {
+            StackPane.setAlignment(minimizedDock, Pos.BOTTOM_RIGHT);
+            StackPane.setMargin(minimizedDock, new Insets(0, 18, 18, 18));
+            minimizedDock.getStyleClass().add("kubata-modal-minimized-dock");
+            stackPane.getChildren().add(minimizedDock);
+        }
+
         for (JMetroModalPane pane : modalPanes) {
             if (!stackPane.getChildren().contains(pane)) {
                 stackPane.getChildren().add(pane);
             }
         }
 
+        updateMinimizedDock();
         bringTopModalToFront();
     }
 
@@ -424,7 +452,10 @@ public class ModalManager {
         pane.setPersistent(persistent);
 
         modalPanes.add(pane);
-        modalStack.push(new ModalFrame(pane, type == null ? ModalType.DEFAULT : type));
+        modalStack.push(new ModalFrame(
+                pane,
+                type == null ? ModalType.DEFAULT : type
+        ));
 
         if (attachedRoot != null && !attachedRoot.getChildren().contains(pane)) {
             attachedRoot.getChildren().add(pane);
@@ -454,17 +485,27 @@ public class ModalManager {
 
         modalPanes.remove(pane);
 
+        if (frame != null) {
+            removeMinimizedFrame(frame);
+        }
+
         if (attachedRoot != null) {
             attachedRoot.getChildren().remove(pane);
         }
 
+        updateMinimizedDock();
         bringTopModalToFront();
         resetModalPersistence();
     }
 
     private void bringTopModalToFront() {
-        ModalFrame top = modalStack.peek();
+        ModalFrame top = modalStack.stream()
+                .filter(frame -> !frame.minimized)
+                .findFirst()
+                .orElse(null);
+
         if (top != null) {
+            top.pane().setMouseTransparent(false);
             top.pane().setVisible(true);
             top.pane().setManaged(true);
             top.pane().toFront();
@@ -552,6 +593,17 @@ public class ModalManager {
         configureInternalDialogSize(dialog, config);
         dialog.addContent(dialogContent);
 
+        ModalFrame frame = findFrame(targetPane);
+        if (frame != null) {
+            frame.dialog = dialog;
+            frame.config = config;
+            frame.title = config.title == null || config.title.isBlank()
+                    ? "Kubata"
+                    : config.title;
+            frame.normalWidth = dialog.getPrefWidth();
+            frame.normalHeight = dialog.getPrefHeight();
+        }
+
         targetPane.configureOverlayDismiss(config.closeOnOverlayClick);
         targetPane.show(dialog);
         animateIn(dialog);
@@ -594,16 +646,66 @@ public class ModalManager {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button closeButton = new Button(
-                "",
-                IconUtils.icon(Feather.X, 15)
-        );
-        closeButton.setAccessibleText("Fechar");
-        closeButton.getStyleClass().addAll("button-icon", "flat", "kubata-modal-close");
-        closeButton.setOnAction(e -> closeModalPane(targetPane));
+        header.getChildren().addAll(titles, spacer);
 
-        header.getChildren().addAll(titles, spacer, closeButton);
+        if (config.showWindowControls) {
+            if (config.minimizable) {
+                Button minimizeButton = createWindowControl(
+                        Feather.MINUS,
+                        "Minimizar",
+                        "kubata-modal-window-control",
+                        () -> minimizeModal(targetPane)
+                );
+                header.getChildren().add(minimizeButton);
+            }
+
+            if (config.maximizable) {
+                Button maximizeButton = createWindowControl(
+                        Feather.MAXIMIZE_2,
+                        "Maximizar",
+                        "kubata-modal-window-control",
+                        () -> toggleMaximizeModal(targetPane)
+                );
+                header.getChildren().add(maximizeButton);
+
+                ModalFrame frame = findFrame(targetPane);
+                if (frame != null) {
+                    frame.maximizeButton = maximizeButton;
+                }
+            }
+
+            Button closeButton = createWindowControl(
+                    Feather.X,
+                    "Fechar",
+                    "kubata-modal-window-control-danger",
+                    () -> closeModalPane(targetPane)
+            );
+            header.getChildren().add(closeButton);
+        }
+
+        header.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                toggleMaximizeModal(targetPane);
+                event.consume();
+            }
+        });
+
         return header;
+    }
+
+    private Button createWindowControl(Feather icon,
+                                          String accessibleText,
+                                          String styleClass,
+                                          Runnable action) {
+        Button button = new Button("", IconUtils.icon(icon, 13));
+        button.setAccessibleText(accessibleText);
+        button.setFocusTraversable(false);
+        button.getStyleClass().addAll("button-icon", "flat", styleClass);
+        button.setOnAction(event -> {
+            action.run();
+            event.consume();
+        });
+        return button;
     }
 
     private Node createHeaderIcon(ModalConfig config) {
@@ -674,6 +776,181 @@ public class ModalManager {
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add(TITLE_CLASS);
         return titleLabel;
+    }
+
+    private ModalFrame findFrame(JMetroModalPane pane) {
+        return modalStack.stream()
+                .filter(frame -> frame.pane == pane)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void minimizeModal(JMetroModalPane pane) {
+        ModalFrame frame = findFrame(pane);
+        if (frame == null || frame.minimized) {
+            return;
+        }
+
+        frame.minimized = true;
+        pane.setVisible(false);
+        pane.setManaged(false);
+        pane.setMouseTransparent(true);
+
+        createMinimizedDockItem(frame);
+        updateMinimizedDock();
+        bringTopModalToFront();
+    }
+
+    private void restoreModal(JMetroModalPane pane) {
+        ModalFrame frame = findFrame(pane);
+        if (frame == null) {
+            return;
+        }
+
+        frame.minimized = false;
+        pane.setMouseTransparent(false);
+        pane.setVisible(true);
+        pane.setManaged(true);
+
+        removeMinimizedFrame(frame);
+        updateMinimizedDock();
+        pane.toFront();
+
+        Platform.runLater(() -> {
+            if (frame.dialog != null) {
+                frame.dialog.requestFocus();
+            }
+        });
+    }
+
+    private void toggleMaximizeModal(JMetroModalPane pane) {
+        ModalFrame frame = findFrame(pane);
+        if (frame == null || frame.dialog == null) {
+            return;
+        }
+
+        if (frame.maximized) {
+            restoreMaximizedSize(frame);
+        } else {
+            maximizeModal(frame);
+        }
+    }
+
+    private void maximizeModal(ModalFrame frame) {
+        if (attachedRoot == null) {
+            return;
+        }
+
+        double width = Math.max(520, attachedRoot.getLayoutBounds().getWidth() - 36);
+        double height = Math.max(320, attachedRoot.getLayoutBounds().getHeight() - 36);
+
+        if (frame.dialog.getWidth() > 0) {
+            frame.normalWidth = frame.dialog.getWidth();
+        } else if (frame.config != null && frame.config.width > 0) {
+            frame.normalWidth = frame.config.width;
+        }
+
+        if (frame.dialog.getHeight() > 0) {
+            frame.normalHeight = frame.dialog.getHeight();
+        } else if (frame.config != null && frame.config.height > 0) {
+            frame.normalHeight = frame.config.height;
+        }
+
+        frame.dialog.getStyleClass().add("kubata-modal-dialog-maximized");
+        frame.dialog.setMinWidth(420);
+        frame.dialog.setMinHeight(260);
+        frame.dialog.setMaxWidth(width);
+        frame.dialog.setMaxHeight(height);
+        frame.dialog.setPrefWidth(width);
+        frame.dialog.setPrefHeight(height);
+
+        frame.maximized = true;
+        updateMaximizeButton(frame);
+    }
+
+    private void restoreMaximizedSize(ModalFrame frame) {
+        if (frame.dialog == null) {
+            return;
+        }
+
+        frame.dialog.getStyleClass().remove("kubata-modal-dialog-maximized");
+
+        if (frame.config != null) {
+            configureInternalDialogSize(frame.dialog, frame.config);
+        }
+
+        if (frame.normalWidth > 0) {
+            frame.dialog.setPrefWidth(frame.normalWidth);
+        }
+
+        if (frame.normalHeight > 0) {
+            frame.dialog.setPrefHeight(frame.normalHeight);
+        }
+
+        frame.maximized = false;
+        updateMaximizeButton(frame);
+    }
+
+    private void updateMaximizeButton(ModalFrame frame) {
+        if (frame.maximizeButton == null) {
+            return;
+        }
+
+        frame.maximizeButton.setGraphic(
+                IconUtils.icon(
+                        frame.maximized ? Feather.MINIMIZE_2 : Feather.MAXIMIZE_2,
+                        13
+                )
+        );
+        frame.maximizeButton.setAccessibleText(
+                frame.maximized ? "Restaurar tamanho" : "Maximizar"
+        );
+    }
+
+    private void createMinimizedDockItem(ModalFrame frame) {
+        if (frame.dockItem != null) {
+            return;
+        }
+
+        HBox item = new HBox(4);
+        item.setAlignment(Pos.CENTER_LEFT);
+        item.getStyleClass().add("kubata-modal-minimized-item");
+
+        Button restore = new Button(
+                frame.title,
+                IconUtils.icon(frame.maximized ? Feather.MINIMIZE_2 : Feather.MAXIMIZE_2, 11)
+        );
+        restore.setTooltip(new Tooltip("Restaurar "" + frame.title + """));
+        restore.setAccessibleText("Restaurar " + frame.title);
+        restore.getStyleClass().addAll("button-icon", "flat", "kubata-modal-minimized-restore");
+        restore.setOnAction(event -> restoreModal(frame.pane));
+
+        Button close = new Button(
+                "",
+                IconUtils.icon(Feather.X, 11)
+        );
+        close.setTooltip(new Tooltip("Fechar "" + frame.title + """));
+        close.setAccessibleText("Fechar " + frame.title);
+        close.getStyleClass().addAll("button-icon", "flat", "kubata-modal-minimized-close");
+        close.setOnAction(event -> closeModalPane(frame.pane));
+
+        HBox.setHgrow(restore, Priority.ALWAYS);
+        item.getChildren().addAll(restore, close);
+
+        frame.dockItem = item;
+        minimizedDock.getChildren().add(item);
+    }
+
+    private void removeMinimizedFrame(ModalFrame frame) {
+        if (frame != null && frame.dockItem != null) {
+            minimizedDock.getChildren().remove(frame.dockItem);
+            frame.dockItem = null;
+        }
+    }
+
+    private void updateMinimizedDock() {
+        minimizedDock.setManaged(!minimizedDock.getChildren().isEmpty());
+        minimizedDock.setVisible(!minimizedDock.getChildren().isEmpty());
     }
 
     private HBox createConfirmationButtons(ModalConfig config,
@@ -902,7 +1179,11 @@ public class ModalManager {
      * Os modais pai permanecem intactos.
      */
     public void hideModal() {
-        ModalFrame top = modalStack.peek();
+        ModalFrame top = modalStack.stream()
+                .filter(frame -> !frame.minimized)
+                .findFirst()
+                .orElse(modalStack.peek());
+
         if (top != null) {
             closeModalPane(top.pane());
         }
@@ -1075,7 +1356,25 @@ public class ModalManager {
         }
     }
 
-    private record ModalFrame(JMetroModalPane pane, ModalType type) {}
+    private static class ModalFrame {
+        private final JMetroModalPane pane;
+        private final ModalType type;
+
+        private InternalModalBox dialog;
+        private ModalConfig config;
+        private String title = "Kubata";
+        private double normalWidth = -1;
+        private double normalHeight = -1;
+        private boolean minimized;
+        private boolean maximized;
+        private Button maximizeButton;
+        private HBox dockItem;
+
+        private ModalFrame(JMetroModalPane pane, ModalType type) {
+            this.pane = pane;
+            this.type = type;
+        }
+    }
 
     /**
      * Contentor do diálogo com suporte a ESC e focus inicial.
