@@ -473,7 +473,7 @@ public class ModalManager {
         }
 
         ModalFrame frame = modalStack.stream()
-                .filter(item -> item.pane() == pane)
+                .filter(item -> item.pane == pane)
                 .findFirst()
                 .orElse(null);
 
