@@ -328,11 +328,14 @@ public class BackupView extends VBox {
         colActions.setCellFactory(col -> new TableCell<>() {
             private final Button btnRestore = new Button("", IconUtils.icon(Feather.ROTATE_CCW, 12));
             private final Button btnVerify = new Button("", IconUtils.icon(Feather.SHIELD, 12));
-            private final HBox group = new HBox(5, btnRestore, btnVerify);
+            private final Button btnTestRestore = new Button("", IconUtils.icon(Feather.CHECK, 12));
+            private final HBox group = new HBox(5, btnRestore, btnTestRestore, btnVerify);
             {
                 btnRestore.setTooltip(new Tooltip("Restaurar este backup"));
                 btnRestore.setOnAction(e -> restoreBackup(getTableView().getItems().get(getIndex())));
-                btnVerify.setTooltip(new Tooltip("Verificar Integridade (Checksum)"));
+                btnTestRestore.setTooltip(new Tooltip("Testar restauração sem alterar a base"));
+                btnTestRestore.setOnAction(e -> testRestoreBackup(getTableView().getItems().get(getIndex())));
+                btnVerify.setTooltip(new Tooltip("Verificar integridade criptográfica e da base"));
                 btnVerify.setOnAction(e -> verifyIntegrity(getTableView().getItems().get(getIndex())));
                 group.setAlignment(Pos.CENTER);
             }
@@ -693,6 +696,64 @@ public class BackupView extends VBox {
                 throw new RuntimeException(ex);
             }
         }, "BACKUP_EXEC", "BACKUP", notes, this::loadData);
+    }
+
+    private void testRestoreBackup(BackupRecord record) {
+        if (record == null) return;
+        if (!hasViewPermission()) {
+            modalManager.alert(
+                    "Acesso negado",
+                    "Não possui permissão para testar backups.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        persistenceService.executeAsync(() -> {
+            Path pending = null;
+            try {
+                Path backupFile = Paths.get(record.getFilename());
+                BackupService.IntegrityCheck integrity =
+                        backupService.verifyBackup(backupFile, record.getChecksum());
+
+                if (!integrity.checksumMatches()
+                        || !integrity.archiveReadable()
+                        || !integrity.databaseHealthy()) {
+                    throw new SecurityException(
+                            "Teste interrompido: " + integrity.message()
+                    );
+                }
+
+                pending = backupService.prepareRestoreToPending(backupFile);
+                Path prepared = pending;
+                Platform.runLater(() -> modalManager.alert(
+                        "Teste de restauração concluído",
+                        "O backup foi validado e preparado para restauração sem substituir a base actual.\n\n"
+                                + "Ficheiro preparado: " + prepared,
+                        "info",
+                        null
+                ));
+            } catch (Exception ex) {
+                Platform.runLater(() -> modalManager.alert(
+                        "Teste de restauração falhou",
+                        ex.getMessage() == null
+                                ? "O backup não passou no teste de restauração."
+                                : ex.getMessage(),
+                        "error",
+                        ex
+                ));
+                throw new RuntimeException(ex);
+            } finally {
+                if (pending != null) {
+                    try {
+                        Files.deleteIfExists(pending);
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }, "BACKUP_TEST_RESTORE", "BACKUP",
+                "Teste de restauração do backup " + record.getFilename(), null);
     }
 
     private void restoreBackup(BackupRecord record) {
