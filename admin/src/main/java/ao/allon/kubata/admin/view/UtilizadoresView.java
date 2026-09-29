@@ -830,11 +830,8 @@ public class UtilizadoresView extends VBox {
         generalPage.getChildren().add(general);
         VBox.setVgrow(general, Priority.ALWAYS);
 
-        Tab tabGeral = new Tab(
-                "Geral",
-                IconUtils.icon(Feather.USER, 13),
-                generalPage
-        );
+        Tab tabGeral = new Tab("Geral", generalPage);
+        tabGeral.setGraphic(IconUtils.icon(Feather.USER, 13));
 
         VBox security = new VBox(12);
         security.setPadding(new Insets(18));
@@ -883,11 +880,8 @@ public class UtilizadoresView extends VBox {
 
         security.getChildren().add(passwordCard);
 
-        Tab tabSeguranca = new Tab(
-                "Segurança",
-                IconUtils.icon(Feather.SHIELD, 13),
-                security
-        );
+        Tab tabSeguranca = new Tab("Segurança", security);
+        tabSeguranca.setGraphic(IconUtils.icon(Feather.SHIELD, 13));
 
         VBox perfisBox = new VBox(10);
         perfisBox.setPadding(new Insets(18));
@@ -922,11 +916,8 @@ public class UtilizadoresView extends VBox {
         perfisBox.getChildren().addAll(perfisHint, listPerfis);
         VBox.setVgrow(listPerfis, Priority.ALWAYS);
 
-        Tab tabPerfis = new Tab(
-                "Perfis e permissões",
-                IconUtils.icon(Feather.KEY, 13),
-                perfisBox
-        );
+        Tab tabPerfis = new Tab("Perfis e permissões", perfisBox);
+        tabPerfis.setGraphic(IconUtils.icon(Feather.KEY, 13));
 
         VBox preferencias = new VBox(12);
         preferencias.setPadding(new Insets(18));
@@ -953,11 +944,8 @@ public class UtilizadoresView extends VBox {
                 hint("As preferências são guardadas no perfil do utilizador.")
         );
 
-        Tab tabPreferencias = new Tab(
-                "Preferências",
-                IconUtils.icon(Feather.SETTINGS, 13),
-                preferencias
-        );
+        Tab tabPreferencias = new Tab("Preferências", preferencias);
+        tabPreferencias.setGraphic(IconUtils.icon(Feather.SETTINGS, 13));
 
         tabs.getTabs().addAll(tabGeral, tabSeguranca, tabPerfis, tabPreferencias);
 
