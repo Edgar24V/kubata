@@ -8031,3 +8031,357 @@ Text {
     -fx-icon-color: -kubata-green-dark;
     -fx-fill: -kubata-green-dark;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA — Central de Perfis / RBAC
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-profiles-page {
+    -fx-background-color: #eef2f0;
+}
+
+.kubata-profiles-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-profiles-title-icon {
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 9px;
+    -fx-padding: 9px;
+    -fx-text-fill: #217346;
+}
+
+.kubata-profiles-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #26323b;
+}
+
+.kubata-profiles-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: #738078;
+}
+
+.kubata-profiles-kpi {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #dce3df;
+    -fx-border-width: 1px;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+    -fx-min-height: 62px;
+}
+
+.kubata-profiles-kpi-icon {
+    -fx-text-fill: #217346;
+}
+
+.kubata-profiles-kpi-title {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #75817b;
+}
+
+.kubata-profiles-kpi-value {
+    -fx-font-size: 20px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #28342e;
+}
+
+.kubata-profiles-filter-bar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-profiles-filter-bar .text-field,
+.kubata-profiles-filter-bar .combo-box {
+    -fx-min-height: 34px;
+}
+
+.kubata-profiles-filter-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: #89948e;
+}
+
+.kubata-profiles-table-pane,
+.kubata-profiles-details-wrapper {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d4ddd8;
+    -fx-border-width: 1px;
+    -fx-padding: 0;
+}
+
+.kubata-profiles-details-wrapper {
+    -fx-border-width: 1px 0 1px 1px;
+}
+
+.kubata-profiles-details-wrapper .viewport {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-profiles-details {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-profiles-detail-icon {
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-max-width: 40px;
+    -fx-max-height: 40px;
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 20px;
+    -fx-alignment: center;
+}
+
+.kubata-profiles-detail-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #26323b;
+}
+
+.kubata-profiles-detail-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: #77837c;
+    -fx-max-width: 300px;
+}
+
+.kubata-profiles-detail-row {
+    -fx-padding: 6px 0 6px 0;
+    -fx-border-color: transparent transparent #edf1ef transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-profiles-detail-label {
+    -fx-font-size: 8.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #8a958f;
+}
+
+.kubata-profiles-detail-value {
+    -fx-font-size: 11px;
+    -fx-text-fill: #344139;
+}
+
+.kubata-profiles-section-title {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #344139;
+}
+
+.kubata-profiles-statusbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0dc;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.kubata-profiles-status-text {
+    -fx-font-size: 10px;
+    -fx-font-weight: 650;
+    -fx-text-fill: #536059;
+}
+
+/* Assistente */
+.kubata-profile-wizard-page {
+    -fx-background-color: #ffffff;
+}
+
+.kubata-profile-wizard-stepper {
+    -fx-padding: 3px 4px 5px 4px;
+}
+
+.kubata-profile-wizard-step {
+    -fx-padding: 6px 12px;
+    -fx-background-color: #f0f3f1;
+    -fx-background-radius: 99px;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #78847e;
+}
+
+.kubata-profile-wizard-step-active {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: #217346;
+}
+
+.kubata-profile-wizard-step-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #25322b;
+    -fx-padding: 2px 4px 0 4px;
+}
+
+.kubata-profile-wizard-step-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #75817b;
+    -fx-padding: 0 4px 4px 4px;
+}
+
+.kubata-profile-wizard-section {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #dce4df;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 13px;
+}
+
+.kubata-profile-wizard-section-title {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #2d3933;
+}
+
+.kubata-profile-wizard-section-description {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #75817b;
+}
+
+.kubata-profile-wizard-footer {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dde4e0 transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 10px 2px 2px 2px;
+}
+
+.kubata-profile-info-card,
+.kubata-profile-template-preview {
+    -fx-background-color: #f5faf7;
+    -fx-border-color: #bfd8c7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 11px;
+}
+
+.kubata-profile-info-title,
+.kubata-profile-template-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #21613a;
+}
+
+.kubata-profile-info-message,
+.kubata-profile-template-description {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #53635a;
+}
+
+.kubata-profile-template-security {
+    -fx-font-size: 10px;
+    -fx-text-fill: #67746d;
+}
+
+.kubata-profile-permission-count {
+    -fx-font-size: 10px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #217346;
+    -fx-padding: 4px 8px;
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 99px;
+}
+
+.kubata-profile-wizard-page .accordion {
+    -fx-background-color: transparent;
+}
+
+.kubata-profile-wizard-page .titled-pane {
+    -fx-border-color: #dce3df;
+    -fx-border-width: 1px;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+}
+
+.kubata-profile-wizard-page .titled-pane > .title {
+    -fx-background-color: #f7f9f8;
+    -fx-background-radius: 7px 7px 0 0;
+    -fx-padding: 8px 10px;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 750;
+}
+
+.kubata-profile-wizard-page .titled-pane:expanded > .title {
+    -fx-background-color: #eef7f1;
+}
+
+.kubata-profile-module-name {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #2e3b34;
+}
+
+.kubata-profile-resource {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e1e7e4;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px;
+}
+
+.kubata-profile-resource-name {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #45534b;
+}
+
+.kubata-profile-permission {
+    -fx-font-size: 10px;
+}
+
+.kubata-profile-permission-sensitive {
+    -fx-font-size: 10px;
+    -fx-text-fill: #9a5d00;
+    -fx-font-weight: 700;
+}
+
+.kubata-profile-review-row {
+    -fx-padding: 7px 0;
+    -fx-border-color: transparent transparent #e6ebe8 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-profile-review-label {
+    -fx-font-size: 8.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #8b9590;
+}
+
+.kubata-profile-review-value {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 650;
+    -fx-text-fill: #334038;
+}
+
+.kubata-profile-guide-card {
+    -fx-background-color: #f8faf9;
+    -fx-border-color: #dce4df;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 11px;
+}
+
+.kubata-profile-guide-number {
+    -fx-min-width: 26px;
+    -fx-min-height: 26px;
+    -fx-max-width: 26px;
+    -fx-max-height: 26px;
+    -fx-alignment: center;
+    -fx-background-color: #e8f5e9;
+    -fx-background-radius: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #217346;
+}
+
+.kubata-profile-guide-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: 750;
+    -fx-text-fill: #344139;
+}
+
+.kubata-profile-guide-description {
+    -fx-font-size: 10px;
+    -fx-text-fill: #738078;
+}
