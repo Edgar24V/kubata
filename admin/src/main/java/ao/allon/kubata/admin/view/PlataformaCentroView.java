@@ -491,8 +491,8 @@ public class PlataformaCentroView extends BorderPane {
 
             switch (row.getId()) {
                 case "VERIFICAR_ALERTAS" -> {
-                    refreshAlerts();
-                    result = "Alertas actualizados";
+                    Platform.runLater(this::refreshAlerts);
+                    result = "Pedido de actualização enviado para a UI";
                 }
                 case "DIAGNOSTICO_JVM" -> {
                     MemoryMXBean bean = ManagementFactory.getMemoryMXBean();
