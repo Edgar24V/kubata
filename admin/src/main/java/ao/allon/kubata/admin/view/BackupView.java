@@ -13,7 +13,6 @@ import ao.allon.kubata.core.domain.BackupConfig;
 import ao.allon.kubata.core.domain.BackupRecord;
 import ao.allon.kubata.core.repository.BackupConfigRepository;
 import ao.allon.kubata.core.repository.BackupRecordRepository;
-import ao.allon.kubata.faturacao.service.BackupConfigService;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -48,7 +47,6 @@ public class BackupView extends VBox {
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
     private final BackupService backupService;
-    private final BackupConfigService backupConfigService;
     private final ao.allon.kubata.core.service.AcessoService acessoService;
     private final Environment environment;
 
@@ -72,7 +70,6 @@ public class BackupView extends VBox {
                       SessionManager sessionManager, ModalManager modalManager,
                       PersistenceService persistenceService,
                       BackupService backupService,
-                      BackupConfigService backupConfigService,
                       ao.allon.kubata.core.service.AcessoService acessoService,
                       Environment environment) {
         this.backupConfigRepository = backupConfigRepository;
@@ -81,7 +78,6 @@ public class BackupView extends VBox {
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
         this.backupService = backupService;
-        this.backupConfigService = backupConfigService;
         this.acessoService = acessoService;
         this.environment = environment;
 
@@ -605,8 +601,13 @@ public class BackupView extends VBox {
                 throw new IllegalArgumentException("Seleccione um destino para os backups.");
             }
 
-            backupConfigService.saveConfig(config);
-            loadData();
+            persistenceService.saveAsync(
+                    backupConfigRepository,
+                    config,
+                    "BACKUP_CONFIG",
+                    "Actualização da política de backup automático",
+                    saved -> Platform.runLater(this::loadData)
+            );
         }, null);
     }
 
