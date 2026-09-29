@@ -115,16 +115,24 @@ public class BackupView extends VBox {
         Tab tabDash = new Tab("Visão Geral", buildDashboardTab());
         tabDash.setGraphic(IconUtils.icon(Feather.PIE_CHART, 14));
 
-        Tab tabHistory = new Tab("Histórico de Backups", buildHistoryTab());
+        Tab tabHistory = new Tab("Execuções", buildHistoryTab());
         tabHistory.setGraphic(IconUtils.icon(Feather.LIST, 14));
 
-        Tab tabSettings = new Tab("Agendamentos", buildSettingsTab());
-        tabSettings.setGraphic(IconUtils.icon(Feather.SETTINGS, 14));
+        Tab tabSettings = new Tab("Agendamento & Política", buildSettingsTab());
+        tabSettings.setGraphic(IconUtils.icon(Feather.CALENDAR, 14));
 
-        Tab tabAdvanced = new Tab("Cópia em bruto (SGBD)", buildAdvancedDbTab());
+        Tab tabStorage = new Tab("Armazenamento", buildStorageTab());
+        tabStorage.setGraphic(IconUtils.icon(Feather.HARD_DRIVE, 14));
+
+        Tab tabRecovery = new Tab("Restauração & Segurança", buildRecoveryTab());
+        tabRecovery.setGraphic(IconUtils.icon(Feather.SHIELD, 14));
+
+        Tab tabAdvanced = new Tab("SGBD / Cópia em bruto", buildAdvancedDbTab());
         tabAdvanced.setGraphic(IconUtils.icon(Feather.SERVER, 14));
 
-        tabPane.getTabs().addAll(tabDash, tabHistory, tabSettings, tabAdvanced);
+        tabPane.getTabs().addAll(
+                tabDash, tabHistory, tabSettings, tabStorage, tabRecovery, tabAdvanced
+        );
 
         getChildren().addAll(toolbar, tabPane);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
@@ -137,10 +145,10 @@ public class BackupView extends VBox {
         box.setPadding(new Insets(10, 20, 10, 20));
 
         VBox titleBox = new VBox(2);
-        Label title = new Label("Protecção de Dados");
+        Label title = new Label("Backup & Continuidade");
         title.getStyleClass().add("kubata-backup-title");
 
-        Label subtitle = new Label("Centro de backup, recuperação e continuidade do Kubata");
+        Label subtitle = new Label("Centro profissional de proteção, recuperação, retenção e continuidade do Kubata");
         subtitle.getStyleClass().add("kubata-backup-subtitle");
         titleBox.getChildren().addAll(title, subtitle);
 
@@ -715,6 +723,276 @@ public class BackupView extends VBox {
         VBox.setVgrow(settingsTable, Priority.ALWAYS);
 
         return content;
+    }
+
+    private Node buildStorageTab() {
+        VBox root = new VBox(16);
+        root.setPadding(new Insets(20));
+        root.getStyleClass().add("kubata-backup-subtab");
+
+        root.getChildren().add(buildSubtabHero(
+                Feather.HARD_DRIVE,
+                "Armazenamento",
+                "Controle o destino físico dos backups, capacidade, retenção e espaço disponível."
+        ));
+
+        GridPane metrics = new GridPane();
+        metrics.setHgap(12);
+        metrics.setVgap(12);
+
+        Path directory = resolveBackupDirectory();
+        long archiveSize = records.stream()
+                .mapToLong(r -> r.getFileSize() == null ? 0L : r.getFileSize())
+                .sum();
+
+        Label destination = new Label(directory.toAbsolutePath().toString());
+        destination.setWrapText(true);
+
+        Label free = new Label("A calcular...");
+        Label total = new Label("A calcular...");
+        Label archive = new Label(formatBytes(archiveSize));
+        Label retention = new Label(resolveRetentionDays() + " dias");
+
+        try {
+            Files.createDirectories(directory);
+            var store = Files.getFileStore(directory);
+            free.setText(formatBytes(store.getUsableSpace()));
+            total.setText(formatBytes(store.getTotalSpace()));
+        } catch (Exception ex) {
+            free.setText("Indisponível");
+            total.setText("Indisponível");
+        }
+
+        metrics.add(storageMetric("Destino activo", destination, Feather.FOLDER), 0, 0);
+        metrics.add(storageMetric("Arquivo registado", archive, Feather.DATABASE), 1, 0);
+        metrics.add(storageMetric("Espaço livre", free, Feather.HARD_DRIVE), 2, 0);
+        metrics.add(storageMetric("Capacidade do volume", total, Feather.BAR_CHART_2), 3, 0);
+
+        for (Node node : metrics.getChildren()) {
+            GridPane.setHgrow(node, Priority.ALWAYS);
+        }
+
+        VBox policy = subtabPanel("Política de armazenamento", Feather.LOCK);
+        policy.getChildren().addAll(
+                infoLine("Retenção técnica", retention),
+                infoLine("Compressão", resolveCompressDefault() ? "Activada" : "Desactivada"),
+                infoLine("Protecção do arquivo", "Não eliminar cópias sem revisão operacional"),
+                infoLine("Finalidade", "Recuperação, continuidade e preservação operacional")
+        );
+
+        HBox actions = new HBox(10);
+        Button test = new Button("Testar destino", IconUtils.icon(Feather.CHECK_CIRCLE, 12));
+        test.getStyleClass().add("button-outlined");
+        test.setOnAction(e -> testBackupDestination());
+
+        Button open = new Button("Abrir destino", IconUtils.icon(Feather.FOLDER, 12));
+        open.getStyleClass().add("button-outlined");
+        open.setOnAction(e -> openBackupDirectory());
+
+        Button copy = new Button("Copiar caminho", IconUtils.icon(Feather.COPY, 12));
+        copy.getStyleClass().add("button-outlined");
+        copy.setOnAction(e -> copyBackupDirectory());
+
+        Button purge = new Button("Executar retenção", IconUtils.icon(Feather.TRASH_2, 12));
+        purge.getStyleClass().add("button-danger-outlined");
+        purge.setDisable(!hasCreatePermission());
+        purge.setOnAction(e -> purgeOldBackups());
+
+        actions.getChildren().addAll(test, open, copy, purge);
+
+        VBox note = subtabPanel("Boas práticas", Feather.INFO);
+        Label noteText = new Label(
+                "A pasta de backup deve ficar num armazenamento protegido e com acesso controlado. "
+                        + "Para continuidade real, considere uma cópia adicional fora do volume principal. "
+                        + "A retenção técnica do Kubata não substitui obrigações legais de conservação e arquivo fiscal."
+        );
+        noteText.setWrapText(true);
+        noteText.getStyleClass().add("kubata-backup-subtab-note");
+        note.getChildren().add(noteText);
+
+        root.getChildren().addAll(metrics, policy, actions, note);
+
+        ScrollPane scroll = new ScrollPane(root);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("kubata-backup-scroll");
+        return scroll;
+    }
+
+    private Node buildRecoveryTab() {
+        VBox root = new VBox(16);
+        root.setPadding(new Insets(20));
+        root.getStyleClass().add("kubata-backup-subtab");
+
+        root.getChildren().add(buildSubtabHero(
+                Feather.SHIELD,
+                "Restauração & Segurança",
+                "Valide backups antes de restaurar, use testes não destrutivos e mantenha a recuperação sob controlo."
+        ));
+
+        BackupRecord latestVerified = records.stream()
+                .filter(r -> r.getStatus() == BackupRecord.BackupStatus.VERIFIED)
+                .filter(r -> r.getStartTime() != null)
+                .max(Comparator.comparing(BackupRecord::getStartTime))
+                .orElse(null);
+
+        VBox recoveryState = subtabPanel("Estado de recuperação", Feather.CHECK_CIRCLE);
+        recoveryState.getChildren().addAll(
+                infoLine("Último backup verificado",
+                        latestVerified == null ? "Nenhum backup verificado" :
+                                latestVerified.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))),
+                infoLine("Backups disponíveis", String.valueOf(records.size())),
+                infoLine("Verificados", String.valueOf(
+                        records.stream().filter(r -> r.getStatus() == BackupRecord.BackupStatus.VERIFIED).count()
+                )),
+                infoLine("Falhas", String.valueOf(
+                        records.stream().filter(r -> r.getStatus() == BackupRecord.BackupStatus.FAILED).count()
+                ))
+        );
+
+        VBox workflow = subtabPanel("Fluxo seguro de recuperação", Feather.ROTATE_CCW);
+        workflow.getChildren().addAll(
+                workflowStep("1", "Seleccionar", "Escolher uma cópia no separador Execuções."),
+                workflowStep("2", "Verificar", "Confirmar checksum, leitura do arquivo e saúde da base."),
+                workflowStep("3", "Testar", "Preparar uma restauração sem substituir imediatamente a base actual."),
+                workflowStep("4", "Aplicar", "Executar a restauração apenas após confirmação operacional.")
+        );
+
+        HBox actions = new HBox(10);
+        Button verifyAll = new Button("Verificar todos", IconUtils.icon(Feather.SHIELD, 12));
+        verifyAll.getStyleClass().add("button-outlined");
+        verifyAll.setDisable(!hasViewPermission());
+        verifyAll.setOnAction(e -> verifyAllIntegrity());
+
+        Button checkup = new Button("Check-up de continuidade", IconUtils.icon(Feather.CHECK_SQUARE, 12));
+        checkup.getStyleClass().add("button-outlined");
+        checkup.setOnAction(e -> showBackupCheckup());
+
+        Button history = new Button("Abrir Execuções", IconUtils.icon(Feather.LIST, 12));
+        history.getStyleClass().add("button-primary");
+        history.setOnAction(e -> tabPane.getSelectionModel().select(1));
+
+        actions.getChildren().addAll(verifyAll, checkup, history);
+
+        VBox warning = subtabPanel("Protecção contra erro operacional", Feather.ALERT_TRIANGLE);
+        Label warningText = new Label(
+                "A restauração deve ser tratada como operação crítica. Antes de substituir a base actual, "
+                        + "o Kubata verifica a integridade do arquivo. Mantenha uma cópia recente adicional "
+                        + "antes de intervenções de grande impacto."
+        );
+        warningText.setWrapText(true);
+        warningText.getStyleClass().add("kubata-backup-warning-text");
+        warning.getChildren().add(warningText);
+
+        root.getChildren().addAll(recoveryState, workflow, actions, warning);
+
+        ScrollPane scroll = new ScrollPane(root);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("kubata-backup-scroll");
+        return scroll;
+    }
+
+    private VBox buildSubtabHero(Feather icon, String title, String subtitle) {
+        VBox hero = new VBox(5);
+        hero.getStyleClass().add("kubata-backup-subtab-hero");
+
+        HBox line = new HBox(10);
+        line.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-backup-subtab-hero-icon");
+        iconBox.getChildren().add(new Label("", IconUtils.icon(icon, 18)));
+
+        VBox text = new VBox(2);
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-backup-subtab-hero-title");
+
+        Label subtitleLabel = new Label(subtitle);
+        subtitleLabel.setWrapText(true);
+        subtitleLabel.getStyleClass().add("kubata-backup-subtab-hero-text");
+
+        text.getChildren().addAll(titleLabel, subtitleLabel);
+        line.getChildren().addAll(iconBox, text);
+        hero.getChildren().add(line);
+        return hero;
+    }
+
+    private VBox storageMetric(String title, Label value, Feather icon) {
+        VBox card = new VBox(6);
+        card.getStyleClass().add("kubata-backup-storage-metric");
+        card.setMinHeight(88);
+
+        HBox head = new HBox(7);
+        head.setAlignment(Pos.CENTER_LEFT);
+        head.getChildren().add(
+                new Label("", IconUtils.icon(icon, 13))
+        );
+
+        Label label = new Label(title.toUpperCase(Locale.ROOT));
+        label.getStyleClass().add("kubata-backup-metric-label");
+        head.getChildren().add(label);
+
+        value.setWrapText(true);
+        value.getStyleClass().add("kubata-backup-metric-value");
+        card.getChildren().addAll(head, value);
+        return card;
+    }
+
+    private VBox subtabPanel(String title, Feather icon) {
+        VBox box = new VBox(9);
+        box.getStyleClass().add("kubata-backup-subtab-panel");
+        box.setPadding(new Insets(14));
+
+        HBox head = new HBox(8);
+        head.setAlignment(Pos.CENTER_LEFT);
+
+        Label iconLabel = new Label("", IconUtils.icon(icon, 13));
+        iconLabel.getStyleClass().add("kubata-backup-panel-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-backup-panel-title");
+
+        head.getChildren().addAll(iconLabel, titleLabel);
+        box.getChildren().add(head);
+        return box;
+    }
+
+    private HBox infoLine(String label, String value) {
+        return infoLine(label, new Label(value));
+    }
+
+    private HBox infoLine(String label, Label value) {
+        Label left = new Label(label);
+        left.getStyleClass().add("kubata-backup-detail-label");
+        HBox.setHgrow(left, Priority.ALWAYS);
+
+        value.setWrapText(true);
+        value.getStyleClass().add("kubata-backup-detail-value");
+
+        HBox row = new HBox(10, left, value);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("kubata-backup-check-row");
+        return row;
+    }
+
+    private HBox workflowStep(String number, String title, String text) {
+        Label badge = new Label(number);
+        badge.getStyleClass().add("kubata-backup-step-number");
+
+        VBox body = new VBox(2);
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-backup-action-title");
+        Label textLabel = new Label(text);
+        textLabel.setWrapText(true);
+        textLabel.getStyleClass().add("kubata-backup-action-text");
+        body.getChildren().addAll(titleLabel, textLabel);
+        HBox.setHgrow(body, Priority.ALWAYS);
+
+        HBox row = new HBox(10, badge, body);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("kubata-backup-check-row");
+        return row;
     }
 
     private Node buildAdvancedDbTab() {
