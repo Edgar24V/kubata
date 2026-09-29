@@ -262,7 +262,12 @@ public class ExtensibilidadeView extends VBox {
         table.getSelectionModel().selectedItemProperty()
                 .addListener((obs, old, selected) -> updateDetails(selected));
 
-        table.setOnViewDetails(selected -> {\n            if (selected != null) {\n                table.getSelectionModel().select(selected);\n                showSelectedDetails();\n            }\n        });
+        table.setOnViewDetails(selected -> {
+            if (selected != null) {
+                table.getSelectionModel().select(selected);
+                showSelectedDetails();
+            }
+        });
         table.setOnDelete(selected -> removeSelected());
         table.setRowFactory(view -> {
             TableRow<AplicacaoAdministrador> row = new TableRow<>();
