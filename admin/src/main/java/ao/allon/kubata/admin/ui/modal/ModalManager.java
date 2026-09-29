@@ -18,6 +18,11 @@ import javafx.util.Duration;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+
 /**
  * Gestor central dos modais do Kubata Administrator.
  *
@@ -36,12 +41,22 @@ public class ModalManager {
     private static final Insets DEFAULT_MARGIN = new Insets(20);
     private static final Insets DEFAULT_PADDING = new Insets(20);
 
-    private final JMetroModalPane modalPane = new JMetroModalPane();
-    private final JMetroModalPane modalPaneTop = new JMetroModalPane();
-    private final JMetroModalPane modalPaneTopmost = new JMetroModalPane();
+    /**
+     * Pilha de modais activos. Cada modal recebe o seu próprio overlay,
+     * permitindo que um modal filho seja aberto sem destruir o modal pai.
+     */
+    private final Deque<ModalFrame> modalStack = new ArrayDeque<>();
 
+    /**
+     * Overlays actualmente criados. São removidos da raiz quando o modal
+     * correspondente é fechado, evitando acumulação de nós na Scene.
+     */
+    private final List<JMetroModalPane> modalPanes = new ArrayList<>();
+
+    private StackPane attachedRoot;
     private boolean persistent = false;
     private InternalModalBox currentLoadingModal;
+    private JMetroModalPane currentLoadingPane;
 
     public enum ModalType {
         DEFAULT, TOP, TOPMOST
@@ -206,13 +221,7 @@ public class ModalManager {
     }
 
     public ModalManager() {
-        setupModalPanes();
-    }
-
-    private void setupModalPanes() {
-        modalPane.setId("modalPane");
-        modalPaneTop.setId("modalPaneTop");
-        modalPaneTopmost.setId("modalPaneTopmost");
+        // Os overlays são criados sob demanda para suportar nesting ilimitado.
     }
 
     /**
@@ -223,22 +232,26 @@ public class ModalManager {
             return;
         }
 
-        if (!stackPane.getChildren().contains(modalPane)) {
-            stackPane.getChildren().add(modalPane);
+        if (attachedRoot != null && attachedRoot != stackPane) {
+            attachedRoot.getChildren().removeAll(modalPanes);
         }
-        if (!stackPane.getChildren().contains(modalPaneTop)) {
-            stackPane.getChildren().add(modalPaneTop);
+
+        attachedRoot = stackPane;
+
+        for (JMetroModalPane pane : modalPanes) {
+            if (!stackPane.getChildren().contains(pane)) {
+                stackPane.getChildren().add(pane);
+            }
         }
-        if (!stackPane.getChildren().contains(modalPaneTopmost)) {
-            stackPane.getChildren().add(modalPaneTopmost);
-        }
+
+        bringTopModalToFront();
     }
 
     public void setPersistent(boolean persistent) {
         this.persistent = persistent;
-        modalPane.setPersistent(persistent);
-        modalPaneTop.setPersistent(persistent);
-        modalPaneTopmost.setPersistent(persistent);
+        for (JMetroModalPane pane : modalPanes) {
+            pane.setPersistent(persistent);
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -253,15 +266,17 @@ public class ModalManager {
                                  String title,
                                  String message,
                                  ModalType modalType) {
-        JMetroModalPane targetPane = getModalPane(modalType);
+        JMetroModalPane targetPane = createModalPane(modalType);
         targetPane.setPersistent(true);
 
         VBox loadingContent = createLoadingContent(title, message, task);
+        targetPane.setCloseAction(() -> closeModalPane(targetPane));
         InternalModalBox loadingModal = new InternalModalBox(targetPane, true, true);
         loadingModal.setPrefSize(410, 230);
         loadingModal.addContent(loadingContent);
 
         currentLoadingModal = loadingModal;
+        currentLoadingPane = targetPane;
         targetPane.show(loadingModal);
         animateIn(loadingModal);
 
@@ -356,17 +371,19 @@ public class ModalManager {
 
     private void closeLoading(JMetroModalPane targetPane) {
         Platform.runLater(() -> {
-            targetPane.hide();
+            closeModalPane(targetPane);
             currentLoadingModal = null;
+            currentLoadingPane = null;
             resetModalPersistence();
         });
     }
 
     public void hideLoadingModal() {
-        modalPane.hide();
-        modalPaneTop.hide();
-        modalPaneTopmost.hide();
+        if (currentLoadingPane != null) {
+            closeModalPane(currentLoadingPane);
+        }
         currentLoadingModal = null;
+        currentLoadingPane = null;
         resetModalPersistence();
     }
 
@@ -380,7 +397,7 @@ public class ModalManager {
         }
 
         ModalConfig safeConfig = config == null ? new ModalConfig() : config;
-        JMetroModalPane targetPane = getModalPane(safeConfig.modalType);
+        JMetroModalPane targetPane = createModalPane(safeConfig.modalType);
         targetPane.setPersistent(persistent);
 
         if (safeConfig.scrollable) {
@@ -390,12 +407,79 @@ public class ModalManager {
         }
     }
 
-    private JMetroModalPane getModalPane(ModalType type) {
-        return switch (type) {
-            case TOP -> modalPaneTop;
-            case TOPMOST -> modalPaneTopmost;
-            default -> modalPane;
-        };
+    /**
+     * Cria sempre uma nova camada para o modal actual.
+     * O modal anterior permanece visível por baixo, formando uma verdadeira
+     * hierarquia pai → filho.
+     */
+    private JMetroModalPane createModalPane(ModalType type) {
+        JMetroModalPane pane = new JMetroModalPane();
+
+        String layer = type == null
+                ? "default"
+                : type.name().toLowerCase();
+
+        pane.setId("modalPane-" + (modalPanes.size() + 1));
+        pane.getStyleClass().add("kubata-modal-layer-" + layer);
+        pane.setPersistent(persistent);
+
+        modalPanes.add(pane);
+        modalStack.push(new ModalFrame(pane, type == null ? ModalType.DEFAULT : type));
+
+        if (attachedRoot != null && !attachedRoot.getChildren().contains(pane)) {
+            attachedRoot.getChildren().add(pane);
+        }
+
+        return pane;
+    }
+
+    /**
+     * Fecha apenas a camada indicada e revela automaticamente o modal pai.
+     */
+    private void closeModalPane(JMetroModalPane pane) {
+        if (pane == null) {
+            return;
+        }
+
+        ModalFrame frame = modalStack.stream()
+                .filter(item -> item.pane() == pane)
+                .findFirst()
+                .orElse(null);
+
+        pane.hide();
+
+        if (frame != null) {
+            modalStack.remove(frame);
+        }
+
+        modalPanes.remove(pane);
+
+        if (attachedRoot != null) {
+            attachedRoot.getChildren().remove(pane);
+        }
+
+        bringTopModalToFront();
+        resetModalPersistence();
+    }
+
+    private void bringTopModalToFront() {
+        ModalFrame top = modalStack.peek();
+        if (top != null) {
+            top.pane().setVisible(true);
+            top.pane().setManaged(true);
+            top.pane().toFront();
+        }
+    }
+
+    /**
+     * Permite inspeccionar a profundidade actual para integrações e testes.
+     */
+    public int getModalDepth() {
+        return modalStack.size();
+    }
+
+    public boolean hasOpenModal() {
+        return !modalStack.isEmpty();
     }
 
     private void showStandardModal(JMetroModalPane targetPane,
@@ -454,6 +538,8 @@ public class ModalManager {
             footer.getChildren().add(buttons);
             dialogContent.getChildren().add(footer);
         }
+
+        targetPane.setCloseAction(() -> closeModalPane(targetPane));
 
         InternalModalBox dialog = new InternalModalBox(
                 targetPane,
@@ -514,10 +600,7 @@ public class ModalManager {
         );
         closeButton.setAccessibleText("Fechar");
         closeButton.getStyleClass().addAll("button-icon", "flat", "kubata-modal-close");
-        closeButton.setOnAction(e -> {
-            targetPane.hide();
-            resetModalPersistence();
-        });
+        closeButton.setOnAction(e -> closeModalPane(targetPane));
 
         header.getChildren().addAll(titles, spacer, closeButton);
         return header;
@@ -610,8 +693,7 @@ public class ModalManager {
         confirmButton.getStyleClass().add(config.confirmStyleClass);
         confirmButton.setDefaultButton(true);
         confirmButton.setOnAction(event -> {
-            targetPane.hide();
-            resetModalPersistence();
+            closeModalPane(targetPane);
             try {
                 config.onConfirm.run();
             } catch (Exception e) {
@@ -634,8 +716,7 @@ public class ModalManager {
             cancelButton.getStyleClass().add(config.cancelStyleClass);
             cancelButton.setOnAction(event -> {
                 config.onCancel.run();
-                targetPane.hide();
-                resetModalPersistence();
+                closeModalPane(targetPane);
             });
             buttonBox.getChildren().add(cancelButton);
         }
@@ -645,9 +726,9 @@ public class ModalManager {
     }
 
     private void resetModalPersistence() {
-        modalPane.setPersistent(persistent);
-        modalPaneTop.setPersistent(persistent);
-        modalPaneTopmost.setPersistent(persistent);
+        for (JMetroModalPane pane : modalPanes) {
+            pane.setPersistent(persistent);
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -816,11 +897,41 @@ public class ModalManager {
         showErrorModal(title, message, null);
     }
 
+    /**
+     * Fecha somente o modal actualmente no topo.
+     * Os modais pai permanecem intactos.
+     */
     public void hideModal() {
-        modalPane.hide();
-        modalPaneTop.hide();
-        modalPaneTopmost.hide();
+        ModalFrame top = modalStack.peek();
+        if (top != null) {
+            closeModalPane(top.pane());
+        }
+
+        if (currentLoadingPane == null || !modalStack.stream()
+                .anyMatch(frame -> frame.pane() == currentLoadingPane)) {
+            currentLoadingModal = null;
+            currentLoadingPane = null;
+        }
+
+        resetModalPersistence();
+    }
+
+    /**
+     * Fecha toda a hierarquia de modais. Útil para logout, troca de contexto
+     * ou encerramento da aplicação.
+     */
+    public void hideAllModals() {
+        for (ModalFrame frame : new ArrayList<>(modalStack)) {
+            frame.pane().hide();
+            if (attachedRoot != null) {
+                attachedRoot.getChildren().remove(frame.pane());
+            }
+        }
+
+        modalStack.clear();
+        modalPanes.clear();
         currentLoadingModal = null;
+        currentLoadingPane = null;
         resetModalPersistence();
     }
 
@@ -913,7 +1024,11 @@ public class ModalManager {
 
             setOnMouseClicked(e -> {
                 if (overlayDismissEnabled && !persistent && e.getTarget() == this) {
-                    hide();
+                    if (closeAction != null) {
+                        closeAction.run();
+                    } else {
+                        hide();
+                    }
                 }
             });
         }
@@ -942,10 +1057,25 @@ public class ModalManager {
             display.set(false);
         }
 
+        private void closeFromKeyboard() {
+            // Fecho delegado ao ModalManager através do callback configurado.
+            if (closeAction != null) {
+                closeAction.run();
+            }
+        }
+
+        private Runnable closeAction;
+
+        void setCloseAction(Runnable closeAction) {
+            this.closeAction = closeAction;
+        }
+
         BooleanProperty displayProperty() {
             return display;
         }
     }
+
+    private record ModalFrame(JMetroModalPane pane, ModalType type) {}
 
     /**
      * Contentor do diálogo com suporte a ESC e focus inicial.
@@ -964,7 +1094,7 @@ public class ModalManager {
             if (closeOnEscape) {
                 addEventHandler(KeyEvent.KEY_PRESSED, event -> {
                     if (event.getCode() == KeyCode.ESCAPE) {
-                        parent.hide();
+                        parent.closeFromKeyboard();
                         event.consume();
                     }
                 });
