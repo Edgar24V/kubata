@@ -134,6 +134,23 @@ public class AcessoService {
     }
 
     @Transactional
+    public ao.allon.kubata.core.domain.PerfilAcesso salvarPerfilComPermissoes(
+            ao.allon.kubata.core.domain.PerfilAcesso perfil,
+            List<ao.allon.kubata.core.domain.PermissaoPerfil> permissoes) {
+        ao.allon.kubata.core.domain.PerfilAcesso saved = perfilRepository.save(perfil);
+
+        permissaoRepository.deleteByPerfil(saved);
+        permissaoRepository.flush();
+
+        if (permissoes != null && !permissoes.isEmpty()) {
+            permissoes.forEach(p -> p.setPerfil(saved));
+            permissaoRepository.saveAll(permissoes);
+        }
+
+        return saved;
+    }
+
+    @Transactional
     public void salvarPermissoesPerfil(ao.allon.kubata.core.domain.PerfilAcesso perfil, List<ao.allon.kubata.core.domain.PermissaoPerfil> permissoes) {
         permissaoRepository.deleteByPerfil(perfil);
         permissaoRepository.flush();
