@@ -10609,3 +10609,170 @@ Text {
     -fx-font-size: 11px;
     -fx-text-fill: #667085;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA ADMIN · SERVIDOR
+   Consola de infraestrutura / servidor de dados
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-server-page {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-server-header {
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-server-title-icon {
+    -fx-min-width: 46;
+    -fx-min-height: 46;
+    -fx-max-width: 46;
+    -fx-max-height: 46;
+    -fx-background-color: rgba(35, 134, 54, 0.10);
+    -fx-background-radius: 12;
+}
+
+.kubata-server-title-icon .ikonli-font-icon {
+    -fx-icon-color: #238636;
+}
+
+.kubata-server-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-server-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-server-status-bar {
+    -fx-padding: 8px 11px;
+    -fx-background-color: -color-base-0;
+    -fx-border-color: -color-base-1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.kubata-server-status-bar > .label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-server-status-icon .ikonli-font-icon {
+    -fx-icon-color: #238636;
+}
+
+.kubata-server-status-value {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.kubata-server-status-ok {
+    -fx-text-fill: #238636;
+}
+
+.kubata-server-status-warning {
+    -fx-text-fill: #9a6700;
+}
+
+.kubata-server-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.kubata-server-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.kubata-server-metric {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 10;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10;
+}
+
+.kubata-server-metric:hover,
+.kubata-server-panel:hover {
+    -fx-border-color: #8c959f;
+}
+
+.kubata-server-metric-icon .ikonli-font-icon {
+    -fx-icon-color: #57606a;
+}
+
+.kubata-server-metric-title {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-server-metric-value {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-server-panel {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 12;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 12;
+    -fx-min-height: 190;
+}
+
+.kubata-server-panel-icon .ikonli-font-icon {
+    -fx-icon-color: #238636;
+}
+
+.kubata-server-panel-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-server-field-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-server-field-value {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-base-8;
+    -fx-font-family: "Consolas";
+}
+
+.kubata-server-note {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-6;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-server-diagnostic {
+    -fx-control-inner-background: #161b22;
+    -fx-text-fill: #e6edf3;
+    -fx-highlight-fill: #238636;
+    -fx-highlight-text-fill: white;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.kubata-server-footer {
+    -fx-background-color: -color-light;
+    -fx-border-color: -color-base-2 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.kubata-server-footer-text {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-5;
+}
