@@ -505,10 +505,10 @@ public class ModalManager {
                 .orElse(null);
 
         if (top != null) {
-            top.pane().setMouseTransparent(false);
-            top.pane().setVisible(true);
-            top.pane().setManaged(true);
-            top.pane().toFront();
+            top.pane.setMouseTransparent(false);
+            top.pane.setVisible(true);
+            top.pane.setManaged(true);
+            top.pane.toFront();
         }
     }
 
@@ -684,7 +684,9 @@ public class ModalManager {
         }
 
         header.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2) {
+            if (event.getClickCount() == 2
+                    && config.showWindowControls
+                    && config.maximizable) {
                 toggleMaximizeModal(targetPane);
                 event.consume();
             }
@@ -841,8 +843,8 @@ public class ModalManager {
             return;
         }
 
-        double width = Math.max(520, attachedRoot.getLayoutBounds().getWidth() - 36);
-        double height = Math.max(320, attachedRoot.getLayoutBounds().getHeight() - 36);
+        double width = Math.max(520, attachedRoot.getLayoutBounds().getWidth() - 48);
+        double height = Math.max(320, attachedRoot.getLayoutBounds().getHeight() - 48);
 
         if (frame.dialog.getWidth() > 0) {
             frame.normalWidth = frame.dialog.getWidth();
@@ -1185,11 +1187,11 @@ public class ModalManager {
                 .orElse(modalStack.peek());
 
         if (top != null) {
-            closeModalPane(top.pane());
+            closeModalPane(top.pane);
         }
 
         if (currentLoadingPane == null || !modalStack.stream()
-                .anyMatch(frame -> frame.pane() == currentLoadingPane)) {
+                .anyMatch(frame -> frame.pane == currentLoadingPane)) {
             currentLoadingModal = null;
             currentLoadingPane = null;
         }
@@ -1203,9 +1205,9 @@ public class ModalManager {
      */
     public void hideAllModals() {
         for (ModalFrame frame : new ArrayList<>(modalStack)) {
-            frame.pane().hide();
+            frame.pane.hide();
             if (attachedRoot != null) {
-                attachedRoot.getChildren().remove(frame.pane());
+                attachedRoot.getChildren().remove(frame.pane);
             }
         }
 
