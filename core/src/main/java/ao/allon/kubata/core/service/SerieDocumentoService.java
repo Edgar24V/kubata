@@ -108,8 +108,10 @@ public class SerieDocumentoService {
                     .serie(base.getSerie())
                     .descricao(base.getDescricao() == null
                             ? "Série " + base.getSerie() + " - " + novoAno
+                            : base.getExercicio() == null
+                            ? base.getDescricao() + " - " + novoAno
                             : base.getDescricao().replace(
-                                    base.getExercicio() == null ? "" : String.valueOf(base.getExercicio()),
+                                    String.valueOf(base.getExercicio()),
                                     String.valueOf(novoAno)
                             ))
                     .exercicio(novoAno)
