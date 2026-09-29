@@ -265,7 +265,7 @@ public class ExtensibilidadeView extends VBox {
         table.setOnViewDetails(selected -> {
             if (selected != null) {
                 table.getSelectionModel().select(selected);
-                showSelectedDetails();
+                showSelectedDetails(selected);
             }
         });
         table.setOnDelete(selected -> removeSelected());
@@ -505,7 +505,7 @@ public class ExtensibilidadeView extends VBox {
         );
     }
 
-    private void showSelectedDetails() {
+    private void showSelectedDetails(AplicacaoAdministrador selected) {
         AplicacaoAdministrador app = getSelected();
         if (app == null) {
             modalManager.alert(
@@ -517,6 +517,9 @@ public class ExtensibilidadeView extends VBox {
             return;
         }
 
+        if (selected != null) {
+            app = selected;
+        }
         VBox content = new VBox(12);
         content.setPadding(new Insets(4));
 
