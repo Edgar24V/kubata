@@ -3,6 +3,7 @@ package ao.allon.kubata.core.repository;
 import ao.allon.kubata.core.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,4 +18,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "LOWER(u.nome) LIKE LOWER(CONCAT('%',:q,'%')) OR " +
            "LOWER(u.email) LIKE LOWER(CONCAT('%',:q,'%'))")
     List<User> pesquisar(String q);
+    
+    @Query("""
+        SELECT DISTINCT u
+        FROM User u
+        LEFT JOIN FETCH u.perfis
+        LEFT JOIN FETCH u.empresa
+        WHERE u.id = :id
+        """)
+    Optional<User> findByIdWithPerfis(@Param("id") Long id);
+
 }
+
