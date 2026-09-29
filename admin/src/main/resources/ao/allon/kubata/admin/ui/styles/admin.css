@@ -10112,3 +10112,179 @@ Text {
   -fx-line-spacing: 2px;
   -fx-text-fill: -color-danger-fg;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA — CENTRAL DE RELATÓRIOS
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-reports-toolbar {
+    -fx-background-color: -kubata-white;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-reports-toolbar-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 10px;
+    -fx-min-width: 42px;
+    -fx-min-height: 42px;
+    -fx-max-width: 42px;
+    -fx-max-height: 42px;
+    -fx-alignment: center;
+}
+
+.kubata-reports-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-reports-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-reports-filterbar {
+    -fx-background-color: -kubata-gray-50;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-reports-filter-icon {
+    -fx-text-fill: -kubata-green;
+}
+
+.kubata-reports-filter-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-reports-filter-arrow {
+    -fx-text-fill: -color-fg-subtle;
+    -fx-font-weight: bold;
+}
+
+.kubata-reports-filter-scope {
+    -fx-text-fill: -color-fg-subtle;
+    -fx-font-size: 11px;
+}
+
+.kubata-reports-section-icon {
+    -fx-text-fill: -kubata-green;
+}
+
+.kubata-reports-section-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-reports-section-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-reports-kpi-grid {
+    -fx-padding: 2 0 2 0;
+}
+
+.kubata-reports-stat-card {
+    -fx-background-color: -kubata-white;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 13px;
+}
+
+.kubata-reports-stat-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 9px;
+    -fx-min-width: 38px;
+    -fx-min-height: 38px;
+    -fx-max-width: 38px;
+    -fx-max-height: 38px;
+    -fx-alignment: center;
+    -fx-text-fill: -kubata-green;
+}
+
+.kubata-reports-stat-label {
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 0.7px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-reports-stat-value {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-reports-stat-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-fg-subtle;
+}
+
+.kubata-reports-chart-card {
+    -fx-background-color: -kubata-white;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 13px;
+}
+
+.kubata-reports-catalog {
+    -fx-padding: 2px 0 10px 0;
+}
+
+.kubata-reports-report-card {
+    -fx-background-color: -kubata-white;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 12px 14px;
+}
+
+.kubata-reports-report-card:hover {
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: -kubata-green-border;
+}
+
+.kubata-reports-report-icon {
+    -fx-background-color: -kubata-gray-50;
+    -fx-background-radius: 8px;
+    -fx-min-width: 36px;
+    -fx-min-height: 36px;
+    -fx-max-width: 36px;
+    -fx-max-height: 36px;
+    -fx-alignment: center;
+    -fx-text-fill: -kubata-green;
+}
+
+.kubata-reports-report-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-reports-report-desc {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-reports-report-format {
+    -fx-background-color: -kubata-green-pale;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 7px;
+    -fx-background-radius: 10px;
+}
+
+.relatorios-view {
+    -fx-background-color: -kubata-gray-50;
+}
