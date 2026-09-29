@@ -149,7 +149,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private Node communications(){
         VBox r=page();TableView<AdmPlataformaItem>t=table("COMUNICACAO");
         r.getChildren().addAll(section("Fila de comunicações","E-mail SMTP e SMS por gateway HTTP."),
-                actions(button("Novo e-mail",Feather.MAIL,()->email(t)),button("Novo SMS",Feather.MESSAGE_CIRCLE,()->sms(t)),
+                actions(button("Novo e-mail",Feather.MAIL,()->email(t)),button("Novo SMS",Feather.MESSAGE_SQUARE,()->sms(t)),
                         button("Enviar",Feather.SEND,()->send(t)),button("Retry",Feather.REFRESH_CW,()->retry(t)),
                         button("Actualizar",Feather.REFRESH_CW,()->reload(t,"COMUNICACAO")),button("Configurar SMTP/SMS",Feather.SETTINGS,()->select("Preferências"))),t,
                 info("Parâmetros","SMTP: COMUNICACAO.SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_TLS. SMS: COMUNICACAO.SMS_URL, COMUNICACAO.SMS_TOKEN."));
