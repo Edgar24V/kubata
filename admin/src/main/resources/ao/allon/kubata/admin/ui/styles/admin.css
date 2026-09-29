@@ -10044,3 +10044,71 @@ Text {
   -fx-border-color: -color-border-default;
   -fx-border-radius: 7px;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA BACKUP — Central de continuidade
+   ════════════════════════════════════════════════════════════════════════════ */
+.kubata-backup-subtab {
+  -fx-background-color: -color-bg-default;
+}
+.kubata-backup-subtab-hero {
+  -fx-padding: 14px 16px;
+  -fx-background-color: -color-bg-subtle;
+  -fx-background-radius: 12px;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 12px;
+}
+.kubata-backup-subtab-hero-icon {
+  -fx-min-width: 40px;
+  -fx-min-height: 40px;
+  -fx-max-width: 40px;
+  -fx-max-height: 40px;
+  -fx-alignment: CENTER;
+  -fx-background-color: -color-accent-subtle;
+  -fx-background-radius: 10px;
+  -fx-text-fill: -color-accent-fg;
+}
+.kubata-backup-subtab-hero-title {
+  -fx-font-size: 1.22em;
+  -fx-font-weight: 800;
+  -fx-text-fill: -color-fg-default;
+}
+.kubata-backup-subtab-hero-text {
+  -fx-font-size: 0.86em;
+  -fx-text-fill: -color-fg-muted;
+}
+.kubata-backup-subtab-panel {
+  -fx-background-color: -color-bg-subtle;
+  -fx-background-radius: 11px;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 11px;
+}
+.kubata-backup-storage-metric {
+  -fx-padding: 13px;
+  -fx-background-color: -color-bg-subtle;
+  -fx-background-radius: 10px;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 10px;
+}
+.kubata-backup-step-number {
+  -fx-min-width: 28px;
+  -fx-min-height: 28px;
+  -fx-max-width: 28px;
+  -fx-max-height: 28px;
+  -fx-alignment: CENTER;
+  -fx-background-color: -color-accent-subtle;
+  -fx-background-radius: 14px;
+  -fx-font-weight: 800;
+  -fx-text-fill: -color-accent-fg;
+}
+.kubata-backup-subtab-note {
+  -fx-font-size: 0.84em;
+  -fx-line-spacing: 2px;
+  -fx-text-fill: -color-fg-muted;
+}
+.kubata-backup-warning-text {
+  -fx-font-size: 0.84em;
+  -fx-line-spacing: 2px;
+  -fx-text-fill: -color-danger-fg;
+}
