@@ -1126,10 +1126,11 @@ public class UtilizadoresView extends VBox {
         chkSuperadmin.setDisable(!canManageSuperadmin);
 
         GridPane accountGrid = formGrid();
-        addFormPair(accountGrid, 0, "Expiração:", dataExpiracao, "", new Label());
-        accountGrid.getChildren().removeIf(node ->
-                node instanceof Label label && label.getText().isBlank()
-        );
+        Label expirationLabel = new Label("Expiração:");
+        expirationLabel.getStyleClass().add("kubata-users-form-label");
+        accountGrid.add(expirationLabel, 0, 0);
+        accountGrid.add(dataExpiracao, 1, 0);
+        GridPane.setHgrow(dataExpiracao, Priority.ALWAYS);
 
         HBox policyLine = new HBox(18, chkProvisoria, chkMfa);
         policyLine.setAlignment(Pos.CENTER_LEFT);
