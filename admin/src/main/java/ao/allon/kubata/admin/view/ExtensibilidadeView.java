@@ -273,7 +273,7 @@ public class ExtensibilidadeView extends VBox {
             TableRow<AplicacaoAdministrador> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    showSelectedDetails();
+                    showSelectedDetails(row.getItem());
                 }
             });
             return row;
@@ -339,7 +339,7 @@ public class ExtensibilidadeView extends VBox {
         );
         btnDetails.getStyleClass().add("button-outlined");
         btnDetails.setMaxWidth(Double.MAX_VALUE);
-        btnDetails.setOnAction(e -> showSelectedDetails());
+        btnDetails.setOnAction(e -> showSelectedDetails(getSelected()));
 
         btnRemove = new Button(
                 "Remover aplicação",
