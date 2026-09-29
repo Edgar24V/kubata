@@ -52,6 +52,7 @@ public class SeriesView extends VBox {
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
     private final SerieDocumentoWizardView wizardView;
+    private final SeriesInstalacaoAssistentesView installationAssistants;
     private final PersistenceService persistenceService;
 
     private final ObservableList<SerieDocumento> series = FXCollections.observableArrayList();
@@ -93,6 +94,7 @@ public class SeriesView extends VBox {
                       SessionManager sessionManager,
                       ModalManager modalManager,
                       SerieDocumentoWizardView wizardView,
+                      SeriesInstalacaoAssistentesView installationAssistants,
                       PersistenceService persistenceService) {
         this.serieRepository = serieRepository;
         this.empresaRepository = empresaRepository;
@@ -100,6 +102,7 @@ public class SeriesView extends VBox {
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
         this.wizardView = wizardView;
+        this.installationAssistants = installationAssistants;
         this.persistenceService = persistenceService;
 
         setSpacing(0);
@@ -162,6 +165,13 @@ public class SeriesView extends VBox {
         btnLote.getStyleClass().add("button-outlined");
         btnLote.setOnAction(e -> startBatchWizard());
 
+        Button btnAssistentes = new Button(
+                "Assistentes de instalação",
+                IconUtils.icon(Feather.TOOL, 13)
+        );
+        btnAssistentes.getStyleClass().add("button-outlined");
+        btnAssistentes.setOnAction(e -> startInstallationAssistants());
+
         btnNovo = new Button(
                 "Nova série",
                 IconUtils.icon(Feather.PLUS, 13)
@@ -176,7 +186,9 @@ public class SeriesView extends VBox {
         refresh.getStyleClass().add("button-outlined");
         refresh.setOnAction(e -> loadSeries());
 
-        titleLine.getChildren().addAll(icon, titleBox, spacer, btnLote, btnNovo, refresh);
+        titleLine.getChildren().addAll(
+                icon, titleBox, spacer, btnAssistentes, btnLote, btnNovo, refresh
+        );
 
         totalValue = new Label("0");
         activeValue = new Label("0");
@@ -707,6 +719,14 @@ public class SeriesView extends VBox {
         detailState.setText(serie.getEstado() == null ? "—" : serie.getEstado().getDescricao());
 
         refreshPermissions();
+    }
+
+    private void startInstallationAssistants() {
+        if (!hasCreatePermission()) {
+            deny("Não possui permissão para instalar ou criar séries.");
+            return;
+        }
+        installationAssistants.start();
     }
 
     private void startBatchWizard() {
