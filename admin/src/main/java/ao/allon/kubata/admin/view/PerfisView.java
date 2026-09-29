@@ -693,6 +693,12 @@ public class PerfisView extends VBox {
                 pageReview
         );
 
+        // O StackPane funciona como contentor de páginas sobrepostas.
+        // Sem adicionar explicitamente as páginas aos filhos, o assistente
+        // apresentava apenas a área branca do contentor.
+        pages.getChildren().setAll(wizardPages);
+        pages.setAlignment(Pos.TOP_LEFT);
+
         wizardPages.forEach(page -> {
             page.setVisible(false);
             page.setManaged(false);
