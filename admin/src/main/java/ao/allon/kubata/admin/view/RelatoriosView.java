@@ -60,6 +60,12 @@ public class RelatoriosView extends VBox {
     private DatePicker dpFim;
     private ComboBox<String> cbCategoria;
 
+    // Indicadores/KPIs
+    private Label lblTotalUsers;
+    private Label lblActiveUsers;
+    private Label lblTotalEmpresas;
+    private Label lblTotalLogs;
+
     // Gráficos
     private PieChart userStatusChart;
     private BarChart<String, Number> auditActivityChart;
