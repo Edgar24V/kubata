@@ -27,13 +27,18 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -779,6 +784,11 @@ public class UtilizadoresView extends VBox {
         avatarText.getStyleClass().add("kubata-users-form-avatar-text");
         avatar.getChildren().add(avatarText);
 
+        final byte[][] avatarBytes = {
+                isNew ? null : formUser.getAvatar()
+        };
+        applyAvatar(avatar, avatarText, avatarBytes[0]);
+
         VBox identityInfo = new VBox(3);
         Label identityName = new Label(
                 safe(isNew ? "" : formUser.getNome(), "Novo utilizador")
@@ -800,7 +810,66 @@ public class UtilizadoresView extends VBox {
         identityStatus.getStyleClass().add("kubata-users-form-identity-status");
 
         identityInfo.getChildren().addAll(identityName, identityMeta, identityStatus);
-        identityCard.getChildren().addAll(avatar, identityInfo);
+
+        VBox avatarActions = new VBox(5);
+        Button chooseAvatar = new Button(
+                "Alterar foto",
+                IconUtils.icon(Feather.CAMERA, 12)
+        );
+        chooseAvatar.getStyleClass().add("button-outlined");
+
+        Button removeAvatar = new Button(
+                "Remover foto",
+                IconUtils.icon(Feather.X, 12)
+        );
+        removeAvatar.getStyleClass().add("button-outlined");
+        removeAvatar.setDisable(avatarBytes[0] == null || avatarBytes[0].length == 0);
+
+        chooseAvatar.setOnAction(e -> {
+            if (tabs.getScene() == null || tabs.getScene().getWindow() == null) {
+                return;
+            }
+
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Seleccionar fotografia do utilizador");
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter(
+                            "Imagens",
+                            "*.png", "*.jpg", "*.jpeg", "*.webp"
+                    )
+            );
+
+            var file = chooser.showOpenDialog(tabs.getScene().getWindow());
+            if (file == null) {
+                return;
+            }
+
+            try {
+                avatarBytes[0] = Files.readAllBytes(file.toPath());
+                applyAvatar(avatar, avatarText, avatarBytes[0]);
+                removeAvatar.setDisable(false);
+            } catch (Exception ex) {
+                modalManager.showErrorModal(
+                        "Fotografia",
+                        "Não foi possível carregar a fotografia seleccionada.",
+                        ex
+                );
+            }
+        });
+
+        removeAvatar.setOnAction(e -> {
+            avatarBytes[0] = null;
+            applyAvatar(avatar, avatarText, null);
+            removeAvatar.setDisable(true);
+        });
+
+        avatarActions.getChildren().addAll(chooseAvatar, removeAvatar);
+
+        identityCard.getChildren().addAll(
+                avatar,
+                identityInfo,
+                avatarActions
+        );
 
         generalPage.getChildren().add(identityCard);
 
@@ -903,7 +972,9 @@ public class UtilizadoresView extends VBox {
                             ? "Preencha os dados para criar a conta."
                             : txtEmail.getText().trim()
             );
-            avatarText.setText(initials(name.isBlank() ? "Utilizador" : name));
+            if (avatarBytes[0] == null || avatarBytes[0].length == 0) {
+                avatarText.setText(initials(name.isBlank() ? "Utilizador" : name));
+            }
             identityStatus.setText(isNew
                     ? "NOVA CONTA"
                     : userStatus(formUser).toUpperCase());
@@ -1447,6 +1518,7 @@ public class UtilizadoresView extends VBox {
                     target.setTelefone(blankToNull(txtTelefone.getText()));
                     target.setDepartamento(blankToNull(txtDepartamento.getText()));
                     target.setCargo(blankToNull(txtCargo.getText()));
+                    target.setAvatar(avatarBytes[0]);
                     target.setActive(chkAtivo.isSelected());
                     target.setMfaEnabled(chkMfa.isSelected());
                     target.setSuperadmin(chkSuperadmin.isSelected());
@@ -1563,6 +1635,29 @@ public class UtilizadoresView extends VBox {
 
         row.getChildren().addAll(key, text);
         return row;
+    }
+
+    private void applyAvatar(StackPane avatar, Label fallback, byte[] bytes) {
+        avatar.getChildren().clear();
+
+        if (bytes != null && bytes.length > 0) {
+            try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
+                Image image = new Image(input, 52, 52, true, true);
+                if (!image.isError()) {
+                    ImageView imageView = new ImageView(image);
+                    imageView.setFitWidth(52);
+                    imageView.setFitHeight(52);
+                    imageView.setPreserveRatio(true);
+                    imageView.setSmooth(true);
+                    avatar.getChildren().add(imageView);
+                    return;
+                }
+            } catch (Exception ignored) {
+                // Fallback para as iniciais.
+            }
+        }
+
+        avatar.getChildren().add(fallback);
     }
 
     private String initials(String value) {
