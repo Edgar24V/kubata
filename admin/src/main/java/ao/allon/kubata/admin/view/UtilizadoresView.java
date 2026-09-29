@@ -1492,6 +1492,145 @@ public class UtilizadoresView extends VBox {
         );
     }
 
+    private GridPane formGrid() {
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(9);
+
+        ColumnConstraints labelLeft = new ColumnConstraints(92);
+        ColumnConstraints fieldLeft = new ColumnConstraints();
+        fieldLeft.setHgrow(Priority.ALWAYS);
+        fieldLeft.setFillWidth(true);
+
+        ColumnConstraints labelRight = new ColumnConstraints(92);
+        ColumnConstraints fieldRight = new ColumnConstraints();
+        fieldRight.setHgrow(Priority.ALWAYS);
+        fieldRight.setFillWidth(true);
+
+        grid.getColumnConstraints().addAll(
+                labelLeft, fieldLeft, labelRight, fieldRight
+        );
+        return grid;
+    }
+
+    private void addFormPair(
+            GridPane grid,
+            int row,
+            String leftLabel,
+            Control leftControl,
+            String rightLabel,
+            Control rightControl
+    ) {
+        Label leftTitle = new Label(leftLabel);
+        leftTitle.getStyleClass().add("kubata-users-form-label");
+        grid.add(leftTitle, 0, row);
+        grid.add(leftControl, 1, row);
+        GridPane.setHgrow(leftControl, Priority.ALWAYS);
+
+        if (rightLabel != null && !rightLabel.isBlank()) {
+            Label rightTitle = new Label(rightLabel);
+            rightTitle.getStyleClass().add("kubata-users-form-label");
+            grid.add(rightTitle, 2, row);
+            grid.add(rightControl, 3, row);
+            GridPane.setHgrow(rightControl, Priority.ALWAYS);
+        }
+    }
+
+    private VBox sectionCard(String title, String description) {
+        VBox card = new VBox(9);
+        card.getStyleClass().add("kubata-users-form-card");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-users-form-card-title");
+
+        Label descriptionLabel = new Label(description);
+        descriptionLabel.setWrapText(true);
+        descriptionLabel.getStyleClass().add("kubata-users-form-hint");
+
+        card.getChildren().addAll(titleLabel, descriptionLabel);
+        return card;
+    }
+
+    private HBox shortcutRow(String shortcut, String description) {
+        HBox row = new HBox(10);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        Label key = new Label(shortcut);
+        key.getStyleClass().add("kubata-users-shortcut-key");
+
+        Label text = new Label(description);
+        text.getStyleClass().add("kubata-users-form-hint");
+
+        row.getChildren().addAll(key, text);
+        return row;
+    }
+
+    private String initials(String value) {
+        String text = safe(value, "U").trim();
+        if (text.isBlank()) {
+            return "U";
+        }
+
+        String[] parts = text.split("\\s+");
+        if (parts.length == 1) {
+            return parts[0].substring(0, 1).toUpperCase();
+        }
+
+        return (
+                parts[0].substring(0, 1)
+                        + parts[parts.length - 1].substring(0, 1)
+        ).toUpperCase();
+    }
+
+    private void updatePasswordStrength(
+            String password,
+            ProgressBar bar,
+            Label label
+    ) {
+        String value = password == null ? "" : password;
+
+        int score = 0;
+        if (value.length() >= 8) score++;
+        if (value.length() >= 12) score++;
+        if (value.matches(".*[A-Z].*")) score++;
+        if (value.matches(".*[a-z].*")) score++;
+        if (value.matches(".*\\d.*")) score++;
+        if (value.matches(".*[^A-Za-z0-9].*")) score++;
+
+        double progress = Math.min(1.0, score / 6.0);
+        bar.setProgress(progress);
+
+        bar.getStyleClass().removeAll(
+                "password-weak",
+                "password-medium",
+                "password-strong"
+        );
+        label.getStyleClass().removeAll(
+                "password-weak",
+                "password-medium",
+                "password-strong"
+        );
+
+        if (value.isBlank()) {
+            label.setText("Força da senha");
+            return;
+        }
+
+        if (score <= 2) {
+            label.setText("Senha fraca");
+            bar.getStyleClass().add("password-weak");
+            label.getStyleClass().add("password-weak");
+        } else if (score <= 4) {
+            label.setText("Senha média");
+            bar.getStyleClass().add("password-medium");
+            label.getStyleClass().add("password-medium");
+        } else {
+            label.setText("Senha forte");
+            bar.getStyleClass().add("password-strong");
+            label.getStyleClass().add("password-strong");
+        }
+    }
+
     private TextField field(String label, String value, String prompt) {
         TextField field = new TextField(value);
         field.setPromptText(prompt);
