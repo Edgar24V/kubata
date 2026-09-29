@@ -746,6 +746,8 @@ public class UtilizadoresView extends VBox {
             user = userRepository.findByIdWithPerfis(user.getId()).orElse(user);
         }
 
+        final User formUser = user;
+
         boolean isSelf = !isNew
                 && sessionManager.getUser() != null
                 && sessionManager.getUser().getId() != null
@@ -885,8 +887,8 @@ public class UtilizadoresView extends VBox {
             }
             listPerfis.setItems(FXCollections.observableArrayList(available));
 
-            if (user != null && user.getPerfis() != null) {
-                for (PerfilAcesso p : user.getPerfis()) {
+            if (formUser != null && formUser.getPerfis() != null) {
+                for (PerfilAcesso p : formUser.getPerfis()) {
                     listPerfis.getSelectionModel().select(p);
                 }
             }
@@ -969,7 +971,7 @@ public class UtilizadoresView extends VBox {
                         return;
                     }
 
-                    User target = isNew ? new User() : user;
+                    User target = isNew ? new User() : formUser;
                     target.setNome(txtNome.getText().trim());
                     target.setEmail(txtEmail.getText().trim());
                     target.setEmpresa(cbEmpresa.getValue());
