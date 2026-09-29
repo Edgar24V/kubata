@@ -23,6 +23,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
@@ -1418,13 +1419,6 @@ public class UtilizadoresView extends VBox {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
-    }
-
-    private TextField field(String label, String value, String prompt) {
-        TextField field = new TextField(value);
-        field.setPromptText(prompt);
-        field.setMaxWidth(Double.MAX_VALUE);
-        return field;
     }
 
     private static class SimpleStringPropertySafe extends javafx.beans.property.SimpleStringProperty {
