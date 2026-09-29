@@ -745,7 +745,7 @@ public class PerfisView extends VBox {
                     "1. Identificação",
                     "2. Modelo de acesso",
                     "3. Permissões",
-                    "4. Revisão e activação"
+                    "4. Revisão e instalação"
             };
             String[] hints = {
                     "Defina identidade, empresa e finalidade do perfil.",
@@ -818,7 +818,9 @@ public class PerfisView extends VBox {
                 .minimizable(true)
                 .windowControls(true)
                 .closeOnOverlayClick(false)
-                .title(isNew ? "Assistente de Novo Perfil" : "Assistente de Perfil — " + safe(target.getCodigo(), ""));
+                .title(isNew
+                        ? "Assistente de Instalação — Novo Perfil"
+                        : "Assistente de Configuração — " + safe(target.getCodigo(), ""));
 
         modalManager.showModal(content, config);
         refreshPage.run();
@@ -1279,17 +1281,35 @@ public class PerfisView extends VBox {
                 .filter(cb -> isSensitiveKey(String.valueOf(cb.getUserData())))
                 .count();
 
-        summary.getChildren().add(
+        long modules = checks.stream()
+                .filter(CheckBox::isSelected)
+                .map(cb -> String.valueOf(cb.getUserData()).split("\\|", -1))
+                .filter(parts -> parts.length > 0)
+                .map(parts -> parts[0])
+                .distinct()
+                .count();
+
+        summary.getChildren().addAll(
+                reviewRow("Módulos", modules + " módulo(s) com acesso"),
                 reviewRow("Permissões", selected + " operações activas")
         );
 
-        VBox risk = infoCard(
-                sensitive > 0 ? "Atenção de segurança" : "Perfil de menor privilégio",
-                sensitive > 0
-                        ? sensitive + " operação(ões) sensível(eis) seleccionada(s). "
-                        + "Confirme que estas operações fazem parte da função."
-                        : "Não foram seleccionadas operações sensíveis."
-        );
+        String riskTitle;
+        String riskMessage;
+        if (sensitive >= 5) {
+            riskTitle = "Nível de acesso elevado";
+            riskMessage = sensitive + " operações sensíveis foram seleccionadas. "
+                    + "Reveja especialmente APROVAR, ANULAR, APAGAR e operações financeiras.";
+        } else if (sensitive > 0) {
+            riskTitle = "Atenção de segurança";
+            riskMessage = sensitive + " operação(ões) sensível(eis) seleccionada(s). "
+                    + "Confirme que fazem parte da função.";
+        } else {
+            riskTitle = "Princípio do menor privilégio";
+            riskMessage = "Não foram seleccionadas operações sensíveis.";
+        }
+
+        VBox risk = infoCard(riskTitle, riskMessage);
 
         VBox guidance = infoCard(
                 "Próximo passo",
