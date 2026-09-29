@@ -633,6 +633,12 @@ public class PerfisView extends VBox {
     }
 
     private void showPerfilDialog(PerfilAcesso perfil) {
+        showPerfilDialog(perfil, null);
+    }
+
+    private void showPerfilDialog(
+            PerfilAcesso perfil,
+            Set<String> initialPermissionKeys) {
         boolean isNew = perfil == null;
         if (!can(isNew ? "CRIAR" : "EDITAR")) {
             modalManager.alert(
@@ -659,16 +665,23 @@ public class PerfisView extends VBox {
                 : perfil;
 
         Set<String> currentKeys = new HashSet<>();
-        safePermissions(target).stream()
-                .filter(p -> Boolean.TRUE.equals(p.getPermitido()))
-                .forEach(p -> currentKeys.add(key(p.getModulo(), p.getRecurso(), p.getOperacao())));
+        if (initialPermissionKeys != null) {
+            currentKeys.addAll(initialPermissionKeys);
+        } else {
+            safePermissions(target).stream()
+                    .filter(p -> Boolean.TRUE.equals(p.getPermitido()))
+                    .forEach(p -> currentKeys.add(
+                            key(p.getModulo(), p.getRecurso(), p.getOperacao())
+                    ));
+        }
 
         StackPane pages = new StackPane();
         pages.setMinHeight(470);
 
         VBox pageIdentity = buildWizardIdentity(target, pages);
-        VBox pageTemplate = buildWizardTemplate();
         VBox pagePermissions = buildWizardPermissions(currentKeys);
+        VBox pageTemplate = buildWizardTemplate();
+        wireTemplateToPermissions(pageTemplate, pagePermissions);
         VBox pageReview = buildWizardReview(target);
 
         List<Node> wizardPages = List.of(
@@ -743,6 +756,15 @@ public class PerfisView extends VBox {
 
             stepTitle.setText(titles[step[0]]);
             stepHint.setText(hints[step[0]]);
+
+            for (int i = 0; i < stepper.getChildren().size(); i++) {
+                Node node = stepper.getChildren().get(i);
+                node.getStyleClass().remove("kubata-profile-wizard-step-active");
+                if (i == step[0]) {
+                    node.getStyleClass().add("kubata-profile-wizard-step-active");
+                }
+            }
+
             back.setDisable(step[0] == 0);
             next.setVisible(step[0] < wizardPages.size() - 1);
             next.setManaged(step[0] < wizardPages.size() - 1);
@@ -903,6 +925,7 @@ public class PerfisView extends VBox {
 
         preview.getChildren().addAll(title, description, security);
         page.getChildren().addAll(intro, template, preview);
+        page.setUserData(template);
 
         template.setOnAction(e -> {
             String selected = template.getValue();
@@ -936,6 +959,35 @@ public class PerfisView extends VBox {
         });
 
         return page;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void wireTemplateToPermissions(
+            VBox templatePage,
+            VBox permissionsPage) {
+
+        Object value = templatePage.getUserData();
+        if (!(value instanceof ComboBox<?> combo)) {
+            return;
+        }
+
+        ComboBox<String> template = (ComboBox<String>) combo;
+        template.valueProperty().addListener((obs, old, selected) -> {
+            if (selected == null || selected.startsWith("Personalizado")) {
+                return;
+            }
+
+            List<CheckBox> checks = permissionBoxes(permissionsPage);
+            String preset = switch (selected) {
+                case "Consulta — apenas leitura" -> "Só leitura";
+                case "Operador — executar tarefas" -> "Operacional";
+                case "Gestor — operação + administração" -> "Gestão";
+                case "Administrador — acesso amplo" -> "Acesso total";
+                default -> "Sem alterações";
+            };
+
+            applyPermissionPreset(preset, checks);
+        });
     }
 
     private VBox buildWizardPermissions(Set<String> currentKeys) {
@@ -1055,8 +1107,11 @@ public class PerfisView extends VBox {
                         .map(node -> (VBox) node)
                         .forEach(resourceBox -> {
                             if (resourceBox.getStyleClass().contains("kubata-profile-resource")) {
-                                String resourceText = resourceBox.getChildren().isEmpty()
-                                        ? "" : resourceBox.getChildren().get(0).toString().toLowerCase();
+                                String resourceText = "";
+                                if (!resourceBox.getChildren().isEmpty()
+                                        && resourceBox.getChildren().get(0) instanceof Label label) {
+                                    resourceText = label.getText().toLowerCase(Locale.ROOT);
+                                }
                                 resourceBox.setVisible(q.isBlank() || resourceText.contains(q));
                                 resourceBox.setManaged(resourceBox.isVisible());
                             }
@@ -1313,7 +1368,12 @@ public class PerfisView extends VBox {
                 .empresa(original.getEmpresa())
                 .build();
 
-        showPerfilDialog(copy);
+        Set<String> permissions = safePermissions(original).stream()
+                .filter(p -> Boolean.TRUE.equals(p.getPermitido()))
+                .map(p -> key(p.getModulo(), p.getRecurso(), p.getOperacao()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        showPerfilDialog(copy, permissions);
     }
 
     private void removeSelectedPerfil() {
