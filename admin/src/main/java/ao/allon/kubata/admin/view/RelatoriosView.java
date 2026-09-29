@@ -313,6 +313,154 @@ public class RelatoriosView extends VBox {
         return box;
     }
 
+    private void refreshData() {
+        if (dpInicio != null && dpFim != null
+                && dpInicio.getValue() != null
+                && dpFim.getValue() != null
+                && dpFim.getValue().isBefore(dpInicio.getValue())) {
+            modalManager.alert(
+                    "Período inválido",
+                    "A data final não pode ser anterior à data inicial.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        lblTotalUsers.setText("...");
+        lblActiveUsers.setText("...");
+        lblTotalEmpresas.setText("...");
+        lblTotalLogs.setText("...");
+
+        persistenceService.executeSilent(() -> {
+            try {
+                long totalUtilizadores = userRepository.count();
+                long totalEmpresas = empresaRepository.count();
+
+                LocalDateTime startDate = dpInicio.getValue() == null
+                        ? LocalDateTime.now().minusMonths(1)
+                        : dpInicio.getValue().atStartOfDay();
+                LocalDateTime endDate = dpFim.getValue() == null
+                        ? LocalDateTime.now()
+                        : dpFim.getValue().plusDays(1).atStartOfDay().minusNanos(1);
+
+                String category = cbCategoria == null ? "Todos" : cbCategoria.getValue();
+                List<AuditLog> logs = auditLogRepository
+                        .findByTimestampBetweenOrderByTimestampDesc(startDate, endDate)
+                        .stream()
+                        .filter(log -> category == null
+                                || category.equalsIgnoreCase("Todos")
+                                || category.equalsIgnoreCase("Audit")
+                                || category.equalsIgnoreCase(log.getModule())
+                                || category.equalsIgnoreCase(log.getEntityType()))
+                        .toList();
+
+                long totalLogs = logs.size();
+                long utilizadoresAtivos = userRepository.findAll().stream()
+                        .filter(User::getActive)
+                        .count();
+                long utilizadoresInativos = Math.max(0, totalUtilizadores - utilizadoresAtivos);
+
+                List<Object[]> dailyCounts = auditLogRepository.countByDay(
+                        LocalDateTime.now().minusDays(7),
+                        LocalDateTime.now()
+                );
+
+                Map<String, Long> countMap = new java.util.LinkedHashMap<>();
+                DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                for (int day = 6; day >= 0; day--) {
+                    countMap.put(
+                            LocalDate.now().minusDays(day).format(dayFormatter),
+                            0L
+                    );
+                }
+
+                for (Object[] row : dailyCounts) {
+                    if (row != null && row.length >= 2 && row[0] != null) {
+                        countMap.put(
+                                row[0].toString(),
+                                ((Number) row[1]).longValue()
+                        );
+                    }
+                }
+
+                Platform.runLater(() -> {
+                    lblTotalUsers.setText(String.valueOf(totalUtilizadores));
+                    lblActiveUsers.setText(String.valueOf(utilizadoresAtivos));
+                    lblTotalEmpresas.setText(String.valueOf(totalEmpresas));
+                    lblTotalLogs.setText(String.valueOf(totalLogs));
+
+                    userStatusChart.getData().clear();
+                    if (utilizadoresAtivos > 0) {
+                        userStatusChart.getData().add(
+                                new PieChart.Data(
+                                        "Activos (" + utilizadoresAtivos + ")",
+                                        utilizadoresAtivos
+                                )
+                        );
+                    }
+                    if (utilizadoresInativos > 0) {
+                        userStatusChart.getData().add(
+                                new PieChart.Data(
+                                        "Inactivos (" + utilizadoresInativos + ")",
+                                        utilizadoresInativos
+                                )
+                        );
+                    }
+
+                    auditActivityChart.getData().clear();
+                    XYChart.Series<String, Number> activitySeries = new XYChart.Series<>();
+                    countMap.forEach((day, count) ->
+                            activitySeries.getData().add(
+                                    new XYChart.Data<>(day.substring(8), count)
+                            )
+                    );
+                    auditActivityChart.getData().add(activitySeries);
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> modalManager.alert(
+                        "Erro nos indicadores",
+                        ex.getMessage() == null
+                                ? "Não foi possível carregar os indicadores."
+                                : ex.getMessage(),
+                        "error",
+                        ex
+                ));
+            }
+        }, null);
+    }
+
+    private HBox createStatCard(
+            String title,
+            String hint,
+            Label valueLbl,
+            Feather icon
+    ) {
+        HBox card = new HBox(12);
+        card.getStyleClass().add("kubata-reports-stat-card");
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPrefWidth(245);
+        card.setPrefHeight(86);
+
+        StackPane iconPane = new StackPane();
+        iconPane.getStyleClass().add("kubata-reports-stat-icon");
+        iconPane.getChildren().add(new Label("", IconUtils.icon(icon, 19)));
+
+        VBox textBox = new VBox(2);
+        Label label = new Label(title.toUpperCase());
+        label.getStyleClass().add("kubata-reports-stat-label");
+
+        valueLbl.getStyleClass().add("kubata-reports-stat-value");
+
+        Label helper = new Label(hint);
+        helper.getStyleClass().add("kubata-reports-stat-hint");
+
+        textBox.getChildren().addAll(label, valueLbl, helper);
+        HBox.setHgrow(textBox, Priority.ALWAYS);
+        card.getChildren().addAll(iconPane, textBox);
+        return card;
+    }
+
     private VBox buildReportsSection() {
         VBox section = new VBox(10);
 
