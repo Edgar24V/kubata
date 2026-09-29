@@ -741,6 +741,11 @@ public class UtilizadoresView extends VBox {
 
     public void showUserDialog(User user) {
         boolean isNew = user == null;
+
+        if (!isNew && user.getId() != null) {
+            user = userRepository.findByIdWithPerfis(user.getId()).orElse(user);
+        }
+
         boolean isSelf = !isNew
                 && sessionManager.getUser() != null
                 && sessionManager.getUser().getId() != null
