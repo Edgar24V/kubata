@@ -7551,3 +7551,224 @@ Text {
 .kubata-modal-dialog-maximized .kubata-modal-footer {
     -fx-background-radius: 0 0 8px 8px;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA ADMIN — Gestão de Utilizadores
+   Workspace ERP: pesquisa, filtros, KPIs, detalhe e operações
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-users-page {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.kubata-users-header {
+    -fx-background-color: -kubata-white;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-users-title-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-padding: 9;
+    -fx-background-radius: 9;
+}
+
+.kubata-users-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-users-kpi {
+    -fx-background-color: -kubata-gray-50;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 1;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-min-height: 62;
+}
+
+.kubata-users-kpi-icon {
+    -fx-text-fill: -kubata-green;
+}
+
+.kubata-users-kpi-title {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-users-kpi-value {
+    -fx-font-size: 20px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-workspace {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.kubata-users-filter-bar {
+    -fx-background-color: -kubata-white;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-users-filter-bar .combo-box,
+.kubata-users-filter-bar .text-field {
+    -fx-min-height: 34px;
+}
+
+.kubata-users-filter-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-subtle;
+}
+
+.kubata-users-details-wrapper {
+    -fx-background-color: -kubata-white;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 0 0 0 1;
+}
+
+.kubata-users-details-wrapper .viewport {
+    -fx-background-color: -kubata-white;
+}
+
+.kubata-users-details {
+    -fx-background-color: -kubata-white;
+}
+
+.kubata-users-avatar {
+    -fx-min-width: 44px;
+    -fx-min-height: 44px;
+    -fx-max-width: 44px;
+    -fx-max-height: 44px;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 22;
+    -fx-alignment: center;
+}
+
+.kubata-users-avatar-text {
+    -fx-font-size: 17px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-users-detail-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-detail-email {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-users-detail-row {
+    -fx-padding: 6 0 5 0;
+    -fx-border-color: transparent transparent -kubata-gray-100 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-users-detail-label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-fg-subtle;
+}
+
+.kubata-users-detail-value {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-statusbar {
+    -fx-background-color: -kubata-white;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-width: 1 0 0 0;
+}
+
+.kubata-users-statusbar-text {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-statusbar-hint {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-fg-subtle;
+}
+
+.kubata-users-form {
+    -fx-background-color: -kubata-white;
+}
+
+.kubata-users-form-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-form-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.kubata-users-security-card {
+    -fx-background-color: -kubata-gray-50;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.kubata-user-status-active {
+    -fx-text-fill: #1a7f37;
+    -fx-font-weight: 700;
+}
+
+.kubata-user-status-inactive {
+    -fx-text-fill: -color-fg-muted;
+    -fx-font-weight: 600;
+}
+
+.kubata-user-status-locked {
+    -fx-text-fill: #cf222e;
+    -fx-font-weight: 700;
+}
+
+.kubata-user-status-expired {
+    -fx-text-fill: #9a6700;
+    -fx-font-weight: 700;
+}
+
+.kubata-users-modal-card {
+    -fx-background-color: -kubata-gray-50;
+    -fx-border-color: -kubata-gray-200;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 13;
+}
+
+.kubata-users-modal-row {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-fg-default;
+}
+
+.kubata-users-details .button,
+.kubata-users-filter-bar .button {
+    -fx-min-height: 32px;
+}
