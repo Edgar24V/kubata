@@ -740,7 +740,7 @@ public class AuditoriaView extends VBox {
                 "kubata-auditoria-" + LocalDate.now() + ".csv"
         );
 
-        File target = chooser.showSaveDialog(getScene() == null ? null : getScene().getWindow());
+        java.io.File target = chooser.showSaveDialog(getScene() == null ? null : getScene().getWindow());
         if (target == null) return;
 
         List<AuditLog> rows = new ArrayList<>(table.getItems());
