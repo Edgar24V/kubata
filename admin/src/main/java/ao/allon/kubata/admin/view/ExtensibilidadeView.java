@@ -506,7 +506,7 @@ public class ExtensibilidadeView extends VBox {
     }
 
     private void showSelectedDetails(AplicacaoAdministrador selected) {
-        AplicacaoAdministrador app = getSelected();
+        AplicacaoAdministrador app = selected != null ? selected : getSelected();
         if (app == null) {
             modalManager.alert(
                     "Extensibilidade",
@@ -515,10 +515,6 @@ public class ExtensibilidadeView extends VBox {
                     null
             );
             return;
-        }
-
-        if (selected != null) {
-            app = selected;
         }
         VBox content = new VBox(12);
         content.setPadding(new Insets(4));
