@@ -491,6 +491,40 @@ public class JrxmlStudioView extends VBox {
         }
     }
 
+    private long countBands(JasperDesign design) {
+        long count = 0;
+
+        if (design.getTitle() != null) count++;
+        if (design.getPageHeader() != null) count++;
+        if (design.getColumnHeader() != null) count++;
+        if (design.getColumnFooter() != null) count++;
+        if (design.getPageFooter() != null) count++;
+        if (design.getLastPageFooter() != null) count++;
+        if (design.getSummary() != null) count++;
+        if (design.getBackground() != null) count++;
+        if (design.getNoData() != null) count++;
+
+        if (design.getDetailSection() != null && design.getDetailSection().getBands() != null) {
+            count += design.getDetailSection().getBands().length;
+        }
+
+        if (design.getGroups() != null) {
+            for (net.sf.jasperreports.engine.JRGroup group : design.getGroups()) {
+                if (group == null) continue;
+                if (group.getGroupHeaderSection() != null
+                        && group.getGroupHeaderSection().getBands() != null) {
+                    count += group.getGroupHeaderSection().getBands().length;
+                }
+                if (group.getGroupFooterSection() != null
+                        && group.getGroupFooterSection().getBands() != null) {
+                    count += group.getGroupFooterSection().getBands().length;
+                }
+            }
+        }
+
+        return count;
+    }
+
     private void analyzeTemplate(ReportTemplate template) {
         try (InputStream in = template.resource().getInputStream()) {
             JasperDesign d = JRXmlLoader.load(in);
@@ -498,7 +532,7 @@ public class JrxmlStudioView extends VBox {
             long parameters = d.getParametersList() == null ? 0 : d.getParametersList().size();
             long fields = d.getFieldsList() == null ? 0 : d.getFieldsList().size();
             long variables = d.getVariablesList() == null ? 0 : d.getVariablesList().size();
-            long bands = d.getBandsList() == null ? 0 : d.getBandsList().size();
+            long bands = countBands(d);
 
             String text =
                     "Template: " + d.getName() + "\n"
