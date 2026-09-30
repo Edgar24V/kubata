@@ -75,7 +75,9 @@ public class PlataformaCentroCompletoView extends BorderPane {
 
         HBox workspace=new HBox(0,buildNavigation(),tabs);
         workspace.setAlignment(Pos.TOP_LEFT);
+        workspace.setMaxSize(Double.MAX_VALUE,Double.MAX_VALUE);
         HBox.setHgrow(tabs,Priority.ALWAYS);
+        tabs.setMaxSize(Double.MAX_VALUE,Double.MAX_VALUE);
         workspace.getStyleClass().add("kubata-center-workspace");
 
         setTop(header);
@@ -146,13 +148,9 @@ public class PlataformaCentroCompletoView extends BorderPane {
         return header;
     }
 
-    private VBox buildNavigation(){
+    private ScrollPane buildNavigation(){
         VBox nav=new VBox(7);
-        nav.setPrefWidth(244);
-        nav.setMinWidth(244);
-        nav.setMaxWidth(260);
-        nav.setMaxHeight(Double.MAX_VALUE);
-        nav.setPadding(new Insets(14,10,14,10));
+        nav.setPadding(new Insets(14,10,10,10));
         nav.getStyleClass().add("kubata-center-navigation");
 
         VBox identity=new VBox(2);
@@ -170,31 +168,44 @@ public class PlataformaCentroCompletoView extends BorderPane {
         navigationSearch.getStyleClass().add("kubata-center-nav-search");
         navigationSearch.textProperty().addListener((obs,oldValue,newValue)->filterNavigation(newValue));
 
-        nav.getChildren().addAll(identity,navigationSearch,navSection("VISÃO GERAL"));
-        nav.getChildren().addAll(
+        VBox menu=new VBox(7);
+        menu.getChildren().add(navSection("VISÃO GERAL"));
+        menu.getChildren().addAll(
                 navButton("Dashboard",Feather.HOME,"Resumo do Centro"),
                 navButton("Operações",Feather.CLOCK,"Rotinas e execuções"),
                 navButton("Alertas",Feather.ALERT_TRIANGLE,"Regras e ocorrências"));
-        nav.getChildren().add(navSection("CONTEÚDO & COMUNICAÇÕES"));
-        nav.getChildren().addAll(
+
+        menu.getChildren().add(navSection("CONTEÚDO & COMUNICAÇÕES"));
+        menu.getChildren().addAll(
                 navButton("Documentos",Feather.FOLDER,"Repositório documental"),
                 navButton("Comunicações",Feather.MAIL,"E-mail e SMS"));
-        nav.getChildren().add(navSection("CONFIGURAÇÃO"));
-        nav.getChildren().addAll(
+
+        menu.getChildren().add(navSection("CONFIGURAÇÃO"));
+        menu.getChildren().addAll(
                 navButton("Preferências",Feather.SLIDERS,"Parâmetros globais"),
                 navButton("Personalização",Feather.CPU,"Extensibilidade"),
                 navButton("Motores Runtime",Feather.CPU,"Motores da plataforma"));
-        nav.getChildren().add(navSection("DADOS & INFRAESTRUTURA"));
-        nav.getChildren().addAll(
+
+        menu.getChildren().add(navSection("DADOS & INFRAESTRUTURA"));
+        menu.getChildren().addAll(
                 navButton("Base de Dados",Feather.DATABASE,"Conexão e schema"),
                 navButton("Listagens",Feather.LIST,"Definições de listagem"),
                 navButton("Mapas",Feather.MAP,"Mapas de processos"),
                 navButton("Instalação & Registry",Feather.CPU,"Instalação e catálogo"));
-        nav.getChildren().add(navSection("SEGURANÇA"));
-        nav.getChildren().add(navButton("Segurança & Certificados",Feather.SHIELD,"Políticas e certificado"));
 
-        Region spacer=new Region();
-        VBox.setVgrow(spacer,Priority.ALWAYS);
+        menu.getChildren().add(navSection("SEGURANÇA"));
+        menu.getChildren().add(navButton("Segurança & Certificados",Feather.SHIELD,"Políticas e certificado"));
+        menu.setFillWidth(true);
+
+        ScrollPane menuScroll=new ScrollPane(menu);
+        menuScroll.setFitToWidth(true);
+        menuScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        menuScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        menuScroll.setPannable(true);
+        menuScroll.setFocusTraversable(false);
+        menuScroll.getStyleClass().add("kubata-center-nav-scroll");
+        VBox.setVgrow(menuScroll,Priority.ALWAYS);
+
         VBox session=new VBox(3);
         session.getStyleClass().add("kubata-center-nav-session");
         Label sessionTitle=new Label("SESSÃO ACTUAL");
@@ -203,8 +214,17 @@ public class PlataformaCentroCompletoView extends BorderPane {
         sessionUser.getStyleClass().add("kubata-center-nav-user");
         session.getChildren().addAll(sessionTitle,sessionUser);
 
-        nav.getChildren().addAll(spacer,session);
-        return nav;
+        nav.getChildren().addAll(identity,navigationSearch,menuScroll,session);
+
+        ScrollPane shell=new ScrollPane(nav);
+        shell.setFitToWidth(true);
+        shell.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        shell.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        shell.setFitToHeight(true);
+        shell.setPannable(false);
+        shell.setFocusTraversable(false);
+        shell.getStyleClass().add("kubata-center-navigation-shell");
+        return shell;
     }
 
     private Label navSection(String title){
@@ -270,7 +290,13 @@ public class PlataformaCentroCompletoView extends BorderPane {
         return scroll(n);
     }
     private VBox page(){
-        VBox v=new VBox(16);v.setPadding(new Insets(4,22,22,22));v.setFillWidth(true);v.setMaxWidth(Double.MAX_VALUE);v.getStyleClass().add("kubata-server-content");return v;
+        VBox v=new VBox(14);
+        v.setPadding(new Insets(14,20,20,20));
+        v.setFillWidth(true);
+        v.setMaxWidth(Double.MAX_VALUE);
+        v.setMinWidth(0);
+        v.getStyleClass().addAll("kubata-server-content","kubata-center-page-body");
+        return v;
     }
     private ScrollPane scroll(Node n){
         ScrollPane s=new ScrollPane(n);
@@ -279,8 +305,12 @@ public class PlataformaCentroCompletoView extends BorderPane {
         s.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         s.setPannable(true);
         s.setFocusTraversable(false);
-        s.getStyleClass().add("kubata-center-scroll");
-        if(n instanceof Region r)r.setMaxWidth(Double.MAX_VALUE);
+        s.setFitToHeight(false);
+        s.getStyleClass().addAll("kubata-center-scroll","kubata-center-content-scroll");
+        if(n instanceof Region r){
+            r.setMaxWidth(Double.MAX_VALUE);
+            r.setMinWidth(0);
+        }
         return s;
     }
     private VBox metric(String t,Label v,Feather i){VBox card=new VBox(5);card.setPadding(new Insets(13,15,13,15));card.getStyleClass().add("kubata-server-metric");HBox line=new HBox(7);line.setAlignment(Pos.CENTER_LEFT);Label icon=new Label("",IconUtils.icon(i,14));icon.getStyleClass().add("kubata-server-metric-icon");Label caption=new Label(t);caption.getStyleClass().add("kubata-server-metric-title");line.getChildren().addAll(icon,caption);v.getStyleClass().add("kubata-server-metric-value");card.getChildren().addAll(line,v);HBox.setHgrow(card,Priority.ALWAYS);return card;}
