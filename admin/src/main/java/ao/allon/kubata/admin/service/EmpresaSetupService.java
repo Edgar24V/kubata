@@ -274,6 +274,12 @@ public class EmpresaSetupService {
         if (empresa.getPredefinida() && !empresa.getAtiva()) {
             throw new IllegalArgumentException("Uma empresa inactiva não pode ser definida como empresa predefinida.");
         }
+        if (empresa.getRodapeDocumento() != null
+                && empresa.getRodapeDocumento().length() > Empresa.LIMITE_RODAPE_DOCUMENTO) {
+            throw new IllegalArgumentException(
+                    "O rodapé dos documentos não pode exceder " + Empresa.LIMITE_RODAPE_DOCUMENTO + " caracteres."
+            );
+        }
         if (isBlank(empresa.getProvincia()) || !isAngolaProvince(empresa.getProvincia())) {
             throw new IllegalArgumentException("A província da empresa deve ser uma província válida de Angola.");
         }
