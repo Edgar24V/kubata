@@ -4,17 +4,17 @@
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
 
 	<style name="KDocBase" fontName="DejaVu Sans" fontSize="9" forecolor="#263238"/>
-	<style name="KDocCompany" parentStyle="KDocBase" fontSize="16" isBold="true" forecolor="#0A6B4A"/>
-	<style name="KDocTitle" parentStyle="KDocBase" fontSize="15" isBold="true" forecolor="#0A6B4A"/>
-	<style name="KDocLabel" parentStyle="KDocBase" fontSize="8" isBold="true" forecolor="#546E7A"/>
-	<style name="KDocDetail" parentStyle="KDocBase" backcolor="#FFFFFF" mode="Opaque">
+	<style name="KDocCompany" fontSize="16" isBold="true" forecolor="#0A6B4A"/>
+	<style name="KDocTitle" fontSize="15" isBold="true" forecolor="#0A6B4A"/>
+	<style name="KDocLabel" fontSize="8" isBold="true" forecolor="#546E7A"/>
+	<style name="KDocDetail" backcolor="#FFFFFF" mode="Opaque">
 		<conditionalStyle>
 			<conditionExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></conditionExpression>
 			<style backcolor="#F7FAF8" mode="Opaque"/>
 		</conditionalStyle>
 	</style>
-	<style name="KDocTotal" parentStyle="KDocBase" fontSize="11" isBold="true" forecolor="#0A6B4A"/>
-	<style name="KDocFooter" parentStyle="KDocBase" fontSize="7" forecolor="#78909C"/>
+	<style name="KDocTotal" fontSize="11" isBold="true" forecolor="#0A6B4A"/>
+	<style name="KDocFooter" fontSize="7" forecolor="#78909C"/>
 
 	
 	<!-- Parameters -->
