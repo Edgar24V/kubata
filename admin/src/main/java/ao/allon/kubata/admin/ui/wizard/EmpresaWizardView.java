@@ -1180,9 +1180,13 @@ public class EmpresaWizardView extends VBox {
         private Label logoStatus;
         private String logoFileName;
         private TextArea footer;
+        private Label footerCounter;
+        private Label footerPreview;
         private TextArea invoiceMessage;
+
         public String title() { return "8 · Logótipo e documentos"; }
-        public String description() { return "Configure a identidade visual e textos utilizados nos documentos."; }
+        public String description() { return "Configure a identidade visual e os textos utilizados nos documentos."; }
+
         public Node content() {
             logoBytes = empresa.getLogotipo();
             logoMimeType = empresa.getLogotipoMimeType();
@@ -1190,6 +1194,7 @@ public class EmpresaWizardView extends VBox {
 
             StackPane logoBox = new StackPane();
             logoBox.getStyleClass().add("empresa-logo-box");
+
             logoView = new ImageView();
             logoView.setFitWidth(220);
             logoView.setFitHeight(120);
@@ -1217,9 +1222,26 @@ public class EmpresaWizardView extends VBox {
 
             footer = textArea(empresa.getRodapeDocumento());
             footer.setPromptText("Ex.: Documento emitido pelo sistema Kubata.");
+            footer.setPrefRowCount(5);
+            footer.setWrapText(true);
+
+            footerCounter = new Label();
+            footerCounter.getStyleClass().add("empresa-wizard-help");
+
+            footerPreview = new Label();
+            footerPreview.setWrapText(true);
+            footerPreview.setAlignment(Pos.CENTER);
+            footerPreview.setMaxWidth(Double.MAX_VALUE);
+            footerPreview.setMinHeight(72);
+            footerPreview.getStyleClass().add("empresa-summary-value");
+
+            updateFooterPreview();
+            footer.textProperty().addListener((obs, oldValue, newValue) -> updateFooterPreview());
+
             invoiceMessage = textArea(empresa.getMensagemFatura());
             invoiceMessage.setPromptText("Mensagem impressa nas faturas.");
             invoiceMessage.setPrefRowCount(4);
+            invoiceMessage.setWrapText(true);
 
             VBox branding = card(
                     section("Identidade visual", "logótipo"),
@@ -1228,18 +1250,56 @@ public class EmpresaWizardView extends VBox {
                     logoActions,
                     hint("PNG, JPG/JPEG ou WebP · máximo 2 MB. O tipo é confirmado pelo conteúdo do ficheiro.")
             );
-            VBox docs = card(
-                    section("Documentos", "textos padrão"),
-                    field("Rodapé", footer),
-                    field("Mensagem de fatura", invoiceMessage)
+
+            VBox documents = card(
+                    section("Rodapé dos documentos", "texto padrão"),
+                    field("Rodapé *", footer),
+                    footerCounter,
+                    section("Pré-visualização", "área final do documento"),
+                    footerPreview,
+                    hint("O rodapé pode conter várias linhas e até " + Empresa.LIMITE_RODAPE_DOCUMENTO
+                            + " caracteres. O conteúdo é guardado por empresa e reutilizado pelos módulos de documentos.")
             );
 
-            HBox body = new HBox(18, branding, docs);
-            HBox.setHgrow(branding, Priority.ALWAYS);
-            HBox.setHgrow(docs, Priority.ALWAYS);
+            VBox invoice = card(
+                    section("Mensagem de fatura", "texto específico de faturação"),
+                    field("Mensagem", invoiceMessage),
+                    hint("Esta mensagem é independente do rodapé geral e será tratada pelo módulo de faturação.")
+            );
 
-            return page(body, hint("O logótipo será guardado na empresa e pode ser utilizado por todos os módulos de documentos que suportem a identidade empresarial."));
+            VBox docsColumn = new VBox(12, documents, invoice);
+            HBox.setHgrow(branding, Priority.ALWAYS);
+            HBox.setHgrow(docsColumn, Priority.ALWAYS);
+            HBox body = new HBox(18, branding, docsColumn);
+            HBox.setHgrow(branding, Priority.ALWAYS);
+            HBox.setHgrow(docsColumn, Priority.ALWAYS);
+
+            return page(
+                    body,
+                    hint("O logótipo e os textos ficam associados à empresa. Os módulos de documentos podem reutilizar estes dados para manter uma identidade empresarial consistente.")
+            );
         }
+
+        private void updateFooterPreview() {
+            String value = footer == null ? "" : normalize(footer.getText());
+            int length = value.length();
+
+            footerCounter.setText(length + " / " + Empresa.LIMITE_RODAPE_DOCUMENTO + " caracteres");
+
+            if (length > Empresa.LIMITE_RODAPE_DOCUMENTO) {
+                footerCounter.setText(
+                        length + " / " + Empresa.LIMITE_RODAPE_DOCUMENTO + " caracteres · excede o limite"
+                );
+                footerCounter.getStyleClass().add("warning");
+            } else {
+                footerCounter.getStyleClass().remove("warning");
+            }
+
+            footerPreview.setText(value.isBlank()
+                    ? "Sem rodapé configurado"
+                    : value);
+        }
+
         private void refreshLogoView(StackPane logoBox) {
             logoBox.getChildren().clear();
 
@@ -1282,6 +1342,7 @@ public class EmpresaWizardView extends VBox {
             if (size < 1024 * 1024) return String.format(Locale.ROOT, "%.1f KB", size / 1024.0);
             return String.format(Locale.ROOT, "%.2f MB", size / (1024.0 * 1024.0));
         }
+
         private void chooseLogo(StackPane box) {
             if (getScene() == null || getScene().getWindow() == null) return;
 
@@ -1326,18 +1387,37 @@ public class EmpresaWizardView extends VBox {
                 logoFileName = file.getName();
                 refreshLogoView(box);
             } catch (Exception ex) {
-                modalManager.alert("Logótipo", "Não foi possível carregar a imagem: " + ex.getMessage(), "error", ex);
+                modalManager.alert(
+                        "Erro ao carregar logótipo",
+                        ex.getMessage() == null ? "Não foi possível ler o ficheiro seleccionado." : ex.getMessage(),
+                        "error",
+                        null
+                );
             }
         }
 
         public boolean validate() {
-            String validation = LogoUtils.validate(logoBytes);
-            if (validation != null) {
-                modalManager.alert("Logótipo inválido", validation, "warning", null);
+            String footerValue = normalize(footer.getText());
+
+            if (footerValue.length() > Empresa.LIMITE_RODAPE_DOCUMENTO) {
+                modalManager.alert(
+                        "Rodapé demasiado longo",
+                        "O rodapé dos documentos não pode exceder "
+                                + Empresa.LIMITE_RODAPE_DOCUMENTO + " caracteres. "
+                                + "Actualmente possui " + footerValue.length() + ".",
+                        "warning",
+                        null
+                );
                 return false;
             }
 
             if (logoBytes != null && logoBytes.length > 0) {
+                String validation = LogoUtils.validate(logoBytes);
+                if (validation != null) {
+                    modalManager.alert("Logótipo inválido", validation, "warning", null);
+                    return false;
+                }
+
                 logoMimeType = LogoUtils.detectMimeType(logoBytes);
                 if (!LogoUtils.isSupportedMimeType(logoMimeType)) {
                     modalManager.alert("Formato de logótipo",
@@ -1357,6 +1437,7 @@ public class EmpresaWizardView extends VBox {
 
             return true;
         }
+
         public void save() {
             empresa.setLogotipo(logoBytes);
             empresa.setLogotipoMimeType(
@@ -1367,7 +1448,10 @@ public class EmpresaWizardView extends VBox {
             empresa.setRodapeDocumento(normalize(footer.getText()));
             empresa.setMensagemFatura(normalize(invoiceMessage.getText()));
         }
-        public String help() { return "Configure uma identidade consistente para os documentos empresariais."; }
+
+        public String help() {
+            return "Configure a identidade visual e o texto padrão que poderá aparecer na área inferior dos documentos da empresa.";
+        }
     }
 
     private class SecurityStep implements WizardStep {
