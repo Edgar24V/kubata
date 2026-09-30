@@ -1,6 +1,7 @@
 package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.service.PersistenceService;
+import ao.allon.kubata.admin.service.EmpresaSetupService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
@@ -53,6 +54,7 @@ public class EmpresaView extends VBox {
     private final ModalManager modalManager;
     private final EmpresaWizardView empresaWizardView;
     private final PersistenceService persistenceService;
+    private final EmpresaSetupService empresaSetupService;
 
     private final ObservableList<Empresa> empresas = FXCollections.observableArrayList();
 
@@ -63,6 +65,7 @@ public class EmpresaView extends VBox {
     private Label activeLabel;
     private Label inactiveLabel;
     private Label modulesLabel;
+    private Button toggleButton;
 
     private VBox detailsPane;
     private Label detailsTitle;
@@ -80,7 +83,8 @@ public class EmpresaView extends VBox {
                        SessionManager sessionManager,
                        ModalManager modalManager,
                        EmpresaWizardView empresaWizardView,
-                       PersistenceService persistenceService) {
+                       PersistenceService persistenceService,
+                       EmpresaSetupService empresaSetupService) {
         this.empresaRepository = empresaRepository;
         this.moduloSistemaRepository = moduloSistemaRepository;
         this.moduleRegistry = moduleRegistry;
@@ -89,6 +93,7 @@ public class EmpresaView extends VBox {
         this.modalManager = modalManager;
         this.empresaWizardView = empresaWizardView;
         this.persistenceService = persistenceService;
+        this.empresaSetupService = empresaSetupService;
 
         buildUI();
     }
@@ -174,11 +179,12 @@ public class EmpresaView extends VBox {
         duplicateButton.getStyleClass().add("button-outlined");
         duplicateButton.setOnAction(e -> duplicateSelected());
 
-        Button toggleButton = new Button(
+        toggleButton = new Button(
                 "Activar / desactivar",
                 IconUtils.icon(Feather.POWER, IconUtils.SIZE_SMALL)
         );
         toggleButton.getStyleClass().add("button-outlined");
+        toggleButton.setDisable(true);
         toggleButton.setOnAction(e -> toggleSelected());
 
         Button refreshButton = new Button(
@@ -273,7 +279,10 @@ public class EmpresaView extends VBox {
         );
 
         tv.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldValue, selected) -> showDetails(selected)
+                (obs, oldValue, selected) -> {
+                    showDetails(selected);
+                    updateToggleButton(selected);
+                }
         );
 
         tv.setOnMouseClicked(event -> {
@@ -388,6 +397,7 @@ public class EmpresaView extends VBox {
         if (empresa == null) {
             detailsTitle.setText("Nenhuma empresa seleccionada");
             detailsStatus.setText("—");
+            updateToggleButton(null);
             detailsNif.setText("—");
             detailsLocation.setText("—");
             detailsFiscal.setText("—");
@@ -583,17 +593,57 @@ public class EmpresaView extends VBox {
             return;
         }
 
-        selected.setAtiva(!selected.getAtiva());
-        persistenceService.saveAsync(
-                empresaRepository,
-                selected,
-                "EMPRESA",
-                (selected.getAtiva() ? "Activação" : "Desactivação") + " da empresa " + selected.getNome(),
-                saved -> {
-                    showDetails(saved);
-                    loadEmpresas();
-                }
+        boolean activate = !selected.getAtiva();
+        String action = activate ? "activar" : "desactivar";
+        String status = activate ? "ACTIVA" : "INACTIVA";
+
+        VBox content = new VBox(10,
+                new Label("Empresa seleccionada:"),
+                new Label(selected.getNome()),
+                new Label("NIF: " + (selected.getNif() == null ? "—" : selected.getNif())),
+                new Label("Estado actual: " + (selected.getAtiva() ? "ACTIVA" : "INACTIVA")),
+                new Label("Novo estado: " + status),
+                new Label(
+                        activate
+                                ? "A empresa voltará a ficar disponível como contexto operacional dos módulos."
+                                : "A empresa deixará de ser considerada operacional. Os dados existentes serão mantidos."
+                )
         );
+        content.setPadding(new Insets(10));
+
+        modalManager.showConfirmModal(
+                content,
+                (activate ? "Activar empresa" : "Desactivar empresa"),
+                () -> {
+                    persistenceService.executeAsync(
+                            () -> empresaSetupService.alterarEstado(selected.getId(), activate),
+                            "EMPRESA_ESTADO",
+                            "EMPRESA",
+                            (activate ? "Activação" : "Desactivação") + " da empresa " + selected.getNome(),
+                            this::loadEmpresas
+                    );
+                },
+                null
+        );
+    }
+
+    private void updateToggleButton(Empresa selected) {
+        if (toggleButton == null) return;
+
+        toggleButton.setDisable(selected == null);
+        if (selected == null) {
+            toggleButton.setText("Activar / desactivar");
+            toggleButton.setTooltip(null);
+            return;
+        }
+
+        if (selected.getAtiva()) {
+            toggleButton.setText("Desactivar");
+            toggleButton.setTooltip(new Tooltip("Desactivar empresa sem remover os dados"));
+        } else {
+            toggleButton.setText("Activar");
+            toggleButton.setTooltip(new Tooltip("Activar empresa para voltar a torná-la operacional"));
+        }
     }
 
     private void removeEmpresa(Empresa empresa) {
