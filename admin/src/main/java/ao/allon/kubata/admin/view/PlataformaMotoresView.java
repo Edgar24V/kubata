@@ -420,6 +420,15 @@ public class PlataformaMotoresView extends BorderPane {
                                     .map(e -> e.getKey() + " = " + e.getValue())
                                     .collect(Collectors.joining("\n")));
                         }),
+                        button("Executar widget", Feather.PLAY, () -> {
+                            AdmPlataformaItem item = selected(widgets);
+                            if (item == null) return;
+                            try {
+                                stats.setText(item.getNome() + " → " + runtime.executeWidget(item));
+                            } catch (Exception ex) {
+                                stats.setText("Falha no widget: " + ex.getMessage());
+                            }
+                        }),
                         button("Novo widget", Feather.PLUS, () -> newWidget(widgets)),
                         button("Actualizar widgets", Feather.REFRESH_CW, () -> widgets.setItems(FXCollections.observableArrayList(runtime.dashboardWidgets())))
                 ),
@@ -444,8 +453,7 @@ public class PlataformaMotoresView extends BorderPane {
         field(g, 3, "Consulta opcional", query);
         if (dialog("Novo widget", g).showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
 
-        if (query.getText() != null && !query.getText().isBlank()
-                && !runtime.validateDefinition("LISTAGEM", "{\"query\":\"" + escape(query.getText()) + "\"}").equals("Definição válida.")) {
+        if (query.getText() != null && !query.getText().isBlank() && !runtime.isReadOnlyQuery(query.getText())) {
             showMessage("Dashboard", "A consulta do widget deve ser somente SELECT/WITH.");
             return;
         }
@@ -513,6 +521,8 @@ public class PlataformaMotoresView extends BorderPane {
         TextField cloneTarget = new TextField();
         TextField newDb = new TextField();
         TextField restoreFile = new TextField();
+        TextField compareLeft = new TextField();
+        TextField compareRight = new TextField();
         TextArea fingerprint = new TextArea();
         fingerprint.setEditable(false);
         fingerprint.setPrefRowCount(3);
@@ -542,6 +552,16 @@ public class PlataformaMotoresView extends BorderPane {
             }
         });
 
+        Button compare = button("Comparar SQLite", Feather.GIT_COMPARE, () -> {
+            try {
+                showMessage("Base de Dados", runtime.compareSqlite(
+                        Paths.get(compareLeft.getText().trim()),
+                        Paths.get(compareRight.getText().trim())));
+            } catch (Exception ex) {
+                showMessage("Base de Dados", ex.getMessage());
+            }
+        });
+
         v.getChildren().addAll(
                 section("Gestão avançada de BD",
                         "A plataforma cria bases SQLite vazias, clona a base actual e prepara restaurações sem substituir uma BD em uso."),
@@ -560,6 +580,12 @@ public class PlataformaMotoresView extends BorderPane {
                         restoreFile,
                         restore
                 ),
+                card(
+                        new Label("Comparação de schemas SQLite"),
+                        new HBox(8, compareLeft, button("Escolher A", Feather.FOLDER, () -> chooseOpenFileInto(compareLeft))),
+                        new HBox(8, compareRight, button("Escolher B", Feather.FOLDER, () -> chooseOpenFileInto(compareRight))),
+                        compare
+                ),
                 new HBox(8, button("Fingerprint do schema", Feather.HASH, () -> {
                     fingerprint.setText(runtime.schemaFingerprint());
                 })),
@@ -572,6 +598,12 @@ public class PlataformaMotoresView extends BorderPane {
     private void chooseFileInto(TextField target) {
         FileChooser chooser = new FileChooser();
         java.io.File f = chooser.showSaveDialog(getScene() == null ? null : getScene().getWindow());
+        if (f != null) target.setText(f.getAbsolutePath());
+    }
+
+    private void chooseOpenFileInto(TextField target) {
+        FileChooser chooser = new FileChooser();
+        java.io.File f = chooser.showOpenDialog(getScene() == null ? null : getScene().getWindow());
         if (f != null) target.setText(f.getAbsolutePath());
     }
 
