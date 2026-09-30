@@ -72,7 +72,9 @@ public class EmpresaSetupService {
             empresa.setExercicioActual(LocalDate.now().getYear());
         }
 
+        applyDefaultPolicyBeforeSave(empresa);
         Empresa saved = empresaRepository.save(empresa);
+        saved = ensureDefaultCompany(saved);
 
         if (abrirExercicio && saved.getExercicioActual() != null) {
             ensureFiscalYear(saved, saved.getExercicioActual(), updatedBy);
@@ -135,6 +137,76 @@ public class EmpresaSetupService {
         return empresaRepository.save(empresa);
     }
 
+    private void applyDefaultPolicyBeforeSave(Empresa empresa) {
+        if (!empresa.getAtiva()) {
+            empresa.setPredefinida(false);
+            return;
+        }
+
+        if (empresa.getPredefinida()) {
+            clearOtherDefaultCompanies(empresa.getId());
+            return;
+        }
+
+        if (empresa.getId() == null && empresaRepository.findFirstByPredefinidaTrueAndAtivaTrue().isEmpty()) {
+            empresa.setPredefinida(true);
+        }
+    }
+
+    private Empresa ensureDefaultCompany(Empresa saved) {
+        if (saved.getAtiva() && saved.getPredefinida()) {
+            return saved;
+        }
+
+        Optional<Empresa> currentDefault = empresaRepository.findFirstByPredefinidaTrueAndAtivaTrue();
+        if (currentDefault.isPresent()) {
+            return saved;
+        }
+
+        Optional<Empresa> fallback = empresaRepository.findAllByAtivaTrueOrderByNomeAsc().stream()
+                .filter(e -> !e.getId().equals(saved.getId()))
+                .findFirst();
+
+        if (fallback.isPresent()) {
+            Empresa defaultCompany = fallback.get();
+            defaultCompany.setPredefinida(true);
+            return empresaRepository.save(defaultCompany);
+        }
+
+        return saved;
+    }
+
+    private void clearOtherDefaultCompanies(Long currentId) {
+        for (Empresa other : empresaRepository.findAllByPredefinidaTrue()) {
+            if (currentId == null || !currentId.equals(other.getId())) {
+                other.setPredefinida(false);
+                empresaRepository.save(other);
+            }
+        }
+    }
+
+    /**
+     * Torna explicitamente uma empresa activa na empresa predefinida do
+     * ambiente. Existe apenas uma empresa predefinida.
+     */
+    @Transactional
+    public Empresa definirComoPredefinida(Long empresaId) {
+        if (empresaId == null) {
+            throw new IllegalArgumentException("A empresa seleccionada não possui identificador.");
+        }
+
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new IllegalArgumentException("Empresa não encontrada."));
+
+        if (!empresa.getAtiva()) {
+            throw new IllegalStateException("Só uma empresa activa pode ser definida como predefinida.");
+        }
+
+        clearOtherDefaultCompanies(empresaId);
+        empresa.setPredefinida(true);
+        return empresaRepository.save(empresa);
+    }
+
     private void ensureFiscalYear(Empresa empresa, Integer year, String updatedBy) {
         if (exercicioFiscalRepository.findByEmpresaIdAndAno(empresa.getId(), year).isPresent()) {
             return;
@@ -193,6 +265,9 @@ public class EmpresaSetupService {
         }
         if (empresa.getIdentificador() == null || empresa.getIdentificador().isBlank()) {
             throw new IllegalArgumentException("O identificador da empresa é obrigatório.");
+        }
+        if (empresa.getPredefinida() && !empresa.getAtiva()) {
+            throw new IllegalArgumentException("Uma empresa inactiva não pode ser definida como empresa predefinida.");
         }
         if (isBlank(empresa.getProvincia()) || !isAngolaProvince(empresa.getProvincia())) {
             throw new IllegalArgumentException("A província da empresa deve ser uma província válida de Angola.");
