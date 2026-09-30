@@ -4,20 +4,20 @@
     <property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
     <import value="java.text.NumberFormat"/>
     <import value="java.util.Locale"/>
-    <style name="Title" forecolor="#FFFFFF" fontName="Times New Roman" fontSize="50" isBold="false" pdfFontName="Times-Bold"/>
-    <style name="SubTitle" forecolor="#CCCCCC" fontName="Times New Roman" fontSize="18" isBold="false" pdfFontName="Times-Roman"/>
-    <style name="Column header" forecolor="#666666" fontName="Times New Roman" fontSize="14" isBold="true"/>
-    <style name="Detail" mode="Transparent" fontName="Times New Roman"/>
-    <style name="Row" mode="Transparent" fontName="Times New Roman" pdfFontName="Times-Roman">
+    <style name="Title" fontName="DejaVu Sans" fontSize="20" isBold="true" forecolor="#0A6B4A"/>
+    <style name="SubTitle" fontName="DejaVu Sans" fontSize="9" forecolor="#607D8B"/>
+    <style name="Column header" fontName="DejaVu Sans" fontSize="8" isBold="true" forecolor="#FFFFFF"/>
+    <style name="Detail" mode="Transparent" fontName="DejaVu Sans" fontSize="9" forecolor="#263238"/>
+    <style name="Row" mode="Transparent" fontName="DejaVu Sans" fontSize="9" pdfFontName="Helvetica">
         <conditionalStyle>
             <conditionExpression><![CDATA[$V{REPORT_COUNT}%2 == 0]]></conditionExpression>
-            <style mode="Opaque" backcolor="#EEEFF0"/>
+            <style mode="Opaque" backcolor="#F4F8F6"/>
         </conditionalStyle>
     </style>
     <style name="Table">
         <box>
-            <pen lineWidth="1.0" lineColor="#000000"/>
-            <topPen lineWidth="1.0" lineColor="#000000"/>
+            <pen lineWidth="0.7" lineColor="#CFD8D3"/>
+            <topPen lineWidth="0.7" lineColor="#CFD8D3"/>
             <leftPen lineWidth="1.0" lineColor="#000000"/>
             <bottomPen lineWidth="1.0" lineColor="#000000"/>
             <rightPen lineWidth="1.0" lineColor="#000000"/>
@@ -121,7 +121,7 @@
             </textField>
 
             <textField>
-                <reportElement x="0" y="0" width="555" height="22" forecolor="#FFFFFF" backcolor="#444444" mode="Opaque" uuid="2170c61d-d251-484b-8d81-8c1f2007dc32">
+                <reportElement x="0" y="0" width="555" height="22" forecolor="#FFFFFF" backcolor="#0A6B4A" mode="Opaque" uuid="2170c61d-d251-484b-8d81-8c1f2007dc32">
                     <printWhenExpression><![CDATA[$P{retificado} != null && $P{retificado}.booleanValue()]]></printWhenExpression>
                 </reportElement>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
@@ -271,7 +271,7 @@
         <band height="140" splitType="Stretch">
             <!-- AGT Compliance Block -->
             <rectangle>
-                <reportElement x="0" y="10" width="555" height="100" backcolor="#FAFAFA" uuid="b38b21e4-44b6-44bc-b54c-30c6f2d53cc3"/>
+                <reportElement x="0" y="10" width="555" height="100" backcolor="#F4F8F6" uuid="b38b21e4-44b6-44bc-b54c-30c6f2d53cc3"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineStyle="Dashed"/>
                 </graphicElement>
@@ -321,20 +321,19 @@
                 <textElement>
                     <font size="8" isItalic="true"/>
                 </textElement>
-                <textFieldExpression><![CDATA["Os bens/serviços foram colocados à disposição do adquirente na data do documento.\n" + 
-                "Processado por Computador — Kubata Software — Certificado AGT Nº 000/AGT/2026\n" + 
-                "Documento original emitido em conformidade com o Decreto Presidencial 292/18 e Decreto Executivo 317/20"]]></textFieldExpression>
+                <textFieldExpression><![CDATA["Documento processado por computador — Kubata ERP.\n" +
+                "Os elementos fiscais e identificadores apresentados neste relatório são fornecidos pelo sistema e pelos dados do documento."]]></textFieldExpression>
             </textField>
             
             <textField>
-                <reportElement style="Column header" x="433" y="115" width="80" height="20" forecolor="#000000" uuid="e625ea3c-1741-4cfe-81cf-fbbdd00162c8"/>
+                <reportElement style="Column header" x="433" y="115" width="80" height="20" forecolor="#607D8B" uuid="e625ea3c-1741-4cfe-81cf-fbbdd00162c8"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle">
                     <font size="10" isBold="false"/>
                 </textElement>
                 <textFieldExpression><![CDATA["Pág "+$V{PAGE_NUMBER}+" de"]]></textFieldExpression>
             </textField>
             <textField evaluationTime="Report">
-                <reportElement style="Column header" x="513" y="115" width="40" height="20" forecolor="#000000" uuid="f5d4115e-19d9-4589-a6f3-beafa923d84a"/>
+                <reportElement style="Column header" x="513" y="115" width="40" height="20" forecolor="#607D8B" uuid="f5d4115e-19d9-4589-a6f3-beafa923d84a"/>
                 <textElement verticalAlignment="Middle">
                     <font size="10" isBold="false"/>
                 </textElement>
