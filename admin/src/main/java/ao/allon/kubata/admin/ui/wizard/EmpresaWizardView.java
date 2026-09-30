@@ -468,10 +468,11 @@ public class EmpresaWizardView extends VBox {
 
     private boolean isAngolaProvince(String value) {
         return Set.of(
-                "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango",
+                "Bengo", "Benguela", "Bié", "Cabinda", "Cuando", "Cubango",
                 "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
-                "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico",
-                "Namibe", "Uíge", "Zaire"
+                "Icolo e Bengo", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje",
+                "Moxico", "Moxico Leste", "Namibe", "Uíge", "Zaire",
+                "Cuando Cubango"
         ).contains(value);
     }
 
@@ -680,10 +681,10 @@ public class EmpresaWizardView extends VBox {
             address = text("Morada completa", empresa.getMorada());
             postalCode = text("Código postal", empresa.getCodigoPostal());
             locality = text("Localidade", empresa.getLocalidade());
-            province = combo("Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango",
+            province = combo("Bengo", "Benguela", "Bié", "Cabinda", "Cuando", "Cubango",
                     "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
-                    "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico",
-                    "Namibe", "Uíge", "Zaire");
+                    "Icolo e Bengo", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje",
+                    "Moxico", "Moxico Leste", "Namibe", "Uíge", "Zaire");
             province.setValue(empresa.getProvincia() == null ? "Luanda" : empresa.getProvincia());
             municipality = text("Município", empresa.getMunicipio());
             fiscalDistrict = text("Bairro / zona fiscal", empresa.getBairroFiscal());
