@@ -742,7 +742,7 @@ public class PlataformaCentroView extends BorderPane {
                             new FileChooser.ExtensionFilter("Keystores", "*.jks", "*.p12", "*.pfx"),
                             new FileChooser.ExtensionFilter("Todos os ficheiros", "*.*")
                     );
-                    File file = chooser.showOpenDialog(getWindow());
+                    File file = chooser.showOpenDialog(getScene() == null ? null : getScene().getWindow());
                     if (file != null) {
                         path.setText(file.getAbsolutePath());
                         certificateList.setText(readKeystore(file.getAbsolutePath()));
@@ -916,7 +916,7 @@ public class PlataformaCentroView extends BorderPane {
     private void chooseDocumentsDirectory() {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Escolher directório documental");
-        File dir = chooser.showDialog(getWindow());
+        File dir = chooser.showDialog(getScene() == null ? null : getScene().getWindow());
         if (dir != null) {
             documentsDirectory.setText(dir.getAbsolutePath());
         }
