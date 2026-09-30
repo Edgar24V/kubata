@@ -259,7 +259,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
 
                 String qualified = quoteIdentifier(table, connection);
                 String where = columns.stream()
-                        .map(c -> "CAST(" + quoteIdentifier(c, connection) + " AS VARCHAR(1000)) LIKE ?")
+                        .map(c -> "CAST(" + safeQuoteIdentifier(c, connection) + " AS VARCHAR(1000)) LIKE ?")
                         .collect(Collectors.joining(" OR "));
                 String sql = "SELECT * FROM " + qualified + " WHERE " + where + limitClause(connection, Math.min(8, maxHits - hits.size()));
 
@@ -695,6 +695,16 @@ public class PlataformaRuntimeService implements ModuleEventListener {
         if (quote == null || quote.isBlank()) quote = "\"";
         return quote + identifier.replace(quote, quote + quote) + quote;
     }
+\n    private String safeQuoteIdentifier(String identifier, Connection connection) {
+        try {
+            return quoteIdentifier(identifier, connection);
+        } catch (SQLException ex) {
+            // O identificador vem da metadata da BD; em caso de falha, usar aspas SQL padrão.
+            String quote = "\"";
+            return quote + identifier.replace(quote, quote + quote) + quote;
+        }
+    }
+
 
     private boolean searchableType(String type) {
         if (type == null) return true;
