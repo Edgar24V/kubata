@@ -75,6 +75,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
 
         HBox workspace=new HBox(0,buildNavigation(),tabs);
         workspace.setAlignment(Pos.TOP_LEFT);
+        workspace.setFillHeight(true);
         workspace.setMaxSize(Double.MAX_VALUE,Double.MAX_VALUE);
         HBox.setHgrow(tabs,Priority.ALWAYS);
         tabs.setMaxSize(Double.MAX_VALUE,Double.MAX_VALUE);
@@ -148,9 +149,13 @@ public class PlataformaCentroCompletoView extends BorderPane {
         return header;
     }
 
-    private ScrollPane buildNavigation(){
-        VBox nav=new VBox(7);
-        nav.setPadding(new Insets(14,10,10,10));
+    private VBox buildNavigation(){
+        VBox nav=new VBox(9);
+        nav.setMinWidth(244);
+        nav.setPrefWidth(244);
+        nav.setMaxWidth(260);
+        nav.setMaxHeight(Double.MAX_VALUE);
+        nav.setPadding(new Insets(12,10,10,10));
         nav.getStyleClass().add("kubata-center-navigation");
 
         VBox identity=new VBox(2);
@@ -158,7 +163,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         eyebrow.getStyleClass().add("kubata-center-nav-eyebrow");
         Label title=new Label("Administração");
         title.getStyleClass().add("kubata-center-nav-title");
-        Label sub=new Label("Navegue por área e mantenha o controlo da plataforma.");
+        Label sub=new Label("Acesso rápido às áreas administrativas da plataforma.");
         sub.setWrapText(true);
         sub.getStyleClass().add("kubata-center-nav-subtitle");
         identity.getChildren().addAll(eyebrow,title,sub);
@@ -166,9 +171,21 @@ public class PlataformaCentroCompletoView extends BorderPane {
         navigationSearch.setPromptText("Pesquisar área...");
         navigationSearch.setMaxWidth(Double.MAX_VALUE);
         navigationSearch.getStyleClass().add("kubata-center-nav-search");
+
+        HBox searchRow=new HBox(7,navigationSearch);
+        searchRow.setAlignment(Pos.CENTER_LEFT);
+        searchRow.getStyleClass().add("kubata-center-nav-search-row");
+
+        Label count=new Label("13 áreas");
+        count.getStyleClass().add("kubata-center-nav-count");
+        searchRow.getChildren().add(count);
+
         navigationSearch.textProperty().addListener((obs,oldValue,newValue)->filterNavigation(newValue));
 
-        VBox menu=new VBox(7);
+        VBox menu=new VBox(5);
+        menu.setFillWidth(true);
+        menu.setMaxWidth(Double.MAX_VALUE);
+
         menu.getChildren().add(navSection("VISÃO GERAL"));
         menu.getChildren().addAll(
                 navButton("Dashboard",Feather.HOME,"Resumo do Centro"),
@@ -195,14 +212,15 @@ public class PlataformaCentroCompletoView extends BorderPane {
 
         menu.getChildren().add(navSection("SEGURANÇA"));
         menu.getChildren().add(navButton("Segurança & Certificados",Feather.SHIELD,"Políticas e certificado"));
-        menu.setFillWidth(true);
 
         ScrollPane menuScroll=new ScrollPane(menu);
         menuScroll.setFitToWidth(true);
+        menuScroll.setFitToHeight(false);
         menuScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         menuScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         menuScroll.setPannable(true);
         menuScroll.setFocusTraversable(false);
+        menuScroll.setPrefViewportHeight(420);
         menuScroll.getStyleClass().add("kubata-center-nav-scroll");
         VBox.setVgrow(menuScroll,Priority.ALWAYS);
 
@@ -214,17 +232,8 @@ public class PlataformaCentroCompletoView extends BorderPane {
         sessionUser.getStyleClass().add("kubata-center-nav-user");
         session.getChildren().addAll(sessionTitle,sessionUser);
 
-        nav.getChildren().addAll(identity,navigationSearch,menuScroll,session);
-
-        ScrollPane shell=new ScrollPane(nav);
-        shell.setFitToWidth(true);
-        shell.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        shell.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        shell.setFitToHeight(true);
-        shell.setPannable(false);
-        shell.setFocusTraversable(false);
-        shell.getStyleClass().add("kubata-center-navigation-shell");
-        return shell;
+        nav.getChildren().addAll(identity,searchRow,menuScroll,session);
+        return nav;
     }
 
     private Label navSection(String title){
