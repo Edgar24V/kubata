@@ -73,20 +73,20 @@
         <band height="30" splitType="Stretch">
             <staticText>
                 <reportElement style="KHeader" x="0" y="0" width="180" height="30" uuid="2a45a34e-0306-4b2a-8994-069a79709d6c"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.5" lineColor="#075437"/></box>
+                <box><bottomPen lineWidth="0.5" lineColor="#075437"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <text><![CDATA[Nome]]></text>
             </staticText>
             <staticText>
                 <reportElement style="KHeader" x="180" y="0" width="175" height="30" uuid="88e07923-5e93-4375-9781-64585c88463c"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.5" lineColor="#075437"/></box>
+                <box><bottomPen lineWidth="0.5" lineColor="#075437"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <text><![CDATA[E-mail]]></text>
             </staticText>
             <staticText>
                 <reportElement style="KHeader" x="355" y="0" width="100" height="30" uuid="d6e3f43b-419b-4395-88e2-880c5e7b41e2"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.5" lineColor="#075437"/></box>
+                <box><bottomPen lineWidth="0.5" lineColor="#075437"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <text><![CDATA[Perfil]]></text>
             </staticText>
             <staticText>
@@ -102,26 +102,26 @@
         <band height="25" splitType="Stretch">
             <textField>
                 <reportElement style="KDetail" x="0" y="0" width="180" height="25" uuid="4f9d227c-959c-486a-845b-785d0d829370"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <textFieldExpression><![CDATA[$F{nome} == null ? "—" : $F{nome}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement style="KDetail" x="180" y="0" width="175" height="25" uuid="6a715f21-7292-4161-9c60-59a8509b53e3"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <textFieldExpression><![CDATA[$F{email} == null ? "—" : $F{email}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement style="KDetail" x="355" y="0" width="100" height="25" uuid="6a34c51f-5061-424a-a471-92b0c1693f8e"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <textFieldExpression><![CDATA[$F{role} == null ? "—" : String.valueOf($F{role})]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement style="KDetail" x="455" y="0" width="100" height="25" uuid="69a19c5b-3129-4700-9884-60170a312480"/>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
+                
                 <textFieldExpression><![CDATA[Boolean.TRUE.equals($F{active}) ? "Ativo" : "Inativo"]]></textFieldExpression>
             </textField>
         </band>
