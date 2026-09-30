@@ -60,7 +60,7 @@ public class ApplicationView extends VBox {
     private final ModuleRegistry moduleRegistry;
     private final ModuleInstallationService moduleInstallationService;
     private final DataSource dataSource;
-    private final JrxmlStudioView jrxmlStudioView;
+    private final ObjectProvider<JrxmlStudioView> jrxmlStudioProvider;
 
     private final TabPane tabPane = new TabPane();
     
@@ -85,7 +85,7 @@ public class ApplicationView extends VBox {
                            ModuleRegistry moduleRegistry,
                            ModuleInstallationService moduleInstallationService,
                            DataSource dataSource,
-                           JrxmlStudioView jrxmlStudioView) {
+                           ObjectProvider<JrxmlStudioView> jrxmlStudioProvider) {
         this.moduloRepository = moduloRepository;
         this.backupRecordRepository = backupRecordRepository;
         this.modalManager = modalManager;
@@ -96,7 +96,7 @@ public class ApplicationView extends VBox {
         this.moduleRegistry = moduleRegistry;
         this.moduleInstallationService = moduleInstallationService;
         this.dataSource = dataSource;
-        this.jrxmlStudioView = jrxmlStudioView;
+        this.jrxmlStudioProvider = jrxmlStudioProvider;
 
         buildUI();
         
@@ -126,7 +126,7 @@ public class ApplicationView extends VBox {
         Tab tabLicense = new Tab("Licenciamento", buildLicenseTab());
         tabLicense.setGraphic(IconUtils.icon(Feather.KEY, 14));
 
-        Tab tabJrxml = new Tab("JRXML & Relatórios", jrxmlStudioView);
+        Tab tabJrxml = new Tab("JRXML & Relatórios", jrxmlStudioProvider.getObject());
         tabJrxml.setGraphic(IconUtils.icon(Feather.FILE_TEXT, 14));
 
         tabPane.getTabs().addAll(tabModules, tabDB, tabAPI, tabLicense, tabJrxml);
