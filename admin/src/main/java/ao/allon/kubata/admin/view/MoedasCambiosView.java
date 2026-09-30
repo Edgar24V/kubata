@@ -1,6 +1,7 @@
 package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.ui.util.IconUtils;
+import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.core.domain.Moeda;
 import ao.allon.kubata.core.repository.MoedaRepository;
 import javafx.application.Platform;
@@ -23,41 +24,43 @@ import java.util.Comparator;
 public class MoedasCambiosView extends BorderPane {
 
     private final MoedaRepository repository;
+    private final ModalManager modalManager;
     private final ObservableList<Moeda> moedas = FXCollections.observableArrayList();
     private final TableView<Moeda> table = new TableView<>(moedas);
     private final Label totalValue = new Label("0");
     private final Label activeValue = new Label("0");
     private final Label baseValue = new Label("—");
 
-    public MoedasCambiosView(MoedaRepository repository) {
+    public MoedasCambiosView(MoedaRepository repository, ModalManager modalManager) {
         this.repository = repository;
-        getStyleClass().addAll("application-view", "kubata-infra-page");
+        this.modalManager = modalManager;
+        getStyleClass().add("kubata-server-page");
         buildUi();
         load();
     }
 
     private void buildUi() {
         VBox header = new VBox(10);
-        header.setPadding(new Insets(18, 20, 14, 20));
-        header.getStyleClass().add("kubata-infra-header");
+        header.setPadding(new Insets(20, 22, 16, 22));
+        header.getStyleClass().add("kubata-server-header");
 
         HBox line = new HBox(13);
         line.setAlignment(Pos.CENTER_LEFT);
 
-        HBox iconBox = new HBox();
+        StackPane iconBox = new StackPane();
         iconBox.setAlignment(Pos.CENTER);
         iconBox.getStyleClass().add("kubata-infra-title-icon");
-        iconBox.getChildren().add(IconUtils.icon(Feather.DOLLAR_SIGN, 21));
+        iconBox.getChildren().add(new Label("", IconUtils.icon(Feather.DOLLAR_SIGN, 22)));
 
         VBox titles = new VBox(2);
         Label title = new Label("Moedas e Câmbios");
-        title.getStyleClass().add("kubata-infra-title");
+        title.getStyleClass().add("kubata-server-title");
 
         Label subtitle = new Label(
                 "Administração central de moedas, moeda base, casas decimais e taxas de câmbio."
         );
         subtitle.setWrapText(true);
-        subtitle.getStyleClass().add("kubata-infra-subtitle");
+        subtitle.getStyleClass().add("kubata-server-subtitle");
         titles.getChildren().addAll(title, subtitle);
 
         Region spacer = new Region();
@@ -74,7 +77,7 @@ public class MoedasCambiosView extends BorderPane {
         line.getChildren().addAll(iconBox, titles, spacer, refresh, novo);
 
         Label context = new Label("CATÁLOGO FINANCEIRO · uma moeda pode ser definida como base");
-        context.getStyleClass().add("kubata-infra-status");
+        context.getStyleClass().add("kubata-server-status-bar");
 
         header.getChildren().addAll(line, context);
 
@@ -91,9 +94,9 @@ public class MoedasCambiosView extends BorderPane {
 
         VBox tableTitles = new VBox(2);
         Label tableTitle = new Label("Catálogo de moedas");
-        tableTitle.getStyleClass().add("kubata-infra-section-title");
+        tableTitle.getStyleClass().add("kubata-server-panel-title");
         Label tableSubtitle = new Label("Taxas e estado das moedas disponíveis para os módulos financeiros.");
-        tableSubtitle.getStyleClass().add("kubata-infra-section-subtitle");
+        tableSubtitle.getStyleClass().add("kubata-server-note");
         tableTitles.getChildren().addAll(tableTitle, tableSubtitle);
 
         Region tableSpacer = new Region();
@@ -101,7 +104,7 @@ public class MoedasCambiosView extends BorderPane {
         tableHeader.getChildren().addAll(tableTitles, tableSpacer);
 
         VBox tableSection = new VBox(10, tableHeader, table);
-        tableSection.getStyleClass().add("kubata-infra-section");
+        tableSection.getStyleClass().add("kubata-server-panel");
         VBox.setVgrow(table, Priority.ALWAYS);
         VBox.setVgrow(tableSection, Priority.ALWAYS);
 
@@ -132,25 +135,25 @@ public class MoedasCambiosView extends BorderPane {
 
         HBox iconBox = new HBox();
         iconBox.setAlignment(Pos.CENTER);
-        iconBox.getStyleClass().add("kubata-infra-kpi-icon");
+        iconBox.getStyleClass().add("kubata-server-metric-icon");
         iconBox.getChildren().add(IconUtils.icon(icon, 15));
 
         VBox text = new VBox(1);
         Label caption = new Label(title);
-        caption.getStyleClass().add("kubata-infra-kpi-title");
-        value.getStyleClass().add("kubata-infra-kpi-value");
+        caption.getStyleClass().add("kubata-server-metric-title");
+        value.getStyleClass().add("kubata-server-metric-value");
         text.getChildren().addAll(caption, value);
 
         content.getChildren().addAll(iconBox, text);
 
         VBox card = new VBox(content);
-        card.getStyleClass().add("kubata-infra-kpi");
+        card.getStyleClass().add("kubata-server-metric");
         return card;
     }
 
     private void buildTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        table.getStyleClass().add("kubata-infra-table");
+        table.getStyleClass().add("kubata-server-properties-table");
         table.setPlaceholder(new Label("Nenhuma moeda configurada."));
 
         TableColumn<Moeda, String> codigo = new TableColumn<>("Código");
@@ -224,12 +227,6 @@ public class MoedasCambiosView extends BorderPane {
     }
 
     private void openDialog(Moeda current) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(current == null ? "Nova moeda" : "Editar moeda");
-        dialog.setHeaderText(current == null
-                ? "Adicionar moeda ao catálogo"
-                : "Actualizar dados da moeda");
-
         TextField codigo = new TextField(current == null ? "" : safe(current.getCodigoISO()));
         codigo.setPromptText("AOA");
         codigo.setDisable(current != null);
@@ -239,96 +236,116 @@ public class MoedasCambiosView extends BorderPane {
         TextField taxa = new TextField(current == null || current.getTaxaCambio() == null ? "" : current.getTaxaCambio().toPlainString());
         DatePicker data = new DatePicker(current == null ? LocalDate.now() : current.getDataTaxaCambio());
         Spinner<Integer> casas = new Spinner<>(0, 6, current == null || current.getCasasDecimais() == null ? 2 : current.getCasasDecimais());
+
         CheckBox base = new CheckBox("Moeda base");
         base.setSelected(current != null && Boolean.TRUE.equals(current.getMoedaBase()));
+
         CheckBox activa = new CheckBox("Activa");
         activa.setSelected(current == null || Boolean.TRUE.equals(current.getActiva()));
 
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(9);
-        grid.add(new Label("Código ISO"), 0, 0); grid.add(codigo, 1, 0);
-        grid.add(new Label("Nome"), 0, 1); grid.add(nome, 1, 1);
-        grid.add(new Label("Símbolo"), 0, 2); grid.add(simbolo, 1, 2);
-        grid.add(new Label("Taxa de câmbio"), 0, 3); grid.add(taxa, 1, 3);
-        grid.add(new Label("Data da taxa"), 0, 4); grid.add(data, 1, 4);
-        grid.add(new Label("Casas decimais"), 0, 5); grid.add(casas, 1, 5);
+        grid.setHgap(12);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(6));
+        grid.add(new Label("Código ISO"), 0, 0);
+        grid.add(codigo, 1, 0);
+        grid.add(new Label("Nome"), 0, 1);
+        grid.add(nome, 1, 1);
+        grid.add(new Label("Símbolo"), 0, 2);
+        grid.add(simbolo, 1, 2);
+        grid.add(new Label("Taxa de câmbio"), 0, 3);
+        grid.add(taxa, 1, 3);
+        grid.add(new Label("Data da taxa"), 0, 4);
+        grid.add(data, 1, 4);
+        grid.add(new Label("Casas decimais"), 0, 5);
+        grid.add(casas, 1, 5);
         grid.add(base, 1, 6);
         grid.add(activa, 1, 7);
 
         ColumnConstraints right = new ColumnConstraints();
         right.setHgrow(Priority.ALWAYS);
-        grid.getColumnConstraints().addAll(new ColumnConstraints(120), right);
+        grid.getColumnConstraints().addAll(new ColumnConstraints(140), right);
 
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+        modalManager.showConfirmModal(
+                grid,
+                current == null ? "Nova moeda" : "Editar moeda",
+                () -> {
+                    String iso = codigo.getText().trim().toUpperCase();
+                    String nomeValue = nome.getText().trim();
 
-        dialog.setResultConverter(button -> {
-            if (button != ButtonType.OK) return null;
+                    if (iso.length() != 3 || nomeValue.isBlank()) {
+                        modalManager.warning(
+                                "Moeda",
+                                "Informe um código ISO com 3 caracteres e o nome da moeda."
+                        );
+                        return;
+                    }
 
-            String iso = codigo.getText().trim().toUpperCase();
-            String nomeValue = nome.getText().trim();
-            if (iso.length() != 3 || nomeValue.isBlank()) {
-                new Alert(Alert.AlertType.WARNING, "Informe um código ISO com 3 caracteres e o nome da moeda.").showAndWait();
-                return null;
-            }
+                    try {
+                        BigDecimal cambio = taxa.getText().isBlank()
+                                ? BigDecimal.ONE
+                                : new BigDecimal(taxa.getText().trim());
 
-            try {
-                BigDecimal cambio = taxa.getText().isBlank() ? BigDecimal.ONE : new BigDecimal(taxa.getText().trim());
-                Moeda moeda = current == null
-                        ? Moeda.builder().codigoISO(iso).build()
-                        : current;
+                        Moeda moeda = current == null
+                                ? Moeda.builder().codigoISO(iso).build()
+                                : current;
 
-                moeda.setNome(nomeValue);
-                moeda.setSimbolo(simbolo.getText().trim());
-                moeda.setTaxaCambio(cambio);
-                moeda.setDataTaxaCambio(data.getValue());
-                moeda.setCasasDecimais(casas.getValue());
-                moeda.setMoedaBase(base.isSelected());
-                moeda.setActiva(activa.isSelected());
+                        moeda.setNome(nomeValue);
+                        moeda.setSimbolo(simbolo.getText().trim());
+                        moeda.setTaxaCambio(cambio);
+                        moeda.setDataTaxaCambio(data.getValue());
+                        moeda.setCasasDecimais(casas.getValue());
+                        moeda.setMoedaBase(base.isSelected());
+                        moeda.setActiva(activa.isSelected());
 
-                if (base.isSelected()) {
-                    repository.findAll().stream()
-                            .filter(m -> current == null || !m.getId().equals(current.getId()))
-                            .forEach(m -> {
-                                m.setMoedaBase(false);
-                                repository.save(m);
-                            });
-                }
+                        if (base.isSelected()) {
+                            repository.findAll().stream()
+                                    .filter(m -> current == null || !m.getId().equals(current.getId()))
+                                    .forEach(m -> {
+                                        m.setMoedaBase(false);
+                                        repository.save(m);
+                                    });
+                        }
 
-                repository.save(moeda);
-                load();
-            } catch (NumberFormatException ex) {
-                new Alert(Alert.AlertType.WARNING, "A taxa de câmbio deve ser numérica.").showAndWait();
-            } catch (Exception ex) {
-                new Alert(Alert.AlertType.ERROR, "Não foi possível guardar a moeda: " + ex.getMessage()).showAndWait();
-            }
-            return null;
-        });
-
-        dialog.showAndWait();
+                        repository.save(moeda);
+                        load();
+                    } catch (NumberFormatException ex) {
+                        modalManager.warning("Moeda", "A taxa de câmbio deve ser numérica.");
+                    } catch (Exception ex) {
+                        modalManager.showErrorModal(
+                                "Moeda",
+                                "Não foi possível guardar a moeda.",
+                                ex
+                        );
+                    }
+                },
+                () -> {}
+        );
     }
 
     private void delete(Moeda moeda) {
         if (moeda == null || moeda.getId() == null) return;
-        Alert confirm = new Alert(
-                Alert.AlertType.CONFIRMATION,
+
+        modalManager.showConfirm(
+                "Remover moeda",
                 "Remover a moeda " + moeda.getCodigoISO() + "?",
-                ButtonType.CANCEL,
-                ButtonType.OK
+                () -> {
+                    try {
+                        repository.delete(moeda);
+                        load();
+                    } catch (Exception ex) {
+                        modalManager.showErrorModal(
+                                "Moeda",
+                                "Não foi possível remover a moeda.",
+                                ex
+                        );
+                    }
+                }
         );
-        confirm.setHeaderText("Remover moeda");
-        confirm.showAndWait().filter(ButtonType.OK::equals).ifPresent(ok -> {
-            try {
-                repository.delete(moeda);
-                load();
-            } catch (Exception ex) {
-                new Alert(Alert.AlertType.ERROR, "Não foi possível remover a moeda: " + ex.getMessage()).showAndWait();
-            }
-        });
     }
 
     private String safe(String value) {
+
         return value == null ? "" : value;
     }
 }
