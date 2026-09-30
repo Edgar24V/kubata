@@ -46,7 +46,7 @@ public final class ThemeManager {
      * IMPORTANTE: Chamar ANTES de stage.show().
      */
     public static void setupCustomTitleBar(Stage stage) {
-        stage.initStyle(StageStyle.UNDECORATED);
+        stage.initStyle(StageStyle.TRANSPARENT);
     }
 
     /**
