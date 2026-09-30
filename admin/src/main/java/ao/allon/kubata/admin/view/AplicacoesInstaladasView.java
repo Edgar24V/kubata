@@ -57,7 +57,7 @@ public class AplicacoesInstaladasView extends VBox {
 
         StackPane iconBox = new StackPane();
         iconBox.setAlignment(Pos.CENTER);
-        iconBox.getStyleClass().add("kubata-infra-title-icon");
+        iconBox.getStyleClass().add("kubata-server-title-icon");
         iconBox.getChildren().add(new Label("", IconUtils.icon(Feather.PACKAGE, 22)));
 
         VBox titles = new VBox(2);
@@ -121,7 +121,7 @@ public class AplicacoesInstaladasView extends VBox {
 
         Region tableSpacer = new Region();
         HBox.setHgrow(tableSpacer, Priority.ALWAYS);
-        status.getStyleClass().add("kubata-infra-status");
+        status.getStyleClass().add("kubata-server-status-value");
 
         tableHeader.getChildren().addAll(tableTitles, tableSpacer, status);
 
