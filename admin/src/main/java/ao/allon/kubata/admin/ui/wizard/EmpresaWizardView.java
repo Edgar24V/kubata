@@ -461,6 +461,20 @@ public class EmpresaWizardView extends VBox {
         return value == null ? "" : value.trim();
     }
 
+    private boolean isValidNif(String value) {
+        String nif = normalize(value);
+        return nif.matches("\\d{9,14}");
+    }
+
+    private boolean isAngolaProvince(String value) {
+        return Set.of(
+                "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango",
+                "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
+                "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico",
+                "Namibe", "Uíge", "Zaire"
+        ).contains(value);
+    }
+
     private TextField text(String prompt, String value) {
         TextField field = new TextField(normalize(value));
         field.setPromptText(prompt);
@@ -769,10 +783,94 @@ public class EmpresaWizardView extends VBox {
             );
         }
         public boolean validate() {
-            if (regime.getValue() == null || regime.getValue().isBlank()) {
+            String regimeValue = normalize(regime.getValue());
+            String caeValue = normalize(cae.getText());
+            String fiscalNifValue = normalize(fiscalNif.getText());
+            String socialSecurityNifValue = normalize(socialSecurityNif.getText());
+            String certificateValue = normalize(certificate.getText());
+            String certificateVersionValue = normalize(certificateVersion.getText());
+            String certificateHashValue = normalize(certificateHash.getText());
+
+            if (regimeValue.isBlank()) {
                 modalManager.alert("Regime fiscal", "Seleccione o regime fiscal da empresa.", "warning", null);
                 return false;
             }
+
+            if (!List.of(
+                    "Regime Geral",
+                    "Regime Simplificado",
+                    "Regime de Exclusão",
+                    "Isento",
+                    "Especial"
+            ).contains(regimeValue)) {
+                modalManager.alert("Regime fiscal inválido", "Seleccione um regime fiscal disponível na lista.", "warning", null);
+                return false;
+            }
+
+            if (!normalize(empresa.getProvincia()).isBlank()
+                    && !isAngolaProvince(normalize(empresa.getProvincia()))) {
+                modalManager.alert("Província inválida", "Seleccione uma província válida de Angola.", "warning", null);
+                return false;
+            }
+
+            if (normalize(empresa.getMunicipio()).isBlank()) {
+                modalManager.alert("Município obrigatório", "Indique o município do domicílio fiscal da empresa.", "warning", null);
+                return false;
+            }
+
+            if (!isValidNif(empresa.getNif())) {
+                modalManager.alert(
+                        "NIF inválido",
+                        "O NIF deve conter apenas algarismos e ter entre 9 e 14 caracteres. A validação local não substitui a confirmação junto da AGT.",
+                        "warning",
+                        null
+                );
+                return false;
+            }
+
+            if (!fiscalNifValue.isBlank() && !isValidNif(fiscalNifValue)) {
+                modalManager.alert("NIF Fiscal inválido", "O NIF Fiscal deve conter apenas algarismos e ter entre 9 e 14 caracteres.", "warning", null);
+                return false;
+            }
+
+            if (!socialSecurityNifValue.isBlank() && !isValidNif(socialSecurityNifValue)) {
+                modalManager.alert("NIF Segurança Social inválido", "O NIF da Segurança Social deve conter apenas algarismos e ter entre 9 e 14 caracteres.", "warning", null);
+                return false;
+            }
+
+            if (!caeValue.isBlank() && !caeValue.matches("\\d{2,10}")) {
+                modalManager.alert("CAE inválido", "O CAE deve conter apenas algarismos, entre 2 e 10 caracteres.", "warning", null);
+                return false;
+            }
+
+            boolean anyCertificateField = !certificateValue.isBlank()
+                    || !certificateVersionValue.isBlank()
+                    || certificateDate.getValue() != null
+                    || !certificateHashValue.isBlank();
+
+            if (anyCertificateField) {
+                if (certificateValue.isBlank()) {
+                    modalManager.alert("Certificação AGT incompleta", "Informe o número do certificado AGT.", "warning", null);
+                    return false;
+                }
+                if (certificateVersionValue.isBlank()) {
+                    modalManager.alert("Certificação AGT incompleta", "Informe a versão do certificado AGT.", "warning", null);
+                    return false;
+                }
+                if (certificateDate.getValue() == null) {
+                    modalManager.alert("Certificação AGT incompleta", "Informe a data do certificado AGT.", "warning", null);
+                    return false;
+                }
+                if (certificateDate.getValue().isAfter(LocalDate.now())) {
+                    modalManager.alert("Data do certificado inválida", "A data do certificado AGT não pode estar no futuro.", "warning", null);
+                    return false;
+                }
+                if (certificateHashValue.isBlank() || !certificateHashValue.matches("(?i)[0-9a-f]{64}")) {
+                    modalManager.alert("Hash AGT inválido", "O hash do certificado deve conter 64 caracteres hexadecimais.", "warning", null);
+                    return false;
+                }
+            }
+
             return true;
         }
         public void save() {
