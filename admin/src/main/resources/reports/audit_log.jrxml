@@ -44,8 +44,8 @@
                 <textElement verticalAlignment="Middle"/>
                 <textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression>
             </textField>
-            <staticText style="KBase">
-                <reportElement x="500" y="9" width="284" height="25"/>
+            <staticText>
+                <reportElement style="KBase" x="500" y="9" width="284" height="25"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle"><font size="13" isBold="true"/></textElement>
                 <text><![CDATA[Histórico de Auditoria]]></text>
             </staticText>
@@ -58,8 +58,8 @@
                 <textElement textAlignment="Right"/>
                 <textFieldExpression><![CDATA["Período: " + ($P{PERIODO_INICIO} == null ? "Início" : $P{PERIODO_INICIO}) + " → " + ($P{PERIODO_FIM} == null ? "Fim" : $P{PERIODO_FIM})]]></textFieldExpression>
             </textField>
-            <staticText style="KMuted">
-                <reportElement x="18" y="56" width="766" height="13"/>
+            <staticText>
+                <reportElement style="KMuted" x="18" y="56" width="766" height="13"/>
                 <text><![CDATA[Trilha de auditoria · registo operacional do Kubata · os detalhes apresentados correspondem aos dados recebidos pelo relatório]]></text>
             </staticText>
         </band>
@@ -67,12 +67,12 @@
 
     <columnHeader>
         <band height="26">
-            <staticText style="KHeader"><reportElement x="0" y="0" width="120" height="26" uuid="e5f6a7b8-9012-34ab-cdef-567890012345"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Data/Hora]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="120" y="0" width="80" height="26" uuid="f6a7b8c9-0123-45ab-cdef-678900123456"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Utilizador]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="200" y="0" width="100" height="26" uuid="a7b8c9d0-1234-56ab-cdef-789001234567"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Acção]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="300" y="0" width="100" height="26" uuid="b8c9d0e1-2345-67ab-cdef-890012345678"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Entidade]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="400" y="0" width="342" height="26" uuid="c9d0e1f2-3456-78ab-cdef-901234567890"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Detalhes]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="742" y="0" width="60" height="26" uuid="d0e1f2a3-4567-89ab-cdef-012345678901"/><textElement textAlignment="Right" verticalAlignment="Middle"><paragraph rightIndent="6"/></textElement><text><![CDATA[Ms]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="0" y="0" width="120" height="26" uuid="e5f6a7b8-9012-34ab-cdef-567890012345"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Data/Hora]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="120" y="0" width="80" height="26" uuid="f6a7b8c9-0123-45ab-cdef-678900123456"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Utilizador]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="200" y="0" width="100" height="26" uuid="a7b8c9d0-1234-56ab-cdef-789001234567"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Acção]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="300" y="0" width="100" height="26" uuid="b8c9d0e1-2345-67ab-cdef-890012345678"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Entidade]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="400" y="0" width="342" height="26" uuid="c9d0e1f2-3456-78ab-cdef-901234567890"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Detalhes]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="742" y="0" width="60" height="26" uuid="d0e1f2a3-4567-89ab-cdef-012345678901"/><textElement textAlignment="Right" verticalAlignment="Middle"><paragraph rightIndent="6"/></textElement><text><![CDATA[Ms]]></text></staticText>
         </band>
     </columnHeader>
 
@@ -90,7 +90,7 @@
     <pageFooter>
         <band height="34">
             <line><reportElement x="0" y="0" width="802" height="1"/><graphicElement><pen lineWidth="0.5" lineColor="#D7E2DE"/></graphicElement></line>
-            <staticText style="KFooter"><reportElement x="0" y="9" width="390" height="18"/><textElement verticalAlignment="Middle"/><text><![CDATA[Kubata · Trilha de auditoria · acesso controlado]]></text></staticText>
+            <staticText><reportElement style="KFooter" x="0" y="9" width="390" height="18"/><textElement verticalAlignment="Middle"/><text><![CDATA[Kubata · Trilha de auditoria · acesso controlado]]></text></staticText>
             <textField><reportElement style="KFooter" x="645" y="9" width="75" height="18"/><textElement textAlignment="Right" verticalAlignment="Middle"/><textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
             <textField evaluationTime="Report"><reportElement style="KFooter" x="720" y="9" width="82" height="18"/><textElement textAlignment="Left" verticalAlignment="Middle"/><textFieldExpression><![CDATA[" de " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
         </band>
