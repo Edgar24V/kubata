@@ -51,22 +51,22 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
 
     private void build(){
-        getStyleClass().add("kubata-platform-center-page");
-        VBox header=new VBox(10);header.setPadding(new Insets(16,20,14,20));header.getStyleClass().addAll("header-box","kubata-platform-center-header");
+        getStyleClass().addAll("kubata-platform-center-page", "kubata-infra-page");
+        VBox header=new VBox(10);header.setPadding(new Insets(16,20,14,20));header.getStyleClass().addAll("header-box","kubata-infra-header");
         HBox line=new HBox(12);line.setAlignment(Pos.CENTER_LEFT);
-        Label icon=new Label("",IconUtils.icon(Feather.CPU,21));icon.getStyleClass().add("kubata-platform-center-title-icon");
-        VBox text=new VBox(3);Label title=new Label("Centro da Plataforma");title.getStyleClass().add("kubata-platform-center-title");
+        Label icon=new Label("",IconUtils.icon(Feather.CPU,21));icon.getStyleClass().add("kubata-infra-title-icon");
+        VBox text=new VBox(3);Label title=new Label("Centro da Plataforma");title.getStyleClass().add("kubata-infra-title");
         Label sub=new Label("Centro administrativo para operações, alertas, documentos, comunicações, preferências e recursos da plataforma.");
-        sub.setWrapText(true);sub.getStyleClass().add("text-muted");text.getChildren().addAll(title,sub);
+        sub.setWrapText(true);sub.getStyleClass().add("kubata-infra-subtitle");text.getChildren().addAll(title,sub);
         Region spacer=new Region();HBox.setHgrow(spacer,Priority.ALWAYS);
-        Button refresh=button("Actualizar",Feather.REFRESH_CW,this::refreshAll);refresh.getStyleClass().addAll("button-primary","kubata-platform-center-refresh");
+        Button refresh=button("Actualizar",Feather.REFRESH_CW,this::refreshAll);refresh.getStyleClass().add("button-primary");
         line.getChildren().addAll(icon,text,spacer,refresh);
         HBox metrics=new HBox(10,metric("OPERAÇÕES",ops,Feather.CLOCK),metric("ALERTAS",alerts,Feather.ALERT_TRIANGLE),
                 metric("DOCUMENTOS",docs,Feather.FOLDER),metric("COMUNICAÇÕES",comms,Feather.MAIL),metric("PERSONALIZAÇÃO",custom,Feather.CPU));
-        metrics.getStyleClass().add("kubata-platform-center-metrics");
+        metrics.getStyleClass().add("kubata-infra-metrics");
         header.getChildren().addAll(line,metrics);
-        tabs.getStyleClass().add("kubata-platform-center-tabs");
-        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);tabs.getStyleClass().add("office365-tabs");
+        tabs.getStyleClass().add("kubata-infra-tabs");
+        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getTabs().addAll(
                 tab("Dashboard",Feather.HOME,dashboard()),tab("Operações",Feather.CLOCK,operations()),
                 tab("Alertas",Feather.ALERT_TRIANGLE,alerts()),tab("Documentos",Feather.FOLDER,documents()),
@@ -80,11 +80,11 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
 
     private Tab tab(String t,Feather i,Node n){Tab tab=new Tab(t,n);tab.setGraphic(IconUtils.icon(i,13));return tab;}
-    private VBox page(){VBox v=new VBox(14);v.setPadding(new Insets(16,22,24,22));v.getStyleClass().add("kubata-platform-center-page-content");return v;}
+    private VBox page(){VBox v=new VBox(14);v.setPadding(new Insets(16,22,24,22));v.getStyleClass().add("kubata-infra-page-content");return v;}
     private ScrollPane scroll(Node n){ScrollPane s=new ScrollPane(n);s.setFitToWidth(true);s.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);return s;}
-    private VBox metric(String t,Label v,Feather i){VBox b=new VBox(4);b.setPadding(new Insets(11,13,11,13));b.getStyleClass().addAll("card","kubata-platform-center-metric");Label l=new Label(t,IconUtils.icon(i,12));l.setStyle("-fx-font-size:9px;-fx-font-weight:800;");v.setStyle("-fx-font-size:20px;-fx-font-weight:800;");b.getChildren().addAll(l,v);HBox.setHgrow(b,Priority.ALWAYS);return b;}
-    private VBox section(String t,String d){VBox b=new VBox(5);b.getStyleClass().add("kubata-platform-center-section-heading");Label a=new Label(t);a.getStyleClass().add("kubata-platform-center-section-title");Label c=new Label(d);c.setWrapText(true);c.getStyleClass().add("text-muted");b.getChildren().addAll(a,c);return b;}
-    private VBox info(String t,String d){VBox b=new VBox(6);b.setPadding(new Insets(13));b.getStyleClass().addAll("card","kubata-platform-center-info");Label a=new Label(t);a.getStyleClass().add("kubata-platform-center-info-title");Label c=new Label(d);c.setWrapText(true);b.getChildren().addAll(a,c);return b;}
+    private VBox metric(String t,Label v,Feather i){VBox b=new VBox(4);b.setPadding(new Insets(11,13,11,13));b.getStyleClass().add("kubata-infra-kpi");Label l=new Label(t,IconUtils.icon(i,12));l.getStyleClass().add("kubata-infra-kpi-title");v.getStyleClass().add("kubata-infra-kpi-value");b.getChildren().addAll(l,v);HBox.setHgrow(b,Priority.ALWAYS);return b;}
+    private VBox section(String t,String d){VBox b=new VBox(5);b.getStyleClass().add("kubata-infra-section-heading");Label a=new Label(t);a.getStyleClass().add("kubata-infra-section-title");Label c=new Label(d);c.setWrapText(true);c.getStyleClass().add("text-muted");b.getChildren().addAll(a,c);return b;}
+    private VBox info(String t,String d){VBox b=new VBox(6);b.setPadding(new Insets(13));b.getStyleClass().add("kubata-infra-section");Label a=new Label(t);a.getStyleClass().add("kubata-infra-section-title");Label c=new Label(d);c.setWrapText(true);b.getChildren().addAll(a,c);return b;}
     private HBox actions(Button... b){HBox h=new HBox(8,b);h.setAlignment(Pos.CENTER_LEFT);return h;}
     private Button button(String t,Feather i,Runnable r){Button b=new Button(t,IconUtils.icon(i,12));b.getStyleClass().add("button-outlined");b.setOnAction(e->r.run());return b;}
     private GridPane form(){GridPane g=new GridPane();g.setHgap(12);g.setVgap(10);g.setPadding(new Insets(6));g.getColumnConstraints().addAll(new ColumnConstraints(170),grow());return g;}
@@ -271,14 +271,14 @@ public class PlataformaCentroCompletoView extends BorderPane {
 
     private TableView<AdmPlataformaItem> table(String type){
         TableView<AdmPlataformaItem>t=new TableView<>(FXCollections.observableArrayList(automation.list(type)));t.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        t.getStyleClass().add("kubata-platform-center-data-table");
+        t.getStyleClass().add("kubata-infra-table");
         t.setPlaceholder(new Label("Nenhum registo disponível."));
         t.getColumns().addAll(col("Código",AdmPlataformaItem::getCodigo),col("Nome",AdmPlataformaItem::getNome),col("Estado",AdmPlataformaItem::getEstado),col("Resultado",AdmPlataformaItem::getLastMessage),col("Última execução",x->fmt(x.getLastRunAt())));return t;
     }
     private TableColumn<AdmPlataformaItem,String> col(String h,java.util.function.Function<AdmPlataformaItem,String> f){TableColumn<AdmPlataformaItem,String>c=new TableColumn<>(h);c.setCellValueFactory(v->new SimpleStringProperty(safe(f.apply(v.getValue()))));return c;}
     private void reload(TableView<AdmPlataformaItem>t,String type){t.setItems(FXCollections.observableArrayList(automation.list(type)));refreshMetrics();}
     private AdmPlataformaItem selected(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=t.getSelectionModel().getSelectedItem();if(i==null)show("Plataforma","Seleccione um registo.");return i;}
-    private VBox card(Node n,Node... a){VBox b=new VBox(10);b.setPadding(new Insets(14));b.getStyleClass().add("card");b.getChildren().add(n);if(a.length>0)b.getChildren().addAll(a);return b;}
+    private VBox card(Node n,Node... a){VBox b=new VBox(10);b.setPadding(new Insets(14));b.getStyleClass().add("kubata-infra-section");b.getChildren().add(n);if(a.length>0)b.getChildren().addAll(a);return b;}
 
     private void seed(){
         if(itemRepository.countByTipo("OPERACAO")==0){automation.save("OPERACAO","CHECK_ALERTS","Verificar alertas","ACTIVO","Saúde técnica","{}",60,user(),null);automation.save("OPERACAO","JVM_DIAGNOSTIC","Diagnóstico JVM","ACTIVO","Métricas JVM","{}",300,user(),null);automation.save("OPERACAO","SYNC_MODULES","Sincronizar módulos","ACTIVO","Catálogo runtime","{}",900,user(),null);automation.save("OPERACAO","CHECK_MIGRATIONS","Verificar migrações","ACTIVO","Flyway","{}",900,user(),null);}
@@ -295,5 +295,5 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private String esc(String s){return s==null?"":s.replace("|","/").replace("=","-");}
     private String title(String t){return t.equals("LISTAGEM")?"Listagem":"Mapa";}
     private Window window(){return getScene()==null?null:getScene().getWindow();}
-    private void show(String title,String message){Alert a=new Alert(Alert.AlertType.INFORMATION,message==null?"":message,ButtonType.OK);a.setTitle(title);a.setHeaderText(null);a.show();}
+    private void show(String title,String message){modalManager.alert(title,message==null?"":message,"info",null);}
 }
