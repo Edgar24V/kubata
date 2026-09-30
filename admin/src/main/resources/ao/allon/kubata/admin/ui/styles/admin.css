@@ -11744,3 +11744,347 @@ Text {
 }
 
 
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · CENTRO DA PLATAFORMA · Experiência de Consola
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-platform-center-page {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-platform-center-page .kubata-server-header {
+    -fx-background-color: -color-light;
+}
+
+.kubata-center-header-metrics {
+    -fx-padding: 0;
+}
+
+.kubata-center-header-metrics .kubata-server-metric {
+    -fx-min-height: 66px;
+    -fx-padding: 10 12;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+
+.kubata-center-workspace {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-center-navigation {
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent -color-base-2 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.kubata-center-nav-eyebrow,
+.kubata-center-nav-section {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-center-nav-eyebrow {
+    -fx-padding: 1 4 0 4;
+}
+
+.kubata-center-nav-section {
+    -fx-padding: 12 8 4 8;
+}
+
+.kubata-center-nav-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+    -fx-padding: 0 4;
+}
+
+.kubata-center-nav-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-6;
+    -fx-padding: 0 4 6 4;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-center-nav-search {
+    -fx-background-color: -color-base-0;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10;
+    -fx-font-size: 11px;
+}
+
+.kubata-center-nav-search:focused {
+    -fx-border-color: -kubata-green-border;
+}
+
+.kubata-center-nav-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-border-color: transparent;
+    -fx-border-radius: 8;
+    -fx-padding: 9 10;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -color-base-7;
+}
+
+.kubata-center-nav-button:hover {
+    -fx-background-color: -color-base-1;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-center-nav-button.selected {
+    -fx-background-color: -kubata-green-pale;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-weight: 800;
+}
+
+.kubata-center-nav-button .ikonli-font-icon {
+    -fx-icon-color: -color-base-5;
+}
+
+.kubata-center-nav-button.selected .ikonli-font-icon {
+    -fx-icon-color: -kubata-green;
+}
+
+.kubata-center-nav-session {
+    -fx-padding: 10 10 8 10;
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 9;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 9;
+}
+
+.kubata-center-nav-user {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-center-tabpane {
+    -fx-background-color: transparent;
+}
+
+.kubata-center-tabpane > .tab-header-area {
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-max-height: 0;
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+
+.kubata-center-tabpane > .tab-content-area {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.kubata-center-dashboard {
+    -fx-padding: 4 20 20 20;
+}
+
+.kubata-center-hero {
+    -fx-background-color: linear-gradient(to right, #f8fbf9, #ffffff);
+    -fx-border-color: #dfe6e2;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 18;
+}
+
+.kubata-center-hero-icon {
+    -fx-min-width: 46;
+    -fx-min-height: 46;
+    -fx-max-width: 46;
+    -fx-max-height: 46;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 12;
+    -fx-alignment: center;
+}
+
+.kubata-center-hero-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green;
+}
+
+.kubata-center-hero-eyebrow {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-center-hero-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-center-hero-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-base-6;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-center-dashboard-panel,
+.kubata-center-capability-card,
+.kubata-center-panel {
+    -fx-min-height: 0;
+}
+
+.kubata-center-overview-grid,
+.kubata-center-quick-grid {
+    -fx-background-color: transparent;
+}
+
+.kubata-center-overview-card,
+.kubata-center-quick-card {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 10;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10;
+}
+
+.kubata-center-overview-card:hover,
+.kubata-center-quick-card:hover {
+    -fx-border-color: -kubata-green-border;
+    -fx-effect: dropshadow(three-pass-box, rgba(33,115,70,0.08), 9, 0.08, 0, 2);
+}
+
+.kubata-center-overview-value {
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-center-overview-text,
+.kubata-center-quick-text {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-6;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-center-link-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-padding: 4 0;
+}
+
+.kubata-center-quick-card {
+    -fx-background-color: -color-light;
+    -fx-padding: 12;
+}
+
+.kubata-center-quick-icon {
+    -fx-min-width: 34px;
+    -fx-min-height: 34px;
+    -fx-max-width: 34px;
+    -fx-max-height: 34px;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 9;
+    -fx-alignment: center;
+}
+
+.kubata-center-quick-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-center-quick-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-center-actionbar {
+    -fx-padding: 9 10;
+    -fx-background-color: -color-base-0;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 9;
+    -fx-background-radius: 9;
+}
+
+.kubata-center-field-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-center-form {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+}
+
+.kubata-center-table {
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-border-color: -color-base-2;
+}
+
+.kubata-center-table .column-header-background,
+.kubata-center-table .column-header {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-center-table .column-header {
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-padding: 0 10;
+}
+
+.kubata-center-table .column-header .label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-center-table .table-row-cell {
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-center-table .table-row-cell:hover {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-center-table .table-row-cell:selected {
+    -fx-background-color: -color-accent-subtle;
+}
+
+.kubata-center-table .table-cell {
+    -fx-font-size: 11px;
+    -fx-padding: 0 10;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-center-table-empty {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-center-scroll,
+.kubata-center-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.kubata-platform-center-page .scroll-bar:vertical {
+    -fx-pref-width: 9;
+}
+
+.kubata-platform-center-page .scroll-bar:vertical .thumb {
+    -fx-background-color: -color-base-3;
+    -fx-background-radius: 8;
+}
+
+.kubata-platform-center-page .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: -color-base-4;
+}
+
+.kubata-platform-center-page .scroll-bar .track,
+.kubata-platform-center-page .scroll-bar .increment-button,
+.kubata-platform-center-page .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+}
