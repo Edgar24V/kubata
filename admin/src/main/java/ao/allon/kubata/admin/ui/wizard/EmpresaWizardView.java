@@ -1529,6 +1529,9 @@ public class EmpresaWizardView extends VBox {
                     summaryLine("Exercício", String.valueOf(empresa.getExercicioActual())),
                     summaryLine("Moeda base", empresa.getMoedaBase()),
                     summaryLine("Logótipo", empresa.getLogotipo() != null && empresa.getLogotipo().length > 0 ? "Configurado" : "Não configurado"),
+                    summaryLine("Rodapé", empresa.getRodapeDocumento() == null || empresa.getRodapeDocumento().isBlank()
+                            ? "Não configurado"
+                            : empresa.getRodapeDocumento().length() + " / " + Empresa.LIMITE_RODAPE_DOCUMENTO + " caracteres"),
                     summaryLine("Módulos", selectedModuleNames()),
                     summaryLine("Backup", backupEnabled ? backupFrequency + " · " + backupRetentionDays + " dias" : "Desactivado"),
                     summaryLine("Exercício inicial", openFiscalYear ? "Será criado/aberto" : "Não criar automaticamente"),
