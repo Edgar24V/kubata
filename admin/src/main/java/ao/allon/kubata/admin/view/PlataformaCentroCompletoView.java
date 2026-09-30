@@ -452,7 +452,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         return scroll(r);
     }
     private VBox certificatePanel(){
-        TextField path=new TextField(environment.getProperty("agt.certificado.path",""));TextArea out=new TextArea();out.setEditable(false);out.setPrefRowCount(8);
+        TextField path=new TextField(global("SEGURANCA.CERTIFICADO.PATH",environment.getProperty("agt.certificado.path","")));TextArea out=new TextArea();out.setEditable(false);out.setPrefRowCount(8);
         Button read=button("Ler keystore",Feather.AWARD,()->out.setText(readKeystore(path.getText())));Button choose=button("Escolher",Feather.FOLDER,()->{FileChooser f=new FileChooser();java.io.File x=f.showOpenDialog(window());if(x!=null){path.setText(x.getAbsolutePath());out.setText(readKeystore(x.getAbsolutePath()));}});
         VBox v=new VBox(8,new Label("Certificados"),actions(read,choose),path,out);return v;
     }
