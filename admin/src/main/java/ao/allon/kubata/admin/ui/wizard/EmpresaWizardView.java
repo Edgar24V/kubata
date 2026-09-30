@@ -576,6 +576,8 @@ public class EmpresaWizardView extends VBox {
         private ComboBox<String> taxpayerType;
         private DatePicker incorporationDate;
         private Spinner<Integer> startYear;
+        private TextField conservatoria;
+        private TextField matriculaComercial;
         public String title() { return "2 · Identificação da empresa"; }
         public String description() { return "Registe a identidade jurídica e comercial da empresa."; }
         public Node content() {
@@ -590,17 +592,21 @@ public class EmpresaWizardView extends VBox {
             incorporationDate.setMaxWidth(Double.MAX_VALUE);
             startYear = new Spinner<>(1900, 2100, empresa.getAnoInicio() == null ? LocalDate.now().getYear() : empresa.getAnoInicio());
             startYear.setMaxWidth(Double.MAX_VALUE);
+            conservatoria = text("Conservatória do registo comercial", empresa.getConservatoria());
+            matriculaComercial = text("Matrícula comercial", empresa.getMatriculaComercial());
 
             VBox left = new VBox(
                     field("Identificador *", identifier),
                     field("NIF *", nif),
                     field("Tipo de contribuinte *", taxpayerType),
-                    field("Data de constituição", incorporationDate)
+                    field("Data de constituição", incorporationDate),
+                    field("Conservatória", conservatoria)
             );
             VBox right = new VBox(
                     field("Razão social *", name),
                     field("Nome comercial", commercialName),
-                    field("Ano início actividade", startYear)
+                    field("Ano início actividade", startYear),
+                    field("Matrícula comercial", matriculaComercial)
             );
 
             HBox columns = new HBox(22, left, right);
@@ -636,6 +642,8 @@ public class EmpresaWizardView extends VBox {
             empresa.setTipoContribuinte(taxpayerType.getValue());
             empresa.setDataConstituicao(incorporationDate.getValue());
             empresa.setAnoInicio(startYear.getValue());
+            empresa.setConservatoria(normalize(conservatoria.getText()));
+            empresa.setMatriculaComercial(normalize(matriculaComercial.getText()));
         }
         public String help() { return "Utilize exactamente os dados legais da empresa. O NIF não pode repetir-se noutra empresa."; }
     }
@@ -1150,11 +1158,18 @@ public class EmpresaWizardView extends VBox {
             VBox root = page(
                     section("Resumo final", "pronto para instalar"),
                     summaryLine("Empresa", empresa.getNome()),
+                    summaryLine("Nome comercial", empresa.getNomeComercial()),
                     summaryLine("NIF", empresa.getNif()),
+                    summaryLine("Identificador", empresa.getIdentificador()),
+                    summaryLine("Tipo de contribuinte", empresa.getTipoContribuinte()),
+                    summaryLine("Registo comercial", join(" · ", empresa.getConservatoria(), empresa.getMatriculaComercial())),
                     summaryLine("Localização", String.join(" · ", nonBlank(empresa.getProvincia(), empresa.getMunicipio(), empresa.getLocalidade()))),
+                    summaryLine("Contactos", join(" · ", empresa.getTelefone(), empresa.getTelemovel(), empresa.getEmail())),
+                    summaryLine("Dados bancários", join(" · ", empresa.getBanco(), empresa.getContaBancaria(), empresa.getIban())),
                     summaryLine("Regime fiscal", empresa.getRegimeFiscal()),
                     summaryLine("Exercício", String.valueOf(empresa.getExercicioActual())),
                     summaryLine("Moeda base", empresa.getMoedaBase()),
+                    summaryLine("Logótipo", empresa.getLogotipo() != null && empresa.getLogotipo().length > 0 ? "Configurado" : "Não configurado"),
                     summaryLine("Módulos", selectedModuleNames()),
                     summaryLine("Backup", backupEnabled ? backupFrequency + " · " + backupRetentionDays + " dias" : "Desactivado"),
                     summaryLine("Exercício inicial", openFiscalYear ? "Será criado/aberto" : "Não criar automaticamente"),
