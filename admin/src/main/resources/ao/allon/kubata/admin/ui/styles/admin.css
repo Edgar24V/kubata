@@ -5704,6 +5704,33 @@ Text {
     -fx-background-color: #f5f5f5;
 }
 
+/* ── Cabeçalho da janela de login ───────────────────────────────────── */
+.login-window-header {
+    -fx-background-color: rgba(255,255,255,0.98);
+    -fx-background-radius: 20px 20px 0 0;
+    -fx-border-color: rgba(33,115,70,0.10);
+    -fx-border-width: 0 0 1px 0;
+}
+
+.login-window-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #263c30;
+}
+
+.login-window-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: #819088;
+}
+
+/* Mantém os controlos exatamente no padrão visual do ModalManager. */
+.login-window-header .kubata-modal-window-control,
+.login-window-header .kubata-modal-window-control-danger {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+}
+
 /* ── Login Moderno ─────────────────────────────────────────────── */
 /* ========== LOGIN MODERNO – KUBATA ========== */
 
