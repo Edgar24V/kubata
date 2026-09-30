@@ -1592,6 +1592,12 @@ public class EmpresaWizardView extends VBox {
         return Arrays.stream(values).filter(v -> v != null && !v.isBlank()).toArray(String[]::new);
     }
 
+    private String join(String separator, String... values) {
+        return Arrays.stream(values)
+                .filter(v -> v != null && !v.isBlank())
+                .collect(Collectors.joining(separator));
+    }
+
     @Override
     public String toString() {
         return "EmpresaWizardView{" + (empresa == null ? "sem empresa" : empresa.getNome()) + "}";
