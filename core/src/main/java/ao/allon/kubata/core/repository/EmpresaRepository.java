@@ -14,4 +14,7 @@ public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
     Optional<Empresa> findFirstByAtivaTrue();
     List<Empresa> findAllByAtivaTrueOrderByNomeAsc();
     long countByAtivaTrue();
+    Optional<Empresa> findFirstByPredefinidaTrueAndAtivaTrue();
+    List<Empresa> findAllByPredefinidaTrue();
+
 }
