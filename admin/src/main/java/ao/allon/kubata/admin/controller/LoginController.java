@@ -138,14 +138,9 @@ public class LoginController {
         installRoundedWindow(root);
         installWindowDragging(root, stage);
 
-        HBox shell = createLoginShell();
+        VBox shell = createLoginShell(stage);
         StackPane.setAlignment(shell, Pos.CENTER);
         root.getChildren().add(shell);
-
-        HBox windowBar = createWindowBar(stage);
-        StackPane.setAlignment(windowBar, Pos.TOP_RIGHT);
-        StackPane.setMargin(windowBar, new Insets(10, 12, 0, 12));
-        root.getChildren().add(windowBar);
 
         root.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER
@@ -338,23 +333,96 @@ public class LoginController {
 
     }
 
-    private HBox createLoginShell() {
-        HBox shell = new HBox();
+    private VBox createLoginShell(Stage stage) {
+        VBox shell = new VBox();
         shell.setPrefSize(1000, 610);
         shell.setMaxSize(1000, 610);
         shell.setMinSize(920, 560);
         shell.getStyleClass().add("login-card");
+        shell.setStyle(
+                "-fx-background-color: #ffffff;"
+                        + "-fx-background-radius: 22;"
+                        + "-fx-border-color: rgba(33,115,70,0.12);"
+                        + "-fx-border-width: 1;"
+                        + "-fx-border-radius: 22;"
+        );
         shell.setEffect(new DropShadow(
                 35,
                 Color.rgb(15, 23, 42, 0.24)
         ));
 
+        HBox header = createLoginHeader(stage);
+        HBox body = new HBox();
+        HBox.setHgrow(body, Priority.ALWAYS);
+        body.setMinHeight(0);
+
+        Node branding = createBrandingPanel();
+        Node authentication = createAuthenticationPanel();
+
+        HBox.setHgrow(branding, Priority.ALWAYS);
+        HBox.setHgrow(authentication, Priority.ALWAYS);
+
+        body.getChildren().addAll(
+                branding,
+                authentication
+        );
+
         shell.getChildren().addAll(
-                createBrandingPanel(),
-                createAuthenticationPanel()
+                header,
+                body
         );
 
         return shell;
+    }
+
+    private HBox createLoginHeader(Stage stage) {
+        HBox header = new HBox(10);
+        header.getStyleClass().add("login-window-header");
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(9, 12, 9, 18));
+        header.setPrefHeight(50);
+        header.setMinHeight(50);
+        header.setMaxHeight(50);
+
+        FontIcon icon = new FontIcon(Feather.SHIELD);
+        icon.setIconSize(16);
+        icon.setIconColor(Color.web("#217346"));
+
+        VBox titleBox = new VBox(1);
+        titleBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label("KUBATA Administrator");
+        title.getStyleClass().add("login-window-title");
+
+        Label subtitle = new Label("Acesso seguro");
+        subtitle.getStyleClass().add("login-window-subtitle");
+
+        titleBox.getChildren().addAll(title, subtitle);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox controls = createWindowBar(stage);
+        header.getChildren().addAll(
+                icon,
+                titleBox,
+                spacer,
+                controls
+        );
+
+        header.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2
+                    && (event.getTarget() == header
+                    || event.getTarget() == titleBox
+                    || event.getTarget() == title
+                    || event.getTarget() == subtitle
+                    || event.getTarget() == icon)) {
+                toggleWindowMaximize(stage);
+                event.consume();
+            }
+        });
+
+        return header;
     }
 
     private VBox createBrandingPanel() {
@@ -366,7 +434,7 @@ public class LoginController {
         panel.setStyle(
                 "-fx-background-color: linear-gradient(to bottom right, "
                         + "#124d2f, #1f7045);"
-                        + "-fx-background-radius: 22 0 0 22;"
+                        + "-fx-background-radius: 0 0 0 20;"
         );
 
         StackPane emblem = new StackPane();
@@ -484,7 +552,7 @@ public class LoginController {
         panel.setPadding(new Insets(48, 54, 42, 54));
         panel.setStyle(
                 "-fx-background-color: white;"
-                        + "-fx-background-radius: 0 22 22 0;"
+                        + "-fx-background-radius: 0 0 20 0;"
         );
         panel.setAlignment(Pos.TOP_LEFT);
 
