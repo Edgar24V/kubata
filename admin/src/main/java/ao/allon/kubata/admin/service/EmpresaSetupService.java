@@ -154,17 +154,21 @@ public class EmpresaSetupService {
     }
 
     private Empresa ensureDefaultCompany(Empresa saved) {
-        if (saved.getAtiva() && saved.getPredefinida()) {
-            return saved;
-        }
-
         Optional<Empresa> currentDefault = empresaRepository.findFirstByPredefinidaTrueAndAtivaTrue();
         if (currentDefault.isPresent()) {
             return saved;
         }
 
-        Optional<Empresa> fallback = empresaRepository.findAllByAtivaTrueOrderByNomeAsc().stream()
-                .filter(e -> !e.getId().equals(saved.getId()))
+        // Corrige eventuais marcas antigas de predefinição em empresas inactivas.
+        clearOtherDefaultCompanies(null);
+
+        if (saved.getAtiva()) {
+            saved.setPredefinida(true);
+            return empresaRepository.save(saved);
+        }
+
+        Optional<Empresa> fallback = empresaRepository.findAllByAtivaTrueOrderByNomeAsc()
+                .stream()
                 .findFirst();
 
         if (fallback.isPresent()) {
