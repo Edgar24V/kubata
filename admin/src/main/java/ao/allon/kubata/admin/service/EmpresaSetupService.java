@@ -224,10 +224,11 @@ public class EmpresaSetupService {
 
     private boolean isAngolaProvince(String value) {
         return Set.of(
-                "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango",
+                "Bengo", "Benguela", "Bié", "Cabinda", "Cuando", "Cubango",
                 "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
-                "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico",
-                "Namibe", "Uíge", "Zaire"
+                "Icolo e Bengo", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje",
+                "Moxico", "Moxico Leste", "Namibe", "Uíge", "Zaire",
+                "Cuando Cubango"
         ).contains(value == null ? "" : value.trim());
     }
 
