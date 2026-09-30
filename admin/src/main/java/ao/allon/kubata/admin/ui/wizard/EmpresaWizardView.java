@@ -14,6 +14,7 @@ import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.ExercicioFiscalRepository;
 import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import ao.allon.kubata.core.repository.UserRepository;
+import ao.allon.kubata.core.util.NifUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -429,6 +430,20 @@ public class EmpresaWizardView extends VBox {
             modalManager.alert("Configuração incompleta", "Indique o NIF da empresa.", "warning", null);
             return false;
         }
+
+        String nifValidation = NifUtils.validate(
+                empresa.getNif(),
+                nifTypeOf(empresa.getTipoContribuinte())
+        );
+        if (nifValidation != null) {
+            modalManager.alert(
+                    "NIF inválido",
+                    nifValidation + " A confirmação oficial do cadastro continua a ser feita pela AGT.",
+                    "warning",
+                    null
+            );
+            return false;
+        }
         if (empresa.getMoedaBase() == null || empresa.getMoedaBase().isBlank()) {
             modalManager.alert("Configuração incompleta", "Seleccione a moeda base.", "warning", null);
             return false;
@@ -438,7 +453,8 @@ public class EmpresaWizardView extends VBox {
             return false;
         }
 
-        String nif = empresa.getNif().trim();
+        String nif = NifUtils.normalize(empresa.getNif());
+        empresa.setNif(nif);
         Optional<Empresa> duplicate = empresaRepository.findByNif(nif);
         if (duplicate.isPresent() && (empresa.getId() == null || !duplicate.get().getId().equals(empresa.getId()))) {
             modalManager.alert("NIF já registado", "Já existe outra empresa com o NIF " + nif + ".", "warning", null);
@@ -461,9 +477,14 @@ public class EmpresaWizardView extends VBox {
         return value == null ? "" : value.trim();
     }
 
-    private boolean isValidNif(String value) {
-        String nif = normalize(value);
-        return nif.matches("\\d{9,14}");
+    private NifUtils.TipoContribuinte nifTypeOf(String value) {
+        if ("Pessoa Singular".equalsIgnoreCase(value)) {
+            return NifUtils.TipoContribuinte.PESSOA_SINGULAR;
+        }
+        if ("Não Residente".equalsIgnoreCase(value)) {
+            return NifUtils.TipoContribuinte.NAO_RESIDENTE;
+        }
+        return NifUtils.TipoContribuinte.PESSOA_COLECTIVA;
     }
 
     private boolean isAngolaProvince(String value) {
@@ -643,17 +664,26 @@ public class EmpresaWizardView extends VBox {
                 modalManager.alert("Nome obrigatório", "Indique a razão social da empresa.", "warning", null);
                 return false;
             }
-            if (normalize(nif.getText()).isBlank()) {
+            String nifValue = normalize(nif.getText());
+            if (nifValue.isBlank()) {
                 modalManager.alert("NIF obrigatório", "Indique o NIF da empresa.", "warning", null);
                 return false;
             }
+
+            String nifMessage = NifUtils.validate(nifValue, nifTypeOf(taxpayerType.getValue()));
+            if (nifMessage != null) {
+                modalManager.alert("NIF inválido", nifMessage
+                        + " A confirmação oficial do cadastro continua a ser feita pela AGT.", "warning", null);
+                return false;
+            }
+
             return true;
         }
         public void save() {
             empresa.setIdentificador(normalize(identifier.getText()).toUpperCase(Locale.ROOT));
             empresa.setNome(normalize(name.getText()));
             empresa.setNomeComercial(normalize(commercialName.getText()));
-            empresa.setNif(normalize(nif.getText()));
+            empresa.setNif(NifUtils.normalize(nif.getText()));
             empresa.setTipoContribuinte(taxpayerType.getValue());
             empresa.setDataConstituicao(incorporationDate.getValue());
             empresa.setAnoInicio(startYear.getValue());
@@ -819,24 +849,40 @@ public class EmpresaWizardView extends VBox {
                 return false;
             }
 
-            if (!isValidNif(empresa.getNif())) {
+            String nifMessage = NifUtils.validate(
+                    empresa.getNif(),
+                    nifTypeOf(empresa.getTipoContribuinte())
+            );
+            if (nifMessage != null) {
                 modalManager.alert(
                         "NIF inválido",
-                        "O NIF deve conter apenas algarismos e ter entre 9 e 14 caracteres. A validação local não substitui a confirmação junto da AGT.",
+                        nifMessage + " A confirmação oficial do cadastro continua a ser feita pela AGT.",
                         "warning",
                         null
                 );
                 return false;
             }
 
-            if (!fiscalNifValue.isBlank() && !isValidNif(fiscalNifValue)) {
-                modalManager.alert("NIF Fiscal inválido", "O NIF Fiscal deve conter apenas algarismos e ter entre 9 e 14 caracteres.", "warning", null);
-                return false;
+            if (!fiscalNifValue.isBlank()) {
+                String fiscalMessage = NifUtils.validate(
+                        fiscalNifValue,
+                        nifTypeOf(empresa.getTipoContribuinte())
+                );
+                if (fiscalMessage != null) {
+                    modalManager.alert("NIF Fiscal inválido", fiscalMessage, "warning", null);
+                    return false;
+                }
             }
 
-            if (!socialSecurityNifValue.isBlank() && !isValidNif(socialSecurityNifValue)) {
-                modalManager.alert("NIF Segurança Social inválido", "O NIF da Segurança Social deve conter apenas algarismos e ter entre 9 e 14 caracteres.", "warning", null);
-                return false;
+            if (!socialSecurityNifValue.isBlank()) {
+                String socialMessage = NifUtils.validate(
+                        socialSecurityNifValue,
+                        nifTypeOf(empresa.getTipoContribuinte())
+                );
+                if (socialMessage != null) {
+                    modalManager.alert("NIF Segurança Social inválido", socialMessage, "warning", null);
+                    return false;
+                }
             }
 
             if (!caeValue.isBlank() && !caeValue.matches("\\d{2,10}")) {
@@ -877,8 +923,8 @@ public class EmpresaWizardView extends VBox {
         public void save() {
             empresa.setRegimeFiscal(regime.getValue());
             empresa.setCae(normalize(cae.getText()));
-            empresa.setNifFiscal(normalize(fiscalNif.getText()));
-            empresa.setNifSegurancaSocial(normalize(socialSecurityNif.getText()));
+            empresa.setNifFiscal(NifUtils.normalize(fiscalNif.getText()));
+            empresa.setNifSegurancaSocial(NifUtils.normalize(socialSecurityNif.getText()));
             empresa.setNumeroCertificadoAGT(normalize(certificate.getText()));
             empresa.setVersaoCertificadoAGT(normalize(certificateVersion.getText()));
             empresa.setDataCertificadoAGT(certificateDate.getValue());
