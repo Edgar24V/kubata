@@ -34,10 +34,10 @@
     <title>
         <band height="76">
             <rectangle><reportElement x="0" y="0" width="802" height="76" backcolor="#F4F8F6"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-            <textField style="KTitle"><reportElement x="18" y="9" width="430" height="25"/><textElement verticalAlignment="Middle"/><textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression></textField>
+            <textField><reportElement style="KTitle" x="18" y="9" width="430" height="25"/><textElement verticalAlignment="Middle"/><textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression></textField>
             <staticText style="KBase"><reportElement x="500" y="9" width="284" height="25"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="13" isBold="true"/></textElement><text><![CDATA[Estatísticas de Acesso]]></text></staticText>
-            <textField style="KMuted"><reportElement x="18" y="36" width="330" height="16"/><textFieldExpression><![CDATA["NIF: " + ($P{EMPRESA_NIF} == null ? "—" : $P{EMPRESA_NIF})]]></textFieldExpression></textField>
-            <textField style="KMuted"><reportElement x="360" y="36" width="424" height="16"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Período: " + ($P{PERIODO_INICIO} == null ? "Início" : $P{PERIODO_INICIO}) + " → " + ($P{PERIODO_FIM} == null ? "Fim" : $P{PERIODO_FIM})]]></textFieldExpression></textField>
+            <textField><reportElement style="KMuted" x="18" y="36" width="330" height="16"/><textFieldExpression><![CDATA["NIF: " + ($P{EMPRESA_NIF} == null ? "—" : $P{EMPRESA_NIF})]]></textFieldExpression></textField>
+            <textField><reportElement style="KMuted" x="360" y="36" width="424" height="16"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Período: " + ($P{PERIODO_INICIO} == null ? "Início" : $P{PERIODO_INICIO}) + " → " + ($P{PERIODO_FIM} == null ? "Fim" : $P{PERIODO_FIM})]]></textFieldExpression></textField>
             <staticText style="KMuted"><reportElement x="18" y="56" width="766" height="13"/><text><![CDATA[Resumo de sessões e actividade dos utilizadores no Kubata]]></text></staticText>
         </band>
     </title>
@@ -57,14 +57,14 @@
 
     <detail>
         <band height="24">
-            <textField style="KDetail"><reportElement x="0" y="0" width="100" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{username} == null ? "—" : $F{username}]]></textFieldExpression></textField>
-            <textField style="KDetail" pattern="dd/MM/yyyy HH:mm"><reportElement x="100" y="0" width="120" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{loginTime}]]></textFieldExpression></textField>
-            <textField style="KDetail"><reportElement x="220" y="0" width="120" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{logoutTime} == null ? "Em sessão" : $F{logoutTime}]]></textFieldExpression></textField>
-            <textField style="KDetail" pattern="#,##0"><reportElement x="340" y="0" width="80" height="24"/><textElement textAlignment="Right" verticalAlignment="Middle"><paragraph rightIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{durationMinutes} == null ? 0 : $F{durationMinutes}]]></textFieldExpression></textField>
-            <textField style="KDetail"><reportElement x="420" y="0" width="120" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{ipAddress} == null ? "—" : $F{ipAddress}]]></textFieldExpression></textField>
-            <textField style="KDetail"><reportElement x="540" y="0" width="100" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{module} == null ? "—" : $F{module}]]></textFieldExpression></textField>
-            <textField style="KDetail" pattern="#,##0"><reportElement x="640" y="0" width="80" height="24"/><textElement textAlignment="Center" verticalAlignment="Middle"/><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{actionsCount} == null ? 0 : $F{actionsCount}]]></textFieldExpression></textField>
-            <textField style="KDetail"><reportElement x="720" y="0" width="82" height="24"/><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{logoutTime} == null ? "Ativo" : "Concluído"]]></textFieldExpression></textField>
+            <textField><reportElement style="KDetail" x="0" y="0" width="100" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{username} == null ? "—" : $F{username}]]></textFieldExpression></textField>
+            <textField pattern="dd/MM/yyyy HH:mm"><reportElement style="KDetail" x="100" y="0" width="120" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{loginTime}]]></textFieldExpression></textField>
+            <textField><reportElement style="KDetail" x="220" y="0" width="120" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{logoutTime} == null ? "Em sessão" : $F{logoutTime}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement style="KDetail" x="340" y="0" width="80" height="24"/><textElement textAlignment="Right" verticalAlignment="Middle"><paragraph rightIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{durationMinutes} == null ? 0 : $F{durationMinutes}]]></textFieldExpression></textField>
+            <textField><reportElement style="KDetail" x="420" y="0" width="120" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{ipAddress} == null ? "—" : $F{ipAddress}]]></textFieldExpression></textField>
+            <textField><reportElement style="KDetail" x="540" y="0" width="100" height="24"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{module} == null ? "—" : $F{module}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement style="KDetail" x="640" y="0" width="80" height="24"/><textElement textAlignment="Center" verticalAlignment="Middle"/><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{actionsCount} == null ? 0 : $F{actionsCount}]]></textFieldExpression></textField>
+            <textField><reportElement style="KDetail" x="720" y="0" width="82" height="24"/><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textFieldExpression><![CDATA[$F{logoutTime} == null ? "Ativo" : "Concluído"]]></textFieldExpression></textField>
         </band>
     </detail>
 
@@ -72,8 +72,8 @@
         <band height="34">
             <line><reportElement x="0" y="0" width="802" height="1"/><graphicElement><pen lineWidth="0.5" lineColor="#D7E2DE"/></graphicElement></line>
             <staticText style="KFooter"><reportElement x="0" y="9" width="390" height="18"/><text><![CDATA[Kubata Administrator · Relatório de segurança operacional]]></text></staticText>
-            <textField style="KFooter"><reportElement x="645" y="9" width="75" height="18"/><textElement textAlignment="Right" verticalAlignment="Middle"/><textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
-            <textField style="KFooter" evaluationTime="Report"><reportElement x="720" y="9" width="82" height="18"/><textElement verticalAlignment="Middle"/><textFieldExpression><![CDATA[" de " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+            <textField><reportElement style="KFooter" x="645" y="9" width="75" height="18"/><textElement textAlignment="Right" verticalAlignment="Middle"/><textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+            <textField evaluationTime="Report"><reportElement style="KFooter" x="720" y="9" width="82" height="18"/><textElement verticalAlignment="Middle"/><textFieldExpression><![CDATA[" de " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
         </band>
     </pageFooter>
 </jasperReport>
