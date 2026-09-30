@@ -49,18 +49,21 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
 
     private void build(){
-        VBox header=new VBox(10);header.setPadding(new Insets(16,18,14,18));header.getStyleClass().add("header-box");
+        getStyleClass().add("kubata-platform-center-page");
+        VBox header=new VBox(10);header.setPadding(new Insets(16,20,14,20));header.getStyleClass().addAll("header-box","kubata-platform-center-header");
         HBox line=new HBox(12);line.setAlignment(Pos.CENTER_LEFT);
-        Label icon=new Label("",IconUtils.icon(Feather.CPU,22));icon.setStyle("-fx-padding:10;-fx-background-color:#eef4ff;-fx-background-radius:12px;");
-        VBox text=new VBox(2);Label title=new Label("Centro da Plataforma — Completo");title.setStyle("-fx-font-size:19px;-fx-font-weight:800;");
-        Label sub=new Label("Administração avançada: operações, alertas, documentos, comunicações, preferências, personalização, BD, listagens e mapas.");
+        Label icon=new Label("",IconUtils.icon(Feather.CPU,21));icon.getStyleClass().add("kubata-platform-center-title-icon");
+        VBox text=new VBox(3);Label title=new Label("Centro da Plataforma");title.getStyleClass().add("kubata-platform-center-title");
+        Label sub=new Label("Centro administrativo para operações, alertas, documentos, comunicações, preferências e recursos da plataforma.");
         sub.setWrapText(true);sub.getStyleClass().add("text-muted");text.getChildren().addAll(title,sub);
         Region spacer=new Region();HBox.setHgrow(spacer,Priority.ALWAYS);
-        Button refresh=button("Actualizar",Feather.REFRESH_CW,this::refreshAll);refresh.getStyleClass().add("button-primary");
+        Button refresh=button("Actualizar",Feather.REFRESH_CW,this::refreshAll);refresh.getStyleClass().addAll("button-primary","kubata-platform-center-refresh");
         line.getChildren().addAll(icon,text,spacer,refresh);
         HBox metrics=new HBox(10,metric("OPERAÇÕES",ops,Feather.CLOCK),metric("ALERTAS",alerts,Feather.ALERT_TRIANGLE),
                 metric("DOCUMENTOS",docs,Feather.FOLDER),metric("COMUNICAÇÕES",comms,Feather.MAIL),metric("PERSONALIZAÇÃO",custom,Feather.CPU));
+        metrics.getStyleClass().add("kubata-platform-center-metrics");
         header.getChildren().addAll(line,metrics);
+        tabs.getStyleClass().add("kubata-platform-center-tabs");
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);tabs.getStyleClass().add("office365-tabs");
         tabs.getTabs().addAll(
                 tab("Dashboard",Feather.HOME,dashboard()),tab("Operações",Feather.CLOCK,operations()),
@@ -75,11 +78,11 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
 
     private Tab tab(String t,Feather i,Node n){Tab tab=new Tab(t,n);tab.setGraphic(IconUtils.icon(i,13));return tab;}
-    private VBox page(){VBox v=new VBox(14);v.setPadding(new Insets(16,22,24,22));return v;}
+    private VBox page(){VBox v=new VBox(14);v.setPadding(new Insets(16,22,24,22));v.getStyleClass().add("kubata-platform-center-page-content");return v;}
     private ScrollPane scroll(Node n){ScrollPane s=new ScrollPane(n);s.setFitToWidth(true);s.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);return s;}
-    private VBox metric(String t,Label v,Feather i){VBox b=new VBox(4);b.setPadding(new Insets(10,13,10,13));b.getStyleClass().add("card");Label l=new Label(t,IconUtils.icon(i,12));l.setStyle("-fx-font-size:9px;-fx-font-weight:800;");v.setStyle("-fx-font-size:20px;-fx-font-weight:800;");b.getChildren().addAll(l,v);HBox.setHgrow(b,Priority.ALWAYS);return b;}
-    private VBox section(String t,String d){VBox b=new VBox(4);Label a=new Label(t);a.setStyle("-fx-font-size:15px;-fx-font-weight:800;");Label c=new Label(d);c.setWrapText(true);c.getStyleClass().add("text-muted");b.getChildren().addAll(a,c);return b;}
-    private VBox info(String t,String d){VBox b=new VBox(5);b.setPadding(new Insets(12));b.getStyleClass().add("card");Label a=new Label(t);a.setStyle("-fx-font-weight:800;");Label c=new Label(d);c.setWrapText(true);b.getChildren().addAll(a,c);return b;}
+    private VBox metric(String t,Label v,Feather i){VBox b=new VBox(4);b.setPadding(new Insets(11,13,11,13));b.getStyleClass().addAll("card","kubata-platform-center-metric");Label l=new Label(t,IconUtils.icon(i,12));l.setStyle("-fx-font-size:9px;-fx-font-weight:800;");v.setStyle("-fx-font-size:20px;-fx-font-weight:800;");b.getChildren().addAll(l,v);HBox.setHgrow(b,Priority.ALWAYS);return b;}
+    private VBox section(String t,String d){VBox b=new VBox(5);b.getStyleClass().add("kubata-platform-center-section-heading");Label a=new Label(t);a.getStyleClass().add("kubata-platform-center-section-title");Label c=new Label(d);c.setWrapText(true);c.getStyleClass().add("text-muted");b.getChildren().addAll(a,c);return b;}
+    private VBox info(String t,String d){VBox b=new VBox(6);b.setPadding(new Insets(13));b.getStyleClass().addAll("card","kubata-platform-center-info");Label a=new Label(t);a.getStyleClass().add("kubata-platform-center-info-title");Label c=new Label(d);c.setWrapText(true);b.getChildren().addAll(a,c);return b;}
     private HBox actions(Button... b){HBox h=new HBox(8,b);h.setAlignment(Pos.CENTER_LEFT);return h;}
     private Button button(String t,Feather i,Runnable r){Button b=new Button(t,IconUtils.icon(i,12));b.getStyleClass().add("button-outlined");b.setOnAction(e->r.run());return b;}
     private GridPane form(){GridPane g=new GridPane();g.setHgap(12);g.setVgap(10);g.setPadding(new Insets(6));g.getColumnConstraints().addAll(new ColumnConstraints(170),grow());return g;}
@@ -259,7 +262,9 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private String readKeystore(String path){if(path==null||path.isBlank())return"Certificado não configurado.";try{java.io.File f=new java.io.File(path.replace("file:",""));if(!f.exists())return"Ficheiro não encontrado.";String type=path.toLowerCase(Locale.ROOT).endsWith(".p12")||path.toLowerCase(Locale.ROOT).endsWith(".pfx")?"PKCS12":"JKS";var ks=java.security.KeyStore.getInstance(type);ks.load(Files.newInputStream(f.toPath()),null);StringBuilder b=new StringBuilder();var e=ks.aliases();while(e.hasMoreElements())b.append(e.nextElement()).append('\n');return b.length()==0?"Nenhum alias legível.":b.toString();}catch(Exception e){return"Leitura sem password falhou: "+e.getMessage();}}
 
     private TableView<AdmPlataformaItem> table(String type){
-        TableView<AdmPlataformaItem>t=new TableView<>(FXCollections.observableArrayList(automation.list(type)));t.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);t.setPlaceholder(new Label("Nenhum registo."));
+        TableView<AdmPlataformaItem>t=new TableView<>(FXCollections.observableArrayList(automation.list(type)));t.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        t.getStyleClass().add("kubata-platform-center-data-table");
+        t.setPlaceholder(new Label("Nenhum registo disponível."));
         t.getColumns().addAll(col("Código",AdmPlataformaItem::getCodigo),col("Nome",AdmPlataformaItem::getNome),col("Estado",AdmPlataformaItem::getEstado),col("Resultado",AdmPlataformaItem::getLastMessage),col("Última execução",x->fmt(x.getLastRunAt())));return t;
     }
     private TableColumn<AdmPlataformaItem,String> col(String h,java.util.function.Function<AdmPlataformaItem,String> f){TableColumn<AdmPlataformaItem,String>c=new TableColumn<>(h);c.setCellValueFactory(v->new SimpleStringProperty(safe(f.apply(v.getValue()))));return c;}
