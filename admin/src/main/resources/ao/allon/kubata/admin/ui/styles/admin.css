@@ -12190,3 +12190,107 @@ Text {
     -fx-padding: 7 12;
 }
 
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · CENTRO · Menu lateral profissional e totalmente rolável
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-center-navigation {
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent -color-base-2 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 12 10 10 10;
+}
+
+.kubata-center-nav-search-row {
+    -fx-spacing: 7;
+}
+
+.kubata-center-nav-search-row .kubata-center-nav-search {
+    -fx-pref-height: 34px;
+}
+
+.kubata-center-nav-count {
+    -fx-min-width: 50px;
+    -fx-alignment: center;
+    -fx-padding: 7 8;
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 7;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 7;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-center-nav-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.kubata-center-nav-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.kubata-center-nav-scroll .scroll-bar:vertical {
+    -fx-pref-width: 10px;
+    -fx-background-color: transparent;
+}
+
+.kubata-center-nav-scroll .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.kubata-center-nav-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: -color-base-3;
+    -fx-background-radius: 9px;
+    -fx-min-height: 36px;
+}
+
+.kubata-center-nav-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: -color-base-4;
+}
+
+.kubata-center-nav-scroll .scroll-bar:vertical .increment-button,
+.kubata-center-nav-scroll .scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.kubata-center-nav-button {
+    -fx-min-height: 38px;
+    -fx-pref-height: 38px;
+    -fx-max-height: 38px;
+    -fx-padding: 8 10;
+}
+
+.kubata-center-nav-section {
+    -fx-padding: 11 8 5 8;
+    -fx-font-size: 9px;
+    -fx-letter-spacing: 0.4px;
+}
+
+.kubata-center-nav-button.selected {
+    -fx-border-color: transparent transparent transparent -kubata-green;
+    -fx-border-width: 0 0 0 3;
+    -fx-padding: 8 10 8 9;
+}
+
+.kubata-center-nav-session {
+    -fx-min-height: 52px;
+    -fx-padding: 9 10;
+    -fx-background-color: -color-base-0;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 9;
+    -fx-background-radius: 9;
+}
+
+.kubata-center-nav-session:focused {
+    -fx-border-color: -kubata-green-border;
+}
+
+.kubata-center-navigation > .separator {
+    -fx-padding: 2 0;
+}
