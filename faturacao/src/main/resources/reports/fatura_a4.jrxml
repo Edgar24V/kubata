@@ -323,41 +323,41 @@
 	<columnHeader>
 		<band height="25" splitType="Stretch">
 			<rectangle>
-				<reportElement x="0" y="0" width="555" height="25" backcolor="#0A6B4A" uuid="67890123-4567-8901-2345-890123456789"/>
+				<reportElement x="0" y="0" width="555" height="25" backcolor="#0A6B4A" mode="Opaque" uuid="67890123-4567-8901-2345-890123456789"/>
 				<graphicElement>
 					<pen lineWidth="0.0"/>
 				</graphicElement>
 			</rectangle>
 			<staticText>
-				<reportElement style="KDocDetail" x="5" y="0" width="235" height="25" uuid="78901234-5678-9012-3456-901234567890"/>
+				<reportElement style="KDocColumnHeader" x="5" y="0" width="235" height="25" uuid="78901234-5678-9012-3456-901234567890"/>
 				<textElement verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
 				<text><![CDATA[Descrição]]></text>
 			</staticText>
 			<staticText>
-				<reportElement style="KDocDetail" x="240" y="0" width="60" height="25" uuid="89012345-6789-0123-4567-012345678901"/>
+				<reportElement style="KDocColumnHeader" x="240" y="0" width="60" height="25" uuid="89012345-6789-0123-4567-012345678901"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
 				<text><![CDATA[Qtd]]></text>
 			</staticText>
 			<staticText>
-				<reportElement style="KDocDetail" x="300" y="0" width="80" height="25" uuid="90123456-7890-1234-5678-123456789012"/>
+				<reportElement style="KDocColumnHeader" x="300" y="0" width="80" height="25" uuid="90123456-7890-1234-5678-123456789012"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
 				<text><![CDATA[Preço Unit.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement style="KDocDetail" x="380" y="0" width="60" height="25" uuid="01234567-8901-2345-6789-234567890123"/>
+				<reportElement style="KDocColumnHeader" x="380" y="0" width="60" height="25" uuid="01234567-8901-2345-6789-234567890123"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
 				<text><![CDATA[IVA (%)]]></text>
 			</staticText>
 			<staticText>
-				<reportElement style="KDocDetail" x="440" y="0" width="110" height="25" uuid="12345678-9012-3456-7890-345678901234"/>
+				<reportElement style="KDocColumnHeader" x="440" y="0" width="110" height="25" uuid="12345678-9012-3456-7890-345678901234"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
@@ -406,7 +406,7 @@
 	<pageFooter>
 		<band height="50" splitType="Stretch">
 			<textField>
-				<reportElement x="0" y="0" width="555" height="10" forecolor="#CC0000" uuid="b9f8f3e0-1234-4d5a-9c88-0d0f0a1b2c3d">
+				<reportElement x="0" y="0" width="555" height="10" forecolor="#9B2C2C" uuid="b9f8f3e0-1234-4d5a-9c88-0d0f0a1b2c3d">
 					<printWhenExpression><![CDATA[$P{NOTE_FOOTER} != null && !$P{NOTE_FOOTER}.isEmpty()]]></printWhenExpression>
 				</reportElement>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
@@ -456,7 +456,7 @@
 	<summary>
 		<band height="160" splitType="Stretch">
 			<rectangle>
-				<reportElement x="350" y="10" width="205" height="80" backcolor="#F3F8F5" uuid="12345678-9012-3456-7890-345678901234"/>
+				<reportElement x="350" y="10" width="205" height="80" backcolor="#F1F7F4" mode="Opaque" uuid="12345678-9012-3456-7890-345678901234"/>
 				<graphicElement>
 					<pen lineWidth="0.0"/>
 				</graphicElement>
