@@ -10962,6 +10962,92 @@ Text {
 }
 
 
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Refinamento comum das páginas de Infraestrutura
+   Centro · Aplicações · Moedas · Sessões
+   ───────────────────────────────────────────────────────────────────────── */
+
+.kubata-infra-page {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-infra-page .scroll-pane,
+.kubata-infra-page .scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.kubata-infra-page .tab-pane {
+    -fx-background-color: transparent;
+}
+
+.kubata-infra-page .tab-header-area {
+    -fx-padding: 8px 18px 0 18px;
+}
+
+.kubata-infra-page .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.kubata-infra-page .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 8px 12px 9px 12px;
+}
+
+.kubata-infra-page .tab:hover {
+    -fx-background-color: -color-base-1;
+}
+
+.kubata-infra-page .tab:selected {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-infra-page .tab-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-infra-page .tab:selected .tab-label {
+    -fx-text-fill: -kubata-green;
+}
+
+.kubata-infra-page .kubata-infra-section {
+    -fx-effect: dropshadow(three-pass-box, rgba(36,41,47,0.05), 8, 0.08, 0, 2);
+}
+
+.kubata-infra-page .kubata-infra-kpi {
+    -fx-effect: dropshadow(three-pass-box, rgba(36,41,47,0.04), 7, 0.06, 0, 1);
+}
+
+.kubata-infra-page .kubata-infra-table .table-row-cell {
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-infra-page .kubata-infra-table .table-row-cell:hover {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-infra-page .kubata-infra-table .table-row-cell:selected:hover,
+.kubata-infra-page .kubata-infra-table .table-row-cell:selected {
+    -fx-background-color: -color-accent-subtle;
+}
+
+.kubata-infra-page .kubata-infra-table .table-cell {
+    -fx-padding: 0 10px;
+    -fx-font-size: 11px;
+}
+
+.kubata-infra-page .button-primary {
+    -fx-font-weight: 700;
+}
+
+.kubata-infra-page .button-outlined {
+    -fx-font-weight: 600;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    KUBATA ADMIN · INFRAESTRUTURA
    Linguagem visual comum: Centro, Aplicações, Moedas e Sessões
