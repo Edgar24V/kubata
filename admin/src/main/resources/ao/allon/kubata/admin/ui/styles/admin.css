@@ -12264,6 +12264,36 @@ Text {
     -fx-pref-height: 38px;
     -fx-max-height: 38px;
     -fx-padding: 8 10;
+    -fx-alignment: center-left;
+    -fx-content-display: left;
+    -fx-graphic-text-gap: 9px;
+}
+
+.kubata-center-nav-button .kubata-center-nav-icon {
+    -fx-min-width: 20px;
+    -fx-pref-width: 20px;
+    -fx-max-width: 20px;
+    -fx-min-height: 20px;
+    -fx-pref-height: 20px;
+    -fx-max-height: 20px;
+    -fx-alignment: center-left;
+}
+
+.kubata-center-nav-button .kubata-center-nav-icon .ikonli-font-icon {
+    -fx-icon-size: 14px;
+    -fx-icon-color: -color-base-5;
+}
+
+.kubata-center-nav-button:hover .kubata-center-nav-icon .ikonli-font-icon {
+    -fx-icon-color: -color-base-7;
+}
+
+.kubata-center-nav-button.selected .kubata-center-nav-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green;
+}
+
+.kubata-center-nav-button .text {
+    -fx-alignment: center-left;
 }
 
 .kubata-center-nav-section {
