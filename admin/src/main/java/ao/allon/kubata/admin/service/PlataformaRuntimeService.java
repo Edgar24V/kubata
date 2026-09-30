@@ -695,7 +695,8 @@ public class PlataformaRuntimeService implements ModuleEventListener {
         if (quote == null || quote.isBlank()) quote = "\"";
         return quote + identifier.replace(quote, quote + quote) + quote;
     }
-\n    private String safeQuoteIdentifier(String identifier, Connection connection) {
+
+    private String safeQuoteIdentifier(String identifier, Connection connection) {
         try {
             return quoteIdentifier(identifier, connection);
         } catch (SQLException ex) {
