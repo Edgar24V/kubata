@@ -40,6 +40,10 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private final ModalManager modalManager;
     private final TabPane tabs=new TabPane();
     private final Label ops=new Label("0"), alerts=new Label("0"), docs=new Label("0"), comms=new Label("0"), custom=new Label("0");
+    private final Map<String, Button> navigationButtons=new LinkedHashMap<>();
+    private final TextField navigationSearch=new TextField();
+    private final Label centerState=new Label("Pronta");
+    private final Label updatedAt=new Label("—");
 
     public PlataformaCentroCompletoView(AdmPlataformaItemRepository itemRepository, ParametroSistemaRepository parameterRepository,
                                         PlataformaAutomationService automation, PlataformaDocumentService documents,
@@ -51,21 +55,11 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
 
     private void build(){
-        getStyleClass().add("kubata-server-page");
-        VBox header=new VBox(10);header.setPadding(new Insets(16,20,14,20));header.getStyleClass().add("kubata-server-header");
-        HBox line=new HBox(12);line.setAlignment(Pos.CENTER_LEFT);
-        StackPane icon=new StackPane();icon.getStyleClass().add("kubata-server-title-icon");icon.getChildren().add(new Label("",IconUtils.icon(Feather.SERVER,22)));
-        VBox text=new VBox(3);Label title=new Label("Centro da Plataforma");title.getStyleClass().add("kubata-server-title");
-        Label sub=new Label("Centro administrativo para operações, alertas, documentos, comunicações, preferências e recursos da plataforma.");
-        sub.setWrapText(true);sub.getStyleClass().add("kubata-server-subtitle");text.getChildren().addAll(title,sub);
-        Region spacer=new Region();HBox.setHgrow(spacer,Priority.ALWAYS);
-        Button refresh=button("Actualizar",Feather.REFRESH_CW,this::refreshAll);refresh.getStyleClass().add("button-primary");
-        line.getChildren().addAll(icon,text,spacer,refresh);
-        HBox metrics=new HBox(10,metric("OPERAÇÕES",ops,Feather.CLOCK),metric("ALERTAS",alerts,Feather.ALERT_TRIANGLE),
-                metric("DOCUMENTOS",docs,Feather.FOLDER),metric("COMUNICAÇÕES",comms,Feather.MAIL),metric("PERSONALIZAÇÃO",custom,Feather.CPU));
-        metrics.getStyleClass().add("kubata-server-metrics");
-        header.getChildren().addAll(line,metrics);
-        tabs.getStyleClass().add("kubata-infra-tabs");
+        getStyleClass().addAll("kubata-server-page","kubata-platform-center-page");
+
+        VBox header=buildHeader();
+
+        tabs.getStyleClass().addAll("kubata-infra-tabs","kubata-center-tabpane");
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getTabs().addAll(
                 tab("Dashboard",Feather.HOME,dashboard()),tab("Operações",Feather.CLOCK,operations()),
@@ -76,7 +70,195 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 tab("Mapas",Feather.MAP,definitions("MAPA","Mapas de processos")),
                 tab("Instalação & Registry",Feather.CPU,installation()),
                 tab("Segurança & Certificados",Feather.SHIELD,security()));
-        setTop(header);setCenter(tabs);
+
+        tabs.getSelectionModel().selectedItemProperty().addListener((obs,oldValue,newValue)->updateNavigationSelection());
+
+        HBox workspace=new HBox(0,buildNavigation(),tabs);
+        workspace.setAlignment(Pos.TOP_LEFT);
+        HBox.setHgrow(tabs,Priority.ALWAYS);
+        workspace.getStyleClass().add("kubata-center-workspace");
+
+        setTop(header);
+        setCenter(workspace);
+        setBottom(buildFooter());
+        updateNavigationSelection();
+    }
+
+    private VBox buildHeader(){
+        VBox header=new VBox(11);
+        header.setPadding(new Insets(18,22,13,22));
+        header.getStyleClass().add("kubata-server-header");
+
+        HBox line=new HBox(12);
+        line.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane icon=new StackPane();
+        icon.getStyleClass().add("kubata-server-title-icon");
+        icon.getChildren().add(new Label("",IconUtils.icon(Feather.SERVER,22)));
+
+        VBox text=new VBox(2);
+        Label title=new Label("Centro da Plataforma");
+        title.getStyleClass().add("kubata-server-title");
+        Label sub=new Label("Consola central de administração do Kubata. Operações, dados, comunicações, extensibilidade e segurança num só lugar.");
+        sub.setWrapText(true);
+        sub.getStyleClass().add("kubata-server-subtitle");
+        text.getChildren().addAll(title,sub);
+
+        Region spacer=new Region();
+        HBox.setHgrow(spacer,Priority.ALWAYS);
+
+        Button assistants=button("Assistentes",Feather.SETTINGS,this::openAssistantHub);
+        assistants.getStyleClass().add("button-outlined");
+        Button refresh=button("Actualizar",Feather.REFRESH_CW,this::refreshAll);
+        refresh.getStyleClass().add("button-primary");
+        line.getChildren().addAll(icon,text,spacer,assistants,refresh);
+
+        HBox status=new HBox(9);
+        status.setAlignment(Pos.CENTER_LEFT);
+        status.getStyleClass().add("kubata-server-status-bar");
+        Label statusIcon=new Label("",IconUtils.icon(Feather.ACTIVITY,13));
+        statusIcon.getStyleClass().add("kubata-server-status-icon");
+        Label statusTitle=new Label("ESTADO DO CENTRO");
+        centerState.getStyleClass().addAll("kubata-server-status-value","kubata-server-status-ok");
+        Region statusSpacer=new Region();
+        HBox.setHgrow(statusSpacer,Priority.ALWAYS);
+        Label updatedLabel=new Label("Actualizado");
+        updatedAt.getStyleClass().add("kubata-server-footer-text");
+        status.getChildren().addAll(statusIcon,statusTitle,centerState,statusSpacer,updatedLabel,updatedAt);
+
+        GridPane metrics=new GridPane();
+        metrics.setHgap(10);
+        metrics.setVgap(10);
+        metrics.getStyleClass().add("kubata-center-header-metrics");
+        metrics.add(metric("OPERAÇÕES",ops,Feather.CLOCK),0,0);
+        metrics.add(metric("ALERTAS",alerts,Feather.ALERT_TRIANGLE),1,0);
+        metrics.add(metric("DOCUMENTOS",docs,Feather.FOLDER),2,0);
+        metrics.add(metric("COMUNICAÇÕES",comms,Feather.MAIL),3,0);
+        metrics.add(metric("EXTENSÕES",custom,Feather.CPU),4,0);
+        for(int i=0;i<5;i++){
+            ColumnConstraints c=new ColumnConstraints();
+            c.setPercentWidth(20);
+            c.setHgrow(Priority.ALWAYS);
+            metrics.getColumnConstraints().add(c);
+        }
+
+        header.getChildren().addAll(line,status,metrics);
+        return header;
+    }
+
+    private VBox buildNavigation(){
+        VBox nav=new VBox(7);
+        nav.setPrefWidth(244);
+        nav.setMinWidth(244);
+        nav.setMaxWidth(260);
+        nav.setMaxHeight(Double.MAX_VALUE);
+        nav.setPadding(new Insets(14,10,14,10));
+        nav.getStyleClass().add("kubata-center-navigation");
+
+        VBox identity=new VBox(2);
+        Label eyebrow=new Label("CENTRO");
+        eyebrow.getStyleClass().add("kubata-center-nav-eyebrow");
+        Label title=new Label("Administração");
+        title.getStyleClass().add("kubata-center-nav-title");
+        Label sub=new Label("Navegue por área e mantenha o controlo da plataforma.");
+        sub.setWrapText(true);
+        sub.getStyleClass().add("kubata-center-nav-subtitle");
+        identity.getChildren().addAll(eyebrow,title,sub);
+
+        navigationSearch.setPromptText("Pesquisar área...");
+        navigationSearch.setMaxWidth(Double.MAX_VALUE);
+        navigationSearch.getStyleClass().add("kubata-center-nav-search");
+        navigationSearch.textProperty().addListener((obs,oldValue,newValue)->filterNavigation(newValue));
+
+        nav.getChildren().addAll(identity,navigationSearch,navSection("VISÃO GERAL"));
+        nav.getChildren().addAll(
+                navButton("Dashboard",Feather.HOME,"Resumo do Centro"),
+                navButton("Operações",Feather.CLOCK,"Rotinas e execuções"),
+                navButton("Alertas",Feather.ALERT_TRIANGLE,"Regras e ocorrências"));
+        nav.getChildren().add(navSection("CONTEÚDO & COMUNICAÇÕES"));
+        nav.getChildren().addAll(
+                navButton("Documentos",Feather.FOLDER,"Repositório documental"),
+                navButton("Comunicações",Feather.MAIL,"E-mail e SMS"));
+        nav.getChildren().add(navSection("CONFIGURAÇÃO"));
+        nav.getChildren().addAll(
+                navButton("Preferências",Feather.SLIDERS,"Parâmetros globais"),
+                navButton("Personalização",Feather.CPU,"Extensibilidade"),
+                navButton("Motores Runtime",Feather.CPU,"Motores da plataforma"));
+        nav.getChildren().add(navSection("DADOS & INFRAESTRUTURA"));
+        nav.getChildren().addAll(
+                navButton("Base de Dados",Feather.DATABASE,"Conexão e schema"),
+                navButton("Listagens",Feather.LIST,"Definições de listagem"),
+                navButton("Mapas",Feather.MAP,"Mapas de processos"),
+                navButton("Instalação & Registry",Feather.CPU,"Instalação e catálogo"));
+        nav.getChildren().add(navSection("SEGURANÇA"));
+        nav.getChildren().add(navButton("Segurança & Certificados",Feather.SHIELD,"Políticas e certificado"));
+
+        Region spacer=new Region();
+        VBox.setVgrow(spacer,Priority.ALWAYS);
+        VBox session=new VBox(3);
+        session.getStyleClass().add("kubata-center-nav-session");
+        Label sessionTitle=new Label("SESSÃO ACTUAL");
+        sessionTitle.getStyleClass().add("kubata-center-nav-eyebrow");
+        Label sessionUser=new Label(safe(user()));
+        sessionUser.getStyleClass().add("kubata-center-nav-user");
+        session.getChildren().addAll(sessionTitle,sessionUser);
+
+        nav.getChildren().addAll(spacer,session);
+        return nav;
+    }
+
+    private Label navSection(String title){
+        Label label=new Label(title);
+        label.getStyleClass().add("kubata-center-nav-section");
+        return label;
+    }
+
+    private Button navButton(String title,Feather icon,String tooltip){
+        Button button=new Button(title,IconUtils.icon(icon,14));
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setAlignment(Pos.CENTER_LEFT);
+        button.setContentDisplay(ContentDisplay.LEFT);
+        button.setGraphicTextGap(9);
+        button.setMnemonicParsing(false);
+        button.setTooltip(new Tooltip(tooltip));
+        button.getStyleClass().add("kubata-center-nav-button");
+        button.setOnAction(e->select(title));
+        navigationButtons.put(title,button);
+        return button;
+    }
+
+    private void updateNavigationSelection(){
+        String selected=tabs.getSelectionModel().getSelectedItem()==null
+                ? "Dashboard"
+                : tabs.getSelectionModel().getSelectedItem().getText();
+        navigationButtons.forEach((name,button)->{
+            button.getStyleClass().remove("selected");
+            if(Objects.equals(name,selected))button.getStyleClass().add("selected");
+        });
+    }
+
+    private void filterNavigation(String value){
+        String query=value==null?"":value.trim().toLowerCase(Locale.ROOT);
+        navigationButtons.forEach((name,button)->{
+            boolean visible=query.isBlank()||name.toLowerCase(Locale.ROOT).contains(query);
+            button.setVisible(visible);
+            button.setManaged(visible);
+        });
+    }
+
+    private HBox buildFooter(){
+        HBox footer=new HBox(10);
+        footer.setPadding(new Insets(8,14,8,14));
+        footer.setAlignment(Pos.CENTER_LEFT);
+        footer.getStyleClass().add("kubata-server-footer");
+        Label left=new Label("Centro da Plataforma · administração central");
+        left.getStyleClass().add("kubata-server-footer-text");
+        Region spacer=new Region();
+        HBox.setHgrow(spacer,Priority.ALWAYS);
+        Label right=new Label("Sessão: "+safe(user()));
+        right.getStyleClass().add("kubata-server-footer-text");
+        footer.getChildren().addAll(left,spacer,right);
+        return footer;
     }
 
     private Tab tab(String t,Feather i,Node n){
@@ -104,21 +286,188 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private VBox metric(String t,Label v,Feather i){VBox card=new VBox(5);card.setPadding(new Insets(13,15,13,15));card.getStyleClass().add("kubata-server-metric");HBox line=new HBox(7);line.setAlignment(Pos.CENTER_LEFT);Label icon=new Label("",IconUtils.icon(i,14));icon.getStyleClass().add("kubata-server-metric-icon");Label caption=new Label(t);caption.getStyleClass().add("kubata-server-metric-title");line.getChildren().addAll(icon,caption);v.getStyleClass().add("kubata-server-metric-value");card.getChildren().addAll(line,v);HBox.setHgrow(card,Priority.ALWAYS);return card;}
     private VBox section(String t,String d){VBox b=serverPanel(t,Feather.SERVER);Label c=new Label(d);c.setWrapText(true);c.getStyleClass().add("kubata-server-note");b.getChildren().add(c);return b;}
     private VBox info(String t,String d){VBox b=serverPanel(t,Feather.INFO);Label c=new Label(d);c.setWrapText(true);c.getStyleClass().add("kubata-server-note");b.getChildren().add(c);return b;}
-    private HBox actions(Button... b){HBox h=new HBox(8,b);h.setAlignment(Pos.CENTER_LEFT);return h;}
+    private HBox actions(Button... b){HBox h=new HBox(8,b);h.setAlignment(Pos.CENTER_LEFT);h.getStyleClass().add("kubata-center-actionbar");return h;}
     private Button button(String t,Feather i,Runnable r){Button b=new Button(t,IconUtils.icon(i,12));b.getStyleClass().add("button-outlined");b.setOnAction(e->r.run());return b;}
-    private GridPane form(){GridPane g=new GridPane();g.setHgap(12);g.setVgap(10);g.setPadding(new Insets(6));g.getColumnConstraints().addAll(new ColumnConstraints(170),grow());return g;}
+    private GridPane form(){GridPane g=new GridPane();g.setHgap(12);g.setVgap(10);g.setPadding(new Insets(6));g.getStyleClass().add("kubata-center-form");g.getColumnConstraints().addAll(new ColumnConstraints(170),grow());return g;}
     private ColumnConstraints grow(){ColumnConstraints c=new ColumnConstraints();c.setHgrow(Priority.ALWAYS);return c;}
-    private void field(GridPane g,int row,String label,Object n){g.add(new Label(label),0,row);Node x=n instanceof Node?(Node)n:new Label(String.valueOf(n));if(x instanceof Region r)r.setMaxWidth(Double.MAX_VALUE);g.add(x,1,row);}
+    private void field(GridPane g,int row,String label,Object n){
+        Label caption=new Label(label);
+        caption.getStyleClass().add("kubata-center-field-label");
+        g.add(caption,0,row);
+        Node x=n instanceof Node?(Node)n:new Label(String.valueOf(n));
+        if(x instanceof Region r)r.setMaxWidth(Double.MAX_VALUE);
+        g.add(x,1,row);
+    }
     private Node dashboard(){
-        VBox r=page();r.getChildren().addAll(assistantHub(),section("Visão consolidada","Capacidades que estavam parciais passam a ter catálogo persistente e execução administrativa."),
-                actions(button("Operações",Feather.CLOCK,()->select("Operações")),button("Alertas",Feather.ALERT_TRIANGLE,()->select("Alertas")),
-                        button("Documentos",Feather.FOLDER,()->select("Documentos")),button("Comunicações",Feather.MAIL,()->select("Comunicações")),
-                        button("Personalização",Feather.CPU,()->select("Personalização"))),
-                info("Automação","Scheduler persistente com execução, pausa, retry e próxima execução; as operações nativas são restauradas no arranque."),
-                info("Documental","Importação física para repositório controlado com catálogo de metadados, eliminação e abertura do repositório."),
-                info("Comunicações","Fila para SMTP e gateway SMS HTTP. As credenciais são lidas de parâmetros globais; não são gravadas na definição de mensagens."),
-                info("Extensibilidade","CDU/XDU/PDU/RDU/FDU/SDU/MDU, listagens e mapas são definições activáveis por metadata, prontas para consumo pelos módulos."));
+        VBox r=page();
+        r.getStyleClass().add("kubata-center-dashboard");
+        r.getChildren().addAll(dashboardHero(),dashboardOverview(),dashboardQuickActions(),dashboardCapabilities());
         return scroll(r);
+    }
+
+    private VBox dashboardHero(){
+        VBox box=new VBox(11);
+        box.getStyleClass().add("kubata-center-hero");
+
+        HBox heading=new HBox(10);
+        heading.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane badge=new StackPane();
+        badge.getStyleClass().add("kubata-center-hero-icon");
+        badge.getChildren().add(new Label("",IconUtils.icon(Feather.SERVER,20)));
+
+        VBox titles=new VBox(2);
+        Label eyebrow=new Label("KUBATA ADMINISTRATOR");
+        eyebrow.getStyleClass().add("kubata-center-hero-eyebrow");
+        Label title=new Label("Centro de controlo da plataforma");
+        title.getStyleClass().add("kubata-center-hero-title");
+        Label description=new Label("Tenha uma visão rápida do estado administrativo e aceda directamente às áreas que exigem atenção.");
+        description.setWrapText(true);
+        description.getStyleClass().add("kubata-center-hero-text");
+        titles.getChildren().addAll(eyebrow,title,description);
+        heading.getChildren().addAll(badge,titles);
+
+        HBox actionBar=new HBox(8);
+        actionBar.setAlignment(Pos.CENTER_LEFT);
+        Button assistants=button("Assistentes de configuração",Feather.SETTINGS,this::openAssistantHub);
+        assistants.getStyleClass().add("button-primary");
+        Button refresh=button("Actualizar estado",Feather.REFRESH_CW,this::refreshAll);
+        refresh.getStyleClass().add("button-outlined");
+        actionBar.getChildren().addAll(assistants,refresh);
+
+        box.getChildren().addAll(heading,actionBar);
+        return box;
+    }
+
+    private VBox dashboardOverview(){
+        VBox box=serverPanel("Estado administrativo",Feather.ACTIVITY);
+        box.getStyleClass().add("kubata-center-dashboard-panel");
+        Label note=new Label("Os indicadores reflectem o catálogo persistente do Centro e ajudam a localizar rapidamente a área de trabalho.");
+        note.setWrapText(true);
+        note.getStyleClass().add("kubata-server-note");
+
+        GridPane grid=new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.getStyleClass().add("kubata-center-overview-grid");
+        grid.add(dashboardArea("Operações",ops,Feather.CLOCK,"Executar e acompanhar rotinas administrativas.",()->select("Operações")),0,0);
+        grid.add(dashboardArea("Alertas",alerts,Feather.ALERT_TRIANGLE,"Rever regras e ocorrências técnicas.",()->select("Alertas")),1,0);
+        grid.add(dashboardArea("Documentos",docs,Feather.FOLDER,"Gerir o catálogo documental local.",()->select("Documentos")),2,0);
+        grid.add(dashboardArea("Comunicações",comms,Feather.MAIL,"Controlar a fila de e-mail e SMS.",()->select("Comunicações")),3,0);
+        grid.add(dashboardArea("Extensões",custom,Feather.CPU,"Personalização, listagens e mapas.",()->select("Personalização")),4,0);
+        for(int i=0;i<5;i++){
+            ColumnConstraints c=new ColumnConstraints();
+            c.setPercentWidth(20);
+            c.setHgrow(Priority.ALWAYS);
+            grid.getColumnConstraints().add(c);
+        }
+        box.getChildren().addAll(note,grid);
+        return box;
+    }
+
+    private VBox dashboardArea(String title,Label value,Feather icon,String description,Runnable action){
+        VBox card=new VBox(7);
+        card.setPadding(new Insets(11,12,10,12));
+        card.setMaxWidth(Double.MAX_VALUE);
+        card.getStyleClass().add("kubata-center-overview-card");
+
+        HBox top=new HBox(7);
+        top.setAlignment(Pos.CENTER_LEFT);
+        Label iconLabel=new Label("",IconUtils.icon(icon,14));
+        iconLabel.getStyleClass().add("kubata-server-metric-icon");
+        Label label=new Label(title.toUpperCase(Locale.ROOT));
+        label.getStyleClass().add("kubata-server-metric-title");
+        top.getChildren().addAll(iconLabel,label);
+
+        value.getStyleClass().add("kubata-center-overview-value");
+
+        Label desc=new Label(description);
+        desc.setWrapText(true);
+        desc.getStyleClass().add("kubata-center-overview-text");
+
+        Button open=button("Abrir",Feather.ARROW_RIGHT,action);
+        open.getStyleClass().add("kubata-center-link-button");
+        card.getChildren().addAll(top,value,desc,open);
+        GridPane.setHgrow(card,Priority.ALWAYS);
+        return card;
+    }
+
+    private GridPane dashboardQuickActions(){
+        GridPane grid=new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.getStyleClass().add("kubata-center-quick-grid");
+        for(int i=0;i<4;i++){
+            ColumnConstraints c=new ColumnConstraints();
+            c.setPercentWidth(25);
+            c.setHgrow(Priority.ALWAYS);
+            grid.getColumnConstraints().add(c);
+        }
+        addQuickAction(grid,0,0,"Operações","Rotinas, execução e retry.",Feather.CLOCK,()->select("Operações"));
+        addQuickAction(grid,1,0,"Alertas","Saúde técnica e regras.",Feather.ALERT_TRIANGLE,()->select("Alertas"));
+        addQuickAction(grid,2,0,"Documentos","Catálogo e repositório.",Feather.FOLDER,()->select("Documentos"));
+        addQuickAction(grid,3,0,"Comunicações","E-mail e SMS.",Feather.MAIL,()->select("Comunicações"));
+        addQuickAction(grid,0,1,"Base de Dados","Conexão, tabelas e schema.",Feather.DATABASE,()->select("Base de Dados"));
+        addQuickAction(grid,1,1,"Instalação","Ambiente e registry.",Feather.CPU,this::installationAssistant);
+        addQuickAction(grid,2,1,"Segurança","Políticas e certificado.",Feather.SHIELD,this::securityAssistant);
+        addQuickAction(grid,3,1,"Motores Runtime","Extensões do runtime.",Feather.CPU,()->select("Motores Runtime"));
+        return grid;
+    }
+
+    private void addQuickAction(GridPane grid,int col,int row,String title,String description,Feather icon,Runnable action){
+        VBox card=new VBox(6);
+        card.setPadding(new Insets(12));
+        card.setMinHeight(118);
+        card.setMaxWidth(Double.MAX_VALUE);
+        card.getStyleClass().add("kubata-center-quick-card");
+
+        HBox head=new HBox(8);
+        head.setAlignment(Pos.CENTER_LEFT);
+        StackPane iconBox=new StackPane();
+        iconBox.getStyleClass().add("kubata-center-quick-icon");
+        iconBox.getChildren().add(new Label("",IconUtils.icon(icon,14)));
+
+        Label titleLabel=new Label(title);
+        titleLabel.getStyleClass().add("kubata-center-quick-title");
+        head.getChildren().addAll(iconBox,titleLabel);
+
+        Label desc=new Label(description);
+        desc.setWrapText(true);
+        desc.getStyleClass().add("kubata-center-quick-text");
+        VBox.setVgrow(desc,Priority.ALWAYS);
+
+        Button open=button("Abrir",Feather.ARROW_RIGHT,action);
+        open.getStyleClass().add("button-outlined");
+        card.getChildren().addAll(head,desc,open);
+        GridPane.setHgrow(card,Priority.ALWAYS);
+        grid.add(card,col,row);
+    }
+
+    private GridPane dashboardCapabilities(){
+        GridPane grid=new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.add(capabilityCard("Automação","Scheduler persistente com execução, pausa, retry e próxima execução.",Feather.CLOCK),0,0);
+        grid.add(capabilityCard("Gestão documental","Importação física, catálogo de metadados e gestão do repositório.",Feather.FOLDER),1,0);
+        grid.add(capabilityCard("Comunicações","Fila administrativa para SMTP e gateway SMS HTTP.",Feather.MAIL),0,1);
+        grid.add(capabilityCard("Extensibilidade","CDU/XDU/PDU/RDU/FDU/SDU/MDU, listagens e mapas definidos por metadata.",Feather.CPU),1,1);
+        for(int i=0;i<2;i++){
+            ColumnConstraints c=new ColumnConstraints();
+            c.setPercentWidth(50);
+            c.setHgrow(Priority.ALWAYS);
+            grid.getColumnConstraints().add(c);
+        }
+        return grid;
+    }
+
+    private VBox capabilityCard(String title,String description,Feather icon){
+        VBox card=serverPanel(title,icon);
+        card.getStyleClass().add("kubata-center-capability-card");
+        Label text=new Label(description);
+        text.setWrapText(true);
+        text.getStyleClass().add("kubata-server-note");
+        card.getChildren().add(text);
+        return card;
     }
 
     private Node operations(){
@@ -460,24 +809,67 @@ public class PlataformaCentroCompletoView extends BorderPane {
 
     private TableView<AdmPlataformaItem> table(String type){
         TableView<AdmPlataformaItem>t=new TableView<>(FXCollections.observableArrayList(automation.list(type)));t.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        t.setPrefHeight(520);t.setMinHeight(360);t.setMaxHeight(900);
-        t.getStyleClass().addAll("kubata-infra-table","kubata-server-properties-table");
-        t.setPlaceholder(new Label("Nenhum registo disponível."));
+        t.setPrefHeight(520);
+        t.setMinHeight(360);
+        t.setMaxHeight(900);
+        t.setFixedCellSize(38);
+        t.getStyleClass().addAll("kubata-infra-table","kubata-server-properties-table","kubata-center-table");
+        Label empty=new Label("Nenhum registo disponível.");
+        empty.getStyleClass().add("kubata-center-table-empty");
+        t.setPlaceholder(empty);
         t.getColumns().addAll(col("Código",AdmPlataformaItem::getCodigo),col("Nome",AdmPlataformaItem::getNome),col("Estado",AdmPlataformaItem::getEstado),col("Resultado",AdmPlataformaItem::getLastMessage),col("Última execução",x->fmt(x.getLastRunAt())));return t;
     }
     private TableColumn<AdmPlataformaItem,String> col(String h,java.util.function.Function<AdmPlataformaItem,String> f){TableColumn<AdmPlataformaItem,String>c=new TableColumn<>(h);c.setCellValueFactory(v->new SimpleStringProperty(safe(f.apply(v.getValue()))));return c;}
     private void reload(TableView<AdmPlataformaItem>t,String type){t.setItems(FXCollections.observableArrayList(automation.list(type)));refreshMetrics();}
     private AdmPlataformaItem selected(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=t.getSelectionModel().getSelectedItem();if(i==null)show("Plataforma","Seleccione um registo.");return i;}
     private VBox card(Node n,Node... a){VBox b=serverPanel("Configuração",Feather.SETTINGS);b.getChildren().add(n);if(a.length>0)b.getChildren().addAll(a);return b;}
-    private VBox serverPanel(String title,Feather icon){VBox box=new VBox(10);box.setPadding(new Insets(15));box.getStyleClass().add("kubata-server-panel");HBox heading=new HBox(8);heading.setAlignment(Pos.CENTER_LEFT);Label i=new Label("",IconUtils.icon(icon,15));i.getStyleClass().add("kubata-server-panel-icon");Label t=new Label(title);t.getStyleClass().add("kubata-server-panel-title");heading.getChildren().addAll(i,t);box.getChildren().add(heading);return box;}
+    private VBox serverPanel(String title,Feather icon){
+        VBox box=new VBox(10);
+        box.setPadding(new Insets(15));
+        box.getStyleClass().addAll("kubata-server-panel","kubata-center-panel");
+        HBox heading=new HBox(8);
+        heading.setAlignment(Pos.CENTER_LEFT);
+        Label i=new Label("",IconUtils.icon(icon,15));
+        i.getStyleClass().add("kubata-server-panel-icon");
+        Label t=new Label(title);
+        t.getStyleClass().add("kubata-server-panel-title");
+        heading.getChildren().addAll(i,t);
+        box.getChildren().add(heading);
+        return box;
+    }
 
     private void seed(){
         if(itemRepository.countByTipo("OPERACAO")==0){automation.save("OPERACAO","CHECK_ALERTS","Verificar alertas","ACTIVO","Saúde técnica","{}",60,user(),null);automation.save("OPERACAO","JVM_DIAGNOSTIC","Diagnóstico JVM","ACTIVO","Métricas JVM","{}",300,user(),null);automation.save("OPERACAO","SYNC_MODULES","Sincronizar módulos","ACTIVO","Catálogo runtime","{}",900,user(),null);automation.save("OPERACAO","CHECK_MIGRATIONS","Verificar migrações","ACTIVO","Flyway","{}",900,user(),null);}
         if(itemRepository.countByTipo("ALERTA_REGRA")==0){automation.save("ALERTA_REGRA","HEAP_HIGH","Heap elevada","ACTIVO","Heap >= 85%","{\"value\":0.85}",null,user(),null);automation.save("ALERTA_REGRA","DISK_LOW","Disco baixo","ACTIVO","Espaço livre <= 10%","{\"value\":0.10}",null,user(),null);}
     }
-    private void refreshMetrics(){ops.setText(""+itemRepository.countByTipo("OPERACAO"));alerts.setText(""+itemRepository.countByTipo("ALERTA"));docs.setText(""+itemRepository.countByTipo("DOCUMENTO"));comms.setText(""+itemRepository.countByTipo("COMUNICACAO"));custom.setText(""+(itemRepository.countByTipo("PERSONALIZACAO")+itemRepository.countByTipo("LISTAGEM")+itemRepository.countByTipo("MAPA")));}
-    private void refreshAll(){refreshMetrics();automation.evaluateAndPersistAlerts(user());}
-    private void select(String s){tabs.getSelectionModel().select(tabs.getTabs().stream().filter(t->Objects.equals(t.getText(),s)).findFirst().orElse(null));}
+    private void refreshMetrics(){
+        ops.setText(""+itemRepository.countByTipo("OPERACAO"));
+        alerts.setText(""+itemRepository.countByTipo("ALERTA"));
+        docs.setText(""+itemRepository.countByTipo("DOCUMENTO"));
+        comms.setText(""+itemRepository.countByTipo("COMUNICACAO"));
+        custom.setText(""+(itemRepository.countByTipo("PERSONALIZACAO")+itemRepository.countByTipo("LISTAGEM")+itemRepository.countByTipo("MAPA")));
+        updatedAt.setText(LocalDateTime.now().format(DT));
+    }
+    private void refreshAll(){
+        try{
+            automation.evaluateAndPersistAlerts(user());
+            refreshMetrics();
+            centerState.setText("Pronta");
+            centerState.getStyleClass().remove("kubata-server-status-warning");
+            centerState.getStyleClass().add("kubata-server-status-ok");
+        }catch(Exception e){
+            centerState.setText("Atenção");
+            centerState.getStyleClass().remove("kubata-server-status-ok");
+            centerState.getStyleClass().add("kubata-server-status-warning");
+            updatedAt.setText(LocalDateTime.now().format(DT));
+            show("Centro da Plataforma",safe(e.getMessage()));
+        }
+        updateNavigationSelection();
+    }
+    private void select(String s){
+        tabs.getSelectionModel().select(tabs.getTabs().stream().filter(t->Objects.equals(t.getText(),s)).findFirst().orElse(null));
+        updateNavigationSelection();
+    }
     private String global(String key,String fallback){return parameterRepository.findByChaveAndEmpresaIdIsNull(key).map(p->p.getValor()==null?fallback:p.getValor()).orElseGet(()->environment.getProperty(key,fallback));}
     private void saveGlobal(String key,String value,String type,String desc){ParametroSistema p=parameterRepository.findByChaveAndEmpresaIdIsNull(key).orElseGet(ParametroSistema::new);p.setEmpresa(null);p.setChave(key);p.setValor(value);p.setTipoValor(type);p.setDescricao(desc);p.setEditavel(true);p.setGrupo(key.contains(".")?key.substring(0,key.indexOf('.')):"SISTEMA");p.setAtualizadoEm(LocalDateTime.now());p.setAtualizadoPor(user());parameterRepository.save(p);}
     private String user(){return sessions.getUser()==null?"Sistema":sessions.getUser().getNome();}
