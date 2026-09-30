@@ -2,6 +2,7 @@ package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -16,6 +17,7 @@ import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.xml.JRXmlLoader;
 import org.kordamp.ikonli.feather.Feather;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
@@ -39,6 +41,7 @@ import java.util.stream.Collectors;
  * controlada, evitando alteração silenciosa dos recursos empacotados.</p>
  */
 @Component
+@Lazy
 public class JrxmlStudioView extends VBox {
 
     private final ModalManager modalManager;
@@ -61,7 +64,7 @@ public class JrxmlStudioView extends VBox {
         setSpacing(0);
         getStyleClass().add("kubata-jrxml-studio");
         buildUi();
-        refreshCatalog();
+        Platform.runLater(this::refreshCatalog);
     }
 
     private void buildUi() {
