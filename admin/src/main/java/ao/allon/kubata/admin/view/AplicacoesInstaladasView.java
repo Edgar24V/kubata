@@ -42,7 +42,7 @@ public class AplicacoesInstaladasView extends VBox {
         this.installationService = installationService;
 
         setSpacing(0);
-        getStyleClass().add("application-view");
+        getStyleClass().addAll("application-view", "kubata-infra-page");
         buildUi();
         refresh();
     }
