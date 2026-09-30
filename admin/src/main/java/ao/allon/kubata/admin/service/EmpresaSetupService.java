@@ -5,6 +5,7 @@ import ao.allon.kubata.core.domain.ExercicioFiscal;
 import ao.allon.kubata.core.domain.ParametroSistema;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.util.NifUtils;
+import ao.allon.kubata.core.util.LogoUtils;
 import ao.allon.kubata.core.repository.ExercicioFiscalRepository;
 import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import org.springframework.stereotype.Service;
@@ -306,6 +307,17 @@ public class EmpresaSetupService {
                 throw new IllegalArgumentException("NIF da Segurança Social inválido: " + message);
             }
         }
+        String logoMessage = LogoUtils.validate(empresa.getLogotipo());
+        if (logoMessage != null) {
+            throw new IllegalArgumentException("Logótipo inválido: " + logoMessage);
+        }
+
+        if (empresa.getLogotipo() != null && empresa.getLogotipo().length > 0) {
+            empresa.setLogotipoMimeType(LogoUtils.detectMimeType(empresa.getLogotipo()));
+        } else {
+            empresa.setLogotipoMimeType(null);
+        }
+
         validateAgtCertificate(empresa);
     }
 
