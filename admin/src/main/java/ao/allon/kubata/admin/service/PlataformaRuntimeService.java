@@ -231,7 +231,10 @@ public class PlataformaRuntimeService implements ModuleEventListener {
         if (q.length() < 2) return List.of();
 
         int max = Math.max(1, Math.min(maxHits <= 0 ? 50 : maxHits, 200));
-        return jdbcTemplate.execute(connection -> searchConnection(connection, q, max));
+        return jdbcTemplate.execute(
+                (org.springframework.jdbc.core.ConnectionCallback<List<SearchHit>>)
+                        connection -> searchConnection(connection, q, max)
+        );
     }
 
     private List<SearchHit> searchConnection(Connection connection, String term, int maxHits) throws SQLException {
