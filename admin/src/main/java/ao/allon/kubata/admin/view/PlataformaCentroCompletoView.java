@@ -19,6 +19,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.core.env.Environment;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import java.awt.Desktop;
 import java.nio.file.*;
@@ -27,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Component
+@Lazy
 public class PlataformaCentroCompletoView extends BorderPane {
     private static final DateTimeFormatter DT=DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     private final AdmPlataformaItemRepository itemRepository;
