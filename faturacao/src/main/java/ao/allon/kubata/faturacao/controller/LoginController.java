@@ -2,6 +2,8 @@ package ao.allon.kubata.faturacao.controller;
 
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.service.AuthService;
+import ao.allon.kubata.core.service.PasswordChangeService;
+import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
 import ao.allon.kubata.faturacao.ui.event.LoginSuccessEvent;
 import atlantafx.base.controls.Card;
 import atlantafx.base.theme.Styles;
@@ -30,6 +32,7 @@ public class LoginController {
 
     private final AuthService authService;
     private final ApplicationEventPublisher eventPublisher;
+    private final PasswordChangeService passwordChangeService;
     
     private TextField emailField;
     private PasswordField passwordField;
@@ -39,9 +42,12 @@ public class LoginController {
     private StackPane mainContainer;
     private VBox loginCard;
 
-    public LoginController(AuthService authService, ApplicationEventPublisher eventPublisher) {
+    public LoginController(AuthService authService,
+                            ApplicationEventPublisher eventPublisher,
+                            PasswordChangeService passwordChangeService) {
         this.authService = authService;
         this.eventPublisher = eventPublisher;
+        this.passwordChangeService = passwordChangeService;
     }
 
     public StackPane createView() {
@@ -220,13 +226,128 @@ public class LoginController {
 
         task.setOnFailed(e -> {
             setLoading(false);
-            showError(task.getException() != null ? task.getException().getMessage() : "Erro no login.");
+            Throwable error = task.getException();
+
+            if (error instanceof PasswordChangeRequiredException required) {
+                showMandatoryPasswordChange(required.getUser(), password);
+                return;
+            }
+
+            showError(error != null ? error.getMessage() : "Erro no login.");
             shakeForm();
         });
 
         new Thread(task).start();
     }
     
+    private void showMandatoryPasswordChange(User user, String currentPassword) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Alteração obrigatória da palavra-passe");
+        dialog.setHeaderText("A palavra-passe temporária deve ser substituída antes do acesso.");
+
+        PasswordField newPassword = new PasswordField();
+        newPassword.setPromptText("Nova palavra-passe (mín. 8 caracteres)");
+
+        PasswordField confirmPassword = new PasswordField();
+        confirmPassword.setPromptText("Confirmar nova palavra-passe");
+
+        Label hint = new Label(
+                "Use pelo menos 8 caracteres, incluindo maiúsculas, minúsculas e números."
+        );
+        hint.setWrapText(true);
+
+        VBox content = new VBox(
+                10,
+                new Label("Nova palavra-passe:"),
+                newPassword,
+                new Label("Confirmar:"),
+                confirmPassword,
+                hint
+        );
+        content.setPadding(new Insets(10));
+        content.setPrefWidth(430);
+
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        Button ok = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        ok.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            String value = newPassword.getText();
+            String confirmation = confirmPassword.getText();
+
+            if (value == null || value.length() < 8) {
+                showError("A nova palavra-passe deve ter pelo menos 8 caracteres.");
+                event.consume();
+                return;
+            }
+
+            boolean upper = value.chars().anyMatch(Character::isUpperCase);
+            boolean lower = value.chars().anyMatch(Character::isLowerCase);
+            boolean digit = value.chars().anyMatch(Character::isDigit);
+
+            if (!upper || !lower || !digit) {
+                showError(
+                        "A nova palavra-passe deve conter maiúsculas, minúsculas e números."
+                );
+                event.consume();
+                return;
+            }
+
+            if (!value.equals(confirmation)) {
+                showError("A confirmação da palavra-passe não coincide.");
+                event.consume();
+            }
+        });
+
+        dialog.showAndWait().ifPresent(result -> {
+            if (result != ButtonType.OK) {
+                showError(
+                        "A alteração da palavra-passe é obrigatória para entrar no sistema."
+                );
+                return;
+            }
+
+            String newValue = newPassword.getText();
+            setLoading(true);
+
+            Task<User> changeTask = new Task<>() {
+                @Override
+                protected User call() {
+                    return passwordChangeService.changeOwnPassword(
+                            user.getId(),
+                            currentPassword,
+                            newValue
+                    );
+                }
+            };
+
+            changeTask.setOnSucceeded(event -> {
+                setLoading(false);
+                User changedUser = changeTask.getValue();
+                playExitAnimation(() -> Platform.runLater(
+                        () -> eventPublisher.publishEvent(
+                                new LoginSuccessEvent(this, changedUser)
+                        )
+                ));
+            });
+
+            changeTask.setOnFailed(event -> {
+                setLoading(false);
+                Throwable error = changeTask.getException();
+                showError(
+                        error == null || error.getMessage() == null
+                                ? "Não foi possível alterar a palavra-passe."
+                                : error.getMessage()
+                );
+                shakeForm();
+            });
+
+            Thread thread = new Thread(changeTask, "kubata-password-change");
+            thread.setDaemon(true);
+            thread.start();
+        });
+    }
+
     private void setLoading(boolean loading) {
         loginButton.setVisible(!loading);
         loginButton.setManaged(!loading);
