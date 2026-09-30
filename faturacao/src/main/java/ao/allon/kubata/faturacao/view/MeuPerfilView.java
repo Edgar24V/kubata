@@ -635,7 +635,7 @@ public class MeuPerfilView extends BorderPane {
         txtSenhaAtual.setPromptText("Senha atual");
 
         PasswordField txtNovaSenha = new PasswordField();
-        txtNovaSenha.setPromptText("Nova senha (mín. 6 caracteres)");
+        txtNovaSenha.setPromptText("Nova senha (mín. 8 caracteres)");
 
         PasswordField txtConfirmar = new PasswordField();
         txtConfirmar.setPromptText("Confirmar nova senha");
@@ -666,8 +666,8 @@ public class MeuPerfilView extends BorderPane {
                     return;
                 }
 
-                if (novaSenha.length() < 6) {
-                    AlertUtils.showErrorAlert("Erro", "A nova senha deve ter pelo menos 6 caracteres.");
+                if (novaSenha.length() < 8) {
+                    AlertUtils.showErrorAlert("Erro", "A nova senha deve ter pelo menos 8 caracteres, com maiúsculas, minúsculas e números.");
                     return;
                 }
 
