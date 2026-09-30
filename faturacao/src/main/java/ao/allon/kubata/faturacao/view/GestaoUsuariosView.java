@@ -63,15 +63,6 @@ public class GestaoUsuariosView extends VBox {
         loadData();
     }
 
-        setSpacing(20);
-        setPadding(new Insets(20));
-        getStyleClass().add("gestao-usuarios-view");
-
-        setupHeader();
-        setupTable();
-        loadData();
-    }
-
     private void setupHeader() {
         HBox header = new HBox(15);
         header.setAlignment(Pos.CENTER_LEFT);
