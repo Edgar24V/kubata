@@ -34,14 +34,16 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private final PlataformaCommunicationService communications;
     private final SessionManager sessions;
     private final Environment environment;
+    private final PlataformaMotoresView motores;
     private final TabPane tabs=new TabPane();
     private final Label ops=new Label("0"), alerts=new Label("0"), docs=new Label("0"), comms=new Label("0"), custom=new Label("0");
 
     public PlataformaCentroCompletoView(AdmPlataformaItemRepository itemRepository, ParametroSistemaRepository parameterRepository,
                                         PlataformaAutomationService automation, PlataformaDocumentService documents,
-                                        PlataformaCommunicationService communications, SessionManager sessions, Environment environment){
+                                        PlataformaCommunicationService communications, SessionManager sessions, Environment environment,
+                                        PlataformaMotoresView motores){
         this.itemRepository=itemRepository;this.parameterRepository=parameterRepository;this.automation=automation;this.documents=documents;
-        this.communications=communications;this.sessions=sessions;this.environment=environment;
+        this.communications=communications;this.sessions=sessions;this.environment=environment;this.motores=motores;
         seed(); build(); refreshMetrics();
     }
 
@@ -63,7 +65,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 tab("Dashboard",Feather.HOME,dashboard()),tab("Operações",Feather.CLOCK,operations()),
                 tab("Alertas",Feather.ALERT_TRIANGLE,alerts()),tab("Documentos",Feather.FOLDER,documents()),
                 tab("Comunicações",Feather.MAIL,communications()),tab("Preferências",Feather.SLIDERS,preferences()),
-                tab("Personalização",Feather.CPU,personalization()),tab("Base de Dados",Feather.DATABASE,database()),
+                tab("Personalização",Feather.CPU,personalization()),tab("Motores Runtime",Feather.CPU,motores),tab("Base de Dados",Feather.DATABASE,database()),
                 tab("Listagens",Feather.LIST,definitions("LISTAGEM","Listagens configuráveis")),
                 tab("Mapas",Feather.MAP,definitions("MAPA","Mapas de processos")),
                 tab("Instalação & Registry",Feather.CPU,installation()),
