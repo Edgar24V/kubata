@@ -36,6 +36,7 @@ public class PlataformaMotoresView extends BorderPane {
     private final Environment environment;
     private final ModalManager modalManager;
     private final TabPane tabs = new TabPane();
+    private final Label engineState = new Label("Motores disponíveis · configuração carregada");
 
     public PlataformaMotoresView(
             PlataformaRuntimeService runtime,
@@ -53,35 +54,11 @@ public class PlataformaMotoresView extends BorderPane {
 
     private void build() {
         getStyleClass().add("kubata-server-page");
-        VBox header = new VBox(10);
-        header.setPadding(new Insets(16, 20, 14, 20));
-        header.getStyleClass().add("kubata-server-header");
 
-        HBox titleRow = new HBox(12);
-        titleRow.setAlignment(Pos.CENTER_LEFT);
-        StackPane titleIcon = new StackPane();
-        titleIcon.getStyleClass().add("kubata-server-title-icon");
-        titleIcon.getChildren().add(new Label("", IconUtils.icon(Feather.CPU, 22)));
-        VBox titleBox = new VBox(3);
-        Label title = new Label("Motores da Plataforma");
-        title.getStyleClass().add("kubata-server-title");
-        Label subtitle = new Label(
-                "Execução runtime de personalização, listagens, mapas, pesquisa, eventos, notificações, calendário, dashboard, anexos, licenciamento e gestão de BD.");
-        subtitle.setWrapText(true);
-        subtitle.getStyleClass().add("kubata-server-subtitle");
-        titleBox.getChildren().addAll(title, subtitle);
+        VBox header = buildHeader();
 
-        HBox actions = new HBox(8);
-        Button refresh = button("Actualizar", Feather.REFRESH_CW, this::refreshCurrent);
-        Button home = button("Resumo", Feather.HOME, () -> tabs.getSelectionModel().selectFirst());
-        actions.getChildren().addAll(home, refresh);
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        titleRow.getChildren().addAll(titleIcon, titleBox, spacer, actions);
-        header.getChildren().addAll(titleRow, engineMetrics());
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabs.getStyleClass().add("kubata-motores-tabs");
+        tabs.getStyleClass().add("kubata-infra-tabs");
         tabs.getTabs().addAll(
                 tab("Resumo", Feather.CPU, resumo()),
                 tab("Extensibilidade", Feather.CPU, extensibility()),
@@ -98,6 +75,106 @@ public class PlataformaMotoresView extends BorderPane {
 
         setTop(header);
         setCenter(tabs);
+        setBottom(buildFooter());
+    }
+
+    private VBox buildHeader() {
+        VBox header = new VBox(12);
+        header.setPadding(new Insets(20, 22, 16, 22));
+        header.getStyleClass().add("kubata-server-header");
+
+        HBox line = new HBox(12);
+        line.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane icon = new StackPane();
+        icon.getStyleClass().add("kubata-server-title-icon");
+        icon.getChildren().add(new Label("", IconUtils.icon(Feather.CPU, 22)));
+
+        VBox titles = new VBox(2);
+        Label title = new Label("Motores Runtime");
+        title.getStyleClass().add("kubata-server-title");
+
+        Label subtitle = new Label(
+                "Centro de administração dos motores runtime da plataforma."
+        );
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("kubata-server-subtitle");
+
+        titles.getChildren().addAll(title, subtitle);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button refresh = new Button(
+                "Actualizar",
+                IconUtils.icon(Feather.REFRESH_CW, 13)
+        );
+        refresh.getStyleClass().add("button-outlined");
+        refresh.setOnAction(e -> {
+            refreshCurrent();
+            engineState.setText("Motores actualizados · " + java.time.LocalTime.now().withSecond(0).withNano(0));
+        });
+
+        Button summary = new Button(
+                "Resumo",
+                IconUtils.icon(Feather.HOME, 13)
+        );
+        summary.getStyleClass().add("button-outlined");
+        summary.setOnAction(e -> tabs.getSelectionModel().selectFirst());
+
+        line.getChildren().addAll(icon, titles, spacer, summary, refresh);
+
+        HBox status = new HBox(9);
+        status.setAlignment(Pos.CENTER_LEFT);
+
+        Label statusIcon = new Label("", IconUtils.icon(Feather.CPU, 13));
+        statusIcon.getStyleClass().add("kubata-server-status-icon");
+
+        status.getStyleClass().add("kubata-server-status-bar");
+        engineState.getStyleClass().add("kubata-server-status-value");
+        status.getChildren().addAll(
+                statusIcon,
+                new Label("ESTADO DOS MOTORES"),
+                engineState
+        );
+
+        header.getChildren().addAll(line, status);
+        return header;
+    }
+
+    private HBox engineMetrics() {
+        HBox metrics = new HBox(12);
+        metrics.setAlignment(Pos.CENTER_LEFT);
+        metrics.getChildren().addAll(
+                metricCard("Personalização", "PERSONALIZACAO", Feather.CPU),
+                metricCard("Listagens", "LISTAGEM", Feather.LIST),
+                metricCard("Mapas", "MAPA", Feather.MAP),
+                metricCard("Eventos", "EVENTO_REGRA", Feather.ACTIVITY)
+        );
+        return metrics;
+    }
+
+    private VBox metricCard(String title, String type, Feather icon) {
+        VBox card = new VBox(5);
+        card.setPadding(new Insets(13, 15, 13, 15));
+        card.getStyleClass().add("kubata-server-metric");
+
+        HBox row = new HBox(7);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        Label i = new Label("", IconUtils.icon(icon, 14));
+        i.getStyleClass().add("kubata-server-metric-icon");
+
+        Label t = new Label(title.toUpperCase(Locale.ROOT));
+        t.getStyleClass().add("kubata-server-metric-title");
+
+        Label value = new Label(String.valueOf(automation.list(type).size()));
+        value.getStyleClass().add("kubata-server-metric-value");
+
+        row.getChildren().addAll(i, t);
+        card.getChildren().addAll(row, value);
+        HBox.setHgrow(card, Priority.ALWAYS);
+        return card;
     }
 
     private Tab tab(String text, Feather icon, Node node) {
@@ -107,8 +184,8 @@ public class PlataformaMotoresView extends BorderPane {
     }
 
     private VBox page() {
-        VBox v = new VBox(16);
-        v.setPadding(new Insets(4, 22, 22, 22));
+        VBox v = new VBox(14);
+        v.setPadding(new Insets(0, 22, 18, 22));
         v.setFillWidth(true);
         v.getStyleClass().add("kubata-server-content");
         return v;
@@ -121,7 +198,7 @@ public class PlataformaMotoresView extends BorderPane {
         s.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         s.setPannable(true);
         s.setFocusTraversable(false);
-        s.getStyleClass().add("kubata-center-scroll");
+        s.getStyleClass().add("kubata-server-scroll");
         if (node instanceof Region region) {
             region.setMaxWidth(Double.MAX_VALUE);
         }
@@ -168,37 +245,6 @@ public class PlataformaMotoresView extends BorderPane {
         g.add(new Label(name), 0, row);
         if (node instanceof Region region) region.setMaxWidth(Double.MAX_VALUE);
         g.add(node, 1, row);
-    }
-
-    private HBox engineMetrics() {
-        HBox metrics = new HBox(10);
-        metrics.getStyleClass().add("kubata-server-metrics");
-        metrics.getChildren().addAll(
-                metricCard("PERSONALIZAÇÃO", "PERSONALIZACAO", Feather.CPU),
-                metricCard("LISTAGENS", "LISTAGEM", Feather.LIST),
-                metricCard("MAPAS", "MAPA", Feather.MAP),
-                metricCard("EVENTOS", "EVENTO_REGRA", Feather.ACTIVITY),
-                metricCard("WIDGETS", "DASHBOARD", Feather.BAR_CHART_2)
-        );
-        return metrics;
-    }
-
-    private VBox metricCard(String title, String type, Feather icon) {
-        VBox card = new VBox(4);
-        card.setPadding(new Insets(11, 13, 11, 13));
-        card.getStyleClass().add("kubata-server-metric");
-        HBox row = new HBox(7);
-        row.setAlignment(Pos.CENTER_LEFT);
-        Label iconLabel = new Label("", IconUtils.icon(icon, 14));
-        iconLabel.getStyleClass().add("kubata-server-metric-icon");
-        Label titleLabel = new Label(title);
-        titleLabel.getStyleClass().add("kubata-server-metric-title");
-        Label value = new Label(String.valueOf(automation.list(type).size()));
-        value.getStyleClass().add("kubata-server-metric-value");
-        row.getChildren().addAll(iconLabel, titleLabel);
-        card.getChildren().addAll(row, value);
-        HBox.setHgrow(card, Priority.ALWAYS);
-        return card;
     }
 
     private Node resumo() {
@@ -765,6 +811,25 @@ public class PlataformaMotoresView extends BorderPane {
                         "Parâmetros de instalação existentes permanecem no Centro da Plataforma; esta área acrescenta licença e persistência de layout.")
         );
         return scroll(v);
+    }
+
+    private HBox buildFooter() {
+        HBox footer = new HBox(10);
+        footer.setPadding(new Insets(8, 14, 8, 14));
+        footer.setAlignment(Pos.CENTER_LEFT);
+        footer.getStyleClass().add("kubata-server-footer");
+
+        Label safe = new Label("Motores runtime · operações administrativas");
+        safe.getStyleClass().add("kubata-server-footer-text");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label hint = new Label("Kubata Administrator");
+        hint.getStyleClass().add("kubata-server-footer-text");
+
+        footer.getChildren().addAll(safe, spacer, hint);
+        return footer;
     }
 
     private GridPane formLicense(TextField code, TextField holder, DatePicker expiry, TextField modules) {
