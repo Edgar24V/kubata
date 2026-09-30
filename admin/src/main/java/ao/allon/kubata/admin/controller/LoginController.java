@@ -25,6 +25,8 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.kordamp.ikonli.feather.Feather;
@@ -89,6 +91,14 @@ public class LoginController {
     private CheckBox rememberEmail;
     private Hyperlink forgotPasswordLink;
     private Button helpButton;
+    private Button maximizeButton;
+    private Rectangle windowClip;
+
+    private double normalStageX;
+    private double normalStageY;
+    private double normalStageWidth;
+    private double normalStageHeight;
+    private boolean windowMaximized;
 
     private double xOffset;
     private double yOffset;
@@ -125,31 +135,17 @@ public class LoginController {
 
         root.getChildren().addAll(background, ambient);
 
+        installRoundedWindow(root);
         installWindowDragging(root, stage);
 
         HBox shell = createLoginShell();
         StackPane.setAlignment(shell, Pos.CENTER);
         root.getChildren().add(shell);
 
-        Button closeButton = new Button(
-                "",
-                new FontIcon(Feather.X)
-        );
-        closeButton.getStyleClass().addAll(
-                "button-icon-small",
-                "login-close-button"
-        );
-        closeButton.setCursor(Cursor.HAND);
-        closeButton.setTooltip(new Tooltip("Fechar"));
-        closeButton.setAccessibleText("Fechar janela");
-        closeButton.setOnAction(event -> {
-            modalManager.hideAllModals();
-            stage.close();
-        });
-
-        StackPane.setAlignment(closeButton, Pos.TOP_RIGHT);
-        StackPane.setMargin(closeButton, new Insets(16));
-        root.getChildren().add(closeButton);
+        HBox windowBar = createWindowBar(stage);
+        StackPane.setAlignment(windowBar, Pos.TOP_RIGHT);
+        StackPane.setMargin(windowBar, new Insets(10, 12, 0, 12));
+        root.getChildren().add(windowBar);
 
         root.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER
@@ -165,6 +161,157 @@ public class LoginController {
         return root;
     }
 
+    private void installRoundedWindow(StackPane root) {
+        windowClip = new Rectangle();
+        windowClip.widthProperty().bind(root.widthProperty());
+        windowClip.heightProperty().bind(root.heightProperty());
+        windowClip.setArcWidth(28);
+        windowClip.setArcHeight(28);
+        root.setClip(windowClip);
+    }
+
+    private HBox createWindowBar(Stage stage) {
+        HBox bar = new HBox(2);
+        bar.setAlignment(Pos.CENTER_RIGHT);
+        bar.setPickOnBounds(false);
+
+        Button minimizeButton = createWindowControl(
+                Feather.MINUS,
+                "Minimizar",
+                "kubata-modal-window-control",
+                () -> stage.setIconified(true)
+        );
+
+        maximizeButton = createWindowControl(
+                Feather.MAXIMIZE_2,
+                "Maximizar",
+                "kubata-modal-window-control",
+                () -> toggleWindowMaximize(stage)
+        );
+
+        Button closeButton = createWindowControl(
+                Feather.X,
+                "Fechar",
+                "kubata-modal-window-control-danger",
+                () -> {
+                    modalManager.hideAllModals();
+                    stage.close();
+                }
+        );
+
+        bar.getChildren().addAll(
+                minimizeButton,
+                maximizeButton,
+                closeButton
+        );
+
+        return bar;
+    }
+
+    private Button createWindowControl(
+            Feather icon,
+            String accessibleText,
+            String styleClass,
+            Runnable action
+    ) {
+        Button button = new Button("", new FontIcon(icon));
+        button.setAccessibleText(accessibleText);
+        button.setFocusTraversable(false);
+        button.getStyleClass().addAll(
+                "button-icon",
+                "flat",
+                styleClass
+        );
+        button.setCursor(Cursor.HAND);
+        button.setOnAction(event -> {
+            action.run();
+            event.consume();
+        });
+        return button;
+    }
+
+    private void toggleWindowMaximize(Stage stage) {
+        if (windowMaximized) {
+            restoreLoginWindow(stage);
+        } else {
+            maximizeLoginWindow(stage);
+        }
+    }
+
+    private void maximizeLoginWindow(Stage stage) {
+        normalStageX = stage.getX();
+        normalStageY = stage.getY();
+        normalStageWidth = stage.getWidth();
+        normalStageHeight = stage.getHeight();
+
+        javafx.geometry.Rectangle2D bounds =
+                Screen.getScreensForRectangle(
+                        stage.getX(),
+                        stage.getY(),
+                        Math.max(stage.getWidth(), 1),
+                        Math.max(stage.getHeight(), 1)
+                ).stream()
+                        .findFirst()
+                        .orElse(Screen.getPrimary())
+                        .getVisualBounds();
+
+        stage.setX(bounds.getMinX());
+        stage.setY(bounds.getMinY());
+        stage.setWidth(bounds.getWidth());
+        stage.setHeight(bounds.getHeight());
+
+        windowMaximized = true;
+        updateWindowMaximizeButton();
+
+        if (windowClip != null) {
+            windowClip.setArcWidth(0);
+            windowClip.setArcHeight(0);
+        }
+    }
+
+    private void restoreLoginWindow(Stage stage) {
+        stage.setX(normalStageX);
+        stage.setY(normalStageY);
+        stage.setWidth(normalStageWidth);
+        stage.setHeight(normalStageHeight);
+
+        windowMaximized = false;
+        updateWindowMaximizeButton();
+
+        if (windowClip != null) {
+            windowClip.setArcWidth(28);
+            windowClip.setArcHeight(28);
+        }
+
+        stage.centerOnScreen();
+    }
+
+    private void updateWindowMaximizeButton() {
+        if (maximizeButton == null) {
+            return;
+        }
+
+        maximizeButton.setGraphic(
+                new FontIcon(
+                        windowMaximized
+                                ? Feather.MINIMIZE_2
+                                : Feather.MAXIMIZE_2
+                )
+        );
+        maximizeButton.setAccessibleText(
+                windowMaximized
+                        ? "Restaurar tamanho"
+                        : "Maximizar"
+        );
+        maximizeButton.setTooltip(
+                new Tooltip(
+                        windowMaximized
+                                ? "Restaurar tamanho"
+                                : "Maximizar"
+                )
+        );
+    }
+
     private void installWindowDragging(StackPane root, Stage stage) {
         root.setOnMousePressed(event -> {
             xOffset = event.getSceneX();
@@ -172,12 +319,24 @@ public class LoginController {
         });
 
         root.setOnMouseDragged(event -> {
+            if (windowMaximized) {
+                return;
+            }
             if (event.getTarget() instanceof Control
                     && !(event.getTarget() instanceof Label)) {
                 return;
             }
             stage.setX(event.getScreenX() - xOffset);
             stage.setY(event.getScreenY() - yOffset);
+        });
+
+        root.setOnMouseReleased(event -> {
+            // Clique duplo no fundo da janela alterna o estado, tal como o cabeçalho do ModalManager.
+            if (event.getClickCount() == 2
+                    && !(event.getTarget() instanceof Control)) {
+                toggleWindowMaximize(stage);
+                event.consume();
+            }
         });
     }
 
