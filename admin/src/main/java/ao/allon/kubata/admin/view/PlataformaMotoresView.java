@@ -3,6 +3,7 @@ package ao.allon.kubata.admin.view;
 import ao.allon.kubata.admin.service.PlataformaAutomationService;
 import ao.allon.kubata.admin.service.PlataformaRuntimeService;
 import ao.allon.kubata.admin.service.SessionManager;
+import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.AdmPlataformaItem;
 import javafx.collections.FXCollections;
@@ -33,41 +34,56 @@ public class PlataformaMotoresView extends BorderPane {
     private final PlataformaAutomationService automation;
     private final SessionManager sessions;
     private final Environment environment;
+    private final ModalManager modalManager;
     private final TabPane tabs = new TabPane();
 
     public PlataformaMotoresView(
             PlataformaRuntimeService runtime,
             PlataformaAutomationService automation,
             SessionManager sessions,
-            Environment environment) {
+            Environment environment,
+            ModalManager modalManager) {
         this.runtime = runtime;
         this.automation = automation;
         this.sessions = sessions;
         this.environment = environment;
+        this.modalManager = modalManager;
         build();
     }
 
     private void build() {
-        VBox header = new VBox(4);
-        header.setPadding(new Insets(16, 18, 12, 18));
-        header.getStyleClass().add("header-box");
+        getStyleClass().add("kubata-server-page");
+        VBox header = new VBox(10);
+        header.setPadding(new Insets(16, 20, 14, 20));
+        header.getStyleClass().add("kubata-server-header");
 
-        Label title = new Label("Motores da Plataforma", IconUtils.icon(Feather.CPU, 20));
-        title.setStyle("-fx-font-size: 19px; -fx-font-weight: 800;");
+        HBox titleRow = new HBox(12);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        StackPane titleIcon = new StackPane();
+        titleIcon.getStyleClass().add("kubata-server-title-icon");
+        titleIcon.getChildren().add(new Label("", IconUtils.icon(Feather.CPU, 22)));
+        VBox titleBox = new VBox(3);
+        Label title = new Label("Motores da Plataforma");
+        title.getStyleClass().add("kubata-server-title");
         Label subtitle = new Label(
                 "Execução runtime de personalização, listagens, mapas, pesquisa, eventos, notificações, calendário, dashboard, anexos, licenciamento e gestão de BD.");
         subtitle.setWrapText(true);
-        subtitle.getStyleClass().add("text-muted");
+        subtitle.getStyleClass().add("kubata-server-subtitle");
+        titleBox.getChildren().addAll(title, subtitle);
 
         HBox actions = new HBox(8);
         Button refresh = button("Actualizar", Feather.REFRESH_CW, this::refreshCurrent);
         Button home = button("Resumo", Feather.HOME, () -> tabs.getSelectionModel().selectFirst());
         actions.getChildren().addAll(home, refresh);
 
-        header.getChildren().addAll(title, subtitle, actions);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        titleRow.getChildren().addAll(titleIcon, titleBox, spacer, actions);
+        header.getChildren().addAll(titleRow, engineMetrics());
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabs.getStyleClass().add("office365-tabs");
+        tabs.getStyleClass().add("kubata-motores-tabs");
         tabs.getTabs().addAll(
+                tab("Resumo", Feather.CPU, resumo()),
                 tab("Extensibilidade", Feather.CPU, extensibility()),
                 tab("Listagens", Feather.LIST, listagens()),
                 tab("Mapas", Feather.MAP, mapas()),
@@ -85,14 +101,16 @@ public class PlataformaMotoresView extends BorderPane {
     }
 
     private Tab tab(String text, Feather icon, Node node) {
-        Tab t = new Tab(text, node);
+        Tab t = new Tab(text, node instanceof ScrollPane ? node : scroll(node));
         t.setGraphic(IconUtils.icon(icon, 13));
         return t;
     }
 
     private VBox page() {
-        VBox v = new VBox(12);
-        v.setPadding(new Insets(16, 22, 24, 22));
+        VBox v = new VBox(16);
+        v.setPadding(new Insets(4, 22, 22, 22));
+        v.setFillWidth(true);
+        v.getStyleClass().add("kubata-server-content");
         return v;
     }
 
@@ -100,6 +118,13 @@ public class PlataformaMotoresView extends BorderPane {
         ScrollPane s = new ScrollPane(node);
         s.setFitToWidth(true);
         s.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        s.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        s.setPannable(true);
+        s.setFocusTraversable(false);
+        s.getStyleClass().add("kubata-center-scroll");
+        if (node instanceof Region region) {
+            region.setMaxWidth(Double.MAX_VALUE);
+        }
         return s;
     }
 
@@ -143,15 +168,6 @@ public class PlataformaMotoresView extends BorderPane {
         g.add(new Label(name), 0, row);
         if (node instanceof Region region) region.setMaxWidth(Double.MAX_VALUE);
         g.add(node, 1, row);
-    }
-
-    private Dialog<ButtonType> dialog(String title, Node node) {
-        Dialog<ButtonType> d = new Dialog<>();
-        d.setTitle(title);
-        d.getDialogPane().setContent(node);
-        d.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
-        d.getDialogPane().setPrefWidth(640);
-        return d;
     }
 
     private Node extensibility() {
@@ -327,8 +343,12 @@ public class PlataformaMotoresView extends BorderPane {
                 new Label("Notificações"),
                 notificationsTable
         );
-        VBox.setVgrow(rules, Priority.ALWAYS);
-        VBox.setVgrow(notificationsTable, Priority.ALWAYS);
+        rules.setPrefHeight(320);
+        rules.setMinHeight(260);
+        notificationsTable.setPrefHeight(420);
+        notificationsTable.setMinHeight(320);
+        VBox.setVgrow(rules, Priority.NEVER);
+        VBox.setVgrow(notificationsTable, Priority.NEVER);
         return scroll(v);
     }
 
@@ -340,12 +360,13 @@ public class PlataformaMotoresView extends BorderPane {
         field(g, 0, "Evento", event);
         field(g, 1, "Nome", name);
         field(g, 2, "Mensagem", message);
-        if (dialog("Nova regra de evento", g).showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
-        String json = "{\"event\":\"" + escape(event.getText().trim().toUpperCase(Locale.ROOT))
-                + "\",\"message\":\"" + escape(message.getText().trim()) + "\"}";
-        automation.save("EVENTO_REGRA", "EVT_" + UUID.randomUUID(), name.getText(), "ACTIVO",
-                "Regra de notificação", json, null, user(), null);
-        table.setItems(FXCollections.observableArrayList(automation.list("EVENTO_REGRA")));
+        modalManager.showConfirmModal(g, "Nova regra de evento", () -> {
+            String json = "{\"event\":\"" + escape(event.getText().trim().toUpperCase(Locale.ROOT))
+                    + "\",\"message\":\"" + escape(message.getText().trim()) + "\"}";
+            automation.save("EVENTO_REGRA", "EVT_" + UUID.randomUUID(), name.getText(), "ACTIVO",
+                    "Regra de notificação", json, null, user(), null);
+            table.setItems(FXCollections.observableArrayList(automation.list("EVENTO_REGRA")));
+        }, () -> {});
     }
 
     private void emitTestEvent() {
@@ -391,16 +412,16 @@ public class PlataformaMotoresView extends BorderPane {
         field(g, 5, "Recorrência", recurrence);
         field(g, 6, "Descrição", description);
 
-        if (dialog("Novo evento", g).showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
+        modalManager.showConfirmModal(g, "Novo evento", () -> {
+            LocalTime parsedTime;
+            try { parsedTime = LocalTime.parse(time.getText().trim()); }
+            catch (Exception e) { parsedTime = LocalTime.MIDNIGHT; }
 
-        LocalTime parsedTime;
-        try { parsedTime = LocalTime.parse(time.getText().trim()); }
-        catch (Exception e) { parsedTime = LocalTime.MIDNIGHT; }
-
-        runtime.saveCalendarEvent(
-                code.getText(), name.getText(), date.getValue(), parsedTime, duration.getText(),
-                recurrence.getText(), description.getText(), user());
-        table.setItems(FXCollections.observableArrayList(runtime.calendarEvents()));
+            runtime.saveCalendarEvent(
+                    code.getText(), name.getText(), date.getValue(), parsedTime, duration.getText(),
+                    recurrence.getText(), description.getText(), user());
+            table.setItems(FXCollections.observableArrayList(runtime.calendarEvents()));
+        }, () -> {});
     }
 
     private Node dashboard() {
@@ -451,15 +472,15 @@ public class PlataformaMotoresView extends BorderPane {
         field(g, 1, "Título", title);
         field(g, 2, "Métrica", metric);
         field(g, 3, "Consulta opcional", query);
-        if (dialog("Novo widget", g).showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
+        modalManager.showConfirmModal(g, "Novo widget", () -> {
+            if (query.getText() != null && !query.getText().isBlank() && !runtime.isReadOnlyQuery(query.getText())) {
+                showMessage("Dashboard", "A consulta do widget deve ser somente SELECT/WITH.");
+                return;
+            }
 
-        if (query.getText() != null && !query.getText().isBlank() && !runtime.isReadOnlyQuery(query.getText())) {
-            showMessage("Dashboard", "A consulta do widget deve ser somente SELECT/WITH.");
-            return;
-        }
-
-        runtime.saveDashboardWidget(code.getText(), title.getText(), metric.getText(), query.getText(), user());
-        table.setItems(FXCollections.observableArrayList(runtime.dashboardWidgets()));
+            runtime.saveDashboardWidget(code.getText(), title.getText(), metric.getText(), query.getText(), user());
+            table.setItems(FXCollections.observableArrayList(runtime.dashboardWidgets()));
+        }, () -> {});
     }
 
     private Node anexos() {
@@ -659,6 +680,10 @@ public class PlataformaMotoresView extends BorderPane {
         TableView<AdmPlataformaItem> table = new TableView<>();
         table.setItems(FXCollections.observableArrayList(automation.list(type)));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.setPrefHeight(500);
+        table.setMinHeight(350);
+        table.setMaxHeight(900);
+        table.getStyleClass().addAll("kubata-infra-table", "kubata-server-properties-table");
         table.setPlaceholder(new Label("Nenhum registo."));
         TableColumn<AdmPlataformaItem, String> code = new TableColumn<>("Código");
         code.setCellValueFactory(v -> new javafx.beans.property.SimpleStringProperty(safe(v.getValue().getCodigo())));
@@ -684,6 +709,7 @@ public class PlataformaMotoresView extends BorderPane {
         // Reconstrói o conteúdo da aba através do builder correspondente.
         String title = tab.getText();
         Node node = switch (title) {
+            case "Resumo" -> resumo();
             case "Extensibilidade" -> extensibility();
             case "Listagens" -> listagens();
             case "Mapas" -> mapas();
@@ -712,9 +738,6 @@ public class PlataformaMotoresView extends BorderPane {
     }
 
     private void showMessage(String title, String message) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION, Objects.toString(message, ""), ButtonType.OK);
-        a.setTitle(title);
-        a.setHeaderText(null);
-        a.show();
+        modalManager.alert(title, Objects.toString(message, ""), "info", null);
     }
 }
