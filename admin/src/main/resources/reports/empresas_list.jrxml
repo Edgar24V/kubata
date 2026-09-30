@@ -99,20 +99,20 @@
         <band height="25">
             <textField>
                 <reportElement style="KDetail" x="0" y="0" width="180" height="25" uuid="b8c9d0e1-2345-67ab-cdef-890123456789"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <textFieldExpression><![CDATA[$F{nome} == null ? "—" : $F{nome}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement style="KDetail" x="180" y="0" width="100" height="25" uuid="c9d0e1f2-3456-78ab-cdef-901234567890"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <textFieldExpression><![CDATA[$F{nif} == null ? "—" : $F{nif}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement style="KDetail" x="280" y="0" width="100" height="25" uuid="d0e1f2a3-4567-89ab-cdef-012345678901"/>
-                <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
+                
                 <textFieldExpression><![CDATA[$F{identificador} == null ? "—" : $F{identificador}]]></textFieldExpression>
             </textField>
             <textField>
@@ -123,8 +123,8 @@
             </textField>
             <textField>
                 <reportElement style="KDetail" x="460" y="0" width="95" height="25" uuid="f2a3b4c5-6789-01ab-cdef-234567890123"/>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
+                
                 <textFieldExpression><![CDATA[Boolean.TRUE.equals($F{ativa}) ? "Activa" : "Inactiva"]]></textFieldExpression>
             </textField>
         </band>
