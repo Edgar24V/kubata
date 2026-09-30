@@ -479,6 +479,20 @@ public class PlataformaCentroCompletoView extends BorderPane {
         t.setPrefHeight(520);t.setMinHeight(360);VBox.setVgrow(t,Priority.ALWAYS);return scroll(r);
     }
 
+    private void openAssistantHub(){
+        modalManager.showModal(
+                assistantHub(),
+                new ModalManager.ModalConfig()
+                        .title("Assistentes de configuração")
+                        .subtitle("Fluxos guiados para instalar, configurar, diagnosticar e proteger a plataforma.")
+                        .icon(Feather.SETTINGS)
+                        .size(820,650)
+                        .minSize(700,540)
+                        .scrollable(true)
+                        .singleButton("Fechar")
+        );
+    }
+
     private VBox assistantHub(){
         VBox box=serverPanel("Assistentes de configuração",Feather.SETTINGS);
         Label intro=new Label("Use os assistentes para configurar o essencial em poucos passos. As opções avançadas continuam disponíveis nas respetivas abas.");
