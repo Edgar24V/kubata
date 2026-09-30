@@ -597,6 +597,8 @@ public class EmpresaView extends VBox {
                 .exercicioActual(source.getExercicioActual())
                 .rodapeDocumento(source.getRodapeDocumento())
                 .mensagemFatura(source.getMensagemFatura())
+                .logotipo(source.getLogotipo())
+                .logotipoMimeType(source.getLogotipoMimeType())
                 .ativa(false)
                 .modulos(source.getModulos())
                 .setores(source.getSetores())
