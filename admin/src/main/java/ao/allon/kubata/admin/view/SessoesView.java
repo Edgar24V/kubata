@@ -26,54 +26,129 @@ public class SessoesView extends VBox {
     private final ObservableList<UserSession> sessions = FXCollections.observableArrayList();
     private final TableView<UserSession> table = new TableView<>(sessions);
     private final Label status = new Label();
+    private final Label totalValue = new Label("0");
+    private final Label latestValue = new Label("—");
 
     public SessoesView(UserSessionRepository repository, SessionManager sessionManager) {
         this.repository = repository;
         this.sessionManager = sessionManager;
         setSpacing(0);
-        getStyleClass().add("application-view");
+        getStyleClass().addAll("application-view", "kubata-infra-page");
         buildUi();
         load();
     }
 
     private void buildUi() {
-        HBox header = new HBox(12);
-        header.setPadding(new Insets(15, 18, 13, 18));
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.getStyleClass().add("header-box");
+        VBox header = new VBox(10);
+        header.setPadding(new Insets(18, 20, 14, 20));
+        header.getStyleClass().add("kubata-infra-header");
 
-        Label title = new Label("Sessões do Sistema", IconUtils.icon(Feather.USERS, 18));
-        title.getStyleClass().add("h3");
+        HBox line = new HBox(13);
+        line.setAlignment(Pos.CENTER_LEFT);
+
+        HBox iconBox = new HBox();
+        iconBox.setAlignment(Pos.CENTER);
+        iconBox.getStyleClass().add("kubata-infra-title-icon");
+        iconBox.getChildren().add(IconUtils.icon(Feather.USERS, 21));
+
+        VBox titles = new VBox(2);
+        Label title = new Label("Sessões do Sistema");
+        title.getStyleClass().add("kubata-infra-title");
+
+        Label subtitle = new Label(
+                "Monitorização das sessões registadas, postos de trabalho, IPs e contexto de acesso."
+        );
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("kubata-infra-subtitle");
+        titles.getChildren().addAll(title, subtitle);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 13));
+        Button refresh = new Button("Actualizar sessões", IconUtils.icon(Feather.REFRESH_CW, 13));
         refresh.getStyleClass().add("button-primary");
         refresh.setOnAction(e -> load());
 
-        header.getChildren().addAll(title, spacer, refresh);
+        line.getChildren().addAll(iconBox, titles, spacer, refresh);
 
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(15, 18, 18, 18));
+        Label context = new Label("SEGURANÇA · actividade de acesso do sistema");
+        context.getStyleClass().add("kubata-infra-status");
 
-        Label note = new Label(
-                "Visão operacional das sessões registadas. O encerramento remoto depende da estratégia de autenticação do módulo."
-        );
-        note.setWrapText(true);
-        note.getStyleClass().add("text-muted");
+        header.getChildren().addAll(line, context);
 
         buildTable();
 
-        status.getStyleClass().add("text-muted");
-        content.getChildren().addAll(note, table, status);
+        VBox content = new VBox(14);
+        content.setPadding(new Insets(16, 20, 20, 20));
+        content.setFillWidth(true);
+
+        content.getChildren().add(buildMetrics());
+
+        HBox tableHeader = new HBox(8);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+
+        VBox tableTitles = new VBox(2);
+        Label tableTitle = new Label("Registo de sessões");
+        tableTitle.getStyleClass().add("kubata-infra-section-title");
+        Label tableSubtitle = new Label(
+                "A listagem é ordenada pelo momento de login mais recente."
+        );
+        tableSubtitle.getStyleClass().add("kubata-infra-section-subtitle");
+        tableTitles.getChildren().addAll(tableTitle, tableSubtitle);
+
+        Region tableSpacer = new Region();
+        HBox.setHgrow(tableSpacer, Priority.ALWAYS);
+        status.getStyleClass().add("kubata-infra-status");
+        tableHeader.getChildren().addAll(tableTitles, tableSpacer, status);
+
+        VBox section = new VBox(10, tableHeader, table);
+        section.getStyleClass().add("kubata-infra-section");
         VBox.setVgrow(table, Priority.ALWAYS);
+        VBox.setVgrow(section, Priority.ALWAYS);
+
+        content.getChildren().add(section);
+        VBox.setVgrow(content, Priority.ALWAYS);
 
         getChildren().addAll(header, content);
     }
 
+    private HBox buildMetrics() {
+        HBox row = new HBox(12);
+        row.getChildren().addAll(
+                metricCard("SESSÕES REGISTADAS", totalValue, Feather.LIST),
+                metricCard("ÚLTIMO LOGIN", latestValue, Feather.CLOCK)
+        );
+        for (Node node : row.getChildren()) {
+            HBox.setHgrow(node, Priority.ALWAYS);
+        }
+        return row;
+    }
+
+    private VBox metricCard(String title, Label value, Feather icon) {
+        HBox content = new HBox(10);
+        content.setAlignment(Pos.CENTER_LEFT);
+
+        HBox iconBox = new HBox();
+        iconBox.setAlignment(Pos.CENTER);
+        iconBox.getStyleClass().add("kubata-infra-kpi-icon");
+        iconBox.getChildren().add(IconUtils.icon(icon, 15));
+
+        VBox text = new VBox(1);
+        Label caption = new Label(title);
+        caption.getStyleClass().add("kubata-infra-kpi-title");
+        value.getStyleClass().add("kubata-infra-kpi-value");
+        text.getChildren().addAll(caption, value);
+
+        content.getChildren().addAll(iconBox, text);
+
+        VBox card = new VBox(content);
+        card.getStyleClass().add("kubata-infra-kpi");
+        return card;
+    }
+
     private void buildTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.getStyleClass().add("kubata-infra-table");
         table.setPlaceholder(new Label("Nenhuma sessão registada."));
 
         TableColumn<UserSession, String> user = textColumn("Utilizador", s -> s.getUsername());
@@ -108,6 +183,16 @@ public class SessoesView extends VBox {
 
                 Platform.runLater(() -> {
                     sessions.setAll(result);
+                    totalValue.setText(Integer.toString(sessions.size()));
+
+                    String latest = sessions.stream()
+                            .map(UserSession::getLoginTime)
+                            .filter(java.util.Objects::nonNull)
+                            .findFirst()
+                            .map(v -> v.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+                            .orElse("—");
+                    latestValue.setText(latest);
+
                     String current = sessionManager.getUser() == null
                             ? "Utilizador: —"
                             : "Utilizador actual: " + sessionManager.getUser().getEmail();
@@ -120,4 +205,5 @@ public class SessoesView extends VBox {
         t.setDaemon(true);
         t.start();
     }
+
 }
