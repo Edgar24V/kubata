@@ -9,18 +9,18 @@
     <property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
 
     <style name="KBase" fontName="DejaVu Sans" fontSize="9" forecolor="#263238"/>
-    <style name="KTitle" parentStyle="KBase" fontSize="18" isBold="true" forecolor="#0A6B4A"/>
-    <style name="KSubtitle" parentStyle="KBase" fontSize="9" forecolor="#546E7A"/>
-    <style name="KHeader" parentStyle="KBase" fontSize="9" isBold="true" forecolor="#FFFFFF"
+    <style name="KTitle" fontSize="18" isBold="true" forecolor="#0A6B4A"/>
+    <style name="KSubtitle" fontSize="9" forecolor="#546E7A"/>
+    <style name="KHeader" fontSize="9" isBold="true" forecolor="#FFFFFF"
            backcolor="#0A6B4A" mode="Opaque"/>
-    <style name="KDetail" parentStyle="KBase" backcolor="#FFFFFF" mode="Opaque">
+    <style name="KDetail" fontName="DejaVu Sans" fontSize="9" forecolor="#263238" backcolor="#FFFFFF" mode="Opaque">
         <conditionalStyle>
             <conditionExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></conditionExpression>
             <style backcolor="#F5F8F7" mode="Opaque"/>
         </conditionalStyle>
     </style>
-    <style name="KFooter" parentStyle="KBase" fontSize="8" forecolor="#607D8B"/>
-    <style name="KBadge" parentStyle="KBase" fontSize="8" isBold="true" forecolor="#0A6B4A"/>
+    <style name="KFooter" fontSize="8" forecolor="#607D8B"/>
+    <style name="KBadge" fontSize="8" isBold="true" forecolor="#0A6B4A"/>
 
     <parameter name="EMPRESA_NOME" class="java.lang.String"/>
     <parameter name="EMPRESA_NIF" class="java.lang.String"/>
