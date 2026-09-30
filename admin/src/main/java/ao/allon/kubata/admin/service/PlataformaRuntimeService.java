@@ -689,7 +689,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
 
     private String quoteIdentifier(String identifier, Connection connection) throws SQLException {
         String quote = connection.getMetaData().getIdentifierQuoteString();
-        if (quote == null || quote.isBlank()) quote = """;
+        if (quote == null || quote.isBlank()) quote = "\"";
         return quote + identifier.replace(quote, quote + quote) + quote;
     }
 
