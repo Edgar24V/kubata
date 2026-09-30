@@ -3,15 +3,15 @@
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="recibo_a4" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="4eedbb89-b4f6-4469-9ab6-f642a1688cf7">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
 	<style name="KDocBase" fontName="DejaVu Sans" fontSize="9" forecolor="#263238"/>
-	<style name="KDocCompany" parentStyle="KDocBase" fontSize="16" isBold="true" forecolor="#0A6B4A"/>
-	<style name="KDocTitle" parentStyle="KDocBase" fontSize="15" isBold="true" forecolor="#0A6B4A"/>
-	<style name="KDocDetail" parentStyle="KDocBase" backcolor="#FFFFFF" mode="Opaque">
+	<style name="KDocCompany" fontSize="16" isBold="true" forecolor="#0A6B4A"/>
+	<style name="KDocTitle" fontSize="15" isBold="true" forecolor="#0A6B4A"/>
+	<style name="KDocDetail" backcolor="#FFFFFF" mode="Opaque">
 		<conditionalStyle>
 			<conditionExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></conditionExpression>
 			<style backcolor="#F7FAF8" mode="Opaque"/>
 		</conditionalStyle>
 	</style>
-	<style name="KDocFooter" parentStyle="KDocBase" fontSize="7" forecolor="#78909C"/>
+	<style name="KDocFooter" fontSize="7" forecolor="#78909C"/>
 	<parameter name="EMPRESA_NOME" class="java.lang.String"/>
 	<parameter name="EMPRESA_NIF" class="java.lang.String"/>
 	<parameter name="EMPRESA_ENDERECO" class="java.lang.String"/>
