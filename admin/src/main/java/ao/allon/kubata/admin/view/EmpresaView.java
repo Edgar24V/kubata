@@ -66,6 +66,7 @@ public class EmpresaView extends VBox {
     private Label inactiveLabel;
     private Label modulesLabel;
     private Button toggleButton;
+    private Button defaultButton;
 
     private VBox detailsPane;
     private Label detailsTitle;
@@ -187,6 +188,14 @@ public class EmpresaView extends VBox {
         toggleButton.setDisable(true);
         toggleButton.setOnAction(e -> toggleSelected());
 
+        defaultButton = new Button(
+                "Tornar predefinida",
+                IconUtils.icon(Feather.STAR, IconUtils.SIZE_SMALL)
+        );
+        defaultButton.getStyleClass().add("button-outlined");
+        defaultButton.setDisable(true);
+        defaultButton.setOnAction(e -> setSelectedAsDefault());
+
         Button refreshButton = new Button(
                 "",
                 IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
@@ -197,7 +206,7 @@ public class EmpresaView extends VBox {
 
         titleRow.getChildren().addAll(
                 icon, text, spacer, searchField, newButton,
-                editButton, duplicateButton, toggleButton, refreshButton
+                editButton, duplicateButton, toggleButton, defaultButton, refreshButton
         );
 
         root.getChildren().add(titleRow);
@@ -282,6 +291,7 @@ public class EmpresaView extends VBox {
                 (obs, oldValue, selected) -> {
                     showDetails(selected);
                     updateToggleButton(selected);
+                    updateDefaultButton(selected);
                 }
         );
 
@@ -361,6 +371,13 @@ public class EmpresaView extends VBox {
         configure.getStyleClass().add("button-primary");
         configure.setOnAction(e -> openSelectedWizard());
 
+        Button setDefault = new Button(
+                "Definir como predefinida",
+                IconUtils.icon(Feather.STAR, 14)
+        );
+        setDefault.getStyleClass().add("button-outlined");
+        setDefault.setOnAction(e -> setSelectedAsDefault());
+
         Button saveModules = new Button(
                 "Guardar módulos",
                 IconUtils.icon(Feather.CHECK, 14)
@@ -368,7 +385,7 @@ public class EmpresaView extends VBox {
         saveModules.getStyleClass().add("button-outlined");
         saveModules.setOnAction(e -> saveModuleSelection(moduleList));
 
-        actions.getChildren().addAll(configure, saveModules);
+        actions.getChildren().addAll(configure, setDefault, saveModules);
 
         root.getChildren().addAll(titleRow, new Separator(), facts, modulesTitle, moduleScroll, actions);
 
@@ -398,6 +415,7 @@ public class EmpresaView extends VBox {
             detailsTitle.setText("Nenhuma empresa seleccionada");
             detailsStatus.setText("—");
             updateToggleButton(null);
+            updateDefaultButton(null);
             detailsNif.setText("—");
             detailsLocation.setText("—");
             detailsFiscal.setText("—");
@@ -413,7 +431,11 @@ public class EmpresaView extends VBox {
                         : empresa.getNome()
         );
 
-        detailsStatus.setText(empresa.getAtiva() ? "ACTIVA" : "INACTIVA");
+        detailsStatus.setText(
+                empresa.getAtiva()
+                        ? (empresa.getPredefinida() ? "ACTIVA · PREDEFINIDA" : "ACTIVA")
+                        : "INACTIVA"
+        );
         detailsStatus.getStyleClass().removeAll("active", "inactive");
         detailsStatus.getStyleClass().add(empresa.getAtiva() ? "active" : "inactive");
 
@@ -584,6 +606,64 @@ public class EmpresaView extends VBox {
         copy.setNif("");
 
         openWizard(copy);
+    }
+
+    private void setSelectedAsDefault() {
+        Empresa selected = table.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            modalManager.alert("Empresa", "Seleccione uma empresa para definir como predefinida.", "warning", null);
+            return;
+        }
+
+        if (!selected.getAtiva()) {
+            modalManager.alert(
+                    "Empresa inactiva",
+                    "Só uma empresa activa pode ser definida como predefinida.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        modalManager.showConfirmModal(
+                new VBox(10,
+                        new Label("Definir esta empresa como predefinida?"),
+                        new Label(selected.getNome()),
+                        new Label("A empresa ficará seleccionada por defeito nos fluxos que usam o contexto empresarial.")
+                ) {{
+                    setPadding(new Insets(10));
+                }},
+                "Empresa predefinida",
+                () -> persistenceService.executeAsync(
+                        () -> empresaSetupService.definirComoPredefinida(selected.getId()),
+                        "EMPRESA_PREDEFINIDA",
+                        "EMPRESA",
+                        "Definição da empresa predefinida: " + selected.getNome(),
+                        this::loadEmpresas
+                ),
+                null
+        );
+    }
+
+    private void updateDefaultButton(Empresa selected) {
+        if (defaultButton == null) return;
+
+        boolean enabled = selected != null && selected.getAtiva() && !selected.getPredefinida();
+        defaultButton.setDisable(!enabled);
+
+        if (selected == null) {
+            defaultButton.setText("Tornar predefinida");
+            defaultButton.setTooltip(null);
+        } else if (selected.getPredefinida()) {
+            defaultButton.setText("Predefinida");
+            defaultButton.setTooltip(new Tooltip("Esta empresa já é a empresa predefinida"));
+        } else if (!selected.getAtiva()) {
+            defaultButton.setText("Tornar predefinida");
+            defaultButton.setTooltip(new Tooltip("A empresa precisa de estar activa"));
+        } else {
+            defaultButton.setText("Tornar predefinida");
+            defaultButton.setTooltip(new Tooltip("Definir esta empresa como contexto empresarial por defeito"));
+        }
     }
 
     private void toggleSelected() {
