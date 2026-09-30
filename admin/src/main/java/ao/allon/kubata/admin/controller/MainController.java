@@ -61,13 +61,20 @@ public class MainController {
 
     private void switchToLogin() {
         Parent root = loginController.createView(stage);
-        // Dimensões sincronizadas com o LoginController (960x680)
-        Scene scene = new Scene(root, 960, 680);
+
+        // Janela de login sem moldura nativa, com controles personalizados
+        // e suporte a maximizar/restaurar.
+        Scene scene = new Scene(root, 1120, 720);
         scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
         ThemeManager.applyTheme(scene);
+
         stage.setScene(scene);
+        stage.setMinWidth(920);
+        stage.setMinHeight(560);
+        stage.setResizable(true);
+        stage.setWidth(1120);
+        stage.setHeight(720);
         stage.centerOnScreen();
-        stage.setResizable(false);
     }
 
     private void switchToMain() {
