@@ -368,6 +368,7 @@ public class MainController {
                 new ao.allon.kubata.faturacao.view.MeuPerfilView(
                     sessionManager,
                     acessoService,
+                    applicationContext.getBean(ao.allon.kubata.core.service.PasswordChangeService.class),
                     passwordEncoder,
                     userRepository
                 );
