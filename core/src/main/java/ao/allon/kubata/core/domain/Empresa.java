@@ -15,6 +15,8 @@ import lombok.*;
 @Builder
 public class Empresa extends BaseEntity {
 
+    public static final int LIMITE_RODAPE_DOCUMENTO = 500;
+
     @Column(nullable = false)
     private String nome;
 
@@ -141,7 +143,7 @@ public class Empresa extends BaseEntity {
     @Column(name = "logotipo_mime_type")
     private String logotipoMimeType;
 
-    @Column(name = "rodape_documento")
+    @Column(name = "rodape_documento", length = LIMITE_RODAPE_DOCUMENTO)
     private String rodapeDocumento;
 
     @Column(name = "mensagem_fatura")
