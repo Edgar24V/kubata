@@ -1245,6 +1245,15 @@ public class EmpresaWizardView extends VBox {
 
             if (logoBytes != null && logoBytes.length > 0) {
                 try {
+                    if ("image/webp".equalsIgnoreCase(logoMimeType)) {
+                        logoView.setImage(null);
+                        logoBox.getChildren().add(new Label("WebP seleccionado"));
+                        String file = logoFileName == null ? "Logótipo guardado" : logoFileName;
+                        logoStatus.setText(file + " · image/webp · " + formatBytes(logoBytes.length)
+                                + " · pré-visualização não disponível neste componente");
+                        return;
+                    }
+
                     Image image = new Image(new ByteArrayInputStream(logoBytes));
                     if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
                         throw new IllegalArgumentException("A imagem não pôde ser descodificada.");
@@ -1302,12 +1311,14 @@ public class EmpresaWizardView extends VBox {
                     return;
                 }
 
-                Image image = new Image(new ByteArrayInputStream(bytes));
-                if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
-                    modalManager.alert("Imagem inválida",
-                            "O ficheiro possui uma assinatura conhecida, mas não pôde ser carregado como imagem.",
-                            "warning", null);
-                    return;
+                if (!"image/webp".equals(detectedMime)) {
+                    Image image = new Image(new ByteArrayInputStream(bytes));
+                    if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
+                        modalManager.alert("Imagem inválida",
+                                "O ficheiro possui uma assinatura conhecida, mas não pôde ser carregado como imagem.",
+                                "warning", null);
+                        return;
+                    }
                 }
 
                 logoBytes = bytes;
@@ -1334,11 +1345,13 @@ public class EmpresaWizardView extends VBox {
                     return false;
                 }
 
-                Image image = new Image(new ByteArrayInputStream(logoBytes));
-                if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
-                    modalManager.alert("Imagem inválida",
-                            "O logótipo não pôde ser descodificado.", "warning", null);
-                    return false;
+                if (!"image/webp".equalsIgnoreCase(logoMimeType)) {
+                    Image image = new Image(new ByteArrayInputStream(logoBytes));
+                    if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
+                        modalManager.alert("Imagem inválida",
+                                "O logótipo não pôde ser descodificado.", "warning", null);
+                        return false;
+                    }
                 }
             }
 
