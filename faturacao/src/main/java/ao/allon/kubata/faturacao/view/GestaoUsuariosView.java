@@ -5,6 +5,7 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.core.service.PasswordResetService;
 import ao.allon.kubata.faturacao.ui.modal.ModalService;
 import ao.allon.kubata.faturacao.ui.util.AlertUtils;
 import ao.allon.kubata.faturacao.ui.util.IconUtils;
@@ -32,6 +33,7 @@ import java.time.format.DateTimeFormatter;
 public class GestaoUsuariosView extends VBox {
 
     private final AcessoService acessoService;
+    private final PasswordResetService passwordResetService;
     private final AdvancedTableView<User> table = new AdvancedTableView<>();
     private final User currentUser;
     private final ModalService modalService;
@@ -39,12 +41,27 @@ public class GestaoUsuariosView extends VBox {
     private final ObservableList<User> masterData = FXCollections.observableArrayList();
     private final SessionManager sessionManager;
 
-    public GestaoUsuariosView(AcessoService acessoService, User currentUser, ModalService modalService, JasperReportService jasperReportService, SessionManager sessionManager) {
+    public GestaoUsuariosView(AcessoService acessoService,
+                                 PasswordResetService passwordResetService,
+                                 User currentUser,
+                                 ModalService modalService,
+                                 JasperReportService jasperReportService,
+                                 SessionManager sessionManager) {
         this.acessoService = acessoService;
+        this.passwordResetService = passwordResetService;
         this.currentUser = currentUser;
         this.modalService = modalService;
         this.jasperReportService = jasperReportService;
         this.sessionManager = sessionManager;
+
+        setSpacing(20);
+        setPadding(new Insets(20));
+        getStyleClass().add("gestao-usuarios-view");
+
+        setupHeader();
+        setupTable();
+        loadData();
+    }
 
         setSpacing(20);
         setPadding(new Insets(20));
@@ -505,28 +522,106 @@ public class GestaoUsuariosView extends VBox {
             AlertUtils.showWarningAlert("Senha", "Selecione um usuário.");
             return;
         }
-        PasswordField p1 = new PasswordField();
-        PasswordField p2 = new PasswordField();
-        GridPane grid = new GridPane();
-        grid.setHgap(10); grid.setVgap(10); grid.setPadding(new Insets(16));
-        grid.add(new Label("Nova senha"), 0, 0); grid.add(p1, 1, 0);
-        grid.add(new Label("Confirmar senha"), 0, 1); grid.add(p2, 1, 1);
+
+        if (currentUser == null || currentUser.getId() == null) {
+            AlertUtils.showErrorAlert("Segurança", "Sessão administrativa inválida.");
+            return;
+        }
+
+        if (currentUser.getId().equals(selected.getId())) {
+            AlertUtils.showWarningAlert(
+                    "Operação não permitida",
+                    "A redefinição administrativa não pode ser usada na própria conta. "
+                            + "Altere a sua palavra-passe no perfil."
+            );
+            return;
+        }
+
+        TextArea reason = new TextArea();
+        reason.setPromptText("Motivo obrigatório da redefinição (mínimo 5 caracteres)");
+        reason.setWrapText(true);
+        reason.setPrefRowCount(4);
+        reason.setMaxWidth(Double.MAX_VALUE);
+
+        VBox content = new VBox(12,
+                new Label(
+                        "Será criada uma palavra-passe temporária, a credencial actual será "
+                                + "invalidada e todas as sessões registadas serão terminadas."
+                ),
+                new Label(
+                        "Utilizador: " + selected.getNome()
+                                + "\nEmail: " + selected.getEmail()
+                ),
+                new Label("Motivo da operação:"),
+                reason,
+                new Label(
+                        "A palavra-passe temporária não será gravada na auditoria nem nos logs."
+                )
+        );
+        content.setPadding(new Insets(10));
+
         modalService.create()
-                .title("Redefinir Senha")
-                .content(grid)
+                .title("Redefinir palavra-passe")
+                .content(content)
                 .dynamicSize()
-                .withConfirmButton("Salvar", () -> {
-                    String s1 = p1.getText(); String s2 = p2.getText();
-                    if (s1 == null || s1.isBlank() || !s1.equals(s2)) {
-                        AlertUtils.showWarningAlert("Validação", "As senhas não coincidem ou são inválidas.");
+                .withConfirmButton("Redefinir", () -> {
+                    String normalizedReason = reason.getText() == null
+                            ? ""
+                            : reason.getText().trim();
+
+                    if (normalizedReason.length() < 5) {
+                        AlertUtils.showWarningAlert(
+                                "Motivo obrigatório",
+                                "Indique um motivo com pelo menos 5 caracteres."
+                        );
                         return false;
                     }
+
                     try {
-                        acessoService.redefinirSenha(selected.getId(), s1);
-                        AlertUtils.showInfoAlert("Sucesso", "Senha atualizada.");
+                        PasswordResetService.ResetResult result =
+                                passwordResetService.resetByAdministrator(
+                                        currentUser,
+                                        selected.getId(),
+                                        "127.0.0.1",
+                                        normalizedReason
+                                );
+
+                        TextField temporary = new TextField(result.temporaryPassword());
+                        temporary.setEditable(false);
+                        temporary.setMaxWidth(Double.MAX_VALUE);
+
+                        VBox resultBox = new VBox(10,
+                                new Label("A palavra-passe foi redefinida com sucesso."),
+                                new Label(
+                                        "Entregue a credencial temporária ao utilizador "
+                                                + "através de um canal seguro."
+                                ),
+                                new Label("Palavra-passe temporária:"),
+                                temporary,
+                                new Label(
+                                        "Expira em: " + result.expiresOn().format(
+                                                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                                        )
+                                ),
+                                new Label("Sessões terminadas: " + result.revokedSessions())
+                        );
+                        resultBox.setPadding(new Insets(12));
+
+                        modalService.create()
+                                .title("Palavra-passe redefinida")
+                                .content(resultBox)
+                                .dynamicSize()
+                                .withConfirmButton("Concluir", () -> {})
+                                .buildAndShow();
+
+                        loadData();
                         return true;
                     } catch (Exception e) {
-                        AlertUtils.showExceptionAlert("Erro", "Falha ao redefinir senha.", e);
+                        AlertUtils.showExceptionAlert(
+                                "Erro",
+                                "Falha ao redefinir a palavra-passe.",
+                                e
+                        );
                         return false;
                     }
                 })
