@@ -683,7 +683,7 @@ public class MeuPerfilView extends BorderPane {
                 }
 
                 try {
-                    acessoService.redefinirSenha(user.getId(), novaSenha);
+                    acessoService.alterarMinhaSenha(user.getId(), senhaAtual, novaSenha);
                     AlertUtils.showInfoAlert("Sucesso", "Senha alterada com sucesso!");
                 } catch (Exception e) {
                     AlertUtils.showExceptionAlert("Erro", "Erro ao alterar senha", e);
