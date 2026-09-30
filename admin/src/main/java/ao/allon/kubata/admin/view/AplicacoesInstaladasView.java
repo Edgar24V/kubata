@@ -42,33 +42,33 @@ public class AplicacoesInstaladasView extends VBox {
         this.installationService = installationService;
 
         setSpacing(0);
-        getStyleClass().addAll("application-view", "kubata-infra-page");
+        getStyleClass().add("kubata-server-page");
         buildUi();
         refresh();
     }
 
     private void buildUi() {
         VBox header = new VBox(10);
-        header.setPadding(new Insets(18, 20, 14, 20));
-        header.getStyleClass().add("kubata-infra-header");
+        header.setPadding(new Insets(20, 22, 16, 22));
+        header.getStyleClass().add("kubata-server-header");
 
         HBox line = new HBox(13);
         line.setAlignment(Pos.CENTER_LEFT);
 
-        HBox iconBox = new HBox();
+        StackPane iconBox = new StackPane();
         iconBox.setAlignment(Pos.CENTER);
         iconBox.getStyleClass().add("kubata-infra-title-icon");
-        iconBox.getChildren().add(IconUtils.icon(Feather.PACKAGE, 21));
+        iconBox.getChildren().add(new Label("", IconUtils.icon(Feather.PACKAGE, 22)));
 
         VBox titles = new VBox(2);
         Label title = new Label("Aplicações Instaladas");
-        title.getStyleClass().add("kubata-infra-title");
+        title.getStyleClass().add("kubata-server-title");
 
         Label subtitle = new Label(
                 "Catálogo administrativo dos módulos registados no runtime do Kubata."
         );
         subtitle.setWrapText(true);
-        subtitle.getStyleClass().add("kubata-infra-subtitle");
+        subtitle.getStyleClass().add("kubata-server-subtitle");
         titles.getChildren().addAll(title, subtitle);
 
         Region spacer = new Region();
@@ -82,7 +82,7 @@ public class AplicacoesInstaladasView extends VBox {
 
         HBox actions = new HBox(8);
         actions.setAlignment(Pos.CENTER_LEFT);
-        actions.getStyleClass().add("kubata-infra-toolbar");
+        actions.getStyleClass().add("kubata-server-status-bar");
 
         Button activate = new Button("Activar / instalar", IconUtils.icon(Feather.PLAY, 12));
         activate.getStyleClass().add("button-primary");
@@ -93,7 +93,7 @@ public class AplicacoesInstaladasView extends VBox {
         init.setOnAction(e -> initializeSelected());
 
         Label helper = new Label("Seleccione uma aplicação na tabela para executar uma operação.");
-        helper.getStyleClass().add("kubata-infra-muted");
+        helper.getStyleClass().add("kubata-server-note");
 
         Region actionSpacer = new Region();
         HBox.setHgrow(actionSpacer, Priority.ALWAYS);
@@ -114,9 +114,9 @@ public class AplicacoesInstaladasView extends VBox {
 
         VBox tableTitles = new VBox(2);
         Label tableTitle = new Label("Catálogo instalado");
-        tableTitle.getStyleClass().add("kubata-infra-section-title");
+        tableTitle.getStyleClass().add("kubata-server-panel-title");
         Label tableSubtitle = new Label("Estado do módulo, integração com runtime e funcionalidades disponíveis.");
-        tableSubtitle.getStyleClass().add("kubata-infra-section-subtitle");
+        tableSubtitle.getStyleClass().add("kubata-server-note");
         tableTitles.getChildren().addAll(tableTitle, tableSubtitle);
 
         Region tableSpacer = new Region();
@@ -126,7 +126,7 @@ public class AplicacoesInstaladasView extends VBox {
         tableHeader.getChildren().addAll(tableTitles, tableSpacer, status);
 
         VBox tableSection = new VBox(10, tableHeader, table);
-        tableSection.getStyleClass().add("kubata-infra-section");
+        tableSection.getStyleClass().add("kubata-server-panel");
         VBox.setVgrow(table, Priority.ALWAYS);
         VBox.setVgrow(tableSection, Priority.ALWAYS);
 
@@ -155,25 +155,25 @@ public class AplicacoesInstaladasView extends VBox {
 
         HBox iconBox = new HBox();
         iconBox.setAlignment(Pos.CENTER);
-        iconBox.getStyleClass().add("kubata-infra-kpi-icon");
+        iconBox.getStyleClass().add("kubata-server-metric-icon");
         iconBox.getChildren().add(IconUtils.icon(icon, 15));
 
         VBox text = new VBox(1);
         Label caption = new Label(title);
-        caption.getStyleClass().add("kubata-infra-kpi-title");
-        value.getStyleClass().add("kubata-infra-kpi-value");
+        caption.getStyleClass().add("kubata-server-metric-title");
+        value.getStyleClass().add("kubata-server-metric-value");
         text.getChildren().addAll(caption, value);
 
         content.getChildren().addAll(iconBox, text);
 
         VBox card = new VBox(content);
-        card.getStyleClass().add("kubata-infra-kpi");
+        card.getStyleClass().add("kubata-server-metric");
         return card;
     }
 
     private void buildTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        table.getStyleClass().add("kubata-infra-table");
+        table.getStyleClass().add("kubata-server-properties-table");
         table.setPlaceholder(new Label("Nenhuma aplicação registada."));
 
         TableColumn<ModuloSistema, String> name = new TableColumn<>("Aplicação");
