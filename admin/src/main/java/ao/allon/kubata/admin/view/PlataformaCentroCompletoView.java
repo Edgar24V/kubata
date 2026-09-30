@@ -131,7 +131,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
 
     private VBox assistantHub(){
-        VBox box=serverPanel("Assistentes de configuração","Fluxos guiados para as áreas que mais exigem configuração técnica.");
+        VBox box=serverPanel("Assistentes de configuração",Feather.SETTINGS);
         Label intro=new Label("Use os assistentes para configurar o essencial em poucos passos. As opções avançadas continuam disponíveis nas respetivas abas.");
         intro.setWrapText(true);intro.getStyleClass().add("kubata-server-note");
 
