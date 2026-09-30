@@ -31,49 +31,81 @@ public class MoedasCambiosView extends BorderPane {
 
     public MoedasCambiosView(MoedaRepository repository) {
         this.repository = repository;
-        getStyleClass().add("application-view");
+        getStyleClass().addAll("application-view", "kubata-infra-page");
         buildUi();
         load();
     }
 
     private void buildUi() {
-        VBox header = new VBox(5);
-        header.setPadding(new Insets(16, 18, 14, 18));
-        header.getStyleClass().add("header-box");
+        VBox header = new VBox(10);
+        header.setPadding(new Insets(18, 20, 14, 20));
+        header.getStyleClass().add("kubata-infra-header");
 
-        HBox line = new HBox(12);
+        HBox line = new HBox(13);
         line.setAlignment(Pos.CENTER_LEFT);
 
-        Label icon = new Label("", IconUtils.icon(Feather.DOLLAR_SIGN, 20));
+        HBox iconBox = new HBox();
+        iconBox.setAlignment(Pos.CENTER);
+        iconBox.getStyleClass().add("kubata-infra-title-icon");
+        iconBox.getChildren().add(IconUtils.icon(Feather.DOLLAR_SIGN, 21));
+
+        VBox titles = new VBox(2);
         Label title = new Label("Moedas e Câmbios");
-        title.getStyleClass().add("h3");
+        title.getStyleClass().add("kubata-infra-title");
+
+        Label subtitle = new Label(
+                "Administração central de moedas, moeda base, casas decimais e taxas de câmbio."
+        );
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("kubata-infra-subtitle");
+        titles.getChildren().addAll(title, subtitle);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Button novo = new Button("Nova moeda", IconUtils.icon(Feather.PLUS, 13));
-        novo.getStyleClass().add("button-primary");
-        novo.setOnAction(e -> openDialog(null));
 
         Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 13));
         refresh.getStyleClass().add("button-outlined");
         refresh.setOnAction(e -> load());
 
-        line.getChildren().addAll(icon, title, spacer, refresh, novo);
+        Button novo = new Button("Nova moeda", IconUtils.icon(Feather.PLUS, 13));
+        novo.getStyleClass().add("button-primary");
+        novo.setOnAction(e -> openDialog(null));
 
-        Label subtitle = new Label(
-                "Administre moedas, moeda base, taxa de câmbio e casas decimais do ambiente."
-        );
-        subtitle.getStyleClass().add("text-muted");
+        line.getChildren().addAll(iconBox, titles, spacer, refresh, novo);
 
-        header.getChildren().addAll(line, subtitle);
+        Label context = new Label("CATÁLOGO FINANCEIRO · uma moeda pode ser definida como base");
+        context.getStyleClass().add("kubata-infra-status");
+
+        header.getChildren().addAll(line, context);
 
         buildTable();
 
-        VBox center = new VBox(10);
-        center.setPadding(new Insets(16, 18, 18, 18));
-        center.getChildren().addAll(buildSummary(), table);
+        VBox center = new VBox(14);
+        center.setPadding(new Insets(16, 20, 20, 20));
+        center.setFillWidth(true);
+
+        center.getChildren().add(buildSummary());
+
+        HBox tableHeader = new HBox(8);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+
+        VBox tableTitles = new VBox(2);
+        Label tableTitle = new Label("Catálogo de moedas");
+        tableTitle.getStyleClass().add("kubata-infra-section-title");
+        Label tableSubtitle = new Label("Taxas e estado das moedas disponíveis para os módulos financeiros.");
+        tableSubtitle.getStyleClass().add("kubata-infra-section-subtitle");
+        tableTitles.getChildren().addAll(tableTitle, tableSubtitle);
+
+        Region tableSpacer = new Region();
+        HBox.setHgrow(tableSpacer, Priority.ALWAYS);
+        tableHeader.getChildren().addAll(tableTitles, tableSpacer);
+
+        VBox tableSection = new VBox(10, tableHeader, table);
+        tableSection.getStyleClass().add("kubata-infra-section");
         VBox.setVgrow(table, Priority.ALWAYS);
+        VBox.setVgrow(tableSection, Priority.ALWAYS);
+
+        center.getChildren().add(tableSection);
 
         setTop(header);
         setCenter(center);
@@ -82,40 +114,43 @@ public class MoedasCambiosView extends BorderPane {
     private HBox buildSummary() {
         HBox row = new HBox(12);
 
-        Label total = metric("MOEDAS", totalValue);
-        Label active = metric("ACTIVAS", activeValue);
-        Label base = metric("MOEDA BASE", baseValue);
+        row.getChildren().addAll(
+                metric("MOEDAS", totalValue, Feather.LAYERS),
+                metric("ACTIVAS", activeValue, Feather.CHECK_CIRCLE),
+                metric("MOEDA BASE", baseValue, Feather.FLAG)
+        );
 
-        HBox.setHgrow(total, Priority.ALWAYS);
-        HBox.setHgrow(active, Priority.ALWAYS);
-        HBox.setHgrow(base, Priority.ALWAYS);
-
-        row.getChildren().addAll(total, active, base);
+        for (Node node : row.getChildren()) {
+            HBox.setHgrow(node, Priority.ALWAYS);
+        }
         return row;
     }
 
-    private Label metric(String title, Label value) {
-        Label node = new Label();
-        node.setMinHeight(58);
-        node.setMaxWidth(Double.MAX_VALUE);
-        node.setPadding(new Insets(12));
-        VBox box = new VBox(2);
+    private VBox metric(String title, Label value, Feather icon) {
+        HBox content = new HBox(10);
+        content.setAlignment(Pos.CENTER_LEFT);
+
+        HBox iconBox = new HBox();
+        iconBox.setAlignment(Pos.CENTER);
+        iconBox.getStyleClass().add("kubata-infra-kpi-icon");
+        iconBox.getChildren().add(IconUtils.icon(icon, 15));
+
+        VBox text = new VBox(1);
         Label caption = new Label(title);
-        caption.setStyle("-fx-font-size:9px;-fx-font-weight:800;-fx-text-fill:#6e7781;");
-        value.setStyle("-fx-font-size:16px;-fx-font-weight:800;-fx-text-fill:#24292f;");
-        box.getChildren().addAll(caption, value);
-        node.setGraphic(box);
-        node.setStyle(
-                "-fx-background-color:#ffffff;" +
-                "-fx-border-color:#d0d7de;" +
-                "-fx-border-radius:9px;" +
-                "-fx-background-radius:9px;"
-        );
-        return node;
+        caption.getStyleClass().add("kubata-infra-kpi-title");
+        value.getStyleClass().add("kubata-infra-kpi-value");
+        text.getChildren().addAll(caption, value);
+
+        content.getChildren().addAll(iconBox, text);
+
+        VBox card = new VBox(content);
+        card.getStyleClass().add("kubata-infra-kpi");
+        return card;
     }
 
     private void buildTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.getStyleClass().add("kubata-infra-table");
         table.setPlaceholder(new Label("Nenhuma moeda configurada."));
 
         TableColumn<Moeda, String> codigo = new TableColumn<>("Código");
