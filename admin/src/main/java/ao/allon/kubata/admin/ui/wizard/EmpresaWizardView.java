@@ -621,6 +621,7 @@ public class EmpresaWizardView extends VBox {
         private Spinner<Integer> startYear;
         private TextField conservatoria;
         private TextField matriculaComercial;
+        private CheckBox defaultCompany;
         public String title() { return "2 · Identificação da empresa"; }
         public String description() { return "Registe a identidade jurídica e comercial da empresa."; }
         public Node content() {
@@ -638,6 +639,13 @@ public class EmpresaWizardView extends VBox {
             conservatoria = text("Conservatória do registo comercial", empresa.getConservatoria());
             matriculaComercial = text("Matrícula comercial", empresa.getMatriculaComercial());
 
+            defaultCompany = new CheckBox("Definir como empresa predefinida");
+            defaultCompany.setSelected(empresa.getPredefinida());
+            defaultCompany.setDisable(!empresa.getAtiva());
+            defaultCompany.setTooltip(new Tooltip(
+                    "A empresa predefinida é seleccionada automaticamente nos fluxos que usam o contexto empresarial."
+            ));
+
             VBox left = new VBox(
                     field("Identificador *", identifier),
                     field("NIF *", nif),
@@ -649,7 +657,8 @@ public class EmpresaWizardView extends VBox {
                     field("Razão social *", name),
                     field("Nome comercial", commercialName),
                     field("Ano início actividade", startYear),
-                    field("Matrícula comercial", matriculaComercial)
+                    field("Matrícula comercial", matriculaComercial),
+                    defaultCompany
             );
 
             HBox columns = new HBox(22, left, right);
@@ -696,6 +705,7 @@ public class EmpresaWizardView extends VBox {
             empresa.setAnoInicio(startYear.getValue());
             empresa.setConservatoria(normalize(conservatoria.getText()));
             empresa.setMatriculaComercial(normalize(matriculaComercial.getText()));
+            empresa.setPredefinida(defaultCompany.isSelected());
         }
         public String help() { return "Utilize exactamente os dados legais da empresa. O NIF não pode repetir-se noutra empresa."; }
     }
@@ -1325,7 +1335,9 @@ public class EmpresaWizardView extends VBox {
                     summaryLine("Módulos", selectedModuleNames()),
                     summaryLine("Backup", backupEnabled ? backupFrequency + " · " + backupRetentionDays + " dias" : "Desactivado"),
                     summaryLine("Exercício inicial", openFiscalYear ? "Será criado/aberto" : "Não criar automaticamente"),
-                    summaryLine("Estado", empresa.getAtiva() ? "Activa" : "Inactiva"),
+                    summaryLine("Estado", empresa.getAtiva()
+                            ? (empresa.getPredefinida() ? "Activa · Predefinida" : "Activa")
+                            : "Inactiva"),
                     hint("Ao concluir, o Kubata validará a unicidade do NIF, gravará a empresa, criará o exercício quando seleccionado e persistirá os parâmetros de instalação.")
             );
             return root;
