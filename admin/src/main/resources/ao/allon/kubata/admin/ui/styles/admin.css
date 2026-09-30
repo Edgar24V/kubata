@@ -11683,3 +11683,62 @@ Text {
     -fx-padding: 7px 11px;
 }
 
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CENTRO · Assistentes guiados
+   ───────────────────────────────────────────────────────────────────────── */
+
+.kubata-center-assistant-card {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 10;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10;
+    -fx-padding: 11 12;
+}
+
+.kubata-center-assistant-card:hover {
+    -fx-border-color: -kubata-green-border;
+    -fx-effect: dropshadow(three-pass-box, rgba(36,41,47,0.06), 8, 0.08, 0, 2);
+}
+
+.kubata-center-wizard-step {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 10;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10;
+}
+
+.kubata-center-wizard-badge {
+    -fx-min-width: 30px;
+    -fx-pref-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+    -fx-alignment: center;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 8px;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.kubata-center-wizard-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-center-wizard-text {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-center-wizard-success {
+    -fx-text-fill: -color-success-fg;
+    -fx-font-weight: 700;
+}
+
+.kubata-center-wizard-danger {
+    -fx-text-fill: -color-danger-fg;
+    -fx-font-weight: 700;
+}
