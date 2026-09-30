@@ -2,6 +2,7 @@ package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.service.*;
 import ao.allon.kubata.admin.ui.util.IconUtils;
+import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.core.domain.AdmPlataformaItem;
 import ao.allon.kubata.core.domain.ParametroSistema;
 import ao.allon.kubata.core.repository.AdmPlataformaItemRepository;
@@ -36,15 +37,16 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private final SessionManager sessions;
     private final Environment environment;
     private final PlataformaMotoresView motores;
+    private final ModalManager modalManager;
     private final TabPane tabs=new TabPane();
     private final Label ops=new Label("0"), alerts=new Label("0"), docs=new Label("0"), comms=new Label("0"), custom=new Label("0");
 
     public PlataformaCentroCompletoView(AdmPlataformaItemRepository itemRepository, ParametroSistemaRepository parameterRepository,
                                         PlataformaAutomationService automation, PlataformaDocumentService documents,
                                         PlataformaCommunicationService communications, SessionManager sessions, Environment environment,
-                                        PlataformaMotoresView motores){
+                                        PlataformaMotoresView motores, ModalManager modalManager){
         this.itemRepository=itemRepository;this.parameterRepository=parameterRepository;this.automation=automation;this.documents=documents;
-        this.communications=communications;this.sessions=sessions;this.environment=environment;this.motores=motores;
+        this.communications=communications;this.sessions=sessions;this.environment=environment;this.motores=motores;this.modalManager=modalManager;
         seed(); build(); refreshMetrics();
     }
 
@@ -88,8 +90,6 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private GridPane form(){GridPane g=new GridPane();g.setHgap(12);g.setVgap(10);g.setPadding(new Insets(6));g.getColumnConstraints().addAll(new ColumnConstraints(170),grow());return g;}
     private ColumnConstraints grow(){ColumnConstraints c=new ColumnConstraints();c.setHgrow(Priority.ALWAYS);return c;}
     private void field(GridPane g,int row,String label,Object n){g.add(new Label(label),0,row);Node x=n instanceof Node?(Node)n:new Label(String.valueOf(n));if(x instanceof Region r)r.setMaxWidth(Double.MAX_VALUE);g.add(x,1,row);}
-    private Dialog<ButtonType> dialog(String title,Node n){Dialog<ButtonType>d=new Dialog<>();d.setTitle(title);d.getDialogPane().setContent(n);d.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL,ButtonType.OK);d.getDialogPane().setPrefWidth(620);return d;}
-
     private Node dashboard(){
         VBox r=page();r.getChildren().addAll(section("Visão consolidada","Capacidades que estavam parciais passam a ter catálogo persistente e execução administrativa."),
                 actions(button("Operações",Feather.CLOCK,()->select("Operações")),button("Alertas",Feather.ALERT_TRIANGLE,()->select("Alertas")),
@@ -112,11 +112,12 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
     private void operationDialog(TableView<AdmPlataformaItem> t){
         ComboBox<String> code=new ComboBox<>(FXCollections.observableArrayList("CHECK_ALERTS","JVM_DIAGNOSTIC","SYNC_MODULES","CHECK_MIGRATIONS","BACKUP_SQLITE","VACUUM_SQLITE"));
-        code.getSelectionModel().selectFirst();TextField name=new TextField();Spinner<Integer> sec=new Spinner<>(10,86400,300,10);TextField dest=new TextField("backups");
-        GridPane g=form();field(g,0,"Rotina",code);field(g,1,"Nome",name);field(g,2,"Intervalo (s)",sec);field(g,3,"Destino",dest);
-        if(dialog("Nova operação",g).showAndWait().orElse(ButtonType.CANCEL)!=ButtonType.OK)return;
-        String n=name.getText().isBlank()?code.getValue().replace('_',' '):name.getText().trim();
-        automation.save("OPERACAO",code.getValue(),n,"ACTIVO","Rotina administrativa.","{}",sec.getValue(),user(),dest.getText().trim());reload(t,"OPERACAO");
+        code.getSelectionModel().selectFirst(); TextField name=new TextField(); Spinner<Integer> sec=new Spinner<>(10,86400,300,10); TextField dest=new TextField("backups");
+        GridPane g=form(); field(g,0,"Rotina",code); field(g,1,"Nome",name); field(g,2,"Intervalo (s)",sec); field(g,3,"Destino",dest);
+        modalManager.showConfirmModal(g,"Nova operação",()->{
+            String n=name.getText().isBlank()?code.getValue().replace('_',' '):name.getText().trim();
+            automation.save("OPERACAO",code.getValue(),n,"ACTIVO","Rotina administrativa.","{}",sec.getValue(),user(),dest.getText().trim()); reload(t,"OPERACAO");
+        },()->{});
     }
     private void run(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=selected(t);if(i!=null)automation.runNow(i);}
     private void toggle(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=selected(t);if(i!=null){automation.toggle(i);reload(t,i.getTipo());}}
@@ -133,10 +134,11 @@ public class PlataformaCentroCompletoView extends BorderPane {
         return scroll(r);
     }
     private void alertRule(TableView<AdmPlataformaItem>t){
-        TextField code=new TextField(),name=new TextField();TextArea json=new TextArea("{\"metric\":\"heap\",\"operator\":\">=\",\"value\":0.85}");json.setPrefRowCount(4);
-        GridPane g=form();field(g,0,"Código",code);field(g,1,"Nome",name);field(g,2,"Regra JSON",json);
-        if(dialog("Nova regra",g).showAndWait().orElse(ButtonType.CANCEL)!=ButtonType.OK)return;
-        automation.save("ALERTA_REGRA",code.getText().trim().toUpperCase(Locale.ROOT),name.getText().trim(),"ACTIVO","Regra administrativa.",json.getText(),null,user(),null);reload(t,"ALERTA_REGRA");
+        TextField code=new TextField(),name=new TextField(); TextArea json=new TextArea("{\"metric\":\"heap\",\"operator\":\">=\",\"value\":0.85}"); json.setPrefRowCount(4);
+        GridPane g=form(); field(g,0,"Código",code); field(g,1,"Nome",name); field(g,2,"Regra JSON",json);
+        modalManager.showConfirmModal(g,"Nova regra",()->{
+            automation.save("ALERTA_REGRA",code.getText().trim().toUpperCase(Locale.ROOT),name.getText().trim(),"ACTIVO","Regra administrativa.",json.getText(),null,user(),null); reload(t,"ALERTA_REGRA");
+        },()->{});
     }
 
     private Node documents(){
@@ -164,12 +166,18 @@ public class PlataformaCentroCompletoView extends BorderPane {
         VBox.setVgrow(t,Priority.ALWAYS);return r;
     }
     private void email(TableView<AdmPlataformaItem>t){
-        TextField to=new TextField(),subject=new TextField();TextArea body=new TextArea();body.setPrefRowCount(8);GridPane g=form();field(g,0,"Destinatário",to);field(g,1,"Assunto",subject);field(g,2,"Mensagem",body);
-        if(dialog("Novo e-mail",g).showAndWait().orElse(ButtonType.CANCEL)!=ButtonType.OK)return;communications.queueEmail(to.getText().trim(),subject.getText().trim(),body.getText(),user());reload(t,"COMUNICACAO");
+        TextField to=new TextField(),subject=new TextField(); TextArea body=new TextArea(); body.setPrefRowCount(8);
+        GridPane g=form(); field(g,0,"Destinatário",to); field(g,1,"Assunto",subject); field(g,2,"Mensagem",body);
+        modalManager.showConfirmModal(g,"Novo e-mail",()->{
+            communications.queueEmail(to.getText().trim(),subject.getText().trim(),body.getText(),user()); reload(t,"COMUNICACAO");
+        },()->{});
     }
     private void sms(TableView<AdmPlataformaItem>t){
-        TextField to=new TextField();TextArea body=new TextArea();GridPane g=form();field(g,0,"Telefone",to);field(g,1,"Mensagem",body);
-        if(dialog("Novo SMS",g).showAndWait().orElse(ButtonType.CANCEL)!=ButtonType.OK)return;communications.queueSmsWebhook(to.getText().trim(),body.getText(),user());reload(t,"COMUNICACAO");
+        TextField to=new TextField(); TextArea body=new TextArea();
+        GridPane g=form(); field(g,0,"Telefone",to); field(g,1,"Mensagem",body);
+        modalManager.showConfirmModal(g,"Novo SMS",()->{
+            communications.queueSmsWebhook(to.getText().trim(),body.getText(),user()); reload(t,"COMUNICACAO");
+        },()->{});
     }
     private void send(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=selected(t);if(i==null)return;try{String x=i.getCodigo().startsWith("EMAIL_")?communications.sendEmail(i):communications.sendSmsWebhook(i);itemRepository.save(i);reload(t,"COMUNICACAO");show("Comunicações",x);}catch(Exception e){i.setEstado("ERRO");i.setLastMessage(e.getMessage());itemRepository.save(i);reload(t,"COMUNICACAO");show("Comunicações",e.getMessage());}}
 
