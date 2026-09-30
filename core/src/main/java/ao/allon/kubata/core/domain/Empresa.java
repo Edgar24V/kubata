@@ -150,6 +150,9 @@ public class Empresa extends BaseEntity {
     @Column(nullable = false)
     private boolean ativa = true;
 
+    @Column(name = "predefinida", nullable = false)
+    private boolean predefinida = false;
+
     @Column(columnDefinition = "TEXT")
     private String modulos;
 
@@ -302,6 +305,9 @@ public class Empresa extends BaseEntity {
 
     public boolean getAtiva() { return ativa; }
     public void setAtiva(boolean ativa) { this.ativa = ativa; }
+
+    public boolean getPredefinida() { return predefinida; }
+    public void setPredefinida(boolean predefinida) { this.predefinida = predefinida; }
 
     public String getModulos() { return modulos; }
     public void setModulos(String modulos) { this.modulos = modulos; }
