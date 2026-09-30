@@ -11048,6 +11048,174 @@ Text {
     -fx-font-weight: 600;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KUBATA · CENTRO DA PLATAFORMA · Refinamento visual
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kubata-platform-center-page {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-platform-center-header {
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-platform-center-title-icon {
+    -fx-min-width: 46px;
+    -fx-pref-width: 46px;
+    -fx-max-width: 46px;
+    -fx-min-height: 46px;
+    -fx-pref-height: 46px;
+    -fx-max-height: 46px;
+    -fx-alignment: center;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 12px;
+    -fx-text-fill: -kubata-green;
+}
+
+.kubata-platform-center-title-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green;
+}
+
+.kubata-platform-center-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-platform-center-header .text-muted {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-platform-center-refresh {
+    -fx-padding: 7px 13px;
+}
+
+.kubata-platform-center-metrics {
+    -fx-spacing: 10px;
+}
+
+.kubata-platform-center-metric {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-effect: dropshadow(three-pass-box, rgba(36,41,47,0.045), 7, 0.06, 0, 1);
+}
+
+.kubata-platform-center-metric:hover {
+    -fx-border-color: -kubata-green-border;
+    -fx-effect: dropshadow(three-pass-box, rgba(33,115,70,0.10), 9, 0.08, 0, 2);
+}
+
+.kubata-platform-center-tabs {
+    -fx-background-color: transparent;
+}
+
+.kubata-platform-center-tabs .tab-header-area {
+    -fx-padding: 7px 18px 0 18px;
+}
+
+.kubata-platform-center-tabs .tab-header-background {
+    -fx-background-color: -color-light;
+}
+
+.kubata-platform-center-tabs .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 9px 12px;
+}
+
+.kubata-platform-center-tabs .tab:hover {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-platform-center-tabs .tab:selected {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-platform-center-tabs .tab-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-platform-center-tabs .tab:selected .tab-label {
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-platform-center-page-content {
+    -fx-background-color: transparent;
+}
+
+.kubata-platform-center-section-heading {
+    -fx-padding: 1px 1px 3px 1px;
+}
+
+.kubata-platform-center-section-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-platform-center-info {
+    -fx-background-color: -color-light;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.kubata-platform-center-info:hover {
+    -fx-border-color: -kubata-green-border;
+}
+
+.kubata-platform-center-info-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-platform-center-data-table {
+    -fx-background-color: -color-light;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.kubata-platform-center-data-table .column-header-background {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 10px 10px 0 0;
+}
+
+.kubata-platform-center-data-table .column-header {
+    -fx-background-color: transparent;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.kubata-platform-center-data-table .table-row-cell {
+    -fx-background-color: -color-light;
+    -fx-cell-size: 38px;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-platform-center-data-table .table-row-cell:hover {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-platform-center-data-table .table-row-cell:selected {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-platform-center-data-table .table-cell {
+    -fx-padding: 0 10px;
+    -fx-font-size: 11px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    KUBATA ADMIN · INFRAESTRUTURA
    Linguagem visual comum: Centro, Aplicações, Moedas e Sessões
