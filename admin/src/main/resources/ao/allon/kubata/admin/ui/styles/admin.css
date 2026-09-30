@@ -11557,3 +11557,45 @@ Text {
     -fx-padding: 0 10px;
     -fx-font-size: 11px;
 }
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Compatibilidade: tabelas das páginas de Infraestrutura usando o padrão Servidor
+   ───────────────────────────────────────────────────────────────────────── */
+.kubata-server-properties-table {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 10;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10;
+}
+
+.kubata-server-properties-table .column-header-background {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 10 10 0 0;
+}
+
+.kubata-server-properties-table .column-header {
+    -fx-background-color: transparent;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.kubata-server-properties-table .table-row-cell {
+    -fx-cell-size: 38px;
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-server-properties-table .table-row-cell:hover {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-server-properties-table .table-row-cell:selected {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-server-properties-table .table-cell {
+    -fx-padding: 0 10px;
+    -fx-font-size: 11px;
+}
