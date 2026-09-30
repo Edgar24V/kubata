@@ -144,6 +144,31 @@ public class PlataformaRuntimeService implements ModuleEventListener {
         return new QueryResult(cols, rows, rows.size());
     }
 
+    public boolean isReadOnlyQuery(String sql) {
+        if (sql == null) return false;
+        return isReadOnlySql(sql.trim().replaceAll("\\s+", " "));
+    }
+
+    public String executeWidget(AdmPlataformaItem widget) {
+        if (widget == null || !"DASHBOARD".equalsIgnoreCase(widget.getTipo())) {
+            throw new IllegalArgumentException("O item não é um widget de dashboard.");
+        }
+        JsonNode cfg = parse(widget.getConfigJson());
+        String query = text(cfg, "query", "");
+        if (query.isBlank()) {
+            return text(cfg, "metric", "Sem métrica");
+        }
+        if (!isReadOnlyQuery(query)) {
+            throw new IllegalArgumentException("O widget contém uma consulta que não é somente leitura.");
+        }
+        String sql = appendLimit(query.trim().replaceAll("\\s+", " "), 1);
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+        if (rows.isEmpty()) return "Sem dados.";
+        return rows.get(0).entrySet().stream()
+                .map(e -> e.getKey() + "=" + formatValue(e.getValue()))
+                .collect(Collectors.joining(" | "));
+    }
+
     public String validateDefinition(String type, String json) {
         try {
             JsonNode node = parse(json);
