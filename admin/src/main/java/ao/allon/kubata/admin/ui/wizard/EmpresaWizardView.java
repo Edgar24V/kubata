@@ -15,6 +15,7 @@ import ao.allon.kubata.core.repository.ExercicioFiscalRepository;
 import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.util.NifUtils;
+import ao.allon.kubata.core.util.LogoUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -1176,6 +1177,8 @@ public class EmpresaWizardView extends VBox {
         private byte[] logoBytes;
         private String logoMimeType;
         private ImageView logoView;
+        private Label logoStatus;
+        private String logoFileName;
         private TextArea footer;
         private TextArea invoiceMessage;
         public String title() { return "8 · Logótipo e documentos"; }
@@ -1183,6 +1186,7 @@ public class EmpresaWizardView extends VBox {
         public Node content() {
             logoBytes = empresa.getLogotipo();
             logoMimeType = empresa.getLogotipoMimeType();
+            logoFileName = null;
 
             StackPane logoBox = new StackPane();
             logoBox.getStyleClass().add("empresa-logo-box");
@@ -1190,11 +1194,26 @@ public class EmpresaWizardView extends VBox {
             logoView.setFitWidth(220);
             logoView.setFitHeight(120);
             logoView.setPreserveRatio(true);
+
+            logoStatus = new Label();
+            logoStatus.getStyleClass().add("empresa-logo-status");
+
             refreshLogoView(logoBox);
 
             Button choose = new Button("Seleccionar logótipo", IconUtils.icon(Feather.IMAGE, 14));
             choose.getStyleClass().add("button-outlined");
             choose.setOnAction(e -> chooseLogo(logoBox));
+
+            Button remove = new Button("Remover", IconUtils.icon(Feather.TRASH_2, 14));
+            remove.getStyleClass().add("button-outlined");
+            remove.setOnAction(e -> {
+                logoBytes = null;
+                logoMimeType = null;
+                logoFileName = null;
+                refreshLogoView(logoBox);
+            });
+
+            HBox logoActions = new HBox(8, choose, remove);
 
             footer = textArea(empresa.getRodapeDocumento());
             footer.setPromptText("Ex.: Documento emitido pelo sistema Kubata.");
@@ -1205,7 +1224,9 @@ public class EmpresaWizardView extends VBox {
             VBox branding = card(
                     section("Identidade visual", "logótipo"),
                     logoBox,
-                    choose
+                    logoStatus,
+                    logoActions,
+                    hint("PNG, JPG/JPEG ou WebP · máximo 2 MB. O tipo é confirmado pelo conteúdo do ficheiro.")
             );
             VBox docs = card(
                     section("Documentos", "textos padrão"),
@@ -1221,36 +1242,115 @@ public class EmpresaWizardView extends VBox {
         }
         private void refreshLogoView(StackPane logoBox) {
             logoBox.getChildren().clear();
+
             if (logoBytes != null && logoBytes.length > 0) {
                 try {
-                    logoView.setImage(new Image(new ByteArrayInputStream(logoBytes)));
+                    Image image = new Image(new ByteArrayInputStream(logoBytes));
+                    if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
+                        throw new IllegalArgumentException("A imagem não pôde ser descodificada.");
+                    }
+
+                    logoView.setImage(image);
                     logoBox.getChildren().add(logoView);
+
+                    String type = logoMimeType == null ? "Imagem" : logoMimeType;
+                    String file = logoFileName == null ? "Logótipo guardado" : logoFileName;
+                    logoStatus.setText(file + " · " + type + " · " + formatBytes(logoBytes.length)
+                            + " · " + Math.round(image.getWidth()) + "×" + Math.round(image.getHeight()) + " px");
                     return;
-                } catch (Exception ignored) {}
+                } catch (Exception ex) {
+                    logoView.setImage(null);
+                    logoStatus.setText("Logótipo inválido ou não suportado.");
+                }
             }
+
+            logoStatus.setText("Nenhum logótipo seleccionado");
             logoBox.getChildren().add(new Label("Sem logótipo"));
+        }
+
+        private String formatBytes(int size) {
+            if (size < 1024) return size + " B";
+            if (size < 1024 * 1024) return String.format(Locale.ROOT, "%.1f KB", size / 1024.0);
+            return String.format(Locale.ROOT, "%.2f MB", size / (1024.0 * 1024.0));
         }
         private void chooseLogo(StackPane box) {
             if (getScene() == null || getScene().getWindow() == null) return;
+
             FileChooser chooser = new FileChooser();
             chooser.setTitle("Seleccionar logótipo da empresa");
             chooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("Imagens", "*.png", "*.jpg", "*.jpeg", "*.webp")
+                    new FileChooser.ExtensionFilter("Logótipo (PNG, JPG/JPEG, WebP)",
+                            "*.png", "*.jpg", "*.jpeg", "*.webp")
             );
+
             File file = chooser.showOpenDialog(getScene().getWindow());
             if (file == null) return;
+
             try {
-                logoBytes = Files.readAllBytes(file.toPath());
-                logoMimeType = Files.probeContentType(file.toPath());
+                byte[] bytes = Files.readAllBytes(file.toPath());
+                String validation = LogoUtils.validate(bytes);
+
+                if (validation != null) {
+                    modalManager.alert("Logótipo inválido", validation, "warning", null);
+                    return;
+                }
+
+                String detectedMime = LogoUtils.detectMimeType(bytes);
+                if (!LogoUtils.isSupportedMimeType(detectedMime)) {
+                    modalManager.alert("Formato não suportado",
+                            "Utilize PNG, JPG/JPEG ou WebP.", "warning", null);
+                    return;
+                }
+
+                Image image = new Image(new ByteArrayInputStream(bytes));
+                if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
+                    modalManager.alert("Imagem inválida",
+                            "O ficheiro possui uma assinatura conhecida, mas não pôde ser carregado como imagem.",
+                            "warning", null);
+                    return;
+                }
+
+                logoBytes = bytes;
+                logoMimeType = detectedMime;
+                logoFileName = file.getName();
                 refreshLogoView(box);
             } catch (Exception ex) {
                 modalManager.alert("Logótipo", "Não foi possível carregar a imagem: " + ex.getMessage(), "error", ex);
             }
         }
-        public boolean validate() { return true; }
+
+        public boolean validate() {
+            String validation = LogoUtils.validate(logoBytes);
+            if (validation != null) {
+                modalManager.alert("Logótipo inválido", validation, "warning", null);
+                return false;
+            }
+
+            if (logoBytes != null && logoBytes.length > 0) {
+                logoMimeType = LogoUtils.detectMimeType(logoBytes);
+                if (!LogoUtils.isSupportedMimeType(logoMimeType)) {
+                    modalManager.alert("Formato de logótipo",
+                            "Utilize PNG, JPG/JPEG ou WebP.", "warning", null);
+                    return false;
+                }
+
+                Image image = new Image(new ByteArrayInputStream(logoBytes));
+                if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
+                    modalManager.alert("Imagem inválida",
+                            "O logótipo não pôde ser descodificado.", "warning", null);
+                    return false;
+                }
+            }
+
+            return true;
+        }
         public void save() {
             empresa.setLogotipo(logoBytes);
-            empresa.setLogotipoMimeType(logoMimeType);
+            empresa.setLogotipoMimeType(
+                    logoBytes == null || logoBytes.length == 0
+                            ? null
+                            : LogoUtils.detectMimeType(logoBytes)
+            );
             empresa.setRodapeDocumento(normalize(footer.getText()));
             empresa.setMensagemFatura(normalize(invoiceMessage.getText()));
         }
