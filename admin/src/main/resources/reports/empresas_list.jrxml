@@ -117,8 +117,8 @@
             </textField>
             <textField>
                 <reportElement style="KDetail" x="380" y="0" width="80" height="25" uuid="e1f2a3b4-5678-90ab-cdef-123456789012"/>
-                <textElement textAlignment="Center" verticalAlignment="Middle"/>
-                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
+                <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box><textElement textAlignment="Center" verticalAlignment="Middle"/>
+                
                 <textFieldExpression><![CDATA[$F{anoInicio} == null ? "—" : $F{anoInicio}]]></textFieldExpression>
             </textField>
             <textField>
