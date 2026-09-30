@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Provisionamento central de uma empresa no ecossistema Kubata.
@@ -50,12 +51,13 @@ public class EmpresaSetupService {
 
         String nif = NifUtils.normalize(empresa.getNif());
         empresa.setNif(nif);
+        empresa.setNifFiscal(normalizeOptionalNif(empresa.getNifFiscal()));
+        empresa.setNifSegurancaSocial(normalizeOptionalNif(empresa.getNifSegurancaSocial()));
 
-        empresaRepository.findByNif(nif).ifPresent(existing -> {
-            if (empresa.getId() == null || !existing.getId().equals(empresa.getId())) {
-                throw new IllegalArgumentException("Já existe uma empresa registada com o NIF " + nif + ".");
-            }
-        });
+        Optional<Empresa> duplicate = findDuplicateByNormalizedNif(empresa, nif);
+        if (duplicate.isPresent()) {
+            throw new IllegalArgumentException("Já existe uma empresa registada com o NIF " + nif + ".");
+        }
 
         if (empresa.getMoedaBase() == null || empresa.getMoedaBase().isBlank()) {
             empresa.setMoedaBase("AOA");
@@ -231,6 +233,21 @@ public class EmpresaSetupService {
             return NifUtils.TipoContribuinte.NAO_RESIDENTE;
         }
         return NifUtils.TipoContribuinte.PESSOA_COLECTIVA;
+    }
+
+    private Optional<Empresa> findDuplicateByNormalizedNif(Empresa current, String normalizedNif) {
+        return empresaRepository.findAll().stream()
+                .filter(existing -> existing.getNif() != null)
+                .filter(existing -> current.getId() == null || !existing.getId().equals(current.getId()))
+                .filter(existing -> normalizedNif.equals(NifUtils.normalize(existing.getNif())))
+                .findFirst();
+    }
+
+    private String normalizeOptionalNif(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        return NifUtils.normalize(value);
     }
 
     private boolean isBlank(String value) {
