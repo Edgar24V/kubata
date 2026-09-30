@@ -170,6 +170,110 @@ public class PlataformaMotoresView extends BorderPane {
         g.add(node, 1, row);
     }
 
+    private HBox engineMetrics() {
+        HBox metrics = new HBox(10);
+        metrics.getStyleClass().add("kubata-server-metrics");
+        metrics.getChildren().addAll(
+                metricCard("PERSONALIZAÇÃO", "PERSONALIZACAO", Feather.CPU),
+                metricCard("LISTAGENS", "LISTAGEM", Feather.LIST),
+                metricCard("MAPAS", "MAPA", Feather.MAP),
+                metricCard("EVENTOS", "EVENTO_REGRA", Feather.ACTIVITY),
+                metricCard("WIDGETS", "DASHBOARD", Feather.BAR_CHART_2)
+        );
+        return metrics;
+    }
+
+    private VBox metricCard(String title, String type, Feather icon) {
+        VBox card = new VBox(4);
+        card.setPadding(new Insets(11, 13, 11, 13));
+        card.getStyleClass().add("kubata-server-metric");
+        HBox row = new HBox(7);
+        row.setAlignment(Pos.CENTER_LEFT);
+        Label iconLabel = new Label("", IconUtils.icon(icon, 14));
+        iconLabel.getStyleClass().add("kubata-server-metric-icon");
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("kubata-server-metric-title");
+        Label value = new Label(String.valueOf(automation.list(type).size()));
+        value.getStyleClass().add("kubata-server-metric-value");
+        row.getChildren().addAll(iconLabel, titleLabel);
+        card.getChildren().addAll(row, value);
+        HBox.setHgrow(card, Priority.ALWAYS);
+        return card;
+    }
+
+    private Node resumo() {
+        VBox v = page();
+
+        GridPane cards = new GridPane();
+        cards.setHgap(10);
+        cards.setVgap(10);
+        cards.add(runtimeCard("Personalização", "Definições CDU/XDU/PDU/RDU/FDU/SDU/MDU.", Feather.CPU, "PERSONALIZACAO"), 0, 0);
+        cards.add(runtimeCard("Listagens", "Consultas persistentes executáveis pelo runtime.", Feather.LIST, "LISTAGEM"), 1, 0);
+        cards.add(runtimeCard("Mapas", "Fluxos definidos por nodes e edges.", Feather.MAP, "MAPA"), 0, 1);
+        cards.add(runtimeCard("Eventos", "Regras de publicação e notificação.", Feather.ACTIVITY, "EVENTO_REGRA"), 1, 1);
+        cards.add(runtimeCard("Dashboard", "Widgets e indicadores administrativos.", Feather.BAR_CHART_2, "DASHBOARD"), 0, 2);
+        cards.add(runtimeCard("Calendário", "Eventos e recorrências administrativas.", Feather.CALENDAR, "CALENDARIO"), 1, 2);
+
+        Label status = new Label("Motores disponíveis e prontos para operação.");
+        status.getStyleClass().add("kubata-server-status-value");
+
+        HBox shortcuts = new HBox(8,
+                button("Extensibilidade", Feather.CPU, () -> selectTab("Extensibilidade")),
+                button("Pesquisa", Feather.SEARCH, () -> selectTab("Pesquisa")),
+                button("Eventos", Feather.ACTIVITY, () -> selectTab("Eventos")),
+                button("Dashboard", Feather.BAR_CHART_2, () -> selectTab("Dashboard")),
+                button("BD", Feather.DATABASE, () -> selectTab("BD"))
+        );
+
+        v.getChildren().addAll(
+                section("Resumo dos motores", "Visão operacional dos principais motores e acesso direto às áreas mais utilizadas."),
+                card(status, shortcuts),
+                cards,
+                info("Arquitectura runtime", "Os motores consomem as definições persistidas e executam apenas as operações expostas pelos serviços da plataforma.")
+        );
+        return scroll(v);
+    }
+
+    private VBox runtimeCard(String title, String description, Feather icon, String type) {
+        VBox c = new VBox(7);
+        c.setPadding(new Insets(12));
+        c.setPrefHeight(118);
+        c.setMaxWidth(Double.MAX_VALUE);
+        c.getStyleClass().add("kubata-runtime-card");
+
+        HBox head = new HBox(8);
+        head.setAlignment(Pos.CENTER_LEFT);
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-runtime-card-icon");
+        iconBox.getChildren().add(new Label("", IconUtils.icon(icon, 15)));
+
+        Label t = new Label(title);
+        t.getStyleClass().add("kubata-runtime-card-title");
+
+        Label count = new Label(String.valueOf(automation.list(type).size()));
+        count.getStyleClass().add("kubata-runtime-card-value");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        head.getChildren().addAll(iconBox, t, spacer, count);
+
+        Label d = new Label(description);
+        d.setWrapText(true);
+        d.getStyleClass().add("kubata-runtime-card-text");
+        c.getChildren().addAll(head, d);
+        GridPane.setHgrow(c, Priority.ALWAYS);
+        return c;
+    }
+
+    private void selectTab(String title) {
+        for (Tab tab : tabs.getTabs()) {
+            if (Objects.equals(tab.getText(), title)) {
+                tabs.getSelectionModel().select(tab);
+                return;
+            }
+        }
+    }
+
     private Node extensibility() {
         VBox v = page();
         TableView<AdmPlataformaItem> table = platformTable("PERSONALIZACAO");
