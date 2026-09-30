@@ -243,8 +243,21 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
 
     private Button navButton(String title,Feather icon,String tooltip){
-        Button button=new Button(title,IconUtils.icon(icon,14));
+        StackPane iconBox=new StackPane(IconUtils.icon(icon,14));
+        iconBox.setMinWidth(20);
+        iconBox.setPrefWidth(20);
+        iconBox.setMaxWidth(20);
+        iconBox.setMinHeight(20);
+        iconBox.setPrefHeight(20);
+        iconBox.setMaxHeight(20);
+        iconBox.setAlignment(Pos.CENTER_LEFT);
+        iconBox.getStyleClass().add("kubata-center-nav-icon");
+
+        Button button=new Button(title,iconBox);
         button.setMaxWidth(Double.MAX_VALUE);
+        button.setMinHeight(38);
+        button.setPrefHeight(38);
+        button.setMaxHeight(38);
         button.setAlignment(Pos.CENTER_LEFT);
         button.setContentDisplay(ContentDisplay.LEFT);
         button.setGraphicTextGap(9);
