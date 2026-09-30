@@ -4,6 +4,7 @@ import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserAccessPermission;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.core.service.PasswordChangeService;
 import ao.allon.kubata.faturacao.service.SessionManager;
 import ao.allon.kubata.faturacao.ui.util.AlertUtils;
 import ao.allon.kubata.faturacao.ui.util.IconUtils;
@@ -32,6 +33,7 @@ public class MeuPerfilView extends BorderPane {
 
     private final SessionManager sessionManager;
     private final AcessoService acessoService;
+    private final PasswordChangeService passwordChangeService;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final ao.allon.kubata.core.repository.UserRepository userRepository;
 
@@ -88,12 +90,14 @@ public class MeuPerfilView extends BorderPane {
         return Collections.unmodifiableMap(map);
     }
 
-    public MeuPerfilView(SessionManager sessionManager, 
+    public MeuPerfilView(SessionManager sessionManager,
                        AcessoService acessoService,
+                       PasswordChangeService passwordChangeService,
                        org.springframework.security.crypto.password.PasswordEncoder passwordEncoder,
                        ao.allon.kubata.core.repository.UserRepository userRepository) {
         this.sessionManager = sessionManager;
         this.acessoService = acessoService;
+        this.passwordChangeService = passwordChangeService;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
 
@@ -683,7 +687,7 @@ public class MeuPerfilView extends BorderPane {
                 }
 
                 try {
-                    acessoService.alterarMinhaSenha(user.getId(), senhaAtual, novaSenha);
+                    passwordChangeService.changeOwnPassword(user.getId(), senhaAtual, novaSenha);
                     AlertUtils.showInfoAlert("Sucesso", "Senha alterada com sucesso!");
                 } catch (Exception e) {
                     AlertUtils.showExceptionAlert("Erro", "Erro ao alterar senha", e);
