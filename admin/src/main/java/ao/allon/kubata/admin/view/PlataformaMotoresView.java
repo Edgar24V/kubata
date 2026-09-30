@@ -293,19 +293,19 @@ public class PlataformaMotoresView extends BorderPane {
         c.setPadding(new Insets(12));
         c.setPrefHeight(118);
         c.setMaxWidth(Double.MAX_VALUE);
-        c.getStyleClass().add("kubata-runtime-card");
+        c.getStyleClass().add("kubata-server-panel");
 
         HBox head = new HBox(8);
         head.setAlignment(Pos.CENTER_LEFT);
         StackPane iconBox = new StackPane();
-        iconBox.getStyleClass().add("kubata-runtime-card-icon");
+        iconBox.getStyleClass().add("kubata-server-metric-icon");
         iconBox.getChildren().add(new Label("", IconUtils.icon(icon, 15)));
 
         Label t = new Label(title);
-        t.getStyleClass().add("kubata-runtime-card-title");
+        t.getStyleClass().add("kubata-server-panel-title");
 
         Label count = new Label(String.valueOf(automation.list(type).size()));
-        count.getStyleClass().add("kubata-runtime-card-value");
+        count.getStyleClass().add("kubata-server-metric-value");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -313,7 +313,7 @@ public class PlataformaMotoresView extends BorderPane {
 
         Label d = new Label(description);
         d.setWrapText(true);
-        d.getStyleClass().add("kubata-runtime-card-text");
+        d.getStyleClass().add("kubata-server-note");
         c.getChildren().addAll(head, d);
         GridPane.setHgrow(c, Priority.ALWAYS);
         return c;
