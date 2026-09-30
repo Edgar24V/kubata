@@ -104,6 +104,37 @@ public class EmpresaSetupService {
         return saved;
     }
 
+    /**
+     * Altera de forma centralizada o estado operacional de uma empresa.
+     *
+     * <p>O Administrator não permite que a última empresa activa seja
+     * desactivada, evitando que módulos dependentes de uma empresa operacional
+     * fiquem sem contexto empresarial.</p>
+     */
+    @Transactional
+    public Empresa alterarEstado(Long empresaId, boolean activa) {
+        if (empresaId == null) {
+            throw new IllegalArgumentException("A empresa seleccionada não possui identificador.");
+        }
+
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new IllegalArgumentException("Empresa não encontrada."));
+
+        if (empresa.getAtiva() == activa) {
+            return empresa;
+        }
+
+        if (!activa && empresaRepository.countByAtivaTrue() <= 1) {
+            throw new IllegalStateException(
+                    "Não é possível desactivar a última empresa activa. "
+                            + "Active outra empresa antes de desactivar esta."
+            );
+        }
+
+        empresa.setAtiva(activa);
+        return empresaRepository.save(empresa);
+    }
+
     private void ensureFiscalYear(Empresa empresa, Integer year, String updatedBy) {
         if (exercicioFiscalRepository.findByEmpresaIdAndAno(empresa.getId(), year).isPresent()) {
             return;
