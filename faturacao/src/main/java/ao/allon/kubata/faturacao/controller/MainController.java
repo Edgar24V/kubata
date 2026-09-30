@@ -238,7 +238,7 @@ public class MainController {
     }
 
     public void showPerfis() {
-        mainView.openOrFocusTab("usuarios", "Usuários", () -> new ao.allon.kubata.faturacao.view.GestaoUsuariosView(acessoService, sessionManager.getUserObject(), modalService, jasperReportService, sessionManager));
+        mainView.openOrFocusTab("usuarios", "Usuários", () -> new ao.allon.kubata.faturacao.view.GestaoUsuariosView(acessoService, applicationContext.getBean(ao.allon.kubata.core.service.PasswordResetService.class), sessionManager.getUserObject(), modalService, jasperReportService, sessionManager));
         if (notificationSink != null) notificationSink.accept("Gestão de Usuários aberta");
     }
 
@@ -368,6 +368,7 @@ public class MainController {
                 new ao.allon.kubata.faturacao.view.MeuPerfilView(
                     sessionManager,
                     acessoService,
+                    applicationContext.getBean(ao.allon.kubata.core.service.PasswordChangeService.class),
                     passwordEncoder,
                     userRepository
                 );

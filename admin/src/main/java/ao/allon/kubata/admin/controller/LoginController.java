@@ -5,6 +5,8 @@ import ao.allon.kubata.admin.ui.event.LoginSuccessEvent;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.service.AuthService;
+import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
+import ao.allon.kubata.core.service.PasswordChangeService;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -36,6 +38,7 @@ public class LoginController {
     private final AuthService authService;
     private final ApplicationEventPublisher eventPublisher;
     private final MaintenanceModeService maintenanceModeService;
+    private final PasswordChangeService passwordChangeService;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     // UI Components
@@ -58,10 +61,12 @@ public class LoginController {
 
     public LoginController(AuthService authService,
                            ApplicationEventPublisher eventPublisher,
-                           MaintenanceModeService maintenanceModeService) {
+                           MaintenanceModeService maintenanceModeService,
+                           PasswordChangeService passwordChangeService) {
         this.authService = authService;
         this.eventPublisher = eventPublisher;
         this.maintenanceModeService = maintenanceModeService;
+        this.passwordChangeService = passwordChangeService;
     }
 
     public Parent createView(Stage stage) {
@@ -358,6 +363,11 @@ public class LoginController {
                     setLoading(false);
                     eventPublisher.publishEvent(new LoginSuccessEvent(this, user));
                 });
+            } catch (PasswordChangeRequiredException ex) {
+                Platform.runLater(() -> {
+                    setLoading(false);
+                    showMandatoryPasswordChange(ex.getUser(), password);
+                });
             } catch (Exception ex) {
                 Platform.runLater(() -> {
                     setLoading(false);
@@ -369,6 +379,108 @@ public class LoginController {
                     shakeNode(loginButton);
                 });
             }
+        });
+    }
+
+    private void showMandatoryPasswordChange(User user, String currentPassword) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Alteração obrigatória da palavra-passe");
+        dialog.setHeaderText("A palavra-passe temporária deve ser substituída antes do acesso.");
+
+        PasswordField newPassword = new PasswordField();
+        newPassword.setPromptText("Nova palavra-passe (mín. 8 caracteres)");
+
+        PasswordField confirmPassword = new PasswordField();
+        confirmPassword.setPromptText("Confirmar nova palavra-passe");
+
+        Label hint = new Label(
+                "Use pelo menos 8 caracteres, incluindo maiúsculas, minúsculas e números."
+        );
+        hint.setWrapText(true);
+
+        VBox content = new VBox(
+                10,
+                new Label("Nova palavra-passe:"),
+                newPassword,
+                new Label("Confirmar:"),
+                confirmPassword,
+                hint
+        );
+        content.setPadding(new Insets(10));
+        content.setPrefWidth(430);
+
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        Button ok = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        ok.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            String value = newPassword.getText();
+            String confirmation = confirmPassword.getText();
+
+            if (value == null || value.length() < 8) {
+                showMessage("A nova palavra-passe deve ter pelo menos 8 caracteres.", true);
+                event.consume();
+                return;
+            }
+
+            boolean upper = value.chars().anyMatch(Character::isUpperCase);
+            boolean lower = value.chars().anyMatch(Character::isLowerCase);
+            boolean digit = value.chars().anyMatch(Character::isDigit);
+
+            if (!upper || !lower || !digit) {
+                showMessage(
+                        "A nova palavra-passe deve conter maiúsculas, minúsculas e números.",
+                        true
+                );
+                event.consume();
+                return;
+            }
+
+            if (!value.equals(confirmation)) {
+                showMessage("A confirmação da palavra-passe não coincide.", true);
+                event.consume();
+            }
+        });
+
+        dialog.showAndWait().ifPresent(result -> {
+            if (result != ButtonType.OK) {
+                showMessage(
+                        "A alteração da palavra-passe é obrigatória para entrar no sistema.",
+                        true
+                );
+                return;
+            }
+
+            String newValue = newPassword.getText();
+            setLoading(true);
+
+            executor.submit(() -> {
+                try {
+                    User changedUser = passwordChangeService.changeOwnPassword(
+                            user.getId(),
+                            currentPassword,
+                            newValue
+                    );
+
+                    Platform.runLater(() -> {
+                        setLoading(false);
+                        eventPublisher.publishEvent(
+                                new LoginSuccessEvent(this, changedUser)
+                        );
+                    });
+                } catch (Exception ex) {
+                    Platform.runLater(() -> {
+                        setLoading(false);
+                        showMessage(
+                                ex.getMessage() == null
+                                        ? "Não foi possível alterar a palavra-passe."
+                                        : ex.getMessage(),
+                                true
+                        );
+                        shakeNode(loginButton);
+                    });
+                }
+            });
         });
     }
 

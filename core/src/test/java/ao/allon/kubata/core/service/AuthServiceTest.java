@@ -2,6 +2,7 @@ package ao.allon.kubata.core.service;
 
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
+import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.service.AcessoService;
 import ao.allon.kubata.core.service.AuthService;
@@ -45,6 +46,7 @@ class AuthServiceTest {
         user.setEmail("test@example.com");
         user.setPassword("encodedPassword");
         user.setActive(true);
+        user.setPasswordProvisoria(false);
     }
 
     @Test
@@ -84,4 +86,24 @@ class AuthServiceTest {
         assertThrows(AuthenticationException.class, () -> 
             authService.authenticate("test@example.com", "password", null, "127.0.0.1"));
     }
+
+    @Test
+    void authenticate_ShouldRequirePasswordChange_WhenPasswordIsProvisional() {
+        user.setPasswordProvisoria(true);
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
+
+        assertThrows(
+                PasswordChangeRequiredException.class,
+                () -> authService.authenticate(
+                        "test@example.com",
+                        "password",
+                        null,
+                        "127.0.0.1"
+                )
+        );
+
+        verifyNoInteractions(userSessionRepository);
+    }
+
 }

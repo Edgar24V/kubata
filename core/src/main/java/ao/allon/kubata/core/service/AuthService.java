@@ -4,6 +4,7 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
+import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
 import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
@@ -79,6 +80,12 @@ public class AuthService {
                 acessoService.registrarAuditoria(user, "LOGIN_MFA", "AUTH", ip, "Código MFA inválido", false);
                 throw new AuthenticationException("Código MFA inválido ou ausente.");
             }
+        }
+
+        // A senha provisória autentica a identidade, mas não concede acesso normal.
+        // O cliente deve concluir a alteração obrigatória antes de entrar na aplicação.
+        if (user.isPasswordProvisoria()) {
+            throw new PasswordChangeRequiredException(user);
         }
 
         user.setUltimoAcesso(LocalDateTime.now());

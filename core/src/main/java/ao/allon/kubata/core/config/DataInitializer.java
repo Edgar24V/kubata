@@ -50,7 +50,7 @@ public class DataInitializer {
                 admin.setPasswordChangedAt(java.time.LocalDateTime.now());
                 userRepository.save(admin);
 
-                log.info("Usuário administrador inicial criado com email {} e senha padrão {}. ALTERE A SENHA IMEDIATAMENTE.", adminEmail, adminPassword);
+                log.info("Usuário administrador inicial criado com email {}. A palavra-passe provisória deverá ser alterada no primeiro acesso.", adminEmail);
             }
         };
     }

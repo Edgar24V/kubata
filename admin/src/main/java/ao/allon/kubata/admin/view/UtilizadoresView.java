@@ -53,6 +53,9 @@ import java.util.stream.Collectors;
 @Component
 public class UtilizadoresView extends VBox {
 
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private static final DateTimeFormatter DATE_TIME_FORMAT =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
@@ -2031,7 +2034,7 @@ public class UtilizadoresView extends VBox {
                         VBox meta = new VBox(4,
                                 new Label(
                                         "Expira em: "
-                                                + result.expiresOn().format(DATE_TIME_FORMAT)
+                                                + result.expiresOn().format(DATE_FORMAT)
                                 ),
                                 new Label(
                                         "Sessões terminadas: "

@@ -197,16 +197,5 @@ public class AcessoService {
         return userRepository.save(user);
     }
 
-    @Transactional
-    public void redefinirSenha(Long userId, String novaSenha) {
-        if (novaSenha == null || novaSenha.isBlank()) {
-            throw new IllegalArgumentException("Senha inválida.");
-        }
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
-        user.setPassword(passwordEncoder.encode(novaSenha));
-        user.setPasswordChangedAt(LocalDateTime.now());
-        user.setFailedAttempts(0);
-        user.setLockoutEnd(null);
-        userRepository.save(user);
-    }
+
 }
