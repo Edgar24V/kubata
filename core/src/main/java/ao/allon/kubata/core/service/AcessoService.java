@@ -197,44 +197,5 @@ public class AcessoService {
         return userRepository.save(user);
     }
 
-    @Transactional
-    public User alterarMinhaSenha(Long userId, String senhaAtual, String novaSenha) {
-        if (userId == null) {
-            throw new IllegalArgumentException("Utilizador inválido.");
-        }
-        if (senhaAtual == null || senhaAtual.isBlank()) {
-            throw new IllegalArgumentException("A palavra-passe actual é obrigatória.");
-        }
-        if (novaSenha == null || novaSenha.isBlank()) {
-            throw new IllegalArgumentException("A nova palavra-passe é obrigatória.");
-        }
-        if (novaSenha.length() < 8) {
-            throw new IllegalArgumentException("A nova palavra-passe deve ter pelo menos 8 caracteres.");
-        }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
-
-        if (!Boolean.TRUE.equals(user.getActive())) {
-            throw new SecurityException("A conta está inactiva.");
-        }
-
-        if (!passwordEncoder.matches(senhaAtual, user.getPassword())) {
-            throw new SecurityException("A palavra-passe actual está incorrecta.");
-        }
-
-        if (passwordEncoder.matches(novaSenha, user.getPassword())) {
-            throw new IllegalArgumentException(
-                    "A nova palavra-passe deve ser diferente da palavra-passe actual."
-            );
-        }
-
-        user.setPassword(passwordEncoder.encode(novaSenha));
-        user.setPasswordChangedAt(LocalDateTime.now());
-        user.setPasswordProvisoria(false);
-        user.setDataExpiracaoPassword(null);
-        user.setFailedAttempts(0);
-        user.setLockoutEnd(null);
-        return userRepository.save(user);
-    }
 }
