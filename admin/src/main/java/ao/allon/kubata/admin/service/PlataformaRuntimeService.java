@@ -209,7 +209,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
     private List<SearchHit> searchConnection(Connection connection, String term, int maxHits) throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
         List<SearchHit> hits = new ArrayList<>();
-        String pattern = "%" + term.replace("%", "\%").replace("_", "\_") + "%";
+        String pattern = "%" + term + "%";
 
         try (ResultSet tables = md.getTables(connection.getCatalog(), null, "%", new String[]{"TABLE"})) {
             while (tables.next() && hits.size() < maxHits) {
@@ -228,7 +228,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
 
                 String qualified = quoteIdentifier(table, connection);
                 String where = columns.stream()
-                        .map(c -> "CAST(" + quoteIdentifier(c, connection) + " AS VARCHAR(1000)) LIKE ? ESCAPE '\\'")
+                        .map(c -> "CAST(" + quoteIdentifier(c, connection) + " AS VARCHAR(1000)) LIKE ?")
                         .collect(Collectors.joining(" OR "));
                 String sql = "SELECT * FROM " + qualified + " WHERE " + where + limitClause(connection, Math.min(8, maxHits - hits.size()));
 
@@ -504,7 +504,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
         AdmPlataformaItem item = current.get();
         LocalDate expiry = parseDate(text(parse(item.getConfigJson()), "expiry", ""));
         if (expiry == null) return "Licença configurada sem data de expiração.";
-        long days = LocalDate.now().until(expiry).getDays();
+        long days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), expiry);
         if (expiry.isBefore(LocalDate.now())) return "Licença expirada em " + expiry + ".";
         return "Licença válida até " + expiry + " (" + days + " dia(s)).";
     }
@@ -562,6 +562,55 @@ public class PlataformaRuntimeService implements ModuleEventListener {
         String escaped = absolute.toString().replace("'", "''");
         jdbcTemplate.execute("VACUUM INTO '" + escaped + "'");
         return absolute.toString();
+    }
+
+    public String compareSqlite(Path left, Path right) throws Exception {
+        Objects.requireNonNull(left, "Base esquerda");
+        Objects.requireNonNull(right, "Base direita");
+        if (!Files.isRegularFile(left) || !Files.isRegularFile(right)) {
+            throw new IOException("As duas bases SQLite devem existir.");
+        }
+
+        Map<String, String> a = sqliteSchema(left);
+        Map<String, String> b = sqliteSchema(right);
+        Set<String> all = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        all.addAll(a.keySet());
+        all.addAll(b.keySet());
+
+        List<String> added = new ArrayList<>();
+        List<String> removed = new ArrayList<>();
+        List<String> changed = new ArrayList<>();
+        for (String key : all) {
+            if (!a.containsKey(key)) added.add(key);
+            else if (!b.containsKey(key)) removed.add(key);
+            else if (!Objects.equals(a.get(key), b.get(key))) changed.add(key);
+        }
+
+        StringBuilder out = new StringBuilder();
+        out.append("Comparação de schema SQLite").append(System.lineSeparator())
+                .append("Esquerda: ").append(left.toAbsolutePath()).append(System.lineSeparator())
+                .append("Direita: ").append(right.toAbsolutePath()).append(System.lineSeparator())
+                .append("Tabelas esquerda: ").append(a.size()).append(System.lineSeparator())
+                .append("Tabelas direita: ").append(b.size()).append(System.lineSeparator())
+                .append(System.lineSeparator())
+                .append("ADICIONADAS: ").append(added.size()).append(System.lineSeparator());
+        added.forEach(x -> out.append(" + ").append(x).append(System.lineSeparator()));
+        out.append(System.lineSeparator()).append("REMOVIDAS: ").append(removed.size()).append(System.lineSeparator());
+        removed.forEach(x -> out.append(" - ").append(x).append(System.lineSeparator()));
+        out.append(System.lineSeparator()).append("ALTERADAS: ").append(changed.size()).append(System.lineSeparator());
+        changed.forEach(x -> out.append(" * ").append(x).append(System.lineSeparator()));
+        return out.toString();
+    }
+
+    private Map<String, String> sqliteSchema(Path file) throws Exception {
+        Map<String, String> schema = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file.toAbsolutePath());
+             Statement s = c.createStatement();
+             ResultSet rs = s.executeQuery(
+                     "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")) {
+            while (rs.next()) schema.put(rs.getString(1), Objects.toString(rs.getString(2), ""));
+        }
+        return schema;
     }
 
     public String createEmptySqlite(Path target) throws Exception {
