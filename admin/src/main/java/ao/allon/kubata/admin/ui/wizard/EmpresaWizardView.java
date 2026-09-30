@@ -455,9 +455,16 @@ public class EmpresaWizardView extends VBox {
 
         String nif = NifUtils.normalize(empresa.getNif());
         empresa.setNif(nif);
-        Optional<Empresa> duplicate = empresaRepository.findByNif(nif);
-        if (duplicate.isPresent() && (empresa.getId() == null || !duplicate.get().getId().equals(empresa.getId()))) {
-            modalManager.alert("NIF já registado", "Já existe outra empresa com o NIF " + nif + ".", "warning", null);
+
+        Optional<Empresa> duplicate = empresaRepository.findAll().stream()
+                .filter(existing -> existing.getNif() != null)
+                .filter(existing -> empresa.getId() == null || !existing.getId().equals(empresa.getId()))
+                .filter(existing -> nif.equals(NifUtils.normalize(existing.getNif())))
+                .findFirst();
+
+        if (duplicate.isPresent()) {
+            modalManager.alert("NIF já registado",
+                    "Já existe outra empresa com o NIF " + nif + ".", "warning", null);
             return false;
         }
 
