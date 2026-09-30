@@ -110,7 +110,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private ColumnConstraints grow(){ColumnConstraints c=new ColumnConstraints();c.setHgrow(Priority.ALWAYS);return c;}
     private void field(GridPane g,int row,String label,Object n){g.add(new Label(label),0,row);Node x=n instanceof Node?(Node)n:new Label(String.valueOf(n));if(x instanceof Region r)r.setMaxWidth(Double.MAX_VALUE);g.add(x,1,row);}
     private Node dashboard(){
-        VBox r=page();r.getChildren().addAll(section("Visão consolidada","Capacidades que estavam parciais passam a ter catálogo persistente e execução administrativa."),
+        VBox r=page();r.getChildren().addAll(assistantHub(),section("Visão consolidada","Capacidades que estavam parciais passam a ter catálogo persistente e execução administrativa."),
                 actions(button("Operações",Feather.CLOCK,()->select("Operações")),button("Alertas",Feather.ALERT_TRIANGLE,()->select("Alertas")),
                         button("Documentos",Feather.FOLDER,()->select("Documentos")),button("Comunicações",Feather.MAIL,()->select("Comunicações")),
                         button("Personalização",Feather.CPU,()->select("Personalização"))),
@@ -129,6 +129,173 @@ public class PlataformaCentroCompletoView extends BorderPane {
                         button("Eliminar",Feather.TRASH_2,()->remove(t)),button("Actualizar",Feather.REFRESH_CW,()->reload(t,"OPERACAO"))),t);
         t.setPrefHeight(520);t.setMinHeight(360);VBox.setVgrow(t,Priority.ALWAYS);return scroll(r);
     }
+
+    private VBox assistantHub(){
+        VBox box=serverPanel("Assistentes de configuração","Fluxos guiados para as áreas que mais exigem configuração técnica.");
+        Label intro=new Label("Use os assistentes para configurar o essencial em poucos passos. As opções avançadas continuam disponíveis nas respetivas abas.");
+        intro.setWrapText(true);intro.getStyleClass().add("kubata-server-note");
+
+        GridPane grid=new GridPane();grid.setHgap(10);grid.setVgap(10);
+        grid.add(assistantEntry(Feather.CPU,"Instalação & Registry","Ambiente, prefixo e catálogo de módulos.",()->installationAssistant()),0,0);
+        grid.add(assistantEntry(Feather.DATABASE,"Base de Dados","Diagnóstico da conexão e catálogo de tabelas.",()->databaseAssistant()),1,0);
+        grid.add(assistantEntry(Feather.MAIL,"Comunicações","Configuração essencial de SMTP e SMS.",()->communicationAssistant()),0,1);
+        grid.add(assistantEntry(Feather.SHIELD,"Segurança","Políticas administrativas e verificação do certificado.",()->securityAssistant()),1,1);
+        box.getChildren().addAll(intro,grid);
+        return box;
+    }
+
+    private VBox assistantEntry(Feather icon,String title,String description,Runnable action){
+        VBox card=new VBox(6);card.setPadding(new Insets(11,12,11,12));card.setPrefHeight(108);card.setMaxWidth(Double.MAX_VALUE);
+        card.getStyleClass().add("kubata-center-assistant-card");
+        HBox head=new HBox(7);head.setAlignment(Pos.CENTER_LEFT);
+        Label iconLabel=new Label("",IconUtils.icon(icon,14));iconLabel.getStyleClass().add("kubata-server-panel-icon");
+        Label titleLabel=new Label(title);titleLabel.getStyleClass().add("kubata-server-panel-title");
+        head.getChildren().addAll(iconLabel,titleLabel);
+        Label desc=new Label(description);desc.setWrapText(true);desc.getStyleClass().add("kubata-server-note");VBox.setVgrow(desc,Priority.ALWAYS);
+        Button open=button("Abrir assistente",Feather.ARROW_RIGHT,action);open.getStyleClass().add("button-primary");
+        card.getChildren().addAll(head,desc,open);GridPane.setHgrow(card,Priority.ALWAYS);return card;
+    }
+
+    private VBox wizardSection(String step,String title,String description,Node... nodes){
+        VBox box=new VBox(7);box.setPadding(new Insets(12));box.getStyleClass().add("kubata-center-wizard-step");
+        HBox head=new HBox(8);head.setAlignment(Pos.CENTER_LEFT);
+        Label badge=new Label(step);badge.getStyleClass().add("kubata-center-wizard-badge");
+        VBox text=new VBox(2);
+        Label t=new Label(title);t.getStyleClass().add("kubata-center-wizard-title");
+        Label d=new Label(description);d.setWrapText(true);d.getStyleClass().add("kubata-center-wizard-text");
+        text.getChildren().addAll(t,d);head.getChildren().addAll(badge,text);box.getChildren().add(head);
+        if(nodes!=null&&nodes.length>0)box.getChildren().addAll(nodes);
+        return box;
+    }
+
+    private void installationAssistant(){
+        TextField prefix=new TextField(global("PLATAFORMA.INSTALACAO.PREFIXO","KUBATA"));
+        ComboBox<String> env=new ComboBox<>(FXCollections.observableArrayList("local","teste","produção"));
+        env.setValue(global("PLATAFORMA.INSTALACAO.AMBIENTE","local"));
+        TextField registry=new TextField(global("PLATAFORMA.REGISTRY.LOCAL","classpath:modules"));
+        Label modules=new Label();
+        Runnable refreshModules=()->{
+            long count=automation.databaseTables().stream().filter(s->s.toLowerCase(Locale.ROOT).contains("modulo")).count();
+            modules.setText("Módulos detectados no catálogo: "+count);
+        };
+        refreshModules.run();
+        GridPane g=form();field(g,0,"Prefixo",prefix);field(g,1,"Ambiente",env);field(g,2,"Registry",registry);
+        VBox root=new VBox(10,
+                wizardSection("01","Ambiente","Defina os parâmetros básicos usados pela instalação.",g),
+                wizardSection("02","Catálogo","O registry será usado como referência para descoberta dos módulos.",modules),
+                wizardSection("03","Aplicar","A configuração será guardada nos parâmetros globais sem apagar definições existentes.")
+        );
+        modalManager.showModal(root,new ModalManager.ModalConfig()
+                .title("Assistente de Instalação")
+                .subtitle("Ambiente, prefixo e registry em um único fluxo.")
+                .icon(Feather.CPU).size(760,610).minSize(680,520).scrollable(true)
+                .withConfirmButtons("Aplicar configuração","Cancelar")
+                .onConfirm(()->{
+                    if(prefix.getText().isBlank()||registry.getText().isBlank())throw new IllegalArgumentException("Prefixo e Registry são obrigatórios.");
+                    saveGlobal("PLATAFORMA.INSTALACAO.PREFIXO",prefix.getText().trim(),"STRING","Prefixo de instalação");
+                    saveGlobal("PLATAFORMA.INSTALACAO.AMBIENTE",env.getValue(),"STRING","Ambiente de instalação");
+                    saveGlobal("PLATAFORMA.REGISTRY.LOCAL",registry.getText().trim(),"STRING","Catálogo/registry local");
+                    show("Instalação","Configuração aplicada com sucesso.");
+                }));
+    }
+
+    private void databaseAssistant(){
+        ListView<String> tables=new ListView<>(FXCollections.observableArrayList(automation.databaseTables()));
+        tables.setPrefHeight(240);tables.setMinHeight(180);
+        Label status=new Label("Estado: pronto para diagnóstico.");status.getStyleClass().add("kubata-server-status-value");
+        Button test=button("Testar conexão",Feather.CHECK_CIRCLE,()->{
+            try{
+                automation.testCurrentDatabase();
+                status.setText("Estado: conexão operacional.");
+                status.getStyleClass().remove("kubata-center-wizard-danger");
+                status.getStyleClass().add("kubata-center-wizard-success");
+            }catch(Exception e){
+                status.setText("Estado: falha — "+safe(e.getMessage(),"erro desconhecido"));
+                status.getStyleClass().remove("kubata-center-wizard-success");
+                status.getStyleClass().add("kubata-center-wizard-danger");
+            }
+        });
+        Button refresh=button("Actualizar catálogo",Feather.REFRESH_CW,()->tables.setItems(FXCollections.observableArrayList(automation.databaseTables())));
+        VBox root=new VBox(10,
+                wizardSection("01","Diagnóstico","Teste a conexão atual antes de administrar a base de dados.",status,actions(test,refresh)),
+                wizardSection("02","Catálogo","Consulte rapidamente as tabelas disponíveis.",tables),
+                wizardSection("03","Continuar","Para guardar perfis e exportar schema, use a aba Base de Dados.")
+        );
+        modalManager.showModal(root,new ModalManager.ModalConfig()
+                .title("Assistente de Base de Dados")
+                .subtitle("Diagnóstico rápido da conexão e do catálogo.")
+                .icon(Feather.DATABASE).size(760,640).minSize(680,520).scrollable(true)
+                .singleButton("Fechar"));
+    }
+
+    private void communicationAssistant(){
+        TextField host=new TextField(global("COMUNICACAO.SMTP_HOST",""));
+        TextField port=new TextField(global("COMUNICACAO.SMTP_PORT","587"));
+        TextField userField=new TextField(global("COMUNICACAO.SMTP_USER",""));
+        PasswordField pass=new PasswordField();
+        CheckBox tls=new CheckBox("Usar TLS SMTP");tls.setSelected(Boolean.parseBoolean(global("COMUNICACAO.SMTP_TLS","true")));
+        TextField smsUrl=new TextField(global("COMUNICACAO.SMS_URL",""));
+        PasswordField token=new PasswordField();
+        GridPane smtp=form();field(smtp,0,"SMTP host",host);field(smtp,1,"SMTP porta",port);field(smtp,2,"SMTP utilizador",userField);field(smtp,3,"SMTP password",pass);field(smtp,4,"Segurança",tls);
+        GridPane sms=form();field(sms,0,"SMS URL",smsUrl);field(sms,1,"SMS token",token);
+        Label note=new Label("Passwords e tokens só são gravados quando preenchidos.");
+        note.setWrapText(true);note.getStyleClass().add("kubata-server-note");
+        VBox root=new VBox(10,
+                wizardSection("01","SMTP","Configure o envio de e-mail com os dados essenciais.",smtp),
+                wizardSection("02","SMS","Preencha o gateway HTTP apenas quando a integração for utilizada.",sms),
+                wizardSection("03","Concluir","Guardar aplica a configuração global e mantém os segredos fora das tabelas do Centro.",note)
+        );
+        modalManager.showModal(root,new ModalManager.ModalConfig()
+                .title("Assistente de Comunicações")
+                .subtitle("SMTP e SMS num fluxo guiado.")
+                .icon(Feather.MAIL).size(780,650).minSize(700,540).scrollable(true)
+                .withConfirmButtons("Guardar configuração","Cancelar")
+                .onConfirm(()->{
+                    saveGlobal("COMUNICACAO.SMTP_HOST",host.getText(),"STRING","SMTP host");
+                    saveGlobal("COMUNICACAO.SMTP_PORT",port.getText(),"INTEGER","SMTP port");
+                    saveGlobal("COMUNICACAO.SMTP_USER",userField.getText(),"STRING","SMTP user");
+                    saveGlobal("COMUNICACAO.SMTP_TLS",Boolean.toString(tls.isSelected()),"BOOLEAN","SMTP TLS");
+                    if(!pass.getText().isBlank())saveGlobal("COMUNICACAO.SMTP_PASSWORD",pass.getText(),"SECRET","SMTP password");
+                    saveGlobal("COMUNICACAO.SMS_URL",smsUrl.getText(),"STRING","SMS gateway URL");
+                    if(!token.getText().isBlank())saveGlobal("COMUNICACAO.SMS_TOKEN",token.getText(),"SECRET","SMS token");
+                    show("Comunicações","Configuração SMTP/SMS guardada.");
+                }));
+    }
+
+    private void securityAssistant(){
+        TextField attempts=new TextField(global("SEGURANCA.MAX_TENTATIVAS","5"));
+        TextField lock=new TextField(global("SEGURANCA.MINUTOS_BLOQUEIO","30"));
+        TextField days=new TextField(global("SEGURANCA.DIAS_VALIDADE_PW","90"));
+        CheckBox mfa=new CheckBox("Exigir MFA para administradores");
+        mfa.setSelected(Boolean.parseBoolean(global("SEGURANCA.MFA_ADMIN","false")));
+        TextField cert=new TextField(global("SEGURANCA.CERTIFICADO.PATH",""));
+        TextArea output=new TextArea();output.setEditable(false);output.setPrefRowCount(5);
+        Button choose=button("Escolher certificado",Feather.FOLDER,()->{
+            FileChooser f=new FileChooser();java.io.File x=f.showOpenDialog(window());
+            if(x!=null){cert.setText(x.getAbsolutePath());output.setText(readKeystore(cert.getText()));}
+        });
+        Button verify=button("Verificar certificado",Feather.AWARD,()->output.setText(readKeystore(cert.getText())));
+        GridPane policy=form();field(policy,0,"Tentativas",attempts);field(policy,1,"Bloqueio (min.)",lock);field(policy,2,"Validade PW",days);field(policy,3,"MFA",mfa);
+        VBox root=new VBox(10,
+                wizardSection("01","Políticas","Defina as políticas essenciais de autenticação.",policy),
+                wizardSection("02","Certificado","Selecione e verifique o keystore antes de concluir.",actions(choose,verify),cert,output),
+                wizardSection("03","Aplicar","A política será guardada; a área avançada de certificados continuará disponível.")
+        );
+        modalManager.showModal(root,new ModalManager.ModalConfig()
+                .title("Assistente de Segurança")
+                .subtitle("Políticas administrativas e certificado.")
+                .icon(Feather.SHIELD).size(780,660).minSize(700,540).scrollable(true)
+                .withConfirmButtons("Aplicar política","Cancelar")
+                .onConfirm(()->{
+                    saveGlobal("SEGURANCA.MAX_TENTATIVAS",attempts.getText(),"INTEGER","Tentativas");
+                    saveGlobal("SEGURANCA.MINUTOS_BLOQUEIO",lock.getText(),"INTEGER","Bloqueio");
+                    saveGlobal("SEGURANCA.DIAS_VALIDADE_PW",days.getText(),"INTEGER","Validade");
+                    saveGlobal("SEGURANCA.MFA_ADMIN",Boolean.toString(mfa.isSelected()),"BOOLEAN","MFA");
+                    if(!cert.getText().isBlank())saveGlobal("SEGURANCA.CERTIFICADO.PATH",cert.getText().trim(),"STRING","Certificado de segurança");
+                    show("Segurança","Política aplicada com sucesso.");
+                }));
+    }
+
     private void operationDialog(TableView<AdmPlataformaItem> t){
         ComboBox<String> code=new ComboBox<>(FXCollections.observableArrayList("CHECK_ALERTS","JVM_DIAGNOSTIC","SYNC_MODULES","CHECK_MIGRATIONS","BACKUP_SQLITE","VACUUM_SQLITE"));
         code.getSelectionModel().selectFirst(); TextField name=new TextField(); Spinner<Integer> sec=new Spinner<>(10,86400,300,10); TextField dest=new TextField("backups");
@@ -183,7 +350,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         r.getChildren().addAll(section("Fila de comunicações","E-mail SMTP e SMS por gateway HTTP."),
                 actions(button("Novo e-mail",Feather.MAIL,()->email(t)),button("Novo SMS",Feather.MESSAGE_SQUARE,()->sms(t)),
                         button("Enviar",Feather.SEND,()->send(t)),button("Retry",Feather.REFRESH_CW,()->retry(t)),
-                        button("Actualizar",Feather.REFRESH_CW,()->reload(t,"COMUNICACAO")),button("Configurar SMTP/SMS",Feather.SETTINGS,()->select("Preferências"))),t,
+                        button("Actualizar",Feather.REFRESH_CW,()->reload(t,"COMUNICACAO")),button("Configurar SMTP/SMS",Feather.SETTINGS,()->select("Preferências")),button("Assistente",Feather.SETTINGS,()->communicationAssistant())),t,
                 info("Parâmetros","SMTP: COMUNICACAO.SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_TLS. SMS: COMUNICACAO.SMS_URL, COMUNICACAO.SMS_TOKEN."));
         t.setPrefHeight(520);t.setMinHeight(360);VBox.setVgrow(t,Priority.ALWAYS);return scroll(r);
     }
@@ -233,7 +400,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         GridPane g=form();field(g,0,"Código perfil",code);field(g,1,"JDBC URL",url);field(g,2,"Utilizador",u);field(g,3,"Password","Não armazenada");
         r.getChildren().addAll(section("Administração de BD","Teste de conexão, catálogo de tabelas, perfis e exportação de schema."),
                 card(g,button("Guardar perfil",Feather.SAVE,()->{automation.save("BASE_DADOS",code.getText().trim().toUpperCase(Locale.ROOT),"Perfil BD "+code.getText().trim(),"ACTIVO","Perfil sem password.","{url="+esc(url.getText())+"|user="+esc(u.getText())+"}",null,user(),null);show("BD","Perfil guardado.");})),
-                actions(button("Testar conexão",Feather.CHECK_CIRCLE,()->{try{automation.testCurrentDatabase();show("BD","Conexão operacional.");}catch(Exception e){show("BD",e.getMessage());}}),
+                actions(button("Assistente",Feather.SETTINGS,()->databaseAssistant()),button("Testar conexão",Feather.CHECK_CIRCLE,()->{try{automation.testCurrentDatabase();show("BD","Conexão operacional.");}catch(Exception e){show("BD",e.getMessage());}}),
                         button("Actualizar tabelas",Feather.REFRESH_CW,()->t.setItems(FXCollections.observableArrayList(automation.databaseTables()))),
                         button("Exportar schema",Feather.DOWNLOAD,()->schema.setText(automation.exportSchema()))),t,new Label("Schema"),schema);
         t.setPrefHeight(430);t.setMinHeight(320);schema.setPrefRowCount(12);schema.setMinHeight(220);VBox.setVgrow(t,Priority.NEVER);return scroll(r);
@@ -269,7 +436,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 section("Parâmetros de instalação e registry","Catálogo dos parâmetros de implantação e referência ao registry local da plataforma."),
                 card(g,save),
                 section("Catálogo administrativo","Definições de instalação persistidas, quando existentes."),
-                actions(button("Nova definição",Feather.PLUS,()->definitionDialog(defs,"INSTALACAO")),
+                actions(button("Assistente",Feather.SETTINGS,()->installationAssistant()),button("Nova definição",Feather.PLUS,()->definitionDialog(defs,"INSTALACAO")),
                         button("Activar/Pausar",Feather.POWER,()->toggleGeneric(defs)),
                         button("Actualizar",Feather.REFRESH_CW,()->reload(defs,"INSTALACAO"))),
                 defs,
