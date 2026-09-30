@@ -153,7 +153,8 @@ public class LoginController {
 
         root.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER
-                    && !loginButton.isDisabled()) {
+                    && !loginButton.isDisabled()
+                    && !modalManager.hasOpenModal()) {
                 handleLogin();
             }
         });
