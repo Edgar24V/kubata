@@ -36,8 +36,8 @@
                 <reportElement x="0" y="0" width="555" height="78" backcolor="#F4F8F6"/>
                 <graphicElement><pen lineWidth="0"/></graphicElement>
             </rectangle>
-            <textField style="KTitle">
-                <reportElement x="18" y="10" width="340" height="26" uuid="a1b2c3d4-5678-90ab-cdef-123456789012"/>
+            <textField>
+                <reportElement style="KTitle" x="18" y="10" width="340" height="26" uuid="a1b2c3d4-5678-90ab-cdef-123456789012"/>
                 <textElement verticalAlignment="Middle"/>
                 <textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression>
             </textField>
@@ -48,12 +48,12 @@
                 </textElement>
                 <text><![CDATA[Listagem de Empresas]]></text>
             </staticText>
-            <textField style="KMuted">
-                <reportElement x="18" y="40" width="260" height="17"/>
+            <textField>
+                <reportElement style="KMuted" x="18" y="40" width="260" height="17"/>
                 <textFieldExpression><![CDATA["NIF: " + ($P{EMPRESA_NIF} == null ? "—" : $P{EMPRESA_NIF})]]></textFieldExpression>
             </textField>
-            <textField style="KMuted" pattern="dd/MM/yyyy HH:mm">
-                <reportElement x="300" y="40" width="237" height="17"/>
+            <textField pattern="dd/MM/yyyy HH:mm">
+                <reportElement style="KMuted" x="300" y="40" width="237" height="17"/>
                 <textElement textAlignment="Right"/>
                 <textFieldExpression><![CDATA["Emitido em " + new java.util.Date()]]></textFieldExpression>
             </textField>
@@ -97,32 +97,32 @@
 
     <detail>
         <band height="25">
-            <textField style="KDetail">
-                <reportElement x="0" y="0" width="180" height="25" uuid="b8c9d0e1-2345-67ab-cdef-890123456789"/>
+            <textField>
+                <reportElement style="KDetail" x="0" y="0" width="180" height="25" uuid="b8c9d0e1-2345-67ab-cdef-890123456789"/>
                 <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
                 <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
                 <textFieldExpression><![CDATA[$F{nome} == null ? "—" : $F{nome}]]></textFieldExpression>
             </textField>
-            <textField style="KDetail">
-                <reportElement x="180" y="0" width="100" height="25" uuid="c9d0e1f2-3456-78ab-cdef-901234567890"/>
+            <textField>
+                <reportElement style="KDetail" x="180" y="0" width="100" height="25" uuid="c9d0e1f2-3456-78ab-cdef-901234567890"/>
                 <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
                 <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
                 <textFieldExpression><![CDATA[$F{nif} == null ? "—" : $F{nif}]]></textFieldExpression>
             </textField>
-            <textField style="KDetail">
-                <reportElement x="280" y="0" width="100" height="25" uuid="d0e1f2a3-4567-89ab-cdef-012345678901"/>
+            <textField>
+                <reportElement style="KDetail" x="280" y="0" width="100" height="25" uuid="d0e1f2a3-4567-89ab-cdef-012345678901"/>
                 <textElement verticalAlignment="Middle"><paragraph leftIndent="8"/></textElement>
                 <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
                 <textFieldExpression><![CDATA[$F{identificador} == null ? "—" : $F{identificador}]]></textFieldExpression>
             </textField>
-            <textField style="KDetail">
-                <reportElement x="380" y="0" width="80" height="25" uuid="e1f2a3b4-5678-90ab-cdef-123456789012"/>
+            <textField>
+                <reportElement style="KDetail" x="380" y="0" width="80" height="25" uuid="e1f2a3b4-5678-90ab-cdef-123456789012"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle"/>
                 <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
                 <textFieldExpression><![CDATA[$F{anoInicio} == null ? "—" : $F{anoInicio}]]></textFieldExpression>
             </textField>
-            <textField style="KDetail">
-                <reportElement x="460" y="0" width="95" height="25" uuid="f2a3b4c5-6789-01ab-cdef-234567890123"/>
+            <textField>
+                <reportElement style="KDetail" x="460" y="0" width="95" height="25" uuid="f2a3b4c5-6789-01ab-cdef-234567890123"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
                 <box><bottomPen lineWidth="0.35" lineColor="#D7E2DE"/></box>
                 <textFieldExpression><![CDATA[Boolean.TRUE.equals($F{ativa}) ? "Activa" : "Inactiva"]]></textFieldExpression>
@@ -137,13 +137,13 @@
                 <reportElement x="0" y="9" width="300" height="18"/>
                 <text><![CDATA[Kubata Administrator · Documento de gestão interna]]></text>
             </staticText>
-            <textField style="KFooter">
-                <reportElement x="365" y="9" width="85" height="18"/>
+            <textField>
+                <reportElement style="KFooter" x="365" y="9" width="85" height="18"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle"/>
                 <textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression>
             </textField>
-            <textField style="KFooter" evaluationTime="Report">
-                <reportElement x="450" y="9" width="85" height="18"/>
+            <textField evaluationTime="Report">
+                <reportElement style="KFooter" x="450" y="9" width="85" height="18"/>
                 <textElement textAlignment="Left" verticalAlignment="Middle"/>
                 <textFieldExpression><![CDATA[" de " + $V{PAGE_NUMBER}]]></textFieldExpression>
             </textField>
