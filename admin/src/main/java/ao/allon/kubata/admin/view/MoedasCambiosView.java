@@ -49,7 +49,7 @@ public class MoedasCambiosView extends BorderPane {
 
         StackPane iconBox = new StackPane();
         iconBox.setAlignment(Pos.CENTER);
-        iconBox.getStyleClass().add("kubata-infra-title-icon");
+        iconBox.getStyleClass().add("kubata-server-title-icon");
         iconBox.getChildren().add(new Label("", IconUtils.icon(Feather.DOLLAR_SIGN, 22)));
 
         VBox titles = new VBox(2);
