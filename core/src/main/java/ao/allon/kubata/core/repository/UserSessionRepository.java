@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
     Optional<UserSession> findByUsername(String username);
+
+    long deleteAllByUsername(String username);
 }

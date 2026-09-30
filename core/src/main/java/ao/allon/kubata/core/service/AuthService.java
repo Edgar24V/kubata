@@ -14,9 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthService {
@@ -84,6 +82,7 @@ public class AuthService {
         }
 
         user.setUltimoAcesso(LocalDateTime.now());
+        user.setUltimoIpLogin(ip);
         resetFailures(user);
         userRepository.save(user);
         
@@ -126,11 +125,21 @@ public class AuthService {
     }
 
     private boolean isPasswordExpired(User user) {
-        if (user.getPasswordChangedAt() == null) {
-            // Se nunca mudou, não consideramos expirada no primeiro acesso em ambiente dev
-            return false; 
+        LocalDateTime now = LocalDateTime.now();
+
+        if (user.getDataExpiracaoPassword() != null
+                && user.getDataExpiracaoPassword().isBefore(now.toLocalDate())) {
+            return true;
         }
-        return LocalDateTime.now().isAfter(user.getPasswordChangedAt().plusDays(passwordExpiryDays));
+
+        if (user.getPasswordChangedAt() == null) {
+            // Se nunca mudou, não consideramos expirada no primeiro acesso em ambiente dev.
+            return false;
+        }
+
+        return now.isAfter(
+                user.getPasswordChangedAt().plusDays(passwordExpiryDays)
+        );
     }
 
     private void recordFailure(User user) {

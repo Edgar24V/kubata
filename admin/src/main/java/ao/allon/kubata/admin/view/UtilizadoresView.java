@@ -13,6 +13,7 @@ import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.core.service.PasswordResetService;
 import ao.allon.kubata.core.service.SecurityService;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
@@ -59,6 +60,7 @@ public class UtilizadoresView extends VBox {
     private final PerfilAcessoRepository perfilRepository;
     private final EmpresaRepository empresaRepository;
     private final AcessoService acessoService;
+    private final PasswordResetService passwordResetService;
     private final SecurityService securityService;
     private final PasswordEncoder passwordEncoder;
     private final SessionManager sessionManager;
@@ -107,6 +109,7 @@ public class UtilizadoresView extends VBox {
                             PerfilAcessoRepository perfilRepository,
                             EmpresaRepository empresaRepository,
                             AcessoService acessoService,
+                            PasswordResetService passwordResetService,
                             SecurityService securityService,
                             PasswordEncoder passwordEncoder,
                             SessionManager sessionManager,
@@ -116,6 +119,7 @@ public class UtilizadoresView extends VBox {
         this.perfilRepository = perfilRepository;
         this.empresaRepository = empresaRepository;
         this.acessoService = acessoService;
+        this.passwordResetService = passwordResetService;
         this.securityService = securityService;
         this.passwordEncoder = passwordEncoder;
         this.sessionManager = sessionManager;
@@ -1913,64 +1917,182 @@ public class UtilizadoresView extends VBox {
 
     private void resetPassword() {
         User selected = selectedUser().orElse(null);
+        User current = sessionManager.getUser();
+
         if (selected == null || !can("EDITAR")) {
             return;
         }
 
-        String newPassword = generateRandomPassword();
+        if (current != null
+                && current.getId() != null
+                && selected.getId() != null
+                && current.getId().equals(selected.getId())) {
+            modalManager.alert(
+                    "Operação não permitida",
+                    "A redefinição administrativa não pode ser usada na própria conta. "
+                            + "Para a sua conta, altere a palavra-passe no seu perfil.",
+                    "warning",
+                    null
+            );
+            return;
+        }
 
-        VBox box = new VBox(10);
+        VBox box = new VBox(12);
         box.setPadding(new Insets(4));
 
-        Label message = new Label(
-                "Foi gerada uma nova senha temporária. Guarde-a e entregue-a ao utilizador por um canal seguro."
+        Label warning = new Label(
+                "Será criada uma palavra-passe temporária e a credencial actual será invalidada. "
+                        + "Todas as sessões registadas deste utilizador serão terminadas."
         );
-        message.setWrapText(true);
-        message.getStyleClass().add("kubata-users-form-hint");
+        warning.setWrapText(true);
+        warning.getStyleClass().add("kubata-users-form-hint");
 
-        TextField generated = new TextField(newPassword);
-        generated.setEditable(false);
-        generated.setMaxWidth(Double.MAX_VALUE);
-
-        Button copy = new Button(
-                "Copiar senha",
-                IconUtils.icon(Feather.COPY, 12)
+        Label target = new Label(
+                "Utilizador: " + safe(selected.getNome(), selected.getEmail())
+                        + "\nEmail: " + safe(selected.getEmail(), "-")
         );
-        copy.getStyleClass().add("button-outlined");
-        copy.setOnAction(e -> {
-            javafx.scene.input.ClipboardContent clipboard =
-                    new javafx.scene.input.ClipboardContent();
-            clipboard.putString(newPassword);
-            javafx.scene.input.Clipboard.getSystemClipboard().setContent(clipboard);
-        });
+        target.setWrapText(true);
+        target.getStyleClass().add("kubata-users-section-title");
 
-        box.getChildren().addAll(message, generated, copy);
+        TextArea reason = new TextArea();
+        reason.setPromptText("Motivo obrigatório da redefinição (mínimo 5 caracteres)");
+        reason.setWrapText(true);
+        reason.setPrefRowCount(4);
+        reason.setMaxWidth(Double.MAX_VALUE);
+
+        Label privacy = new Label(
+                "A palavra-passe temporária não será gravada na auditoria nem nos logs."
+        );
+        privacy.setWrapText(true);
+        privacy.getStyleClass().add("kubata-users-form-hint");
+
+        box.getChildren().addAll(target, warning, reason, privacy);
 
         modalManager.showConfirmModal(
                 box,
-                "Redefinir senha — " + safe(selected.getNome(), selected.getEmail()),
+                "Redefinir palavra-passe — "
+                        + safe(selected.getNome(), selected.getEmail()),
                 () -> {
-                    selected.setPassword(passwordEncoder.encode(newPassword));
-                    selected.setPasswordChangedAt(LocalDateTime.now());
-                    selected.setPasswordProvisoria(true);
-                    selected.setDataExpiracaoPassword(LocalDate.now().plusDays(90));
-                    selected.setFailedAttempts(0);
-                    selected.setLockoutEnd(null);
+                    String normalizedReason = reason.getText() == null
+                            ? ""
+                            : reason.getText().trim();
 
-                    persistenceService.saveAsync(
-                            userRepository,
-                            selected,
-                            "UTILIZADOR",
-                            "Redefinição de senha: " + selected.getEmail(),
-                            saved -> loadUsers()
-                    );
+                    if (normalizedReason.length() < 5) {
+                        modalManager.alert(
+                                "Motivo obrigatório",
+                                "Indique um motivo com pelo menos 5 caracteres.",
+                                "warning",
+                                null
+                        );
+                        return;
+                    }
+
+                    javafx.concurrent.Task<PasswordResetService.ResetResult> task =
+                            new javafx.concurrent.Task<>() {
+                                @Override
+                                protected PasswordResetService.ResetResult call() {
+                                    return passwordResetService.resetByAdministrator(
+                                            current,
+                                            selected.getId(),
+                                            "127.0.0.1",
+                                            normalizedReason
+                                    );
+                                }
+                            };
+
+                    task.setOnSucceeded(event -> {
+                        PasswordResetService.ResetResult result = task.getValue();
+
+                        VBox resultBox = new VBox(12);
+                        resultBox.setPadding(new Insets(4));
+
+                        Label success = new Label(
+                                "A palavra-passe foi redefinida com sucesso. "
+                                        + "Entregue a credencial temporária ao utilizador através de um canal seguro."
+                        );
+                        success.setWrapText(true);
+
+                        TextField temporary = new TextField(result.temporaryPassword());
+                        temporary.setEditable(false);
+                        temporary.setMaxWidth(Double.MAX_VALUE);
+
+                        Button copy = new Button(
+                                "Copiar palavra-passe",
+                                IconUtils.icon(Feather.COPY, 12)
+                        );
+                        copy.getStyleClass().add("button-outlined");
+                        copy.setOnAction(e -> {
+                            javafx.scene.input.ClipboardContent clipboard =
+                                    new javafx.scene.input.ClipboardContent();
+                            clipboard.putString(result.temporaryPassword());
+                            javafx.scene.input.Clipboard.getSystemClipboard().setContent(clipboard);
+                        });
+
+                        VBox meta = new VBox(4,
+                                new Label(
+                                        "Expira em: "
+                                                + result.expiresOn().format(DATE_TIME_FORMAT)
+                                ),
+                                new Label(
+                                        "Sessões terminadas: "
+                                                + result.revokedSessions()
+                                ),
+                                new Label(
+                                        "A conta ficou marcada para troca da palavra-passe temporária."
+                                )
+                        );
+                        meta.getStyleClass().add("kubata-users-form-hint");
+
+                        resultBox.getChildren().addAll(
+                                success,
+                                new Label("Palavra-passe temporária"),
+                                temporary,
+                                copy,
+                                meta
+                        );
+
+                        modalManager.showModal(
+                                resultBox,
+                                new ModalManager.ModalConfig()
+                                        .title("Palavra-passe redefinida")
+                                        .icon(Feather.CHECK_CIRCLE)
+                                        .tone(ModalManager.ModalTone.SUCCESS)
+                                        .singleButton("Concluir")
+                                        .size(540, 390)
+                                        .minSize(480, 340)
+                                        .maximizable(false)
+                                        .minimizable(false)
+                                        .closeOnOverlayClick(false)
+                        );
+
+                        loadUsers();
+                    });
+
+                    task.setOnFailed(event -> {
+                        Throwable error = task.getException();
+
+                        modalManager.showErrorModal(
+                                "Falha na redefinição",
+                                error == null || error.getMessage() == null
+                                        ? "Não foi possível redefinir a palavra-passe."
+                                        : error.getMessage(),
+                                error
+                        );
+                    });
+
+                    Thread worker = new Thread(task, "kubata-password-reset");
+                    worker.setDaemon(true);
+                    worker.start();
                 },
                 null,
                 new ModalManager.ModalConfig()
-                        .size(520, 330)
-                        .minSize(450, 300)
+                        .size(560, 420)
+                        .minSize(500, 360)
                         .maximizable(false)
                         .minimizable(false)
+                        .icon(Feather.KEY)
+                        .tone(ModalManager.ModalTone.WARNING)
+                        .footerHint("A operação fica registada na auditoria do sistema.")
         );
     }
 
