@@ -210,7 +210,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 status.getStyleClass().remove("kubata-center-wizard-danger");
                 status.getStyleClass().add("kubata-center-wizard-success");
             }catch(Exception e){
-                status.setText("Estado: falha — "+safe(e.getMessage(),"erro desconhecido"));
+                status.setText("Estado: falha — "+safe(e.getMessage()==null?"erro desconhecido":e.getMessage()));
                 status.getStyleClass().remove("kubata-center-wizard-success");
                 status.getStyleClass().add("kubata-center-wizard-danger");
             }
@@ -219,7 +219,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         VBox root=new VBox(10,
                 wizardSection("01","Diagnóstico","Teste a conexão atual antes de administrar a base de dados.",status,actions(test,refresh)),
                 wizardSection("02","Catálogo","Consulte rapidamente as tabelas disponíveis.",tables),
-                wizardSection("03","Continuar","Para guardar perfis e exportar schema, use a aba Base de Dados.")
+                wizardSection("03","Continuar","Para guardar perfis e exportar schema, use a aba Base de Dados.",new Label("A aba Base de Dados continua disponível para operações avançadas."))
         );
         modalManager.showModal(root,new ModalManager.ModalConfig()
                 .title("Assistente de Base de Dados")
@@ -279,7 +279,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         VBox root=new VBox(10,
                 wizardSection("01","Políticas","Defina as políticas essenciais de autenticação.",policy),
                 wizardSection("02","Certificado","Selecione e verifique o keystore antes de concluir.",actions(choose,verify),cert,output),
-                wizardSection("03","Aplicar","A política será guardada; a área avançada de certificados continuará disponível.")
+                wizardSection("03","Aplicar","A política será guardada; a área avançada de certificados continuará disponível.",new Label("Revise os valores e prima «Aplicar política» para concluir."))
         );
         modalManager.showModal(root,new ModalManager.ModalConfig()
                 .title("Assistente de Segurança")
