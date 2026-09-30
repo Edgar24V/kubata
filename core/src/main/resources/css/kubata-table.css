@@ -4,26 +4,13 @@
    ============================================================ */
 
 /* -----------------------------------------------
-   TOKENS GLOBAIS (prefixo -kub- para a marca)
-   ----------------------------------------------- */
-.root {
-    #ffffff:              #ffffff;
-    #f6f8fb:       #f6f8fb;
-    #1f3a5f:       #1f3a5f;
-    #e8f5e9:       #e8f5e9;
-    #4e9452:    #4e9452;
-    #fbfcfe:         #fbfcfe;
-    #d7dee8:          #d7dee8;
-    #d7dee8-soft:     rgba(31, 58, 95, 0.12);
-    rgba(16, 24, 40, 0.08):          rgba(16, 24, 40, 0.08);
-    #3b82f6:           #3b82f6;
-    rgba(31, 58, 95, 0.75):        rgba(31, 58, 95, 0.75);
-    #dc2626:           #dc2626;
-    #dc2626-bg:        #fee2e2;
-    6px:        6px;
-    10px:        10px;
-    10px:          10px;
-}
+   Tokens de referência
+   -----------------------------------------------
+   JavaFX CSS não suporta variáveis declaradas como
+   propriedades CSS comuns. Os valores são definidos
+   directamente nas regras abaixo para manter compatibilidade
+   com as versões suportadas pelo Kubata.
+*/
 
 /* ============================================================
    TABELA BASE
