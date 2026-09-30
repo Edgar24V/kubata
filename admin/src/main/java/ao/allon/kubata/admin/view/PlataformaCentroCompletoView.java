@@ -79,9 +79,28 @@ public class PlataformaCentroCompletoView extends BorderPane {
         setTop(header);setCenter(tabs);
     }
 
-    private Tab tab(String t,Feather i,Node n){Tab tab=new Tab(t,n);tab.setGraphic(IconUtils.icon(i,13));return tab;}
-    private VBox page(){VBox v=new VBox(14);v.setPadding(new Insets(0,22,18,22));v.getStyleClass().add("kubata-server-content");return v;}
-    private ScrollPane scroll(Node n){ScrollPane s=new ScrollPane(n);s.setFitToWidth(true);s.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);return s;}
+    private Tab tab(String t,Feather i,Node n){
+        Node content=n instanceof ScrollPane?safeScroll(n):scroll(n);
+        Tab tab=new Tab(t,content);tab.setGraphic(IconUtils.icon(i,13));return tab;
+    }
+    private Node safeScroll(Node n){
+        if(n instanceof ScrollPane s)return s;
+        return scroll(n);
+    }
+    private VBox page(){
+        VBox v=new VBox(16);v.setPadding(new Insets(4,22,22,22));v.setFillWidth(true);v.setMaxWidth(Double.MAX_VALUE);v.getStyleClass().add("kubata-server-content");return v;
+    }
+    private ScrollPane scroll(Node n){
+        ScrollPane s=new ScrollPane(n);
+        s.setFitToWidth(true);
+        s.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        s.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        s.setPannable(true);
+        s.setFocusTraversable(false);
+        s.getStyleClass().add("kubata-center-scroll");
+        if(n instanceof Region r)r.setMaxWidth(Double.MAX_VALUE);
+        return s;
+    }
     private VBox metric(String t,Label v,Feather i){VBox card=new VBox(5);card.setPadding(new Insets(13,15,13,15));card.getStyleClass().add("kubata-server-metric");HBox line=new HBox(7);line.setAlignment(Pos.CENTER_LEFT);Label icon=new Label("",IconUtils.icon(i,14));icon.getStyleClass().add("kubata-server-metric-icon");Label caption=new Label(t);caption.getStyleClass().add("kubata-server-metric-title");line.getChildren().addAll(icon,caption);v.getStyleClass().add("kubata-server-metric-value");card.getChildren().addAll(line,v);HBox.setHgrow(card,Priority.ALWAYS);return card;}
     private VBox section(String t,String d){VBox b=serverPanel(t,Feather.SERVER);Label c=new Label(d);c.setWrapText(true);c.getStyleClass().add("kubata-server-note");b.getChildren().add(c);return b;}
     private VBox info(String t,String d){VBox b=serverPanel(t,Feather.INFO);Label c=new Label(d);c.setWrapText(true);c.getStyleClass().add("kubata-server-note");b.getChildren().add(c);return b;}
@@ -108,7 +127,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 actions(button("Nova operação",Feather.PLUS,()->operationDialog(t)),button("Executar",Feather.PLAY,()->run(t)),
                         button("Activar/Pausar",Feather.POWER,()->toggle(t)),button("Retry",Feather.REFRESH_CW,()->retry(t)),
                         button("Eliminar",Feather.TRASH_2,()->remove(t)),button("Actualizar",Feather.REFRESH_CW,()->reload(t,"OPERACAO"))),t);
-        VBox.setVgrow(t,Priority.ALWAYS);return r;
+        t.setPrefHeight(520);t.setMinHeight(360);VBox.setVgrow(t,Priority.ALWAYS);return scroll(r);
     }
     private void operationDialog(TableView<AdmPlataformaItem> t){
         ComboBox<String> code=new ComboBox<>(FXCollections.observableArrayList("CHECK_ALERTS","JVM_DIAGNOSTIC","SYNC_MODULES","CHECK_MIGRATIONS","BACKUP_SQLITE","VACUUM_SQLITE"));
@@ -131,6 +150,9 @@ public class PlataformaCentroCompletoView extends BorderPane {
                         button("Resolver seleccionado",Feather.CHECK_CIRCLE,()->{AdmPlataformaItem i=selected(incidents);if(i!=null){automation.resolveAlert(i);reload(incidents,"ALERTA");}}),
                         button("Nova regra",Feather.PLUS,()->alertRule(rules)),button("Actualizar",Feather.REFRESH_CW,()->{reload(rules,"ALERTA_REGRA");reload(incidents,"ALERTA");})),
                 new Label("Regras"),rules,new Label("Ocorrências"),incidents);
+        rules.setPrefHeight(360);rules.setMinHeight(280);
+        incidents.setPrefHeight(420);incidents.setMinHeight(320);
+        VBox.setVgrow(rules,Priority.NEVER);VBox.setVgrow(incidents,Priority.NEVER);
         return scroll(r);
     }
     private void alertRule(TableView<AdmPlataformaItem>t){
@@ -148,7 +170,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
                         button("Eliminar",Feather.TRASH_2,()->{AdmPlataformaItem i=selected(t);if(i!=null)try{documents.delete(i);reload(t,"DOCUMENTO");}catch(Exception e){show("Documentos",e.getMessage());}}),
                         button("Actualizar",Feather.REFRESH_CW,()->reload(t,"DOCUMENTO"))),t,
                 info("Política","Para anexos de documentos fiscais, a retenção física deve respeitar a política legal da organização. O centro não altera documentos fiscais por si só."));
-        VBox.setVgrow(t,Priority.ALWAYS);return r;
+        t.setPrefHeight(520);t.setMinHeight(360);VBox.setVgrow(t,Priority.ALWAYS);return scroll(r);
     }
     private void importDocument(TableView<AdmPlataformaItem>t){
         FileChooser f=new FileChooser();java.io.File src=f.showOpenDialog(window());if(src==null)return;DirectoryChooser d=new DirectoryChooser();java.io.File dest=d.showDialog(window());if(dest==null)return;
@@ -163,7 +185,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
                         button("Enviar",Feather.SEND,()->send(t)),button("Retry",Feather.REFRESH_CW,()->retry(t)),
                         button("Actualizar",Feather.REFRESH_CW,()->reload(t,"COMUNICACAO")),button("Configurar SMTP/SMS",Feather.SETTINGS,()->select("Preferências"))),t,
                 info("Parâmetros","SMTP: COMUNICACAO.SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_TLS. SMS: COMUNICACAO.SMS_URL, COMUNICACAO.SMS_TOKEN."));
-        VBox.setVgrow(t,Priority.ALWAYS);return r;
+        t.setPrefHeight(520);t.setMinHeight(360);VBox.setVgrow(t,Priority.ALWAYS);return scroll(r);
     }
     private void email(TableView<AdmPlataformaItem>t){
         TextField to=new TextField(),subject=new TextField(); TextArea body=new TextArea(); body.setPrefRowCount(8);
@@ -198,7 +220,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         r.getChildren().addAll(section("Studio de personalização","Catálogo runtime de componentes administrativos activáveis por metadata."),
                 actions(button("Nova definição",Feather.PLUS,()->personalizationDialog(t,kind.getValue())),button("Activar/Pausar",Feather.POWER,()->toggleGeneric(t)),button("Ver JSON",Feather.CODE,()->showJson(t)),button("Actualizar",Feather.REFRESH_CW,()->reload(t,"PERSONALIZACAO"))),t,
                 info("Segurança","As definições não executam código arbitrário. A camada runtime apenas publica metadata aprovada para consumidores."));
-        VBox.setVgrow(t,Priority.ALWAYS);return r;
+        t.setPrefHeight(520);t.setMinHeight(360);VBox.setVgrow(t,Priority.ALWAYS);return scroll(r);
     }
     private void personalizationDialog(TableView<AdmPlataformaItem>t,String kind){
         TextField code=new TextField(),name=new TextField();TextArea json=new TextArea("{\"target\":\"\",\"enabled\":true}");json.setPrefRowCount(5);GridPane g=form();field(g,0,"Tipo",new Label(kind));field(g,1,"Código",code);field(g,2,"Nome",name);field(g,3,"JSON",json);
@@ -214,13 +236,13 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 actions(button("Testar conexão",Feather.CHECK_CIRCLE,()->{try{automation.testCurrentDatabase();show("BD","Conexão operacional.");}catch(Exception e){show("BD",e.getMessage());}}),
                         button("Actualizar tabelas",Feather.REFRESH_CW,()->t.setItems(FXCollections.observableArrayList(automation.databaseTables()))),
                         button("Exportar schema",Feather.DOWNLOAD,()->schema.setText(automation.exportSchema()))),t,new Label("Schema"),schema);
-        VBox.setVgrow(t,Priority.ALWAYS);return r;
+        t.setPrefHeight(430);t.setMinHeight(320);schema.setPrefRowCount(12);schema.setMinHeight(220);VBox.setVgrow(t,Priority.NEVER);return scroll(r);
     }
 
     private Node definitions(String type,String title){
         VBox r=page();TableView<AdmPlataformaItem>t=table(type);r.getChildren().addAll(section(title,"Definições persistentes com JSON e controlo de activação."),
                 actions(button("Nova",Feather.PLUS,()->definitionDialog(t,type)),button("Ver JSON",Feather.CODE,()->showJson(t)),button("Activar/Pausar",Feather.POWER,()->toggleGeneric(t)),button("Eliminar",Feather.TRASH_2,()->remove(t)),button("Actualizar",Feather.REFRESH_CW,()->reload(t,type))),t);
-        VBox.setVgrow(t,Priority.ALWAYS);return r;
+        t.setPrefHeight(430);t.setMinHeight(320);VBox.setVgrow(t,Priority.ALWAYS);return scroll(r);
     }
     private void definitionDialog(TableView<AdmPlataformaItem>t,String type){
         TextField code=new TextField(),name=new TextField();TextArea json=new TextArea(type.equals("MAPA")?"{\"nodes\":[],\"edges\":[]}":"{\"query\":\"\",\"columns\":[],\"filters\":[]}");json.setPrefRowCount(9);GridPane g=form();field(g,0,"Código",code);field(g,1,"Nome",name);field(g,2,"JSON",json);
@@ -271,6 +293,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
 
     private TableView<AdmPlataformaItem> table(String type){
         TableView<AdmPlataformaItem>t=new TableView<>(FXCollections.observableArrayList(automation.list(type)));t.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        t.setPrefHeight(520);t.setMinHeight(360);t.setMaxHeight(900);
         t.getStyleClass().addAll("kubata-infra-table","kubata-server-properties-table");
         t.setPlaceholder(new Label("Nenhum registo disponível."));
         t.getColumns().addAll(col("Código",AdmPlataformaItem::getCodigo),col("Nome",AdmPlataformaItem::getNome),col("Estado",AdmPlataformaItem::getEstado),col("Resultado",AdmPlataformaItem::getLastMessage),col("Última execução",x->fmt(x.getLastRunAt())));return t;
