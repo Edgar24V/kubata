@@ -170,7 +170,7 @@ public class EmpresaSetupService {
         if (fallback.isPresent()) {
             Empresa defaultCompany = fallback.get();
             defaultCompany.setPredefinida(true);
-            return empresaRepository.save(defaultCompany);
+            empresaRepository.save(defaultCompany);
         }
 
         return saved;
