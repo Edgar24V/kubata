@@ -49,7 +49,7 @@ public class SessoesView extends VBox {
 
         StackPane iconBox = new StackPane();
         iconBox.setAlignment(Pos.CENTER);
-        iconBox.getStyleClass().add("kubata-infra-title-icon");
+        iconBox.getStyleClass().add("kubata-server-title-icon");
         iconBox.getChildren().add(new Label("", IconUtils.icon(Feather.USERS, 22)));
 
         VBox titles = new VBox(2);
@@ -99,7 +99,7 @@ public class SessoesView extends VBox {
 
         Region tableSpacer = new Region();
         HBox.setHgrow(tableSpacer, Priority.ALWAYS);
-        status.getStyleClass().add("kubata-infra-status");
+        status.getStyleClass().add("kubata-server-status-value");
         tableHeader.getChildren().addAll(tableTitles, tableSpacer, status);
 
         VBox section = new VBox(10, tableHeader, table);
