@@ -552,7 +552,7 @@ public class PlataformaMotoresView extends BorderPane {
             }
         });
 
-        Button compare = button("Comparar SQLite", Feather.GIT_MERGE, () -> {
+        Button compare = button("Comparar SQLite", Feather.REFRESH_CW, () -> {
             try {
                 showMessage("Base de Dados", runtime.compareSqlite(
                         Paths.get(compareLeft.getText().trim()),
