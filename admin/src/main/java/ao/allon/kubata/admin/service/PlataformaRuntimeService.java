@@ -40,6 +40,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
     private final AdmPlataformaItemRepository repository;
     private final PlataformaAutomationService automation;
     private final PlataformaDocumentService documents;
+    private final BackupService backupService;
     private final NotificationService notifications;
     private final ModuleEventPublisher eventPublisher;
     private final JdbcTemplate jdbcTemplate;
@@ -50,6 +51,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
             AdmPlataformaItemRepository repository,
             PlataformaAutomationService automation,
             PlataformaDocumentService documents,
+            BackupService backupService,
             NotificationService notifications,
             ModuleEventPublisher eventPublisher,
             JdbcTemplate jdbcTemplate,
@@ -57,6 +59,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
         this.repository = repository;
         this.automation = automation;
         this.documents = documents;
+        this.backupService = backupService;
         this.notifications = notifications;
         this.eventPublisher = eventPublisher;
         this.jdbcTemplate = jdbcTemplate;
@@ -580,8 +583,10 @@ public class PlataformaRuntimeService implements ModuleEventListener {
         if (!url.startsWith("jdbc:sqlite:")) {
             throw new IllegalStateException("A clonagem integrada exige um datasource SQLite.");
         }
-        Files.createDirectories(Objects.requireNonNull(target.getParent(), "Pasta de destino"));
         Path absolute = target.toAbsolutePath();
+        Path parent = absolute.getParent();
+        if (parent == null) throw new IOException("Destino sem pasta pai.");
+        Files.createDirectories(parent);
         if (Files.exists(absolute)) Files.delete(absolute);
 
         String escaped = absolute.toString().replace("'", "''");
@@ -640,22 +645,24 @@ public class PlataformaRuntimeService implements ModuleEventListener {
 
     public String createEmptySqlite(Path target) throws Exception {
         Objects.requireNonNull(target, "Destino");
-        Files.createDirectories(Objects.requireNonNull(target.getParent(), "Pasta de destino"));
-        if (Files.exists(target)) throw new IOException("O ficheiro já existe: " + target);
-        String url = "jdbc:sqlite:" + target.toAbsolutePath();
+        Path absolute = target.toAbsolutePath();
+        Path parent = absolute.getParent();
+        if (parent == null) throw new IOException("Destino sem pasta pai.");
+        Files.createDirectories(parent);
+        if (Files.exists(absolute)) throw new IOException("O ficheiro já existe: " + absolute);
+        String url = "jdbc:sqlite:" + absolute;
         try (Connection c = DriverManager.getConnection(url);
              Statement s = c.createStatement()) {
             s.execute("PRAGMA journal_mode=WAL");
         }
-        return target.toAbsolutePath().toString();
+        return absolute.toString();
     }
 
     public String prepareRestore(Path backupFile) throws IOException {
         Path target = Paths.get("kubata.restore.pending.db").toAbsolutePath();
         // O fluxo seguro de restore existente prepara o ficheiro para aplicação
         // no arranque, evitando substituir uma BD que está em uso.
-        Path prepared = new BackupService(Objects.requireNonNull(jdbcTemplate), environment)
-                .prepareRestoreToPending(backupFile);
+        Path prepared = backupService.prepareRestoreToPending(backupFile);
         return prepared.toString();
     }
 
