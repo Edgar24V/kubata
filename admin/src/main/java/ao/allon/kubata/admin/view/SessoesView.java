@@ -34,33 +34,33 @@ public class SessoesView extends VBox {
         this.repository = repository;
         this.sessionManager = sessionManager;
         setSpacing(0);
-        getStyleClass().addAll("application-view", "kubata-infra-page");
+        getStyleClass().add("kubata-server-page");
         buildUi();
         load();
     }
 
     private void buildUi() {
         VBox header = new VBox(10);
-        header.setPadding(new Insets(18, 20, 14, 20));
-        header.getStyleClass().add("kubata-infra-header");
+        header.setPadding(new Insets(20, 22, 16, 22));
+        header.getStyleClass().add("kubata-server-header");
 
         HBox line = new HBox(13);
         line.setAlignment(Pos.CENTER_LEFT);
 
-        HBox iconBox = new HBox();
+        StackPane iconBox = new StackPane();
         iconBox.setAlignment(Pos.CENTER);
         iconBox.getStyleClass().add("kubata-infra-title-icon");
-        iconBox.getChildren().add(IconUtils.icon(Feather.USERS, 21));
+        iconBox.getChildren().add(new Label("", IconUtils.icon(Feather.USERS, 22)));
 
         VBox titles = new VBox(2);
         Label title = new Label("Sessões do Sistema");
-        title.getStyleClass().add("kubata-infra-title");
+        title.getStyleClass().add("kubata-server-title");
 
         Label subtitle = new Label(
                 "Monitorização das sessões registadas, postos de trabalho, IPs e contexto de acesso."
         );
         subtitle.setWrapText(true);
-        subtitle.getStyleClass().add("kubata-infra-subtitle");
+        subtitle.getStyleClass().add("kubata-server-subtitle");
         titles.getChildren().addAll(title, subtitle);
 
         Region spacer = new Region();
@@ -73,7 +73,7 @@ public class SessoesView extends VBox {
         line.getChildren().addAll(iconBox, titles, spacer, refresh);
 
         Label context = new Label("SEGURANÇA · actividade de acesso do sistema");
-        context.getStyleClass().add("kubata-infra-status");
+        context.getStyleClass().add("kubata-server-status-bar");
 
         header.getChildren().addAll(line, context);
 
@@ -90,11 +90,11 @@ public class SessoesView extends VBox {
 
         VBox tableTitles = new VBox(2);
         Label tableTitle = new Label("Registo de sessões");
-        tableTitle.getStyleClass().add("kubata-infra-section-title");
+        tableTitle.getStyleClass().add("kubata-server-panel-title");
         Label tableSubtitle = new Label(
                 "A listagem é ordenada pelo momento de login mais recente."
         );
-        tableSubtitle.getStyleClass().add("kubata-infra-section-subtitle");
+        tableSubtitle.getStyleClass().add("kubata-server-note");
         tableTitles.getChildren().addAll(tableTitle, tableSubtitle);
 
         Region tableSpacer = new Region();
@@ -103,7 +103,7 @@ public class SessoesView extends VBox {
         tableHeader.getChildren().addAll(tableTitles, tableSpacer, status);
 
         VBox section = new VBox(10, tableHeader, table);
-        section.getStyleClass().add("kubata-infra-section");
+        section.getStyleClass().add("kubata-server-panel");
         VBox.setVgrow(table, Priority.ALWAYS);
         VBox.setVgrow(section, Priority.ALWAYS);
 
@@ -131,25 +131,25 @@ public class SessoesView extends VBox {
 
         HBox iconBox = new HBox();
         iconBox.setAlignment(Pos.CENTER);
-        iconBox.getStyleClass().add("kubata-infra-kpi-icon");
+        iconBox.getStyleClass().add("kubata-server-metric-icon");
         iconBox.getChildren().add(IconUtils.icon(icon, 15));
 
         VBox text = new VBox(1);
         Label caption = new Label(title);
-        caption.getStyleClass().add("kubata-infra-kpi-title");
-        value.getStyleClass().add("kubata-infra-kpi-value");
+        caption.getStyleClass().add("kubata-server-metric-title");
+        value.getStyleClass().add("kubata-server-metric-value");
         text.getChildren().addAll(caption, value);
 
         content.getChildren().addAll(iconBox, text);
 
         VBox card = new VBox(content);
-        card.getStyleClass().add("kubata-infra-kpi");
+        card.getStyleClass().add("kubata-server-metric");
         return card;
     }
 
     private void buildTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        table.getStyleClass().add("kubata-infra-table");
+        table.getStyleClass().add("kubata-server-properties-table");
         table.setPlaceholder(new Label("Nenhuma sessão registada."));
 
         TableColumn<UserSession, String> user = textColumn("Utilizador", s -> s.getUsername());
