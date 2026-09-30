@@ -202,7 +202,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
     private void personalizationDialog(TableView<AdmPlataformaItem>t,String kind){
         TextField code=new TextField(),name=new TextField();TextArea json=new TextArea("{\"target\":\"\",\"enabled\":true}");json.setPrefRowCount(5);GridPane g=form();field(g,0,"Tipo",new Label(kind));field(g,1,"Código",code);field(g,2,"Nome",name);field(g,3,"JSON",json);
-        if(dialog("Nova definição "+kind,g).showAndWait().orElse(ButtonType.CANCEL)!=ButtonType.OK)return;automation.save("PERSONALIZACAO",kind+"_"+code.getText().trim(),name.getText().trim(),"ACTIVO","Definição "+kind,json.getText(),null,user(),null);reload(t,"PERSONALIZACAO");
+        modalManager.showConfirmModal(g,"Nova definição "+kind,()->{automation.save("PERSONALIZACAO",kind+"_"+code.getText().trim(),name.getText().trim(),"ACTIVO","Definição "+kind,json.getText(),null,user(),null);reload(t,"PERSONALIZACAO");},()->{});
     }
 
     private Node database(){
@@ -224,9 +224,9 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
     private void definitionDialog(TableView<AdmPlataformaItem>t,String type){
         TextField code=new TextField(),name=new TextField();TextArea json=new TextArea(type.equals("MAPA")?"{\"nodes\":[],\"edges\":[]}":"{\"query\":\"\",\"columns\":[],\"filters\":[]}");json.setPrefRowCount(9);GridPane g=form();field(g,0,"Código",code);field(g,1,"Nome",name);field(g,2,"JSON",json);
-        if(dialog("Nova "+type,g).showAndWait().orElse(ButtonType.CANCEL)!=ButtonType.OK)return;automation.save(type,code.getText().trim().toUpperCase(Locale.ROOT),name.getText().trim(),"ACTIVO",title(type),json.getText(),null,user(),null);reload(t,type);
+        modalManager.showConfirmModal(g,"Nova "+type,()->{automation.save(type,code.getText().trim().toUpperCase(Locale.ROOT),name.getText().trim(),"ACTIVO",title(type),json.getText(),null,user(),null);reload(t,type);},()->{});
     }
-    private void showJson(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=selected(t);if(i==null)return;TextArea a=new TextArea(i.getConfigJson()==null?"{}":i.getConfigJson());a.setEditable(false);a.setWrapText(true);a.setPrefRowCount(18);dialog(i.getNome(),a).showAndWait();}
+    private void showJson(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=selected(t);if(i==null)return;TextArea a=new TextArea(i.getConfigJson()==null?"{}":i.getConfigJson());a.setEditable(false);a.setWrapText(true);a.setPrefRowCount(18);modalManager.showModal(a,new ModalManager.ModalConfig().title(i.getNome()).icon(Feather.CODE).scrollable(true).size(700,520).maximizable(false));}
     private void toggleGeneric(TableView<AdmPlataformaItem>t){AdmPlataformaItem i=selected(t);if(i!=null){automation.toggle(i);reload(t,i.getTipo());}}
 
     private Node installation(){
