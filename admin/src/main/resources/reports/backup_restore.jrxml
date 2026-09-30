@@ -40,24 +40,24 @@
         <band height="82">
             <rectangle><reportElement x="0" y="0" width="802" height="82" backcolor="#F4F8F6"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
             <textField><reportElement style="KTitle" x="18" y="10" width="430" height="26"/><textElement verticalAlignment="Middle"/><textFieldExpression><![CDATA[$P{EMPRESA_NOME}]]></textFieldExpression></textField>
-            <staticText style="KBase"><reportElement x="500" y="10" width="284" height="26"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="13" isBold="true"/></textElement><text><![CDATA[Backup e Restauro]]></text></staticText>
+            <staticText><reportElement style="KBase" x="500" y="10" width="284" height="26"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="13" isBold="true"/></textElement><text><![CDATA[Backup e Restauro]]></text></staticText>
             <textField><reportElement style="KMuted" x="18" y="39" width="330" height="16"/><textFieldExpression><![CDATA["NIF: " + ($P{EMPRESA_NIF} == null ? "—" : $P{EMPRESA_NIF})]]></textFieldExpression></textField>
             <textField><reportElement style="KMuted" x="360" y="39" width="424" height="16"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Período: " + ($P{PERIODO_INICIO} == null ? "Início" : $P{PERIODO_INICIO}) + " → " + ($P{PERIODO_FIM} == null ? "Fim" : $P{PERIODO_FIM})]]></textFieldExpression></textField>
-            <staticText style="KMuted"><reportElement x="18" y="59" width="766" height="14"/><text><![CDATA[Histórico de continuidade operacional · cópias de segurança e operações de restauro]]></text></staticText>
+            <staticText><reportElement style="KMuted" x="18" y="59" width="766" height="14"/><text><![CDATA[Histórico de continuidade operacional · cópias de segurança e operações de restauro]]></text></staticText>
         </band>
     </title>
 
     <columnHeader>
         <band height="28">
-            <staticText style="KHeader"><reportElement x="0" y="0" width="80" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[ID]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="80" y="0" width="105" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Data]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="185" y="0" width="75" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Tipo]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="260" y="0" width="85" height="28"/><textElement textAlignment="Right" verticalAlignment="Middle"><paragraph rightIndent="6"/></textElement><text><![CDATA[Tamanho MB]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="345" y="0" width="78" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Criado por]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="423" y="0" width="70" height="28"/><textElement textAlignment="Center" verticalAlignment="Middle"/><text><![CDATA[Estado]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="493" y="0" width="105" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Restauro]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="598" y="0" width="78" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Utilizador]]></text></staticText>
-            <staticText style="KHeader"><reportElement x="676" y="0" width="126" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Descrição]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="0" y="0" width="80" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[ID]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="80" y="0" width="105" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Data]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="185" y="0" width="75" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Tipo]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="260" y="0" width="85" height="28"/><textElement textAlignment="Right" verticalAlignment="Middle"><paragraph rightIndent="6"/></textElement><text><![CDATA[Tamanho MB]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="345" y="0" width="78" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Criado por]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="423" y="0" width="70" height="28"/><textElement textAlignment="Center" verticalAlignment="Middle"/><text><![CDATA[Estado]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="493" y="0" width="105" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Restauro]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="598" y="0" width="78" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Utilizador]]></text></staticText>
+            <staticText><reportElement style="KHeader" x="676" y="0" width="126" height="28"/><textElement verticalAlignment="Middle"><paragraph leftIndent="6"/></textElement><text><![CDATA[Descrição]]></text></staticText>
         </band>
     </columnHeader>
 
@@ -78,7 +78,7 @@
     <pageFooter>
         <band height="34">
             <line><reportElement x="0" y="0" width="802" height="1"/><graphicElement><pen lineWidth="0.5" lineColor="#D7E2DE"/></graphicElement></line>
-            <staticText style="KFooter"><reportElement x="0" y="9" width="400" height="18"/><text><![CDATA[Kubata Administrator · Relatório de continuidade operacional]]></text></staticText>
+            <staticText><reportElement style="KFooter" x="0" y="9" width="400" height="18"/><text><![CDATA[Kubata Administrator · Relatório de continuidade operacional]]></text></staticText>
             <textField><reportElement style="KFooter" x="645" y="9" width="75" height="18"/><textElement textAlignment="Right" verticalAlignment="Middle"/><textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
             <textField evaluationTime="Report"><reportElement style="KFooter" x="720" y="9" width="82" height="18"/><textElement verticalAlignment="Middle"/><textFieldExpression><![CDATA[" de " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
         </band>
