@@ -12088,3 +12088,108 @@ Text {
 .kubata-platform-center-page .scroll-bar .decrement-button {
     -fx-background-color: transparent;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · CENTRO · Scroll e alinhamento uniforme
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-center-navigation-shell,
+.kubata-center-navigation-shell > .viewport {
+    -fx-background-color: -color-light;
+}
+
+.kubata-center-navigation-shell {
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.kubata-center-navigation {
+    -fx-background-color: -color-light;
+    -fx-min-width: 244px;
+    -fx-pref-width: 244px;
+}
+
+.kubata-center-nav-scroll,
+.kubata-center-nav-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.kubata-center-nav-scroll {
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+}
+
+.kubata-center-nav-scroll .scroll-bar:vertical {
+    -fx-pref-width: 7;
+}
+
+.kubata-center-nav-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: -color-base-3;
+    -fx-background-radius: 7;
+}
+
+.kubata-center-page-body {
+    -fx-spacing: 14;
+}
+
+.kubata-center-page-body > .kubata-center-panel,
+.kubata-center-page-body > .kubata-server-panel {
+    -fx-max-width: infinity;
+}
+
+.kubata-center-content-scroll,
+.kubata-center-content-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.kubata-center-content-scroll {
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.kubata-center-content-scroll .scroll-bar:vertical {
+    -fx-pref-width: 9;
+}
+
+.kubata-center-content-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: -color-base-3;
+    -fx-background-radius: 8;
+}
+
+.kubata-center-content-scroll .scroll-bar:vertical .thumb:hover,
+.kubata-center-nav-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: -color-base-4;
+}
+
+.kubata-center-content-scroll .scroll-bar .track,
+.kubata-center-content-scroll .scroll-bar .increment-button,
+.kubata-center-content-scroll .scroll-bar .decrement-button,
+.kubata-center-nav-scroll .scroll-bar .track,
+.kubata-center-nav-scroll .scroll-bar .increment-button,
+.kubata-center-nav-scroll .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+}
+
+.kubata-platform-center-page .table-view {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+
+.kubata-platform-center-page .text-field,
+.kubata-platform-center-page .text-area,
+.kubata-platform-center-page .combo-box,
+.kubata-platform-center-page .spinner,
+.kubata-platform-center-page .list-view {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+
+.kubata-platform-center-page .button-outlined,
+.kubata-platform-center-page .button-primary {
+    -fx-padding: 7 12;
+}
+
+.kubata-platform-center-page .label {
+    -fx-smooth: true;
+}
