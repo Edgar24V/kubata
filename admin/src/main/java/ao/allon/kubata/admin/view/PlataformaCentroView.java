@@ -112,7 +112,7 @@ public class PlataformaCentroView extends BorderPane {
         this.flywayProvider = flywayProvider;
 
         setPadding(Insets.EMPTY);
-        getStyleClass().add("application-view");
+        getStyleClass().addAll("application-view", "kubata-infra-page");
 
         buildUi();
         loadState();
@@ -143,7 +143,7 @@ public class PlataformaCentroView extends BorderPane {
     private VBox buildHeader() {
         VBox header = new VBox(10);
         header.setPadding(new Insets(16, 18, 14, 18));
-        header.getStyleClass().add("header-box");
+        header.getStyleClass().addAll("header-box", "kubata-infra-header");
 
         HBox line = new HBox(12);
         line.setAlignment(Pos.CENTER_LEFT);
@@ -153,15 +153,12 @@ public class PlataformaCentroView extends BorderPane {
         iconBox.setMinSize(42, 42);
         iconBox.setPrefSize(42, 42);
         iconBox.setMaxSize(42, 42);
-        iconBox.setStyle(
-                "-fx-background-color: rgba(33,115,70,0.10);" +
-                "-fx-background-radius: 12px;"
-        );
+        iconBox.getStyleClass().add("kubata-infra-title-icon");
         iconBox.getChildren().add(IconUtils.icon(Feather.CPU, 21));
 
         VBox titleBox = new VBox(2);
         Label title = new Label("Centro da Plataforma");
-        title.setStyle("-fx-font-size: 19px; -fx-font-weight: 800; -fx-text-fill: #24292f;");
+        title.getStyleClass().add("kubata-infra-title");
 
         Label subtitle = new Label(
                 "Administração avançada do Kubata: operações, automação, segurança, armazenamento e extensibilidade."
@@ -186,16 +183,7 @@ public class PlataformaCentroView extends BorderPane {
         Label status = new Label(
                 "CENTRAL ADMINISTRATIVA • operações acompanháveis e configurações persistentes"
         );
-        status.setStyle(
-                "-fx-background-color:#f6f8fa;" +
-                "-fx-border-color:#eaeef2;" +
-                "-fx-background-radius:8px;" +
-                "-fx-border-radius:8px;" +
-                "-fx-padding:8px 10px;" +
-                "-fx-font-size:10px;" +
-                "-fx-font-weight:800;" +
-                "-fx-text-fill:#57606a;"
-        );
+        status.getStyleClass().add("kubata-infra-status");
 
         header.getChildren().addAll(line, status);
         return header;
@@ -250,20 +238,21 @@ public class PlataformaCentroView extends BorderPane {
 
     private VBox metric(String label, Label value, Feather icon) {
         VBox card = new VBox(6);
-        card.setPadding(new Insets(14));
-        card.getStyleClass().add("card");
+        card.getStyleClass().add("kubata-infra-kpi");
 
         HBox top = new HBox(8);
         top.setAlignment(Pos.CENTER_LEFT);
-        top.getChildren().addAll(
-                new Label("", IconUtils.icon(icon, 14)),
-                new Label(label)
-        );
 
-        ((Label) top.getChildren().get(1)).setStyle(
-                "-fx-font-size:9px;-fx-font-weight:800;-fx-text-fill:#6e7781;"
-        );
-        value.setStyle("-fx-font-size:22px;-fx-font-weight:800;-fx-text-fill:#24292f;");
+        HBox iconBox = new HBox();
+        iconBox.setAlignment(Pos.CENTER);
+        iconBox.getStyleClass().add("kubata-infra-kpi-icon");
+        iconBox.getChildren().add(IconUtils.icon(icon, 14));
+
+        Label caption = new Label(label);
+        caption.getStyleClass().add("kubata-infra-kpi-title");
+
+        top.getChildren().addAll(iconBox, caption);
+        value.getStyleClass().add("kubata-infra-kpi-value");
 
         card.getChildren().addAll(top, value);
         return card;
