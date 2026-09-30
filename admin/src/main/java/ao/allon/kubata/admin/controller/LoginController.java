@@ -174,6 +174,13 @@ public class LoginController {
         HBox bar = new HBox(2);
         bar.setAlignment(Pos.CENTER_RIGHT);
         bar.setPickOnBounds(false);
+        bar.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2
+                    && event.getTarget() == bar) {
+                toggleWindowMaximize(stage);
+                event.consume();
+            }
+        });
 
         Button minimizeButton = createWindowControl(
                 Feather.MINUS,
@@ -283,7 +290,6 @@ public class LoginController {
             windowClip.setArcHeight(28);
         }
 
-        stage.centerOnScreen();
     }
 
     private void updateWindowMaximizeButton() {
@@ -330,14 +336,6 @@ public class LoginController {
             stage.setY(event.getScreenY() - yOffset);
         });
 
-        root.setOnMouseReleased(event -> {
-            // Clique duplo no fundo da janela alterna o estado, tal como o cabeçalho do ModalManager.
-            if (event.getClickCount() == 2
-                    && !(event.getTarget() instanceof Control)) {
-                toggleWindowMaximize(stage);
-                event.consume();
-            }
-        });
     }
 
     private HBox createLoginShell() {
