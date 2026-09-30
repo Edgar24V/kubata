@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.Map;
 
 /**
@@ -151,9 +152,83 @@ public class EmpresaSetupService {
         if (empresa.getNif() == null || empresa.getNif().isBlank()) {
             throw new IllegalArgumentException("O NIF da empresa é obrigatório.");
         }
+        if (!isValidNif(empresa.getNif())) {
+            throw new IllegalArgumentException("NIF inválido: use apenas algarismos, entre 9 e 14 caracteres.");
+        }
         if (empresa.getIdentificador() == null || empresa.getIdentificador().isBlank()) {
             throw new IllegalArgumentException("O identificador da empresa é obrigatório.");
         }
+        if (isBlank(empresa.getProvincia()) || !isAngolaProvince(empresa.getProvincia())) {
+            throw new IllegalArgumentException("A província da empresa deve ser uma província válida de Angola.");
+        }
+        if (isBlank(empresa.getMunicipio())) {
+            throw new IllegalArgumentException("O município do domicílio fiscal da empresa é obrigatório.");
+        }
+        if (isBlank(empresa.getRegimeFiscal())) {
+            throw new IllegalArgumentException("O regime fiscal da empresa é obrigatório.");
+        }
+        if (!Set.of(
+                "Regime Geral",
+                "Regime Simplificado",
+                "Regime de Exclusão",
+                "Isento",
+                "Especial"
+        ).contains(empresa.getRegimeFiscal().trim())) {
+            throw new IllegalArgumentException("O regime fiscal seleccionado não é suportado pelo Administrator.");
+        }
+        if (!isBlank(empresa.getCae()) && !empresa.getCae().trim().matches("\\d{2,10}")) {
+            throw new IllegalArgumentException("CAE inválido: use apenas algarismos, entre 2 e 10 caracteres.");
+        }
+        if (!isBlank(empresa.getNifFiscal()) && !isValidNif(empresa.getNifFiscal())) {
+            throw new IllegalArgumentException("NIF Fiscal inválido.");
+        }
+        if (!isBlank(empresa.getNifSegurancaSocial()) && !isValidNif(empresa.getNifSegurancaSocial())) {
+            throw new IllegalArgumentException("NIF da Segurança Social inválido.");
+        }
+        validateAgtCertificate(empresa);
+    }
+
+    private void validateAgtCertificate(Empresa empresa) {
+        boolean any = !isBlank(empresa.getNumeroCertificadoAGT())
+                || !isBlank(empresa.getVersaoCertificadoAGT())
+                || empresa.getDataCertificadoAGT() != null
+                || !isBlank(empresa.getHashCertificadoAGT());
+
+        if (!any) {
+            return;
+        }
+
+        if (isBlank(empresa.getNumeroCertificadoAGT())
+                || isBlank(empresa.getVersaoCertificadoAGT())
+                || empresa.getDataCertificadoAGT() == null
+                || isBlank(empresa.getHashCertificadoAGT())) {
+            throw new IllegalArgumentException("Os dados do certificado AGT devem ser preenchidos integralmente.");
+        }
+
+        if (empresa.getDataCertificadoAGT().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("A data do certificado AGT não pode estar no futuro.");
+        }
+
+        if (!empresa.getHashCertificadoAGT().trim().matches("(?i)[0-9a-f]{64}")) {
+            throw new IllegalArgumentException("O hash do certificado AGT deve conter 64 caracteres hexadecimais.");
+        }
+    }
+
+    private boolean isValidNif(String value) {
+        return value != null && value.trim().matches("\\d{9,14}");
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private boolean isAngolaProvince(String value) {
+        return Set.of(
+                "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango",
+                "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
+                "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico",
+                "Namibe", "Uíge", "Zaire"
+        ).contains(value == null ? "" : value.trim());
     }
 
     private String parameterType(String key) {
