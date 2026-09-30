@@ -4,6 +4,7 @@ import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.core.domain.ExercicioFiscal;
 import ao.allon.kubata.core.domain.ParametroSistema;
 import ao.allon.kubata.core.repository.EmpresaRepository;
+import ao.allon.kubata.core.util.NifUtils;
 import ao.allon.kubata.core.repository.ExercicioFiscalRepository;
 import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,7 @@ public class EmpresaSetupService {
                                      String updatedBy) {
         validateEmpresa(empresa);
 
-        String nif = empresa.getNif().trim();
+        String nif = NifUtils.normalize(empresa.getNif());
         empresa.setNif(nif);
 
         empresaRepository.findByNif(nif).ifPresent(existing -> {
@@ -152,8 +153,10 @@ public class EmpresaSetupService {
         if (empresa.getNif() == null || empresa.getNif().isBlank()) {
             throw new IllegalArgumentException("O NIF da empresa é obrigatório.");
         }
-        if (!isValidNif(empresa.getNif())) {
-            throw new IllegalArgumentException("NIF inválido: use apenas algarismos, entre 9 e 14 caracteres.");
+        NifUtils.TipoContribuinte nifType = nifTypeOf(empresa.getTipoContribuinte());
+        String nifMessage = NifUtils.validate(empresa.getNif(), nifType);
+        if (nifMessage != null) {
+            throw new IllegalArgumentException(nifMessage);
         }
         if (empresa.getIdentificador() == null || empresa.getIdentificador().isBlank()) {
             throw new IllegalArgumentException("O identificador da empresa é obrigatório.");
@@ -179,11 +182,17 @@ public class EmpresaSetupService {
         if (!isBlank(empresa.getCae()) && !empresa.getCae().trim().matches("\\d{2,10}")) {
             throw new IllegalArgumentException("CAE inválido: use apenas algarismos, entre 2 e 10 caracteres.");
         }
-        if (!isBlank(empresa.getNifFiscal()) && !isValidNif(empresa.getNifFiscal())) {
-            throw new IllegalArgumentException("NIF Fiscal inválido.");
+        if (!isBlank(empresa.getNifFiscal())) {
+            String message = NifUtils.validate(empresa.getNifFiscal(), nifType);
+            if (message != null) {
+                throw new IllegalArgumentException("NIF Fiscal inválido: " + message);
+            }
         }
-        if (!isBlank(empresa.getNifSegurancaSocial()) && !isValidNif(empresa.getNifSegurancaSocial())) {
-            throw new IllegalArgumentException("NIF da Segurança Social inválido.");
+        if (!isBlank(empresa.getNifSegurancaSocial())) {
+            String message = NifUtils.validate(empresa.getNifSegurancaSocial(), nifType);
+            if (message != null) {
+                throw new IllegalArgumentException("NIF da Segurança Social inválido: " + message);
+            }
         }
         validateAgtCertificate(empresa);
     }
@@ -214,8 +223,14 @@ public class EmpresaSetupService {
         }
     }
 
-    private boolean isValidNif(String value) {
-        return value != null && value.trim().matches("\\d{9,14}");
+    private NifUtils.TipoContribuinte nifTypeOf(String value) {
+        if ("Pessoa Singular".equalsIgnoreCase(value)) {
+            return NifUtils.TipoContribuinte.PESSOA_SINGULAR;
+        }
+        if ("Não Residente".equalsIgnoreCase(value)) {
+            return NifUtils.TipoContribuinte.NAO_RESIDENTE;
+        }
+        return NifUtils.TipoContribuinte.PESSOA_COLECTIVA;
     }
 
     private boolean isBlank(String value) {
