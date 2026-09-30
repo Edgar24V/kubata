@@ -142,15 +142,23 @@ public class PlataformaMotoresView extends BorderPane {
         return header;
     }
 
-    private HBox engineMetrics() {
-        HBox metrics = new HBox(12);
-        metrics.setAlignment(Pos.CENTER_LEFT);
-        metrics.getChildren().addAll(
-                metricCard("Personalização", "PERSONALIZACAO", Feather.CPU),
-                metricCard("Listagens", "LISTAGEM", Feather.LIST),
-                metricCard("Mapas", "MAPA", Feather.MAP),
-                metricCard("Eventos", "EVENTO_REGRA", Feather.ACTIVITY)
-        );
+    private GridPane engineMetrics() {
+        GridPane metrics = new GridPane();
+        metrics.setHgap(12);
+        metrics.setVgap(12);
+
+        metrics.add(metricCard("Personalização", "PERSONALIZACAO", Feather.CPU), 0, 0);
+        metrics.add(metricCard("Listagens", "LISTAGEM", Feather.LIST), 1, 0);
+        metrics.add(metricCard("Mapas", "MAPA", Feather.MAP), 2, 0);
+        metrics.add(metricCard("Eventos", "EVENTO_REGRA", Feather.ACTIVITY), 3, 0);
+
+        for (int i = 0; i < 4; i++) {
+            ColumnConstraints column = new ColumnConstraints();
+            column.setHgrow(Priority.ALWAYS);
+            column.setPercentWidth(25);
+            metrics.getColumnConstraints().add(column);
+        }
+
         return metrics;
     }
 
@@ -213,9 +221,9 @@ public class PlataformaMotoresView extends BorderPane {
     }
 
     private VBox card(Node... nodes) {
-        VBox v = new VBox(8);
-        v.setPadding(new Insets(14));
-        v.getStyleClass().add("card");
+        VBox v = new VBox(10);
+        v.setPadding(new Insets(15));
+        v.getStyleClass().add("kubata-server-panel");
         v.getChildren().addAll(nodes);
         return v;
     }
