@@ -73,6 +73,7 @@ class NotaCreditoIntegrationTest {
         item.setDescricao("Serviço");
         item.setQuantidade(1);
         item.setPrecoUnitario(new BigDecimal("1000.00"));
+        item.setPercentualIva(BigDecimal.ZERO);
         faturaOriginal.addItem(item);
         
         // Mock Serie NC
