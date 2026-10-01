@@ -106,7 +106,7 @@ class NotaCreditoIntegrationTest {
         assertEquals("Serviço", nc.getItens().get(0).getDescricao());
         
         // Verifica se houve entrada de estoque (já que é devolução/crédito)
-        verify(produtoService, times(0)).registarSaida(any(), any(), any()); // Não deve sair
+        verify(produtoService, never()).registarSaida(anyLong(), anyInt(), anyString()); // Não deve sair
         // Nota: O teste unitário de FaturaService.processarEmissao chama registarEntrada para NC
         // Como processarEmissao é privado e chamado internamente, verificamos o efeito colateral se possível
         // Mas como produto é null no item mockado acima, não chama. Se adicionarmos produto:
