@@ -20,12 +20,14 @@ import javafx.scene.text.FontWeight;
 import net.sf.jasperreports.engine.JasperPrint;
 import org.kordamp.ikonli.feather.Feather;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.*;
 
 @Component
+@Lazy
 public class PlanoContasView extends BorderPane {
 
     private final PlanoContaService service;
