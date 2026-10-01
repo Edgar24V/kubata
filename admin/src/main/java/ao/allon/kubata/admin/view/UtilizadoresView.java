@@ -621,7 +621,10 @@ public class UtilizadoresView extends VBox {
                     safe(selected.getCargo(), "-"),
                     formatDateTime(selected.getUltimoAcesso()),
                     safe(selected.getUltimoIpLogin(), "-"),
-                    selected.isMfaEnabled() ? "Activo" : "Inactivo",
+                    selected.isMfaEnabled()
+                            ? "Activo · " + mfaService.countRecoveryCodes(selected)
+                            + " códigos de recuperação"
+                            : "Inactivo",
                     credentialStatus(selected),
                     String.valueOf(selected.getFailedAttempts())
             );
