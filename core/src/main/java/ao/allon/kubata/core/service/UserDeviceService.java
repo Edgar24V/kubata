@@ -122,6 +122,7 @@ public class UserDeviceService {
             throw new IllegalArgumentException("Indique o motivo da revogação do dispositivo.");
         }
 
+        java.util.Map<String, Object> oldSnapshot = deviceSnapshot(device);
         device.setActive(false);
         device.setTrusted(false);
         device.setRevokedAt(LocalDateTime.now());
@@ -135,7 +136,7 @@ public class UserDeviceService {
                 "USER_DEVICE",
                 String.valueOf(saved.getId()),
                 "Dispositivo revogado: " + safe(saved.getDeviceName(), saved.getDeviceKey()),
-                deviceSnapshot(saved),
+                oldSnapshot,
                 deviceSnapshot(saved),
                 MODULE,
                 ip,
@@ -162,6 +163,7 @@ public class UserDeviceService {
             throw new SecurityException("Não possui autorização para gerir este dispositivo.");
         }
 
+        java.util.Map<String, Object> oldSnapshot = deviceSnapshot(device);
         device.setTrusted(trusted);
         if (trusted) {
             device.setActive(true);
@@ -177,7 +179,7 @@ public class UserDeviceService {
                 String.valueOf(saved.getId()),
                 (trusted ? "Dispositivo confiável: " : "Dispositivo deixou de ser confiável: ")
                         + safe(saved.getDeviceName(), saved.getDeviceKey()),
-                null,
+                oldSnapshot,
                 deviceSnapshot(saved),
                 MODULE,
                 ip,
