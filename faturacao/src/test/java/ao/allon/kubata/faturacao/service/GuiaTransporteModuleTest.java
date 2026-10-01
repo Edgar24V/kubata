@@ -59,7 +59,7 @@ class GuiaTransporteModuleTest {
         Cliente c = new Cliente();
         c.setId(10L);
         c.setNome("Cliente Transporte");
-        c.setNif("1234567890");
+        c.setNif("1000000001");
         guia.setCliente(c);
         guia.setDataEmissao(LocalDate.now());
         guia.setDataVencimento(LocalDate.now());
@@ -72,6 +72,7 @@ class GuiaTransporteModuleTest {
         it.setQuantidade(1);
         it.setPrecoUnitario(new BigDecimal("0.00"));
         it.setPercentualIva(BigDecimal.ZERO);
+        it.setCodigoIsencao("M00");
         guia.addItem(it);
 
         lenient().when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
