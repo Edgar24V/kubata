@@ -1,6 +1,8 @@
 package ao.allon.kubata.admin.service;
 
 import ao.allon.kubata.core.domain.AdmPlataformaItem;
+import ao.allon.kubata.core.domain.Alerta;
+import ao.allon.kubata.core.service.AlertaService;
 import ao.allon.kubata.core.repository.AdmPlataformaItemRepository;
 import ao.allon.kubata.core.repository.ModuloSistemaRepository;
 import javafx.application.Platform;
@@ -23,6 +25,7 @@ import java.util.concurrent.*;
 @Service
 public class PlataformaAutomationService {
     private final AdmPlataformaItemRepository repository;
+    private final AlertaService alertaService;
     private final ModuloSistemaRepository moduloRepository;
     private final ModuleInstallationService moduleInstallationService;
     private final BackupService backupService;
@@ -37,8 +40,9 @@ public class PlataformaAutomationService {
     public PlataformaAutomationService(AdmPlataformaItemRepository repository, ModuloSistemaRepository moduloRepository,
             ModuleInstallationService moduleInstallationService, BackupService backupService, ObjectProvider<Flyway> flywayProvider,
             JdbcTemplate jdbcTemplate, Environment environment, NotificationService notificationService,
-            ObjectProvider<PlataformaCommunicationService> communicationProvider){
-        this.repository=repository;this.moduloRepository=moduloRepository;this.moduleInstallationService=moduleInstallationService;
+            ObjectProvider<PlataformaCommunicationService> communicationProvider,
+            AlertaService alertaService){
+        this.repository=repository;this.alertaService=alertaService;this.moduloRepository=moduloRepository;this.moduleInstallationService=moduleInstallationService;
         this.backupService=backupService;this.flywayProvider=flywayProvider;this.jdbcTemplate=jdbcTemplate;this.environment=environment;
         this.notificationService=notificationService;this.communicationProvider=communicationProvider;
     }
@@ -72,7 +76,7 @@ public class PlataformaAutomationService {
     private String executeType(AdmPlataformaItem i)throws Exception{String code=i.getCodigo().toUpperCase(Locale.ROOT);if(code.startsWith("EMAIL_"))return communicationProvider.getObject().sendEmail(i);if(code.startsWith("SMS_"))return communicationProvider.getObject().sendSmsWebhook(i);
         return switch(code){case"CHECK_ALERTS"->evaluateAlerts();case"JVM_DIAGNOSTIC"->jvmDiagnostic();case"SYNC_MODULES"->{int n=moduleInstallationService.synchronizeCatalog().size();yield"Catálogo sincronizado: "+n+" módulo(s).";}case"CHECK_MIGRATIONS"->{Flyway f=flywayProvider.getIfAvailable();yield f==null?"Flyway indisponível.":f.info().pending().length+" migração(ões) pendente(s).";}case"BACKUP_SQLITE"->{Path d=Paths.get(Optional.ofNullable(i.getResourcePath()).filter(s->!s.isBlank()).orElse("backups"));yield backupService.createDatabaseBackup(d,true).file().getFileName().toString();}case"VACUUM_SQLITE"->{String url=environment.getProperty("spring.datasource.url","");if(!url.startsWith("jdbc:sqlite:"))yield"Datasource actual não é SQLite.";jdbcTemplate.execute("VACUUM");yield"VACUUM executado com sucesso."; }default->"Rotina "+code+" executada.";};}
     @Transactional public String evaluateAlerts(){List<String>a=new ArrayList<>();long max=ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax(),used=ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();if(max>0&&(double)used/max>=.85)a.add("Heap JVM acima de 85%.");try{FileStore s=Files.getFileStore(Paths.get(System.getProperty("user.dir",".")).toAbsolutePath());if(s.getTotalSpace()>0&&(double)s.getUsableSpace()/s.getTotalSpace()<=.10)a.add("Espaço livre abaixo de 10%.");}catch(Exception ignored){}long inactive=moduloRepository.findAll().stream().filter(m->m.getEstado()!=null&&m.getEstado()!=ao.allon.kubata.core.domain.ModuloSistema.EstadoModulo.ACTIVO).count();if(inactive>0)a.add(inactive+" módulo(s) não estão activos.");Flyway f=flywayProvider.getIfAvailable();if(f!=null&&f.info().pending().length>0)a.add(f.info().pending().length+" migração(ões) Flyway pendente(s).");return a.isEmpty()?"Nenhum alerta técnico.":String.join(" | ",a);}
-    @Transactional public String evaluateAndPersistAlerts(String owner){String result=evaluateAlerts();if(!"Nenhum alerta técnico.".equals(result)){String code="ALERT_"+LocalDateTime.now().toString().replaceAll("[^0-9]","");save("ALERTA",code,"Ocorrência técnica","OPEN",result,"{}",null,owner,null);}return result;}
+    @Transactional public String evaluateAndPersistAlerts(String owner){String result=evaluateAlerts();if(!"Nenhum alerta técnico.".equals(result)){String code="TECH_"+LocalDateTime.now().toString().replaceAll("[^0-9]","");alertaService.criarSistema(code,"Ocorrência técnica",result,Alerta.Severidade.HIGH,"PLATAFORMA",owner);}return result;}
     @Transactional public void resolveAlert(AdmPlataformaItem item){if(item==null||!"ALERTA".equalsIgnoreCase(item.getTipo()))return;item.setEstado("RESOLVIDO");item.setLastMessage("Resolvido por "+(item.getOwnerUsername()==null?"Administrador":item.getOwnerUsername())+" em "+LocalDateTime.now());repository.save(item);}
     private String jvmDiagnostic(){return"Heap "+ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()/1048576+" MB; threads "+ManagementFactory.getThreadMXBean().getThreadCount()+"; Java "+System.getProperty("java.version");}
     public void testCurrentDatabase(){jdbcTemplate.execute("SELECT 1");}
