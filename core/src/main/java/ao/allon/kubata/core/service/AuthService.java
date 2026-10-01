@@ -1,7 +1,6 @@
 package ao.allon.kubata.core.service;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
 import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
@@ -148,14 +147,6 @@ public class AuthService {
         
         acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Sucesso", true);
         return user;
-    }
-
-    @Transactional
-    public String generateMfaSecret(User user) {
-        GoogleAuthenticatorKey key = gAuth.createCredentials();
-        user.setMfaSecret(key.getKey());
-        userRepository.save(user);
-        return key.getKey();
     }
 
     @Transactional
