@@ -2728,6 +2728,13 @@ public class UtilizadoresView extends VBox {
                                 )
                                 : mfaService.confirmActivation(user, code);
 
+                if (user.getId() != null) {
+                    User refreshed = userAdministrationService.carregarParaEdicao(user.getId());
+                    user.setMfaEnabled(refreshed.isMfaEnabled());
+                    user.setMfaSecret(refreshed.getMfaSecret());
+                    user.setMfaRecoveryCodes(refreshed.getMfaRecoveryCodes());
+                }
+
                 mfaCheckBox.setSelected(true);
                 mfaConfirmed[0] = true;
                 mfaStatus.setText(
