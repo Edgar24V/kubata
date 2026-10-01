@@ -3,10 +3,16 @@ package ao.allon.kubata.admin.view;
 import ao.allon.kubata.admin.service.*;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.admin.domain.platform.PlatformComponentHealth;
+import ao.allon.kubata.admin.domain.platform.PlatformHealthSnapshot;
+import ao.allon.kubata.admin.domain.platform.PlatformOperationSummary;
+import ao.allon.kubata.admin.domain.platform.PlatformSessionSummary;
 import ao.allon.kubata.core.domain.AdmPlataformaItem;
+import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.ParametroSistema;
 import ao.allon.kubata.core.repository.AdmPlataformaItemRepository;
 import ao.allon.kubata.core.repository.ParametroSistemaRepository;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -26,6 +32,11 @@ import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import jakarta.annotation.PreDestroy;
 
 @Component
 @Lazy
@@ -44,16 +55,25 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private final Label ops=new Label("0"), alerts=new Label("0"), docs=new Label("0"), comms=new Label("0"), custom=new Label("0");
     private final Map<String, Button> navigationButtons=new LinkedHashMap<>();
     private final TextField navigationSearch=new TextField();
-    private final Label centerState=new Label("Pronta");
+    private final Label centerState=new Label("A verificar…");
     private final Label updatedAt=new Label("—");
+    private final PlatformCommandCenterService commandCenter;
+    private final Label healthGlobal=new Label("A verificar…");
+    private final Map<String,Label> healthStates=new LinkedHashMap<>();
+    private final ListView<String> dashboardRecentOperations=new ListView<>();
+    private final ListView<String> dashboardSessions=new ListView<>();
+    private final ExecutorService healthExecutor=Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"kubata-command-center-health");t.setDaemon(true);return t;});
+    private final AtomicBoolean healthRunning=new AtomicBoolean(false);
 
     public PlataformaCentroCompletoView(AdmPlataformaItemRepository itemRepository, ParametroSistemaRepository parameterRepository,
                                         PlataformaAutomationService automation, PlataformaDocumentService documents,
                                         PlataformaCommunicationService communications, SessionManager sessions, Environment environment,
-                                        PlataformaMotoresView motores, ModalManager modalManager){
+                                        PlataformaMotoresView motores, ModalManager modalManager,
+                                        PlatformCommandCenterService commandCenter){
         this.itemRepository=itemRepository;this.parameterRepository=parameterRepository;this.automation=automation;this.documents=documents;
-        this.communications=communications;this.sessions=sessions;this.environment=environment;this.motores=motores;this.modalManager=modalManager;
+        this.communications=communications;this.sessions=sessions;this.environment=environment;this.motores=motores;this.modalManager=modalManager;this.commandCenter=commandCenter;
         seed(); build(); refreshMetrics();
+        Platform.runLater(this::refreshAll);
     }
 
     private void build(){
@@ -71,7 +91,8 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 tab("Listagens",Feather.LIST,definitions("LISTAGEM","Listagens configuráveis")),
                 tab("Mapas",Feather.MAP,definitions("MAPA","Mapas de processos")),
                 tab("Instalação & Registry",Feather.CPU,installation()),
-                tab("Segurança & Certificados",Feather.SHIELD,security()));
+                tab("Segurança & Certificados",Feather.SHIELD,security()),
+                tab("Sessões & Operações",Feather.USERS,sessionsOperations()));
 
         tabs.getSelectionModel().selectedItemProperty().addListener((obs,oldValue,newValue)->updateNavigationSelection());
 
@@ -178,7 +199,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         searchRow.setAlignment(Pos.CENTER_LEFT);
         searchRow.getStyleClass().add("kubata-center-nav-search-row");
 
-        Label count=new Label("13 áreas");
+        Label count=new Label("14 áreas");
         count.getStyleClass().add("kubata-center-nav-count");
         searchRow.getChildren().add(count);
 
@@ -213,7 +234,9 @@ public class PlataformaCentroCompletoView extends BorderPane {
                 navButton("Instalação & Registry",Feather.CPU,"Instalação e catálogo"));
 
         menu.getChildren().add(navSection("SEGURANÇA"));
-        menu.getChildren().add(navButton("Segurança & Certificados",Feather.SHIELD,"Políticas e certificado"));
+        menu.getChildren().addAll(
+                navButton("Segurança & Certificados",Feather.SHIELD,"Políticas e certificado"),
+                navButton("Sessões & Operações",Feather.USERS,"Sessões activas e operações recentes"));
 
         ScrollPane menuScroll=new ScrollPane(menu);
         menuScroll.setFitToWidth(true);
@@ -355,7 +378,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private Node dashboard(){
         VBox r=page();
         r.getStyleClass().add("kubata-center-dashboard");
-        r.getChildren().addAll(dashboardHero(),dashboardOverview(),dashboardQuickActions(),dashboardCapabilities());
+        r.getChildren().addAll(dashboardHero(),dashboardOverview(),dashboardHealth(),dashboardActivity(),dashboardQuickActions(),dashboardCapabilities());
         return scroll(r);
     }
 
@@ -497,6 +520,113 @@ public class PlataformaCentroCompletoView extends BorderPane {
         grid.add(card,col,row);
     }
 
+    private VBox dashboardHealth(){
+        VBox box=serverPanel("Health Check global",Feather.ACTIVITY);
+        box.getStyleClass().add("kubata-center-dashboard-panel");
+
+        HBox top=new HBox(10);
+        top.setAlignment(Pos.CENTER_LEFT);
+        VBox globalBox=new VBox(2);
+        Label globalCaption=new Label("ESTADO GLOBAL");
+        globalCaption.getStyleClass().add("kubata-center-nav-eyebrow");
+        healthGlobal.getStyleClass().add("kubata-server-status-value","kubata-server-status-ok");
+        Label hint=new Label("BD, Flyway, módulos, integrações, scheduler, backups, licenças, API, sessões e alertas.");
+        hint.setWrapText(true);
+        hint.getStyleClass().add("kubata-server-note");
+        globalBox.getChildren().addAll(globalCaption,healthGlobal,hint);
+
+        Region spacer=new Region();
+        HBox.setHgrow(spacer,Priority.ALWAYS);
+        Button check=button("Executar Health Check",Feather.SEARCH,this::refreshCommandCenterHealth);
+        check.getStyleClass().add("button-primary");
+        top.getChildren().addAll(globalBox,spacer,check);
+
+        GridPane grid=new GridPane();
+        grid.setHgap(9);grid.setVgap(9);
+        Object[][] data={
+                {"Base de Dados","Base de Dados",Feather.DATABASE},
+                {"Flyway","Flyway",Feather.REFRESH_CW},
+                {"Módulos","Módulos",Feather.PACKAGE},
+                {"Integrações","Integrações",Feather.GLOBE},
+                {"Scheduler","Scheduler",Feather.CLOCK},
+                {"Backups","Backups",Feather.ARCHIVE},
+                {"Licenças","Licenças",Feather.KEY},
+                {"API","API",Feather.SERVER},
+                {"Sessões","Sessões",Feather.USERS},
+                {"Alertas","Alertas",Feather.ALERT_TRIANGLE}
+        };
+        for(int i=0;i<data.length;i++){
+            grid.add(healthCard((String)data[i][0],(String)data[i][1],(Feather)data[i][2]),i%5,i/5);
+        }
+        for(int i=0;i<5;i++){ColumnConstraints col=new ColumnConstraints();col.setPercentWidth(20);col.setHgrow(Priority.ALWAYS);grid.getColumnConstraints().add(col);}
+        box.getChildren().addAll(top,grid);
+        return box;
+    }
+
+    private VBox healthCard(String title,String key,Feather icon){
+        VBox card=new VBox(5);
+        card.setPadding(new Insets(10,11,9,11));
+        card.setMaxWidth(Double.MAX_VALUE);
+        card.getStyleClass().add("kubata-center-overview-card");
+
+        HBox head=new HBox(6);
+        head.setAlignment(Pos.CENTER_LEFT);
+        Label iconLabel=new Label("",IconUtils.icon(icon,13));
+        iconLabel.getStyleClass().add("kubata-server-metric-icon");
+        Label label=new Label(title.toUpperCase(Locale.ROOT));
+        label.getStyleClass().add("kubata-server-metric-title");
+        head.getChildren().addAll(iconLabel,label);
+
+        Label state=new Label("—");
+        state.getStyleClass().add("kubata-center-overview-value");
+        healthStates.put(key,state);
+
+        Label detail=new Label("Aguardando verificação");
+        detail.setWrapText(true);
+        detail.getStyleClass().add("kubata-center-overview-text");
+        state.setUserData(detail);
+
+        card.getChildren().addAll(head,state,detail);
+        GridPane.setHgrow(card,Priority.ALWAYS);
+        return card;
+    }
+
+    private VBox dashboardActivity(){
+        GridPane grid=new GridPane();
+        grid.setHgap(10);grid.setVgap(10);
+        ColumnConstraints a=new ColumnConstraints();a.setPercentWidth(60);a.setHgrow(Priority.ALWAYS);
+        ColumnConstraints b=new ColumnConstraints();b.setPercentWidth(40);b.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(a,b);
+
+        VBox operationsPanel=serverPanel("Últimas operações",Feather.LIST);
+        dashboardRecentOperations.setPlaceholder(new Label("Sem operações recentes."));
+        dashboardRecentOperations.setPrefHeight(175);
+        dashboardRecentOperations.setFixedCellSize(31);
+        operationsPanel.getChildren().addAll(
+                new Label("Auditoria consolidada das actividades administrativas mais recentes."),
+                dashboardRecentOperations
+        );
+
+        VBox sessionsPanel=serverPanel("Sessões",Feather.USERS);
+        dashboardSessions.setPlaceholder(new Label("Nenhuma sessão persistida."));
+        dashboardSessions.setPrefHeight(175);
+        dashboardSessions.setFixedCellSize(31);
+        sessionsPanel.getChildren().addAll(
+                new Label("Sessões persistidas e contexto de acesso conhecido pelo Administrator."),
+                dashboardSessions
+        );
+
+        grid.add(operationsPanel,0,0);
+        grid.add(sessionsPanel,1,0);
+        return wrapDashboardSection(grid);
+    }
+
+    private VBox wrapDashboardSection(Node node){
+        VBox box=new VBox(0,node);
+        box.getStyleClass().add("kubata-center-dashboard-section");
+        return box;
+    }
+
     private GridPane dashboardCapabilities(){
         GridPane grid=new GridPane();
         grid.setHgap(10);
@@ -522,6 +652,78 @@ public class PlataformaCentroCompletoView extends BorderPane {
         text.getStyleClass().add("kubata-server-note");
         card.getChildren().add(text);
         return card;
+    }
+
+    private Node sessionsOperations(){
+        VBox root=page();
+
+        ListView<PlatformSessionSummary> sessionList=new ListView<>();
+        sessionList.setPrefHeight(360);
+        sessionList.setMinHeight(260);
+        sessionList.setPlaceholder(new Label("Nenhuma sessão disponível."));
+        sessionList.setCellFactory(v->new ListCell<>(){
+            @Override protected void updateItem(PlatformSessionSummary item,boolean empty){
+                super.updateItem(item,empty);
+                if(empty||item==null){setText(null);setGraphic(null);return;}
+                setText(safe(item.username())+"  ·  "+safe(item.workstation())+"  ·  "+safe(item.ipAddress())
+                        +"  ·  login "+fmt(item.loginTime()));
+            }
+        });
+
+        ListView<PlatformOperationSummary> operationList=new ListView<>();
+        operationList.setPrefHeight(360);
+        operationList.setMinHeight(260);
+        operationList.setPlaceholder(new Label("Nenhuma operação recente."));
+        operationList.setCellFactory(v->new ListCell<>(){
+            @Override protected void updateItem(PlatformOperationSummary item,boolean empty){
+                super.updateItem(item,empty);
+                if(empty||item==null){setText(null);setGraphic(null);return;}
+                setText((item.success()?"✓ ":"✕ ")+safe(item.username())+"  ·  "+safe(item.action())
+                        +"  ·  "+safe(item.module())+"  ·  "+fmt(item.timestamp()));
+            }
+        });
+
+        Button refresh=button("Actualizar",Feather.REFRESH_CW,()->refreshSessionOperations(sessionList,operationList));
+        Button terminate=button("Encerrar sessão seleccionada",Feather.LOG_OUT,()->{
+            PlatformSessionSummary selected=sessionList.getSelectionModel().getSelectedItem();
+            if(selected==null){show("Sessões","Seleccione uma sessão.");return;}
+            try{
+                commandCenter.terminateSession(sessions.getUser(),selected.id());
+                show("Sessões","Sessão de "+selected.username()+" encerrada.");
+                refreshSessionOperations(sessionList,operationList);
+                refreshCommandCenterHealth();
+            }catch(Exception ex){
+                show("Sessões","Operação recusada: "+safe(ex.getMessage()));
+            }
+        });
+        terminate.getStyleClass().add("button-primary");
+
+        root.getChildren().addAll(
+                section("Sessões administrativas","Consulta e encerramento server-side das sessões persistidas. A sessão actual é protegida contra auto-encerramento."),
+                actions(refresh,terminate),
+                new Label("Sessões"),
+                sessionList,
+                new Label("Últimas operações"),
+                operationList,
+                info("Auditoria","As operações privilegiadas executadas neste centro são registadas no AuditLog existente.")
+        );
+        VBox.setVgrow(sessionList,Priority.ALWAYS);
+        VBox.setVgrow(operationList,Priority.ALWAYS);
+        Platform.runLater(()->refreshSessionOperations(sessionList,operationList));
+        return scroll(root);
+    }
+
+    private void refreshSessionOperations(ListView<PlatformSessionSummary> sessionList,ListView<PlatformOperationSummary> operationList){
+        try{
+            User actor=sessions.getUser();
+            if(actor==null) throw new SecurityException("Sessão administrativa não autenticada.");
+            sessionList.setItems(FXCollections.observableArrayList(commandCenter.sessions(actor)));
+            operationList.setItems(FXCollections.observableArrayList(commandCenter.recentOperations(actor)));
+        }catch(Exception ex){
+            sessionList.setItems(FXCollections.observableArrayList());
+            operationList.setItems(FXCollections.observableArrayList());
+            show("Command Center",safe(ex.getMessage()));
+        }
     }
 
     private Node operations(){
@@ -918,20 +1120,87 @@ public class PlataformaCentroCompletoView extends BorderPane {
         custom.setText(""+(itemRepository.countByTipo("PERSONALIZACAO")+itemRepository.countByTipo("LISTAGEM")+itemRepository.countByTipo("MAPA")));
         updatedAt.setText(LocalDateTime.now().format(DT));
     }
+    private void refreshCommandCenterHealth(){
+        if(!healthRunning.compareAndSet(false,true)) return;
+        User actor=sessions.getUser();
+        if(actor==null){
+            healthRunning.set(false);
+            centerState.setText("Não autenticado");
+            healthGlobal.setText("NÃO AUTENTICADO");
+            return;
+        }
+
+        centerState.setText("A verificar…");
+        updatedAt.setText("A verificar…");
+
+        CompletableFuture
+                .supplyAsync(()->commandCenter.checkGlobal(actor),healthExecutor)
+                .whenComplete((snapshot,error)->Platform.runLater(()->{
+                    healthRunning.set(false);
+                    if(error!=null){
+                        Throwable cause=error.getCause()==null?error:error.getCause();
+                        centerState.setText("Atenção");
+                        healthGlobal.setText("ERRO");
+                        healthGlobal.getStyleClass().remove("kubata-server-status-ok");
+                        healthGlobal.getStyleClass().add("kubata-server-status-warning");
+                        updatedAt.setText(LocalDateTime.now().format(DT));
+                        show("Health Check",safe(cause.getMessage()));
+                        return;
+                    }
+                    applyHealth(snapshot);
+                    refreshMetrics();
+                }));
+    }
+
+    private void applyHealth(PlatformHealthSnapshot snapshot){
+        String global=safe(snapshot.globalStatus());
+        healthGlobal.setText(global);
+        healthGlobal.getStyleClass().removeAll("kubata-server-status-ok","kubata-server-status-warning");
+        healthGlobal.getStyleClass().add(
+                "OPERACIONAL".equalsIgnoreCase(global)
+                        ? "kubata-server-status-ok"
+                        : "kubata-server-status-warning"
+        );
+        centerState.setText(global);
+        centerState.getStyleClass().removeAll("kubata-server-status-ok","kubata-server-status-warning");
+        centerState.getStyleClass().add(
+                "OPERACIONAL".equalsIgnoreCase(global)
+                        ? "kubata-server-status-ok"
+                        : "kubata-server-status-warning"
+        );
+        updatedAt.setText(snapshot.checkedAt()==null?LocalDateTime.now().format(DT):snapshot.checkedAt().format(DT));
+
+        for(PlatformComponentHealth component:snapshot.components()){
+            Label state=healthStates.get(component.component());
+            if(state==null) continue;
+            state.setText(component.isOk()?"OK":component.isWarning()?"ATENÇÃO":"ERRO");
+            if(state.getUserData() instanceof Label detail){
+                detail.setText(component.message()+" · "+component.responseTimeMs()+" ms");
+                detail.setTooltip(new Tooltip(component.message()));
+            }
+            state.setTooltip(new Tooltip(component.message()+"\nTempo: "+component.responseTimeMs()+" ms"));
+        }
+
+        dashboardRecentOperations.getItems().setAll(
+                snapshot.recentOperations().stream()
+                        .map(x->(x.success()?"✓ ":"✕ ")+safe(x.username())+" · "+safe(x.action())+" · "+safe(x.module())+" · "+fmt(x.timestamp()))
+                        .toList()
+        );
+        dashboardSessions.getItems().setAll(
+                snapshot.sessions().stream()
+                        .map(x->safe(x.username())+" · "+safe(x.workstation())+" · "+safe(x.ipAddress())+" · "+fmt(x.loginTime()))
+                        .toList()
+        );
+    }
+
     private void refreshAll(){
         try{
             automation.evaluateAndPersistAlerts(user());
-            refreshMetrics();
-            centerState.setText("Pronta");
-            centerState.getStyleClass().remove("kubata-server-status-warning");
-            centerState.getStyleClass().add("kubata-server-status-ok");
         }catch(Exception e){
-            centerState.setText("Atenção");
-            centerState.getStyleClass().remove("kubata-server-status-ok");
-            centerState.getStyleClass().add("kubata-server-status-warning");
-            updatedAt.setText(LocalDateTime.now().format(DT));
             show("Centro da Plataforma",safe(e.getMessage()));
         }
+        refreshMetrics();
+        refreshCommandCenterHealth();
         updateNavigationSelection();
     }
     private void select(String s){
@@ -946,5 +1215,10 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private String esc(String s){return s==null?"":s.replace("|","/").replace("=","-");}
     private String title(String t){return t.equals("LISTAGEM")?"Listagem":"Mapa";}
     private Window window(){return getScene()==null?null:getScene().getWindow();}
+    @PreDestroy
+    private void shutdownHealthExecutor(){
+        healthExecutor.shutdownNow();
+    }
+
     private void show(String title,String message){modalManager.alert(title,message==null?"":message,"info",null);}
 }

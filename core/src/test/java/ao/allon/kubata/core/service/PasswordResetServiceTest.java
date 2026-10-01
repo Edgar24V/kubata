@@ -132,7 +132,6 @@ class PasswordResetServiceTest {
         User target = user(2L, "Utilizador", "user@kubata.ao", Role.USER);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(operator));
-        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
         when(securityService.hasPermission(
                 eq(operator),
                 eq("ADMINISTRATOR"),
