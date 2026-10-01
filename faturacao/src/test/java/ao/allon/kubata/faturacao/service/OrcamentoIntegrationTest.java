@@ -98,7 +98,7 @@ class OrcamentoIntegrationTest {
         Fatura emitido = faturaService.emitirFatura(1L);
         
         assertEquals(StatusFatura.EMITIDA, emitido.getStatus());
-        assertEquals("ORC 2024/1", emitido.getNumero());
+        assertEquals("OR 2024/1", emitido.getNumero());
         assertNotNull(emitido.getDataEmissao());
     }
 
