@@ -41,6 +41,7 @@ public class UserAdministrationService {
     private final PasswordEncoder passwordEncoder;
     private final SecurityService securityService;
     private final AuditService auditService;
+    private final UserSecurityProfileService userSecurityProfileService;
 
     public UserAdministrationService(UserRepository userRepository,
                                      EmpresaRepository empresaRepository,
@@ -49,7 +50,8 @@ public class UserAdministrationService {
                                      UserSessionRepository userSessionRepository,
                                      PasswordEncoder passwordEncoder,
                                      SecurityService securityService,
-                                     AuditService auditService) {
+                                     AuditService auditService,
+                                     UserSecurityProfileService userSecurityProfileService) {
         this.userRepository = userRepository;
         this.empresaRepository = empresaRepository;
         this.filialRepository = filialRepository;
@@ -58,6 +60,7 @@ public class UserAdministrationService {
         this.passwordEncoder = passwordEncoder;
         this.securityService = securityService;
         this.auditService = auditService;
+        this.userSecurityProfileService = userSecurityProfileService;
     }
 
     @Transactional(readOnly = true)
@@ -209,7 +212,7 @@ public class UserAdministrationService {
         String previousSessionUsername = isNew ? null : target.getNome();
         String oldPasswordHash = target.getPassword();
         if (rawPassword != null && !rawPassword.isBlank()) {
-            validatePassword(rawPassword);
+            userSecurityProfileService.validatePassword(target, rawPassword);
             target.setPassword(passwordEncoder.encode(rawPassword));
             target.setPasswordChangedAt(LocalDateTime.now());
         } else if (isNew) {

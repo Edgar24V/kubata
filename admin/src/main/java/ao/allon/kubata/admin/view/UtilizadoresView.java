@@ -83,6 +83,7 @@ public class UtilizadoresView extends VBox {
     private final ModalManager modalManager;
     private final UserAdministrationService userAdministrationService;
     private final UserDeviceService userDeviceService;
+    private final PerfilSegurancaUtilizadorView perfilSegurancaUtilizadorView;
 
     private final ObservableList<User> users = FXCollections.observableArrayList();
 
@@ -125,6 +126,7 @@ public class UtilizadoresView extends VBox {
     private Button btnMfa;
     private Button btnDispositivos;
     private Button btnSessoes;
+    private Button btnPerfilSeguranca;
 
     private boolean dataLoaded;
 
@@ -138,7 +140,8 @@ public class UtilizadoresView extends VBox {
                             SessionManager sessionManager,
                             ModalManager modalManager,
                             UserAdministrationService userAdministrationService,
-                            UserDeviceService userDeviceService) {
+                            UserDeviceService userDeviceService,
+                            PerfilSegurancaUtilizadorView perfilSegurancaUtilizadorView) {
         this.userRepository = userRepository;
         this.perfilRepository = perfilRepository;
         this.empresaRepository = empresaRepository;
@@ -150,6 +153,7 @@ public class UtilizadoresView extends VBox {
         this.modalManager = modalManager;
         this.userAdministrationService = userAdministrationService;
         this.userDeviceService = userDeviceService;
+        this.perfilSegurancaUtilizadorView = perfilSegurancaUtilizadorView;
 
         buildUI();
     }
@@ -567,6 +571,7 @@ public class UtilizadoresView extends VBox {
         btnMfa = detailButton("Gerir MFA", Feather.SHIELD, "button-outlined");
         btnDispositivos = detailButton("Dispositivos", Feather.CPU, "button-outlined");
         btnSessoes = detailButton("Sessões", Feather.ACTIVITY, "button-outlined");
+        btnPerfilSeguranca = detailButton("Perfil de segurança", Feather.SHIELD, "button-outlined");
 
         btnEditar.setOnAction(e -> selectedUser().ifPresent(this::showUserDialog));
         btnClonar.setOnAction(e -> cloneUser());
@@ -576,6 +581,7 @@ public class UtilizadoresView extends VBox {
         btnMfa.setOnAction(e -> selectedUser().ifPresent(this::showMfaManagementModal));
         btnDispositivos.setOnAction(e -> selectedUser().ifPresent(this::showDevicesModal));
         btnSessoes.setOnAction(e -> selectedUser().ifPresent(this::showSessionsModal));
+        btnPerfilSeguranca.setOnAction(e -> selectedUser().ifPresent(perfilSegurancaUtilizadorView::open));
 
         GridPane actions = new GridPane();
         actions.setHgap(7);
@@ -588,6 +594,7 @@ public class UtilizadoresView extends VBox {
         actions.add(btnResetPassword, 1, 2);
         actions.add(btnDispositivos, 0, 3);
         actions.add(btnSessoes, 1, 3);
+        actions.add(btnPerfilSeguranca, 0, 4, 2, 1);
 
         GridPane.setHgrow(btnMfa, Priority.ALWAYS);
 
@@ -598,6 +605,7 @@ public class UtilizadoresView extends VBox {
         GridPane.setHgrow(btnResetPassword, Priority.ALWAYS);
         GridPane.setHgrow(btnDispositivos, Priority.ALWAYS);
         GridPane.setHgrow(btnSessoes, Priority.ALWAYS);
+        GridPane.setHgrow(btnPerfilSeguranca, Priority.ALWAYS);
 
         pane.getChildren().addAll(actionsSeparator, actionsTitle, actions);
         pane.setDisable(false);
@@ -690,6 +698,7 @@ public class UtilizadoresView extends VBox {
         btnMfa.setDisable(!hasSelection || !can("EDITAR"));
         btnDispositivos.setDisable(!hasSelection || !can("EDITAR"));
         btnSessoes.setDisable(!hasSelection || !can("EDITAR"));
+        btnPerfilSeguranca.setDisable(!hasSelection || !can("EDITAR"));
         btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
         btnStatus.setDisable(!hasSelection || !can("EDITAR") ||
                 (current != null && selected != null && current.getId() != null && current.getId().equals(selected.getId())));
@@ -3279,6 +3288,7 @@ public class UtilizadoresView extends VBox {
             btnMfa.setDisable(!hasSelection || !can("EDITAR"));
             btnDispositivos.setDisable(!hasSelection || !can("VER"));
             btnSessoes.setDisable(!hasSelection || !can("VER"));
+            btnPerfilSeguranca.setDisable(!hasSelection || !can("EDITAR"));
             btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
             btnStatus.setDisable(!hasSelection || !can("EDITAR")
                     || (current != null && selected != null

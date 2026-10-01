@@ -25,11 +25,14 @@ class PasswordChangeServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private UserSecurityProfileService userSecurityProfileService;
+
     private PasswordChangeService service;
 
     @BeforeEach
     void setUp() {
-        service = new PasswordChangeService(userRepository, passwordEncoder);
+        service = new PasswordChangeService(userRepository, passwordEncoder, userSecurityProfileService);
     }
 
     @Test
@@ -45,6 +48,7 @@ class PasswordChangeServiceTest {
         when(passwordEncoder.matches("Temporaria1", "HASH-ANTIGA")).thenReturn(true);
         when(passwordEncoder.matches("NovaSenha1", "HASH-ANTIGA")).thenReturn(false);
         when(passwordEncoder.encode("NovaSenha1")).thenReturn("HASH-NOVA");
+        doNothing().when(userSecurityProfileService).validatePassword(user, "NovaSenha1");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         User result = service.changeOwnPassword(10L, "Temporaria1", "NovaSenha1");
@@ -84,6 +88,13 @@ class PasswordChangeServiceTest {
         user.setId(10L);
         user.setActive(true);
         user.setPassword("HASH-ANTIGA");
+        UserSecurityProfile profile = new UserSecurityProfile();
+        profile.setPasswordMinLength(8);
+        profile.setPasswordRequireUpper(true);
+        profile.setPasswordRequireLower(true);
+        profile.setPasswordRequireDigit(true);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+        when(userSecurityProfileService.getEffectiveProfile(user)).thenReturn(profile);
 
         assertThrows(
                 IllegalArgumentException.class,

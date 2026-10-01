@@ -17,11 +17,14 @@ public class PasswordChangeService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserSecurityProfileService userSecurityProfileService;
 
     public PasswordChangeService(UserRepository userRepository,
-                                 PasswordEncoder passwordEncoder) {
+                                 PasswordEncoder passwordEncoder,
+                                 UserSecurityProfileService userSecurityProfileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userSecurityProfileService = userSecurityProfileService;
     }
 
     @Transactional
@@ -36,8 +39,6 @@ public class PasswordChangeService {
             throw new IllegalArgumentException("A palavra-passe actual é obrigatória.");
         }
 
-        validateNewPassword(newPassword);
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado."));
 
@@ -48,6 +49,8 @@ public class PasswordChangeService {
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new SecurityException("A palavra-passe actual está incorrecta.");
         }
+
+        userSecurityProfileService.validatePassword(user, newPassword);
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IllegalArgumentException(
@@ -65,25 +68,4 @@ public class PasswordChangeService {
         return userRepository.save(user);
     }
 
-    private void validateNewPassword(String newPassword) {
-        if (newPassword == null || newPassword.isBlank()) {
-            throw new IllegalArgumentException("A nova palavra-passe é obrigatória.");
-        }
-
-        if (newPassword.length() < 8) {
-            throw new IllegalArgumentException(
-                    "A nova palavra-passe deve ter pelo menos 8 caracteres."
-            );
-        }
-
-        boolean upper = newPassword.chars().anyMatch(Character::isUpperCase);
-        boolean lower = newPassword.chars().anyMatch(Character::isLowerCase);
-        boolean digit = newPassword.chars().anyMatch(Character::isDigit);
-
-        if (!upper || !lower || !digit) {
-            throw new IllegalArgumentException(
-                    "A nova palavra-passe deve conter maiúsculas, minúsculas e números."
-            );
-        }
-    }
 }

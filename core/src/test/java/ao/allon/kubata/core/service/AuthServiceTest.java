@@ -37,6 +37,12 @@ class AuthServiceTest {
     @Mock
     private MfaService mfaService;
 
+    @Mock
+    private UserSecurityProfileService userSecurityProfileService;
+
+    @Mock
+    private UserDeviceService userDeviceService;
+
     @InjectMocks
     private AuthService authService;
 

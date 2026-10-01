@@ -34,6 +34,7 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final SecurityService securityService;
     private final AuditService auditService;
+    private final UserSecurityProfileService userSecurityProfileService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("$" + "{kubata.security.password-reset-validity-days:1}")
@@ -43,12 +44,14 @@ public class PasswordResetService {
                                 UserSessionRepository userSessionRepository,
                                 PasswordEncoder passwordEncoder,
                                 SecurityService securityService,
-                                AuditService auditService) {
+                                AuditService auditService,
+                                UserSecurityProfileService userSecurityProfileService) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.securityService = securityService;
         this.auditService = auditService;
+        this.userSecurityProfileService = userSecurityProfileService;
     }
 
     @Transactional
@@ -106,7 +109,12 @@ public class PasswordResetService {
         LocalDateTime resetAt = LocalDateTime.now();
         int validityDays = Math.max(1, resetValidityDays);
         LocalDate expiresOn = resetAt.toLocalDate().plusDays(validityDays);
-        String temporaryPassword = generateTemporaryPassword();
+        int minimumPasswordLength = Math.max(
+                16,
+                userSecurityProfileService.getEffectiveProfile(target).getPasswordMinLength()
+        );
+        String temporaryPassword = generateTemporaryPassword(minimumPasswordLength);
+        userSecurityProfileService.validatePassword(target, temporaryPassword);
 
         target.setPassword(passwordEncoder.encode(temporaryPassword));
         target.setPasswordChangedAt(resetAt);
@@ -161,13 +169,13 @@ public class PasswordResetService {
         );
     }
 
-    private String generateTemporaryPassword() {
+    private String generateTemporaryPassword(int length) {
         final String upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
         final String lower = "abcdefghijkmnopqrstuvwxyz";
         final String digits = "23456789";
         final String symbols = "@#$%&*!";
 
-        StringBuilder password = new StringBuilder(16);
+        StringBuilder password = new StringBuilder(length);
         password.append(randomChar(upper));
         password.append(randomChar(lower));
         password.append(randomChar(digits));
@@ -175,7 +183,7 @@ public class PasswordResetService {
 
         String alphabet = upper + lower + digits + symbols;
 
-        while (password.length() < 16) {
+        while (password.length() < length) {
             password.append(randomChar(alphabet));
         }
 
