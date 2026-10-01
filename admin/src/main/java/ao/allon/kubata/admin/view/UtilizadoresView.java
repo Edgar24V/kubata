@@ -10,6 +10,7 @@ import ao.allon.kubata.core.domain.PerfilAcesso;
 import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.TipoConta;
+import ao.allon.kubata.core.domain.UserDevice;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
@@ -56,6 +57,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
@@ -1778,6 +1781,35 @@ public class UtilizadoresView extends VBox {
                 null,
                 config
         );
+    }
+
+    private <T> void runUserTask(String title, Callable<T> operation, Consumer<T> onSuccess) {
+        Task<T> task = new Task<>() {
+            @Override
+            protected T call() throws Exception {
+                return operation.call();
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            if (onSuccess != null) {
+                onSuccess.accept(task.getValue());
+            }
+        });
+        task.setOnFailed(event -> {
+            Throwable error = task.getException();
+            modalManager.showErrorModal(
+                    title,
+                    error == null || error.getMessage() == null
+                            ? "Não foi possível concluir a operação."
+                            : error.getMessage(),
+                    error
+            );
+        });
+
+        Thread worker = new Thread(task, "kubata-user-admin");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private GridPane formGrid() {
