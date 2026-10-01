@@ -143,8 +143,30 @@ public class AlertaService {
             String referencia) {
 
         validar(codigo, titulo, descricao, origem);
-        if (alertaRepository.existsByCodigoIgnoreCase(codigo.trim())) {
-            return alertaRepository.findByCodigoIgnoreCase(codigo.trim()).orElseThrow();
+        var existente = alertaRepository.findByCodigoIgnoreCase(codigo.trim());
+        if (existente.isPresent()) {
+            Alerta alertaExistente = existente.get();
+            if (alertaExistente.getEstado() == Alerta.Estado.RESOLVED
+                    || alertaExistente.getEstado() == Alerta.Estado.IGNORED) {
+                Alerta.Estado anterior = alertaExistente.getEstado();
+                alertaExistente.setEstado(Alerta.Estado.OPEN);
+                alertaExistente.setReopenedAt(LocalDateTime.now());
+                alertaExistente.setReconhecidoPor(null);
+                alertaExistente.setAcknowledgedAt(null);
+                alertaExistente.setResolvidoPor(null);
+                alertaExistente.setResolvedAt(null);
+                alertaExistente.setIgnoradoPor(null);
+                alertaExistente.setIgnoredAt(null);
+                alertaExistente.setUltimaObservacao("Ocorrência técnica voltou a ser detectada.");
+                Alerta reaberto = alertaRepository.save(alertaExistente);
+                registarHistorico(reaberto, AlertaHistorico.Acao.REOPENED, anterior, reaberto.getEstado(), null,
+                        reaberto.getUltimaObservacao());
+                auditar(null, AuditLog.AuditActionType.UPDATE, reaberto,
+                        estadoPayload(anterior), estadoPayload(reaberto.getEstado()),
+                        "Reabertura automática de alerta técnico");
+                return reaberto;
+            }
+            return alertaExistente;
         }
 
         Alerta alerta = new Alerta();
