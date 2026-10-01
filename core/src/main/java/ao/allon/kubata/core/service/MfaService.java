@@ -65,7 +65,15 @@ public class MfaService {
     @Transactional
     public ActivationResult confirmActivation(User user, String code) {
         requireUser(user);
+        return confirmActivationInternal(user, code, user, null, "MFA_ACTIVATED");
+    }
 
+    private ActivationResult confirmActivationInternal(
+            User user,
+            String code,
+            User auditActor,
+            String sourceIp,
+            String auditOperation) {
         if (user.getMfaSecret() == null || user.getMfaSecret().isBlank()) {
             throw new IllegalStateException(
                     "Primeiro gere uma configuração MFA."
@@ -93,19 +101,18 @@ public class MfaService {
         if (user.getId() != null) {
             userRepository.save(user);
             acessoService.registrarAuditoria(
-                    user,
-                    "MFA_ACTIVATED",
-                    "AUTH",
-                    null,
-                    "MFA TOTP activado",
+                    auditActor,
+                    auditOperation,
+                    sourceIp == null ? "AUTH" : "UTILIZADORES",
+                    sourceIp,
+                    (auditActor == user
+                            ? "MFA TOTP activado"
+                            : "MFA TOTP activado administrativamente para " + user.getEmail()),
                     true
             );
         }
 
-        return new ActivationResult(
-                recoveryCodes,
-                true
-        );
+        return new ActivationResult(recoveryCodes, true);
     }
 
     /**
@@ -115,7 +122,13 @@ public class MfaService {
     @Transactional
     public ActivationResult adminConfirmActivation(User actor, Long targetUserId, String code) {
         User target = authorizedAdminTarget(actor, targetUserId);
-        return confirmActivation(target, code);
+        return confirmActivationInternal(
+                target,
+                code,
+                actor,
+                "127.0.0.1",
+                "MFA_ADMIN_ACTIVATED"
+        );
     }
 
     @Transactional
