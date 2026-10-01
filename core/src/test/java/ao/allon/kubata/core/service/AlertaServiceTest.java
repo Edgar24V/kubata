@@ -132,7 +132,7 @@ class AlertaServiceTest {
         user.setNome("Administrador de Teste");
         user.setEmail("admin" + id + "@test.local");
         user.setPassword("x");
-        user.setRole(ao.allon.kubata.core.domain.Role.OPERATOR);
+        user.setRole(ao.allon.kubata.core.domain.Role.ADMIN);
         user.setActive(true);
         return user;
     }
