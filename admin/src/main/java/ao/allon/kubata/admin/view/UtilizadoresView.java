@@ -25,6 +25,7 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.ui.table.TextTableCell;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -1707,10 +1708,13 @@ public class UtilizadoresView extends VBox {
 
                     User target = isNew ? new User() : formUser;
 
+                    target.setCodigo(txtCodigo.getText().trim());
                     target.setNome(txtNome.getText().trim());
                     target.setEmail(txtEmail.getText().trim());
                     target.setEmpresa(cbEmpresa.getValue());
+                    target.setFilial(cbFilial.getValue());
                     target.setRole(cmbRole.getValue());
+                    target.setTipoConta(cmbTipoConta.getValue());
                     target.setNif(blankToNull(txtNif.getText()));
                     target.setTelefone(blankToNull(txtTelefone.getText()));
                     target.setDepartamento(blankToNull(txtDepartamento.getText()));
@@ -1742,9 +1746,7 @@ public class UtilizadoresView extends VBox {
 
                     target.setSuperadmin(chkSuperadmin.isSelected());
                     target.setPasswordProvisoria(chkProvisoria.isSelected());
-                    target.setDataExpiracaoPassword(
-                            dataExpiracao.getValue()
-                    );
+                    target.setDataExpiracaoPassword(dataExpiracao.getValue());
                     target.setIdioma(cmbIdioma.getValue());
                     target.setTema(cmbTema.getValue());
                     target.setLinhasPorPagina(linhas.getValue());
@@ -1754,27 +1756,18 @@ public class UtilizadoresView extends VBox {
                                     listPerfis.getSelectionModel()
                                             .getSelectedItems()
                             );
-                    target.setPerfis(selectedPerfis);
 
-                    if (!password.isBlank()) {
-                        target.setPassword(
-                                passwordEncoder.encode(password)
-                        );
-                        target.setPasswordChangedAt(LocalDateTime.now());
-                    }
-
-                    if (isNew) {
-                        target.setPasswordProvisoria(true);
-                        target.setFailedAttempts(0);
-                        target.setLockoutEnd(null);
-                    }
-
-                    persistenceService.saveAsync(
-                            userRepository,
-                            target,
-                            "UTILIZADOR",
-                            (isNew ? "Criado" : "Actualizado")
-                                    + " utilizador: " + target.getEmail(),
+                    runUserTask(
+                            isNew ? "Criar utilizador" : "Actualizar utilizador",
+                            () -> userAdministrationService.salvar(
+                                    sessionManager.getUser(),
+                                    target,
+                                    password,
+                                    selectedPerfis,
+                                    cbEmpresa.getValue(),
+                                    cbFilial.getValue(),
+                                    "127.0.0.1"
+                            ),
                             saved -> loadUsers()
                     );
                 },
