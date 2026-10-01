@@ -128,10 +128,14 @@ public class UserAdministrationService {
         }
 
         boolean targetWasSuperadmin = target.isSuperadmin();
-        if ((draft.isSuperadmin() != targetWasSuperadmin || draft.getRole() != target.getRole())
-                && !managedActor.isSuperadmin()) {
+        if (!isNew && targetWasSuperadmin && !managedActor.isSuperadmin()) {
             throw new SecurityException(
-                    "A alteração de privilégios de Superadministrador só pode ser feita por um Superadministrador."
+                    "Só um Superadministrador pode editar a conta de outro Superadministrador."
+            );
+        }
+        if (draft.isSuperadmin() && !managedActor.isSuperadmin()) {
+            throw new SecurityException(
+                    "Só um Superadministrador pode atribuir privilégios de Superadministrador."
             );
         }
 
