@@ -69,13 +69,13 @@ class MfaServiceTest {
         user.setMfaEnabled(true);
         user.setMfaRecoveryCodes("hash-1\nhash-2");
 
-        when(passwordEncoder.matches("ABCDEFGHJKLMN", "hash-1"))
+        when(passwordEncoder.matches("ABCDEFGHJKLM", "hash-1"))
                 .thenReturn(true);
 
         assertTrue(
                 service.verifyAndConsumeRecoveryCode(
                         user,
-                        "ABCD-EFGH-JKLM-N"
+                        "ABCD-EFGH-JKLM"
                 )
         );
 
