@@ -17,11 +17,14 @@ public class PasswordChangeService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserSecurityProfileService userSecurityProfileService;
 
     public PasswordChangeService(UserRepository userRepository,
-                                 PasswordEncoder passwordEncoder) {
+                                 PasswordEncoder passwordEncoder,
+                                 UserSecurityProfileService userSecurityProfileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userSecurityProfileService = userSecurityProfileService;
     }
 
     @Transactional
@@ -48,6 +51,8 @@ public class PasswordChangeService {
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new SecurityException("A palavra-passe actual está incorrecta.");
         }
+
+        userSecurityProfileService.validatePassword(user, newPassword);
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IllegalArgumentException(
