@@ -182,6 +182,7 @@ public class UserAdministrationService {
         Set<PerfilAcesso> profiles = validateProfiles(requestedProfiles, empresa);
 
         LinkedHashMap<String, Object> oldSnapshot = isNew ? null : userSnapshot(target);
+        String previousSessionUsername = isNew ? null : target.getNome();
         String oldPasswordHash = target.getPassword();
         if (rawPassword != null && !rawPassword.isBlank()) {
             validatePassword(rawPassword);
@@ -242,6 +243,11 @@ public class UserAdministrationService {
         }
 
         User saved = userRepository.save(target);
+
+        if (!isNew && previousSessionUsername != null
+                && !previousSessionUsername.equals(saved.getNome())) {
+            userSessionRepository.deleteAllByUsername(previousSessionUsername);
+        }
 
         auditService.logAction(
                 managedActor,
