@@ -74,7 +74,7 @@ class FaturaServiceTest {
         fatura.addItem(item);
         when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
         when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(serieService.findPadrao(any(ao.allon.kubata.faturacao.domain.enums.TipoDocumento.class)))
+        lenient().when(serieService.findPadrao(any(ao.allon.kubata.faturacao.domain.enums.TipoDocumento.class)))
                 .thenAnswer(inv -> {
                     ao.allon.kubata.faturacao.domain.enums.TipoDocumento tipo = inv.getArgument(0);
                     Serie serie = new Serie();
@@ -84,7 +84,9 @@ class FaturaServiceTest {
                     serie.setAtiva(true);
                     return Optional.of(serie);
                 });
-        when(serieService.getProximoNumero(any(Serie.class))).thenReturn(1L);
+        lenient().when(serieService.getProximoNumero(any(Serie.class))).thenReturn(1L);
+        lenient().when(agtElectronicInvoiceService.submitInvoiceAsync(any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(new ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO()));
     }
 
     @Test
