@@ -10,6 +10,7 @@ import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.service.UserSecurityProfileService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.feather.Feather;
