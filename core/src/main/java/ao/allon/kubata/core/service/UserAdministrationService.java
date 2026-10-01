@@ -77,6 +77,27 @@ public class UserAdministrationService {
         return filialRepository.findByEmpresaOrderByNomeAsc(empresa);
     }
 
+    @Transactional(readOnly = true)
+    public List<Filial> todasFiliais() {
+        return filialRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(
+                        f -> f.getEmpresa() == null ? "" : safeCompanyName(f.getEmpresa())
+                                + "|" + safe(f.getNome())
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSession> sessoes(User actor, Long targetUserId) {
+        require(actor, "VER");
+        User managedActor = managedActor(actor);
+        User target = target(targetUserId);
+        if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
+            throw new SecurityException("Só um Superadministrador pode consultar sessões de outro Superadministrador.");
+        }
+        return userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(target.getNome());
+    }
+
     @Transactional
     public User salvar(User actor,
                        User draft,
@@ -430,6 +451,14 @@ public class UserAdministrationService {
 
     private String normalize(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String safeCompanyName(Empresa empresa) {
+        return empresa == null ? "" : safe(empresa.getNome());
     }
 
     private String normalizeEmail(String value) {
