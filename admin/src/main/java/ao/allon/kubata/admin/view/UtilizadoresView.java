@@ -2064,31 +2064,22 @@ public class UtilizadoresView extends VBox {
         clone.setNome(safe(selected.getNome(), "Utilizador") + " (Cópia)");
         clone.setEmail("copy_" + System.currentTimeMillis() + "_" + safe(selected.getEmail(), "utilizador@kubata.local"));
         clone.setRole(selected.getRole());
+        clone.setTipoConta(selected.getTipoConta());
         clone.setEmpresa(selected.getEmpresa());
+        clone.setFilial(selected.getFilial());
         clone.setNif(selected.getNif());
         clone.setTelefone(selected.getTelefone());
         clone.setDepartamento(selected.getDepartamento());
         clone.setCargo(selected.getCargo());
         clone.setActive(true);
         clone.setMfaEnabled(false);
-        clone.setPassword(selected.getPassword());
         clone.setPasswordProvisoria(true);
         clone.setDataExpiracaoPassword(LocalDate.now().plusDays(90));
         clone.setPerfis(selected.getPerfis() == null
                 ? new HashSet<>()
                 : new HashSet<>(selected.getPerfis()));
 
-        persistenceService.saveAsync(
-                userRepository,
-                clone,
-                "UTILIZADOR",
-                "Clonado utilizador: " + selected.getEmail()
-                        + " para " + clone.getEmail(),
-                saved -> {
-                    loadUsers();
-                    Platform.runLater(() -> showUserDialog(saved));
-                }
-        );
+        showUserDialog(clone);
     }
 
     private void toggleSelectedStatus() {
@@ -2114,13 +2105,14 @@ public class UtilizadoresView extends VBox {
                 next ? "Activar utilizador" : "Desactivar utilizador",
                 "Confirma a alteração do estado de " + safe(selected.getNome(), selected.getEmail()) + "?",
                 () -> {
-                    selected.setActive(next);
-                    persistenceService.saveAsync(
-                            userRepository,
-                            selected,
-                            "UTILIZADOR",
-                            (next ? "Activado" : "Desactivado")
-                                    + " utilizador: " + selected.getEmail(),
+                    runUserTask(
+                            next ? "Activar utilizador" : "Desactivar utilizador",
+                            () -> userAdministrationService.alterarEstado(
+                                    current,
+                                    selected.getId(),
+                                    next,
+                                    "127.0.0.1"
+                            ),
                             saved -> loadUsers()
                     );
                 }
@@ -2138,13 +2130,13 @@ public class UtilizadoresView extends VBox {
                 "Os bloqueios e tentativas falhadas de " + safe(selected.getNome(), selected.getEmail())
                         + " serão limpos.",
                 () -> {
-                    selected.setFailedAttempts(0);
-                    selected.setLockoutEnd(null);
-                    persistenceService.saveAsync(
-                            userRepository,
-                            selected,
-                            "UTILIZADOR",
-                            "Desbloqueado utilizador: " + selected.getEmail(),
+                    runUserTask(
+                            "Desbloquear utilizador",
+                            () -> userAdministrationService.desbloquear(
+                                    sessionManager.getUser(),
+                                    selected.getId(),
+                                    "127.0.0.1"
+                            ),
                             saved -> loadUsers()
                     );
                 }
