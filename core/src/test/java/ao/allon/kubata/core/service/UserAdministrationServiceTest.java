@@ -135,6 +135,73 @@ class UserAdministrationServiceTest {
     }
 
     @Test
+    void deveRejeitarCodigoDuplicadoNoServidor() {
+        User actor = admin(10L);
+
+        User draft = new User();
+        draft.setCodigo("USR-DUP");
+        draft.setNome("Utilizador Duplicado");
+        draft.setEmail("duplicado@kubata.local");
+        draft.setRole(Role.OPERATOR);
+        draft.setTipoConta(TipoConta.PESSOAL);
+        draft.setActive(true);
+        draft.setPasswordProvisoria(true);
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(userRepository.existsByCodigoIgnoreCase(anyString()))
+                .thenAnswer(invocation ->
+                        "USR-DUP".equalsIgnoreCase(invocation.getArgument(0)));
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.salvar(
+                        actor,
+                        draft,
+                        "SenhaForte1",
+                        Set.of(),
+                        null,
+                        null,
+                        "127.0.0.1"
+                )
+        );
+
+        verify(userRepository, never()).save(any());
+        verifyNoInteractions(empresaRepository, filialRepository, auditService);
+    }
+
+    @Test
+    void deveImpedirQueSuperadministradorAltereOSeuProprioEstatuto() {
+        User actor = admin(10L);
+        actor.setSuperadmin(true);
+
+        User target = admin(10L);
+        target.setSuperadmin(true);
+
+        User draft = admin(10L);
+        draft.setSuperadmin(false);
+        draft.setActive(true);
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(userRepository.findByIdWithPerfis(10L)).thenReturn(Optional.of(target));
+
+        assertThrows(
+                SecurityException.class,
+                () -> service.salvar(
+                        actor,
+                        draft,
+                        null,
+                        Set.of(),
+                        target.getEmpresa(),
+                        target.getFilial(),
+                        "127.0.0.1"
+                )
+        );
+
+        verify(userRepository, never()).save(any());
+        verifyNoInteractions(auditService);
+    }
+
+    @Test
     void deveImpedirDesactivarAPropriaConta() {
         User actor = admin(10L);
         when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
