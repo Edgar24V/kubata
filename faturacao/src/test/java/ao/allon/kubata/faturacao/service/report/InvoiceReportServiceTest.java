@@ -78,7 +78,7 @@ class InvoiceReportServiceTest {
 
         JasperPrint capturedPrint = jasperPrintCaptor.getValue();
         Assertions.assertNotNull(capturedPrint);
-        Assertions.assertEquals("invoice_thermal_80mm", capturedPrint.getName());
+        Assertions.assertEquals("invoice_thermal_80mm_professional", capturedPrint.getName());
         Assertions.assertEquals(226, capturedPrint.getPageWidth());
     }
 
