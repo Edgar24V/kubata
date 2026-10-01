@@ -4,6 +4,7 @@ import ao.allon.kubata.admin.domain.platform.PlatformComponentHealth;
 import ao.allon.kubata.admin.domain.platform.PlatformHealthSnapshot;
 import ao.allon.kubata.admin.domain.platform.PlatformOperationSummary;
 import ao.allon.kubata.admin.domain.platform.PlatformSessionSummary;
+import ao.allon.kubata.core.domain.Alerta;
 import ao.allon.kubata.core.domain.AuditLog;
 import ao.allon.kubata.core.domain.BackupRecord;
 import ao.allon.kubata.core.domain.ModuloSistema;
@@ -11,6 +12,7 @@ import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.module.ModuleRegistry;
 import ao.allon.kubata.core.repository.AdmPlataformaItemRepository;
+import ao.allon.kubata.core.repository.AlertaRepository;
 import ao.allon.kubata.core.repository.AuditLogRepository;
 import ao.allon.kubata.core.repository.BackupRecordRepository;
 import ao.allon.kubata.core.repository.ModuloSistemaRepository;
@@ -53,6 +55,7 @@ public class PlatformCommandCenterService {
     private final ModuleRegistry moduleRegistry;
     private final ModuloSistemaRepository moduloRepository;
     private final AdmPlataformaItemRepository itemRepository;
+    private final AlertaRepository alertaRepository;
     private final BackupRecordRepository backupRepository;
     private final UserSessionRepository sessionRepository;
     private final AuditLogRepository auditRepository;
@@ -66,6 +69,7 @@ public class PlatformCommandCenterService {
             ModuleRegistry moduleRegistry,
             ModuloSistemaRepository moduloRepository,
             AdmPlataformaItemRepository itemRepository,
+            AlertaRepository alertaRepository,
             BackupRecordRepository backupRepository,
             UserSessionRepository sessionRepository,
             AuditLogRepository auditRepository,
@@ -77,6 +81,7 @@ public class PlatformCommandCenterService {
         this.moduleRegistry = moduleRegistry;
         this.moduloRepository = moduloRepository;
         this.itemRepository = itemRepository;
+        this.alertaRepository = alertaRepository;
         this.backupRepository = backupRepository;
         this.sessionRepository = sessionRepository;
         this.auditRepository = auditRepository;
@@ -371,7 +376,8 @@ public class PlatformCommandCenterService {
 
     private long safeAlertCount() {
         try {
-            return itemRepository.countByTipo("ALERTA");
+            return alertaRepository.countByEstado(Alerta.Estado.OPEN)
+                    + alertaRepository.countByEstado(Alerta.Estado.ACKNOWLEDGED);
         } catch (Exception ex) {
             return 0;
         }
