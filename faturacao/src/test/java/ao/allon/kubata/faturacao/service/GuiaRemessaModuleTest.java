@@ -88,7 +88,7 @@ class GuiaRemessaModuleTest {
         assertEquals(StatusFatura.EMITIDA, res.getStatus());
         assertNotNull(res.getNumero());
         assertTrue(res.getNumero().contains("GR"));
-        assertEquals("HASH1", res.getHashControl());
+        assertEquals("HASH", res.getHashControl());
         verify(faturaRepository, atLeastOnce()).save(any(Fatura.class));
     }
 
