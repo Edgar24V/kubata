@@ -36,6 +36,7 @@ class AlertaServiceIntegrationTest {
         actor.setPassword("integration");
         actor.setRole(Role.ADMIN);
         actor.setActive(true);
+        actor.setCodigo("ALERTA-IT-" + System.nanoTime());
         actor = userRepository.saveAndFlush(actor);
 
         Alerta criado = alertaService.criar(
