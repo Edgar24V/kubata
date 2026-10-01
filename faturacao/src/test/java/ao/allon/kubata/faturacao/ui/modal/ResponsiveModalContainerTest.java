@@ -9,20 +9,28 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ResponsiveModalContainerTest {
 
     @BeforeAll
-    static void initToolkit() {
-        // Inicializa o Toolkit JavaFX para testes
+    static void initToolkit() throws InterruptedException {
         new JFXPanel();
+
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            Platform.setImplicitExit(false);
+            latch.countDown();
+        });
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS), "O JavaFX Toolkit não iniciou.");
     }
 
     @Test
-    void testInitialSizeIsComputed() {
-        Platform.runLater(() -> {
+    void testInitialSizeIsComputed() throws Exception {
+        runOnFxThread(() -> {
             ResponsiveModalContainer container = new ResponsiveModalContainer();
             assertEquals(VBox.USE_COMPUTED_SIZE, container.getPrefWidth());
             assertEquals(VBox.USE_COMPUTED_SIZE, container.getPrefHeight());
@@ -30,41 +38,60 @@ class ResponsiveModalContainerTest {
     }
 
     @Test
-    void testResizeOnContentChange() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        
-        Platform.runLater(() -> {
+    void testResizeOnContentChange() throws Exception {
+        runOnFxThread(() -> {
             ResponsiveModalContainer container = new ResponsiveModalContainer();
-            container.setAnimateChanges(false); // Desativa animação para verificar resultado imediato (simulado)
-            
+            container.setAnimateChanges(false);
+
             Label label = new Label("Teste de Conteúdo");
             label.setMinWidth(200);
             label.setMinHeight(50);
-            
+
             container.getChildren().add(label);
-            
-            // Força layout
             container.layout();
-            
-            // Verifica se o container detectou a necessidade de redimensionar
-            // Nota: Como a lógica é assíncrona (Platform.runLater), este teste é apenas estrutural
-            // Em um ambiente real, verificaríamos as propriedades após o pulso do JavaFX
+
             assertNotNull(container.getChildren());
             assertEquals(1, container.getChildren().size());
-            
-            latch.countDown();
         });
-        
-        assertTrue(latch.await(5, TimeUnit.SECONDS));
     }
 
     @Test
-    void testMaxLimits() {
-        ResponsiveModalContainer container = new ResponsiveModalContainer();
-        container.setMaxDimensions(500, 400);
-        
-        // Simula verificação interna (método privado, acessado indiretamente via comportamento)
-        // Aqui apenas validamos se a API pública não lança exceções
-        assertDoesNotThrow(() -> container.requestLayout());
+    void testMaxLimits() throws Exception {
+        runOnFxThread(() -> {
+            ResponsiveModalContainer container = new ResponsiveModalContainer();
+            assertDoesNotThrow(() -> container.setMaxDimensions(500, 400));
+            assertDoesNotThrow(container::requestLayout);
+        });
+    }
+
+    private static void runOnFxThread(ThrowingAction action) throws Exception {
+        if (Platform.isFxApplicationThread()) {
+            action.run();
+            return;
+        }
+
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+
+        Platform.runLater(() -> {
+            try {
+                action.run();
+            } catch (Throwable ex) {
+                failure.set(ex);
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS), "A tarefa do JavaFX não foi executada.");
+        Throwable error = failure.get();
+        if (error != null) {
+            throw new AssertionError("Falha no thread do JavaFX.", error);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingAction {
+        void run() throws Exception;
     }
 }
