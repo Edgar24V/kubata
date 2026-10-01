@@ -4,6 +4,7 @@ import ao.allon.kubata.core.repository.PlanoContaRepository;
 import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
+import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
@@ -65,7 +66,9 @@ class FaturaServiceTest {
         item.setQuantidade(2);
         item.setPrecoUnitario(new BigDecimal("1000"));
         item.setPercentualIva(new BigDecimal("14.00"));
-        item.setProdutoId(10L);
+        Produto produto = new Produto();
+        produto.setId(10L);
+        item.setProduto(produto);
         fatura.addItem(item);
         when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
         when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
