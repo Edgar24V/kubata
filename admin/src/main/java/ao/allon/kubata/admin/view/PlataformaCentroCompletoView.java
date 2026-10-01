@@ -529,7 +529,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
         VBox globalBox=new VBox(2);
         Label globalCaption=new Label("ESTADO GLOBAL");
         globalCaption.getStyleClass().add("kubata-center-nav-eyebrow");
-        healthGlobal.getStyleClass().add("kubata-server-status-value","kubata-server-status-ok");
+        healthGlobal.getStyleClass().addAll("kubata-server-status-value","kubata-server-status-ok");
         Label hint=new Label("BD, Flyway, módulos, integrações, scheduler, backups, licenças, API, sessões e alertas.");
         hint.setWrapText(true);
         hint.getStyleClass().add("kubata-server-note");
