@@ -89,14 +89,11 @@ class PasswordChangeServiceTest {
         user.setId(10L);
         user.setActive(true);
         user.setPassword("HASH-ANTIGA");
-        UserSecurityProfile profile = new UserSecurityProfile();
-        profile.setPasswordMinLength(8);
-        profile.setPasswordRequireUpper(true);
-        profile.setPasswordRequireLower(true);
-        profile.setPasswordRequireDigit(true);
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Temporaria1", "HASH-ANTIGA")).thenReturn(true);
-        when(userSecurityProfileService.getEffectiveProfile(user)).thenReturn(profile);
+        doThrow(new IllegalArgumentException("A palavra-passe deve ter pelo menos 8 caracteres."))
+                .when(userSecurityProfileService)
+                .validatePassword(user, "1234567");
 
         assertThrows(
                 IllegalArgumentException.class,
