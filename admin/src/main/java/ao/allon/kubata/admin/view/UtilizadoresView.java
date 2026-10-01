@@ -1,6 +1,5 @@
 package ao.allon.kubata.admin.view;
 
-import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
@@ -45,7 +44,6 @@ import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 import org.kordamp.ikonli.feather.Feather;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
@@ -81,10 +79,8 @@ public class UtilizadoresView extends VBox {
     private final PasswordResetService passwordResetService;
     private final MfaService mfaService;
     private final SecurityService securityService;
-    private final PasswordEncoder passwordEncoder;
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
-    private final PersistenceService persistenceService;
     private final UserAdministrationService userAdministrationService;
     private final UserDeviceService userDeviceService;
 
@@ -139,10 +135,8 @@ public class UtilizadoresView extends VBox {
                             PasswordResetService passwordResetService,
                             MfaService mfaService,
                             SecurityService securityService,
-                            PasswordEncoder passwordEncoder,
                             SessionManager sessionManager,
                             ModalManager modalManager,
-                            PersistenceService persistenceService,
                             UserAdministrationService userAdministrationService,
                             UserDeviceService userDeviceService) {
         this.userRepository = userRepository;
@@ -152,10 +146,8 @@ public class UtilizadoresView extends VBox {
         this.passwordResetService = passwordResetService;
         this.mfaService = mfaService;
         this.securityService = securityService;
-        this.passwordEncoder = passwordEncoder;
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
-        this.persistenceService = persistenceService;
         this.userAdministrationService = userAdministrationService;
         this.userDeviceService = userDeviceService;
 
