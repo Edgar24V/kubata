@@ -4,7 +4,9 @@ import ao.allon.kubata.core.domain.AdmPlataformaItem;
 import ao.allon.kubata.core.module.event.ModuleEvent;
 import ao.allon.kubata.core.module.event.ModuleEventListener;
 import ao.allon.kubata.core.module.event.ModuleEventPublisher;
+import ao.allon.kubata.core.domain.Alerta;
 import ao.allon.kubata.core.repository.AdmPlataformaItemRepository;
+import ao.allon.kubata.core.repository.AlertaRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 public class PlataformaRuntimeService implements ModuleEventListener {
     private static final DateTimeFormatter EVENT_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private final AdmPlataformaItemRepository repository;
+    private final AlertaRepository alertaRepository;
     private final PlataformaAutomationService automation;
     private final PlataformaDocumentService documents;
     private final BackupService backupService;
@@ -49,6 +52,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
 
     public PlataformaRuntimeService(
             AdmPlataformaItemRepository repository,
+            AlertaRepository alertaRepository,
             PlataformaAutomationService automation,
             PlataformaDocumentService documents,
             BackupService backupService,
@@ -57,6 +61,7 @@ public class PlataformaRuntimeService implements ModuleEventListener {
             JdbcTemplate jdbcTemplate,
             Environment environment) {
         this.repository = repository;
+        this.alertaRepository = alertaRepository;
         this.automation = automation;
         this.documents = documents;
         this.backupService = backupService;
@@ -441,8 +446,8 @@ public class PlataformaRuntimeService implements ModuleEventListener {
     public Map<String, Object> dashboardStats() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("operacoes", repository.countByTipo("OPERACAO"));
-        m.put("alertasAbertos", repository.findByTipoOrderByUpdatedAtDesc("ALERTA").stream()
-                .filter(i -> !"RESOLVIDO".equalsIgnoreCase(i.getEstado())).count());
+        m.put("alertasAbertos", alertaRepository.countByEstado(Alerta.Estado.OPEN)
+                + alertaRepository.countByEstado(Alerta.Estado.ACKNOWLEDGED));
         m.put("documentos", repository.countByTipo("DOCUMENTO"));
         m.put("comunicacoes", repository.countByTipo("COMUNICACAO"));
         m.put("notificacoes", repository.countByTipo("NOTIFICACAO"));
