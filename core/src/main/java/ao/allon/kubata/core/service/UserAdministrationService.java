@@ -133,6 +133,12 @@ public class UserAdministrationService {
                     "Só um Superadministrador pode editar a conta de outro Superadministrador."
             );
         }
+        if (!isNew && isSelf(managedActor, target)
+                && targetWasSuperadmin != draft.isSuperadmin()) {
+            throw new SecurityException(
+                    "A própria conta não pode alterar o seu estatuto de Superadministrador."
+            );
+        }
         if (draft.isSuperadmin() && !managedActor.isSuperadmin()) {
             throw new SecurityException(
                     "Só um Superadministrador pode atribuir privilégios de Superadministrador."
@@ -150,6 +156,20 @@ public class UserAdministrationService {
             // preserva a unicidade sem exigir nova consulta;
         } else if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new IllegalArgumentException("Já existe um utilizador com este email.");
+        }
+
+        String requestedCode = normalizeCode(draft.getCodigo(), target.getCodigo());
+        if (requestedCode == null) {
+            throw new IllegalArgumentException("O código do utilizador é obrigatório.");
+        }
+        if (!requestedCode.matches("[A-Z0-9][A-Z0-9._-]{2,39}")) {
+            throw new IllegalArgumentException(
+                    "O código do utilizador deve ter 3 a 40 caracteres e usar apenas letras, números, ponto, hífen ou sublinhado."
+            );
+        }
+        if (!isNew && !requestedCode.equalsIgnoreCase(target.getCodigo())
+                && userRepository.existsByCodigoIgnoreCase(requestedCode)) {
+            throw new IllegalArgumentException("Já existe um utilizador com este código.");
         }
 
         Empresa empresa = requestedEmpresa != null && requestedEmpresa.getId() != null
@@ -194,7 +214,7 @@ public class UserAdministrationService {
             target.setPassword(oldPasswordHash);
         }
 
-        target.setCodigo(normalizeCode(draft.getCodigo(), target.getCodigo()));
+        target.setCodigo(requestedCode);
         target.setNome(nome);
         target.setEmail(email);
         target.setEmpresa(empresa);
