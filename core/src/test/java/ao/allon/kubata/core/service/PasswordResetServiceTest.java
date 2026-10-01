@@ -38,6 +38,9 @@ class PasswordResetServiceTest {
     @Mock
     private AuditService auditService;
 
+    @Mock
+    private UserSecurityProfileService userSecurityProfileService;
+
     private PasswordResetService service;
 
     @BeforeEach
@@ -47,7 +50,8 @@ class PasswordResetServiceTest {
                 userSessionRepository,
                 passwordEncoder,
                 securityService,
-                auditService
+                auditService,
+                userSecurityProfileService
         );
         ReflectionTestUtils.setField(service, "resetValidityDays", 1);
     }
@@ -59,6 +63,11 @@ class PasswordResetServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        UserSecurityProfile profile = new UserSecurityProfile();
+        profile.setPasswordMinLength(8);
+        when(userSecurityProfileService.getEffectiveProfile(target)).thenReturn(profile);
+        doNothing().when(userSecurityProfileService).validatePassword(eq(target), anyString());
+
         when(passwordEncoder.encode(anyString()))
                 .thenAnswer(invocation -> "HASH:" + invocation.getArgument(0));
         when(userSessionRepository.deleteAllByUsername("Operador")).thenReturn(2L);
