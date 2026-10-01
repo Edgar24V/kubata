@@ -1,7 +1,6 @@
 package ao.allon.kubata.core.service;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
 import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
@@ -25,6 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
     private final AcessoService acessoService;
+    private final MfaService mfaService;
 
     @Value("${kubata.security.max-login-attempts:5}")
     private int maxAttempts;
@@ -37,16 +37,33 @@ public class AuthService {
 
     public AuthService(UserRepository userRepository, 
                        UserSessionRepository userSessionRepository,
-                       PasswordEncoder passwordEncoder, 
-                       AcessoService acessoService) {
+                       PasswordEncoder passwordEncoder,
+                       AcessoService acessoService,
+                       MfaService mfaService) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
+        this.mfaService = mfaService;
     }
 
     @Transactional
     public User authenticate(String email, String password, Integer mfaCode, String ip) {
+        return authenticate(
+                email,
+                password,
+                mfaCode,
+                null,
+                ip
+        );
+    }
+
+    @Transactional
+    public User authenticate(String email,
+                             String password,
+                             Integer mfaCode,
+                             String recoveryCode,
+                             String ip) {
         Optional<User> userOpt = userRepository.findByEmail(email);
 
         if (userOpt.isEmpty()) {
@@ -76,9 +93,41 @@ public class AuthService {
         }
 
         if (user.isMfaEnabled()) {
-            if (mfaCode == null || !gAuth.authorize(user.getMfaSecret(), mfaCode)) {
-                acessoService.registrarAuditoria(user, "LOGIN_MFA", "AUTH", ip, "Código MFA inválido", false);
-                throw new AuthenticationException("Código MFA inválido ou ausente.");
+            boolean totpValid =
+                    mfaCode != null
+                            && gAuth.authorize(user.getMfaSecret(), mfaCode);
+
+            if (!totpValid) {
+                boolean recoveryValid =
+                        recoveryCode != null
+                                && mfaService.verifyAndConsumeRecoveryCode(
+                                user,
+                                recoveryCode
+                        );
+
+                if (!recoveryValid) {
+                    acessoService.registrarAuditoria(
+                            user,
+                            "LOGIN_MFA",
+                            "AUTH",
+                            ip,
+                            "Código MFA ou recuperação inválido",
+                            false
+                    );
+                    recordFailure(user);
+                    throw new AuthenticationException(
+                            "Código MFA inválido ou código de recuperação inválido."
+                    );
+                }
+
+                acessoService.registrarAuditoria(
+                        user,
+                        "LOGIN_MFA_RECOVERY",
+                        "AUTH",
+                        ip,
+                        "Acesso validado por código de recuperação",
+                        true
+                );
             }
         }
 
@@ -99,14 +148,6 @@ public class AuthService {
         
         acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Sucesso", true);
         return user;
-    }
-
-    @Transactional
-    public String generateMfaSecret(User user) {
-        GoogleAuthenticatorKey key = gAuth.createCredentials();
-        user.setMfaSecret(key.getKey());
-        userRepository.save(user);
-        return key.getKey();
     }
 
     @Transactional

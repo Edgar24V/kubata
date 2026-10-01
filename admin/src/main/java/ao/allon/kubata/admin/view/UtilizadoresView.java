@@ -14,6 +14,7 @@ import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.service.AcessoService;
 import ao.allon.kubata.core.service.PasswordResetService;
+import ao.allon.kubata.core.service.MfaService;
 import ao.allon.kubata.core.service.SecurityService;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
@@ -30,6 +31,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.paint.Color;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
@@ -49,6 +52,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 @Component
 public class UtilizadoresView extends VBox {
@@ -64,6 +70,7 @@ public class UtilizadoresView extends VBox {
     private final EmpresaRepository empresaRepository;
     private final AcessoService acessoService;
     private final PasswordResetService passwordResetService;
+    private final MfaService mfaService;
     private final SecurityService securityService;
     private final PasswordEncoder passwordEncoder;
     private final SessionManager sessionManager;
@@ -105,6 +112,7 @@ public class UtilizadoresView extends VBox {
     private Button btnStatus;
     private Button btnDesbloquear;
     private Button btnResetPassword;
+    private Button btnMfa;
 
     private boolean dataLoaded;
 
@@ -113,6 +121,7 @@ public class UtilizadoresView extends VBox {
                             EmpresaRepository empresaRepository,
                             AcessoService acessoService,
                             PasswordResetService passwordResetService,
+                            MfaService mfaService,
                             SecurityService securityService,
                             PasswordEncoder passwordEncoder,
                             SessionManager sessionManager,
@@ -123,6 +132,7 @@ public class UtilizadoresView extends VBox {
         this.empresaRepository = empresaRepository;
         this.acessoService = acessoService;
         this.passwordResetService = passwordResetService;
+        this.mfaService = mfaService;
         this.securityService = securityService;
         this.passwordEncoder = passwordEncoder;
         this.sessionManager = sessionManager;
@@ -518,12 +528,14 @@ public class UtilizadoresView extends VBox {
         btnStatus = detailButton("Desactivar", Feather.POWER, "button-outlined");
         btnDesbloquear = detailButton("Desbloquear", Feather.UNLOCK, "button-outlined");
         btnResetPassword = detailButton("Redefinir senha", Feather.KEY, "button-outlined");
+        btnMfa = detailButton("Gerir MFA", Feather.SHIELD, "button-outlined");
 
         btnEditar.setOnAction(e -> selectedUser().ifPresent(this::showUserDialog));
         btnClonar.setOnAction(e -> cloneUser());
         btnStatus.setOnAction(e -> toggleSelectedStatus());
         btnDesbloquear.setOnAction(e -> unlockSelectedUser());
         btnResetPassword.setOnAction(e -> resetPassword());
+        btnMfa.setOnAction(e -> selectedUser().ifPresent(this::showMfaManagementModal));
 
         GridPane actions = new GridPane();
         actions.setHgap(7);
@@ -532,7 +544,10 @@ public class UtilizadoresView extends VBox {
         actions.add(btnClonar, 1, 0);
         actions.add(btnStatus, 0, 1);
         actions.add(btnDesbloquear, 1, 1);
-        actions.add(btnResetPassword, 0, 2, 2, 1);
+        actions.add(btnMfa, 0, 2);
+        actions.add(btnResetPassword, 1, 2);
+
+        GridPane.setHgrow(btnMfa, Priority.ALWAYS);
 
         GridPane.setHgrow(btnEditar, Priority.ALWAYS);
         GridPane.setHgrow(btnClonar, Priority.ALWAYS);
@@ -606,7 +621,10 @@ public class UtilizadoresView extends VBox {
                     safe(selected.getCargo(), "-"),
                     formatDateTime(selected.getUltimoAcesso()),
                     safe(selected.getUltimoIpLogin(), "-"),
-                    selected.isMfaEnabled() ? "Activo" : "Inactivo",
+                    selected.isMfaEnabled()
+                            ? "Activo · " + mfaService.countRecoveryCodes(selected)
+                            + " códigos de recuperação"
+                            : "Inactivo",
                     credentialStatus(selected),
                     String.valueOf(selected.getFailedAttempts())
             );
@@ -615,6 +633,7 @@ public class UtilizadoresView extends VBox {
         btnEditar.setDisable(!hasSelection || !can("EDITAR"));
         btnClonar.setDisable(!hasSelection || !can("CRIAR"));
         btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
+        btnMfa.setDisable(!hasSelection || !can("EDITAR"));
         btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
         btnStatus.setDisable(!hasSelection || !can("EDITAR") ||
                 (current != null && selected != null && current.getId() != null && current.getId().equals(selected.getId())));
@@ -1116,6 +1135,43 @@ public class UtilizadoresView extends VBox {
                 !isNew && formUser.isMfaEnabled()
         );
 
+        final User mfaDraft = isNew ? new User() : formUser;
+        if (isNew) {
+            mfaDraft.setEmail(txtEmail.getText().trim());
+        }
+
+        final boolean[] mfaConfirmed = {
+                !isNew && formUser.isMfaEnabled()
+        };
+
+        Label mfaStatus = new Label(
+                chkMfa.isSelected()
+                        ? "MFA activo"
+                        : "MFA não configurado"
+        );
+        mfaStatus.getStyleClass().add(
+                chkMfa.isSelected()
+                        ? "kubata-users-security-ok"
+                        : "kubata-users-form-hint"
+        );
+
+        Button manageMfa = new Button(
+                chkMfa.isSelected()
+                        ? "Gerir MFA"
+                        : "Configurar MFA",
+                IconUtils.icon(Feather.SHIELD, 12)
+        );
+        manageMfa.getStyleClass().add("button-outlined");
+
+        manageMfa.setOnAction(e -> {
+            mfaDraft.setEmail(txtEmail.getText().trim());
+            if (mfaDraft.isMfaEnabled()) {
+                showMfaManagementModal(mfaDraft, chkMfa, mfaConfirmed, mfaStatus, manageMfa);
+            } else {
+                showMfaActivationModal(mfaDraft, chkMfa, mfaConfirmed, mfaStatus, manageMfa);
+            }
+        });
+
         CheckBox chkAtivo = new CheckBox("Conta activa");
         chkAtivo.setSelected(
                 isNew || Boolean.TRUE.equals(formUser.getActive())
@@ -1139,7 +1195,23 @@ public class UtilizadoresView extends VBox {
         accountGrid.add(dataExpiracao, 1, 0);
         GridPane.setHgrow(dataExpiracao, Priority.ALWAYS);
 
-        HBox policyLine = new HBox(18, chkProvisoria, chkMfa);
+        HBox mfaLine = new HBox(10, chkMfa, manageMfa, mfaStatus);
+        mfaLine.setAlignment(Pos.CENTER_LEFT);
+
+        chkMfa.setOnAction(e -> {
+            if (chkMfa.isSelected() && !mfaConfirmed[0]) {
+                mfaStatus.setText("Configure o MFA antes de guardar");
+                manageMfa.setText("Configurar MFA");
+                manageMfa.setGraphic(IconUtils.icon(Feather.SHIELD, 12));
+            } else if (!chkMfa.isSelected()) {
+                mfaConfirmed[0] = false;
+                mfaStatus.setText("MFA será desactivado ao guardar");
+                manageMfa.setText("Configurar MFA");
+                manageMfa.setGraphic(IconUtils.icon(Feather.SHIELD, 12));
+            }
+        });
+
+        HBox policyLine = new HBox(18, chkProvisoria);
         policyLine.setAlignment(Pos.CENTER_LEFT);
 
         HBox stateLine = new HBox(18, chkAtivo, chkSuperadmin);
@@ -1148,6 +1220,7 @@ public class UtilizadoresView extends VBox {
         accountCard.getChildren().addAll(
                 accountGrid,
                 policyLine,
+                mfaLine,
                 stateLine,
                 hint(
                         "MFA protege a conta com um segundo factor. "
@@ -1528,7 +1601,29 @@ public class UtilizadoresView extends VBox {
                     target.setCargo(blankToNull(txtCargo.getText()));
                     target.setAvatar(avatarBytes[0]);
                     target.setActive(chkAtivo.isSelected());
-                    target.setMfaEnabled(chkMfa.isSelected());
+
+                    if (chkMfa.isSelected()) {
+                        if (!mfaConfirmed[0]
+                                || mfaDraft.getMfaSecret() == null
+                                || !mfaDraft.isMfaEnabled()) {
+                            modalManager.alert(
+                                    "MFA não confirmado",
+                                    "Configure e confirme o MFA com um código de 6 dígitos antes de guardar.",
+                                    "warning",
+                                    null
+                            );
+                            return;
+                        }
+
+                        target.setMfaEnabled(true);
+                        target.setMfaSecret(mfaDraft.getMfaSecret());
+                        target.setMfaRecoveryCodes(mfaDraft.getMfaRecoveryCodes());
+                    } else {
+                        target.setMfaEnabled(false);
+                        target.setMfaSecret(null);
+                        target.setMfaRecoveryCodes(null);
+                    }
+
                     target.setSuperadmin(chkSuperadmin.isSelected());
                     target.setPasswordProvisoria(chkProvisoria.isSelected());
                     target.setDataExpiracaoPassword(
@@ -2099,6 +2194,552 @@ public class UtilizadoresView extends VBox {
         );
     }
 
+    private void showMfaActivationModal(
+            User user,
+            CheckBox mfaCheckBox,
+            boolean[] mfaConfirmed,
+            Label mfaStatus,
+            Button manageButton
+    ) {
+        if (user == null) {
+            return;
+        }
+
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            modalManager.alert(
+                    "Email necessário",
+                    "Preencha o email do utilizador antes de configurar o MFA.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        final String secret;
+        try {
+            secret = mfaService.prepareActivation(user);
+        } catch (Exception ex) {
+            modalManager.showErrorModal(
+                    "MFA",
+                    "Não foi possível iniciar a configuração do MFA.",
+                    ex
+            );
+            return;
+        }
+
+        final String provisioningUri = mfaService.buildProvisioningUri(user);
+
+        ImageView qrView = new ImageView();
+        qrView.setFitWidth(220);
+        qrView.setFitHeight(220);
+        qrView.setPreserveRatio(true);
+
+        try {
+            qrView.setImage(createQrImage(provisioningUri, 220));
+        } catch (Exception ex) {
+            modalManager.showErrorModal(
+                    "QR Code",
+                    "Não foi possível gerar o QR Code do MFA.",
+                    ex
+            );
+            return;
+        }
+
+        Label instructions = new Label(
+                "1. Abra a aplicação autenticadora no telemóvel.\n"
+                        + "2. Leia o QR Code abaixo.\n"
+                        + "3. Introduza o código de 6 dígitos apresentado para confirmar."
+        );
+        instructions.setWrapText(true);
+        instructions.getStyleClass().add("kubata-users-form-hint");
+
+        TextField secretField = new TextField(secret);
+        secretField.setEditable(false);
+        secretField.setMaxWidth(Double.MAX_VALUE);
+        secretField.setTooltip(
+                new Tooltip("Chave secreta para configuração manual")
+        );
+
+        TextField codeField = new TextField();
+        codeField.setPromptText("Código MFA de 6 dígitos");
+        codeField.setPrefHeight(44);
+        codeField.setTextFormatter(
+                new TextFormatter<String>(change ->
+                        change.getControlNewText().matches("\\d{0,6}")
+                                ? change
+                                : null
+                )
+        );
+
+        Label status = new Label();
+        status.setWrapText(true);
+        status.setManaged(false);
+        status.setVisible(false);
+
+        Button cancel = new Button(
+                "Cancelar",
+                IconUtils.icon(Feather.X, 12)
+        );
+        cancel.getStyleClass().add("button-outlined");
+
+        Button confirm = new Button(
+                "Confirmar MFA",
+                IconUtils.icon(Feather.SHIELD, 12)
+        );
+        confirm.getStyleClass().add("button-primary");
+
+        HBox actions = new HBox(8, cancel, confirm);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox qrBox = new VBox(8, qrView);
+        qrBox.setAlignment(Pos.CENTER);
+        qrBox.setMinWidth(250);
+
+        VBox manualBox = new VBox(
+                8,
+                new Label("Chave manual"),
+                secretField,
+                new Label("Código de confirmação"),
+                codeField,
+                status
+        );
+        manualBox.setPrefWidth(360);
+
+        HBox contentTop = new HBox(18, qrBox, manualBox);
+        contentTop.setAlignment(Pos.TOP_LEFT);
+
+        VBox content = new VBox(
+                14,
+                instructions,
+                contentTop,
+                new Separator(),
+                new Label(
+                        "Guarde os códigos de recuperação apresentados após a confirmação."
+                                + " Eles são de uso único."
+                ),
+                actions
+        );
+        content.setPadding(new Insets(4));
+        content.setPrefWidth(690);
+
+        cancel.setOnAction(e -> modalManager.hideModal());
+
+        confirm.setOnAction(e -> {
+            String code = codeField.getText() == null
+                    ? ""
+                    : codeField.getText().trim();
+
+            if (code.length() != 6) {
+                status.setText("Introduza o código actual de 6 dígitos.");
+                status.setStyle("-fx-text-fill: #b91c1c; -fx-font-size: 11px;");
+                status.setManaged(true);
+                status.setVisible(true);
+                codeField.requestFocus();
+                return;
+            }
+
+            confirm.setDisable(true);
+            cancel.setDisable(true);
+            confirm.setText("A validar...");
+
+            try {
+                MfaService.ActivationResult result =
+                        mfaService.confirmActivation(user, code);
+
+                mfaCheckBox.setSelected(true);
+                mfaConfirmed[0] = true;
+                mfaStatus.setText(
+                        "MFA activo · "
+                                + result.recoveryCodes().size()
+                                + " códigos de recuperação"
+                );
+                mfaStatus.setStyle(
+                        "-fx-text-fill: #166534; -fx-font-size: 11px; -fx-font-weight: 700;"
+                );
+                manageButton.setText("Gerir MFA");
+                manageButton.setGraphic(IconUtils.icon(Feather.SHIELD, 12));
+
+                modalManager.hideModal();
+
+                showRecoveryCodesModal(
+                        user,
+                        result.recoveryCodes(),
+                        "MFA activado"
+                );
+            } catch (Exception ex) {
+                confirm.setDisable(false);
+                cancel.setDisable(false);
+                confirm.setText("Confirmar MFA");
+                status.setText(
+                        ex.getMessage() == null
+                                ? "O código MFA é inválido ou expirou."
+                                : ex.getMessage()
+                );
+                status.setStyle("-fx-text-fill: #b91c1c; -fx-font-size: 11px;");
+                status.setManaged(true);
+                status.setVisible(true);
+                codeField.requestFocus();
+                codeField.selectAll();
+            }
+        });
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Configurar autenticação multifactor")
+                        .subtitle(
+                                "Associe esta conta a uma aplicação autenticadora"
+                        )
+                        .icon(Feather.SHIELD)
+                        .tone(ModalManager.ModalTone.INFO)
+                        .size(780, 540)
+                        .minSize(700, 500)
+                        .maximizable(false)
+                        .minimizable(false)
+                        .closeOnOverlayClick(false)
+                        .closeOnEscape(false)
+        );
+
+        Platform.runLater(() -> codeField.requestFocus());
+    }
+
+    private void showMfaManagementModal(
+            User user,
+            CheckBox mfaCheckBox,
+            boolean[] mfaConfirmed,
+            Label mfaStatus,
+            Button manageButton
+    ) {
+        if (user == null) {
+            return;
+        }
+
+        if (!user.isMfaEnabled()) {
+            showMfaActivationModal(
+                    user,
+                    mfaCheckBox,
+                    mfaConfirmed,
+                    mfaStatus,
+                    manageButton
+            );
+            return;
+        }
+
+        int remaining = mfaService.countRecoveryCodes(user);
+
+        Label status = new Label(
+                "MFA activo. Existem " + remaining
+                        + " código(s) de recuperação disponível(eis)."
+        );
+        status.setWrapText(true);
+        status.setStyle(
+                "-fx-background-color: #f0fdf4;"
+                        + "-fx-background-radius: 10;"
+                        + "-fx-border-color: #bbf7d0;"
+                        + "-fx-border-radius: 10;"
+                        + "-fx-padding: 10;"
+                        + "-fx-text-fill: #166534;"
+                        + "-fx-font-size: 12px;"
+        );
+
+        TextField totpCode = new TextField();
+        totpCode.setPromptText(
+                "Código MFA actual para gerar novos códigos"
+        );
+        totpCode.setPrefHeight(44);
+        totpCode.setTextFormatter(
+                new TextFormatter<String>(change ->
+                        change.getControlNewText().matches("\\d{0,6}")
+                                ? change
+                                : null
+                )
+        );
+
+        Label hint = new Label(
+                "Gerar novos códigos invalida imediatamente todos os códigos de recuperação anteriores."
+        );
+        hint.setWrapText(true);
+        hint.getStyleClass().add("kubata-users-form-hint");
+
+        Label error = new Label();
+        error.setWrapText(true);
+        error.setManaged(false);
+        error.setVisible(false);
+
+        Button regenerate = new Button(
+                "Gerar novos códigos",
+                IconUtils.icon(Feather.REFRESH_CW, 12)
+        );
+        regenerate.getStyleClass().add("button-outlined");
+
+        Button disable = new Button(
+                "Desactivar MFA",
+                IconUtils.icon(Feather.SHIELD_OFF, 12)
+        );
+        disable.getStyleClass().add("button-outlined");
+
+        Button close = new Button(
+                "Fechar",
+                IconUtils.icon(Feather.X, 12)
+        );
+        close.getStyleClass().add("button-outlined");
+
+        HBox actions = new HBox(
+                8,
+                regenerate,
+                disable,
+                close
+        );
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox content = new VBox(
+                14,
+                status,
+                new Label("Código MFA actual"),
+                totpCode,
+                hint,
+                error,
+                actions
+        );
+        content.setPadding(new Insets(4));
+        content.setPrefWidth(580);
+
+        close.setOnAction(e -> modalManager.hideModal());
+
+        regenerate.setOnAction(e -> {
+            String code = totpCode.getText() == null
+                    ? ""
+                    : totpCode.getText().trim();
+
+            if (code.length() != 6) {
+                error.setText("Introduza o código MFA actual de 6 dígitos.");
+                error.setStyle("-fx-text-fill: #b91c1c; -fx-font-size: 11px;");
+                error.setManaged(true);
+                error.setVisible(true);
+                return;
+            }
+
+            regenerate.setDisable(true);
+            disable.setDisable(true);
+            close.setDisable(true);
+            error.setManaged(false);
+            error.setVisible(false);
+
+            javafx.concurrent.Task<List<String>> task =
+                    new javafx.concurrent.Task<>() {
+                        @Override
+                        protected List<String> call() {
+                            return mfaService.regenerateRecoveryCodes(user, code);
+                        }
+                    };
+
+            task.setOnSucceeded(event -> {
+                modalManager.hideModal();
+                showRecoveryCodesModal(
+                        user,
+                        task.getValue(),
+                        "Novos códigos de recuperação"
+                );
+                loadUsers();
+            });
+
+            task.setOnFailed(event -> {
+                regenerate.setDisable(false);
+                disable.setDisable(false);
+                close.setDisable(false);
+                Throwable failure = task.getException();
+                error.setText(
+                        failure == null || failure.getMessage() == null
+                                ? "Não foi possível gerar novos códigos."
+                                : failure.getMessage()
+                );
+                error.setStyle("-fx-text-fill: #b91c1c; -fx-font-size: 11px;");
+                error.setManaged(true);
+                error.setVisible(true);
+            });
+
+            Thread worker = new Thread(task, "kubata-mfa-recovery");
+            worker.setDaemon(true);
+            worker.start();
+        });
+
+        disable.setOnAction(e -> modalManager.showConfirmModal(
+                new VBox(
+                        10,
+                        new Label(
+                                "O MFA será desactivado e a chave TOTP e todos os "
+                                        + "códigos de recuperação serão removidos desta conta."
+                        ),
+                        new Label(
+                                "A conta ficará imediatamente sem o segundo factor."
+                        )
+                ),
+                "Desactivar MFA",
+                () -> {
+                    try {
+                        mfaService.disableMfa(user);
+                        mfaCheckBox.setSelected(false);
+                        mfaConfirmed[0] = false;
+                        mfaStatus.setText("MFA será desactivado ao guardar");
+                        mfaStatus.setStyle(
+                                "-fx-text-fill: #92400e; -fx-font-size: 11px; -fx-font-weight: 700;"
+                        );
+                        manageButton.setText("Configurar MFA");
+                        manageButton.setGraphic(
+                                IconUtils.icon(Feather.SHIELD, 12)
+                        );
+                        loadUsers();
+                    } catch (Exception ex) {
+                        modalManager.showErrorModal(
+                                "MFA",
+                                "Não foi possível desactivar o MFA.",
+                                ex
+                        );
+                    }
+                },
+                null,
+                new ModalManager.ModalConfig()
+                        .size(500, 280)
+                        .minSize(440, 240)
+                        .maximizable(false)
+                        .minimizable(false)
+                        .icon(Feather.SHIELD_OFF)
+                        .tone(ModalManager.ModalTone.WARNING)
+        ));
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Gestão do MFA")
+                        .subtitle(
+                                safe(user.getNome(), user.getEmail())
+                        )
+                        .icon(Feather.SHIELD)
+                        .tone(ModalManager.ModalTone.INFO)
+                        .size(640, 390)
+                        .minSize(560, 340)
+                        .maximizable(false)
+                        .minimizable(false)
+        );
+    }
+
+    private void showRecoveryCodesModal(
+            User user,
+            List<String> codes,
+            String title
+    ) {
+        TextArea codesArea = new TextArea(
+                String.join(System.lineSeparator(), codes)
+        );
+        codesArea.setEditable(false);
+        codesArea.setWrapText(false);
+        codesArea.setPrefRowCount(10);
+        codesArea.setStyle(
+                "-fx-font-family: 'Consolas';"
+                        + "-fx-font-size: 15px;"
+                        + "-fx-font-weight: 700;"
+                        + "-fx-letter-spacing: 1px;"
+        );
+
+        Label warning = new Label(
+                "IMPORTANTE: estes códigos só serão apresentados agora. "
+                        + "Guarde-os num local seguro. Cada código pode ser usado uma única vez."
+        );
+        warning.setWrapText(true);
+        warning.setStyle(
+                "-fx-background-color: #fff8eb;"
+                        + "-fx-background-radius: 10;"
+                        + "-fx-border-color: #f5ddb0;"
+                        + "-fx-border-radius: 10;"
+                        + "-fx-padding: 10;"
+                        + "-fx-text-fill: #8a5a00;"
+                        + "-fx-font-size: 11px;"
+        );
+
+        Button copy = new Button(
+                "Copiar códigos",
+                IconUtils.icon(Feather.COPY, 12)
+        );
+        copy.getStyleClass().add("button-outlined");
+
+        Button close = new Button(
+                "Fechar",
+                IconUtils.icon(Feather.CHECK, 12)
+        );
+        close.getStyleClass().add("button-primary");
+
+        HBox actions = new HBox(8, copy, close);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox content = new VBox(
+                12,
+                new Label(
+                        "Conta: "
+                                + safe(user.getEmail(), user.getNome())
+                ),
+                warning,
+                codesArea,
+                actions
+        );
+        content.setPadding(new Insets(4));
+        content.setPrefWidth(600);
+
+        copy.setOnAction(e -> {
+            javafx.scene.input.ClipboardContent clipboard =
+                    new javafx.scene.input.ClipboardContent();
+            clipboard.putString(String.join(
+                    System.lineSeparator(),
+                    codes
+            ));
+            javafx.scene.input.Clipboard.getSystemClipboard()
+                    .setContent(clipboard);
+        });
+
+        close.setOnAction(e -> modalManager.hideModal());
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title(title)
+                        .subtitle("Códigos de recuperação de uso único")
+                        .icon(Feather.KEY)
+                        .tone(ModalManager.ModalTone.WARNING)
+                        .singleButton("Concluir")
+                        .size(680, 500)
+                        .minSize(580, 440)
+                        .maximizable(false)
+                        .minimizable(false)
+                        .closeOnOverlayClick(false)
+        );
+    }
+
+    private Image createQrImage(String text, int size) throws Exception {
+        BitMatrix matrix = new QRCodeWriter().encode(
+                text,
+                BarcodeFormat.QR_CODE,
+                size,
+                size
+        );
+
+        WritableImage image = new WritableImage(size, size);
+        javafx.scene.image.PixelWriter writer =
+                image.getPixelWriter();
+
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                writer.setColor(
+                        x,
+                        y,
+                        matrix.get(x, y)
+                                ? Color.BLACK
+                                : Color.WHITE
+                );
+            }
+        }
+
+        return image;
+    }
+
     private void showDetailsModal(User user) {
         if (user == null) {
             return;
@@ -2173,6 +2814,7 @@ public class UtilizadoresView extends VBox {
             btnEditar.setDisable(!hasSelection || !can("EDITAR"));
             btnClonar.setDisable(!hasSelection || !can("CRIAR"));
             btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
+            btnMfa.setDisable(!hasSelection || !can("EDITAR"));
             btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
             btnStatus.setDisable(!hasSelection || !can("EDITAR")
                     || (current != null && selected != null
