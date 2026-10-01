@@ -2403,6 +2403,40 @@ public class UtilizadoresView extends VBox {
         Platform.runLater(() -> codeField.requestFocus());
     }
 
+    /**
+     * Abre a gestão de MFA a partir do painel de detalhes da lista.
+     * O fluxo completo (QR, confirmação, recuperação e desactivação)
+     * reutiliza o mesmo modal usado pelo formulário de utilizador.
+     */
+    private void showMfaManagementModal(User user) {
+        if (user == null) {
+            return;
+        }
+
+        CheckBox mfaCheckBox = new CheckBox();
+        mfaCheckBox.setSelected(user.isMfaEnabled());
+
+        boolean[] mfaConfirmed = {
+                user.isMfaEnabled()
+        };
+
+        Label mfaStatus = new Label(
+                user.isMfaEnabled()
+                        ? "MFA activo"
+                        : "MFA não configurado"
+        );
+
+        Button manageButton = new Button("Gerir MFA");
+
+        showMfaManagementModal(
+                user,
+                mfaCheckBox,
+                mfaConfirmed,
+                mfaStatus,
+                manageButton
+        );
+    }
+
     private void showMfaManagementModal(
             User user,
             CheckBox mfaCheckBox,
