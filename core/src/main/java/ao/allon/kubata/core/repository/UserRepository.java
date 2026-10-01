@@ -30,6 +30,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
         FROM User u
         LEFT JOIN FETCH u.perfis
         LEFT JOIN FETCH u.empresa
+        LEFT JOIN FETCH u.filial
         WHERE u.id = :id
         """)
     Optional<User> findByIdWithPerfis(@Param("id") Long id);
