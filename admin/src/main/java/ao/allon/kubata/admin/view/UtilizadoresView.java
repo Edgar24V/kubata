@@ -2728,7 +2728,13 @@ public class UtilizadoresView extends VBox {
 
             try {
                 MfaService.ActivationResult result =
-                        mfaService.confirmActivation(user, code);
+                        user.getId() != null
+                                ? mfaService.adminConfirmActivation(
+                                        sessionManager.getUser(),
+                                        user.getId(),
+                                        code
+                                )
+                                : mfaService.confirmActivation(user, code);
 
                 mfaCheckBox.setSelected(true);
                 mfaConfirmed[0] = true;
@@ -2947,7 +2953,14 @@ public class UtilizadoresView extends VBox {
                     new javafx.concurrent.Task<>() {
                         @Override
                         protected List<String> call() {
-                            return mfaService.regenerateRecoveryCodes(user, code);
+                            return user.getId() != null
+                                    ? mfaService.adminRegenerateRecoveryCodes(
+                                            sessionManager.getUser(),
+                                            user.getId(),
+                                            code,
+                                            "127.0.0.1"
+                                    )
+                                    : mfaService.regenerateRecoveryCodes(user, code);
                         }
                     };
 
@@ -2995,7 +3008,15 @@ public class UtilizadoresView extends VBox {
                 "Desactivar MFA",
                 () -> {
                     try {
-                        mfaService.disableMfa(user);
+                        if (user.getId() != null) {
+                            mfaService.adminDisableMfa(
+                                    sessionManager.getUser(),
+                                    user.getId(),
+                                    "127.0.0.1"
+                            );
+                        } else {
+                            mfaService.disableMfa(user);
+                        }
                         mfaCheckBox.setSelected(false);
                         mfaConfirmed[0] = false;
                         mfaStatus.setText("MFA será desactivado ao guardar");
