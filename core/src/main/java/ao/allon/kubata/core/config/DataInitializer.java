@@ -47,6 +47,7 @@ public class DataInitializer {
                 admin.setPassword(passwordEncoder.encode(adminPassword));
                 admin.setRole(Role.ADMIN);
                 admin.setActive(true);
+                admin.setCodigo("ADM-001");
                 admin.setPasswordChangedAt(java.time.LocalDateTime.now());
                 userRepository.save(admin);
 
