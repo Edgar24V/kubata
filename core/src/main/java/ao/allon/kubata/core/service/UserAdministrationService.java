@@ -156,6 +156,7 @@ public class UserAdministrationService {
 
         Set<PerfilAcesso> profiles = validateProfiles(requestedProfiles, empresa);
 
+        LinkedHashMap<String, Object> oldSnapshot = isNew ? null : userSnapshot(target);
         String oldPasswordHash = target.getPassword();
         if (rawPassword != null && !rawPassword.isBlank()) {
             validatePassword(rawPassword);
@@ -188,7 +189,7 @@ public class UserAdministrationService {
         target.setSuperadmin(draft.isSuperadmin());
         target.setPerfis(profiles);
 
-        if (target.getPasswordProvisoria() && target.getDataExpiracaoPassword() == null) {
+        if (target.isPasswordProvisoria() && target.getDataExpiracaoPassword() == null) {
             target.setDataExpiracaoPassword(LocalDate.now().plusDays(90));
         }
         if (!target.isPasswordProvisoria()) {
@@ -224,7 +225,7 @@ public class UserAdministrationService {
                 "USER",
                 String.valueOf(saved.getId()),
                 (isNew ? "Criado" : "Actualizado") + " utilizador " + saved.getEmail(),
-                isNew ? null : userSnapshot(target),
+                oldSnapshot,
                 userSnapshot(saved),
                 MODULE,
                 sourceIp,
@@ -401,7 +402,6 @@ public class UserAdministrationService {
                 throw new SecurityException("Não possui permissão para gerir utilizadores.");
             }
         } catch (IllegalArgumentException ex) {
-            if (ex instanceof SecurityException) throw ex;
             throw new SecurityException("Operação de administração de utilizadores inválida.", ex);
         }
     }
