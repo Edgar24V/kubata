@@ -114,6 +114,7 @@ public class AuthService {
                             "Código MFA ou recuperação inválido",
                             false
                     );
+                    recordFailure(user);
                     throw new AuthenticationException(
                             "Código MFA inválido ou código de recuperação inválido."
                     );
