@@ -2099,9 +2099,9 @@ public class UtilizadoresView extends VBox {
             boolean next = !selected.isTrusted();
             modalManager.showConfirm(
                     next ? "Marcar dispositivo como confiável" : "Retirar confiança",
-                    "Alterar o nível de confiança de "" 
+                    "Alterar o nível de confiança de \"" 
                             + safe(selected.getDeviceName(), "Dispositivo") 
-                            + ""?",
+                            + "\"?",
                     () -> runUserTask(
                             "Confiança do dispositivo",
                             () -> userDeviceService.setTrusted(
