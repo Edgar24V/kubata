@@ -12,6 +12,7 @@ import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.ParametroSistema;
 import ao.allon.kubata.core.repository.AdmPlataformaItemRepository;
 import ao.allon.kubata.core.repository.ParametroSistemaRepository;
+import ao.allon.kubata.core.service.AlertaService;
 import ao.allon.kubata.admin.view.AlertCenterView;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -60,6 +61,7 @@ public class PlataformaCentroCompletoView extends BorderPane {
     private final Label updatedAt=new Label("—");
     private final PlatformCommandCenterService commandCenter;
     private final AlertCenterView alertCenterView;
+    private final AlertaService alertaService;
     private final Label healthGlobal=new Label("A verificar…");
     private final Map<String,Label> healthStates=new LinkedHashMap<>();
     private final ListView<String> dashboardRecentOperations=new ListView<>();
@@ -71,9 +73,10 @@ public class PlataformaCentroCompletoView extends BorderPane {
                                         PlataformaAutomationService automation, PlataformaDocumentService documents,
                                         PlataformaCommunicationService communications, SessionManager sessions, Environment environment,
                                         PlataformaMotoresView motores, ModalManager modalManager,
-                                        PlatformCommandCenterService commandCenter, AlertCenterView alertCenterView){
+                                        PlatformCommandCenterService commandCenter, AlertCenterView alertCenterView,
+                                        AlertaService alertaService){
         this.itemRepository=itemRepository;this.parameterRepository=parameterRepository;this.automation=automation;this.documents=documents;
-        this.communications=communications;this.sessions=sessions;this.environment=environment;this.motores=motores;this.modalManager=modalManager;this.commandCenter=commandCenter;this.alertCenterView=alertCenterView;
+        this.communications=communications;this.sessions=sessions;this.environment=environment;this.motores=motores;this.modalManager=modalManager;this.commandCenter=commandCenter;this.alertCenterView=alertCenterView;this.alertaService=alertaService;
         seed(); build(); refreshMetrics();
         Platform.runLater(this::refreshAll);
     }
@@ -1116,7 +1119,12 @@ public class PlataformaCentroCompletoView extends BorderPane {
     }
     private void refreshMetrics(){
         ops.setText(""+itemRepository.countByTipo("OPERACAO"));
-        alerts.setText(""+itemRepository.countByTipo("ALERTA"));
+        try{
+            Map<ao.allon.kubata.core.domain.Alerta.Estado,Long> summary=alertaService.resumo(sessions.getUser());
+            alerts.setText(""+(summary.getOrDefault(ao.allon.kubata.core.domain.Alerta.Estado.OPEN,0L)+summary.getOrDefault(ao.allon.kubata.core.domain.Alerta.Estado.ACKNOWLEDGED,0L)));
+        }catch(Exception ignored){
+            alerts.setText(""+itemRepository.countByTipo("ALERTA"));
+        }
         docs.setText(""+itemRepository.countByTipo("DOCUMENTO"));
         comms.setText(""+itemRepository.countByTipo("COMUNICACAO"));
         custom.setText(""+(itemRepository.countByTipo("PERSONALIZACAO")+itemRepository.countByTipo("LISTAGEM")+itemRepository.countByTipo("MAPA")));
