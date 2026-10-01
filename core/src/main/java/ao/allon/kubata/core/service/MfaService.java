@@ -131,6 +131,12 @@ public class MfaService {
             );
         }
 
+        if (user.getId() == null) {
+            throw new IllegalStateException(
+                    "Guarde o utilizador antes de regenerar os códigos de recuperação."
+            );
+        }
+
         List<String> recoveryCodes = generateRecoveryCodes();
         user.setMfaRecoveryCodes(
                 recoveryCodes.stream()
