@@ -66,7 +66,8 @@ class MfaServiceTest {
     void recoveryCodeShouldBeConsumedAfterSuccessfulValidation() {
         MfaService service = new MfaService(
                 userRepository,
-                passwordEncoder
+                passwordEncoder,
+                acessoService
         );
 
         User user = new User();
@@ -91,7 +92,8 @@ class MfaServiceTest {
     void provisioningUriShouldUseTotpScheme() {
         MfaService service = new MfaService(
                 userRepository,
-                passwordEncoder
+                passwordEncoder,
+                acessoService
         );
 
         User user = new User();
