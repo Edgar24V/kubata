@@ -59,7 +59,7 @@ class GuiaTransporteModuleTest {
         Cliente c = new Cliente();
         c.setId(10L);
         c.setNome("Cliente Transporte");
-        c.setNif("5000000000");
+        c.setNif("1234567890");
         guia.setCliente(c);
         guia.setDataEmissao(LocalDate.now());
         guia.setDataVencimento(LocalDate.now());
