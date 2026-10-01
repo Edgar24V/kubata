@@ -25,12 +25,16 @@ class MfaServiceTest {
     @Mock
     private AcessoService acessoService;
 
+    @Mock
+    private SecurityService securityService;
+
     @Test
     void confirmActivationShouldEnableMfaAndCreateRecoveryCodes() {
         MfaService service = new MfaService(
                 userRepository,
                 passwordEncoder,
-                acessoService
+                acessoService,
+                securityService
         );
 
         User user = new User();
