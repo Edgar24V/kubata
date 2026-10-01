@@ -198,7 +198,7 @@ public class InvoiceReportService {
         parameters.put("rejectedDocumentNo", "");
         
         parameters.put("JWS_DOCUMENT_SIGNATURE", "");
-        parameters.put("jwsDocumentSignature", "");
+        parameters.put("jwsDocumentSignature", invoiceData.hash() != null && invoiceData.hash().length() >= 4 ? invoiceData.hash() : "N/D");
 
         // Pagamento (quando disponível)
         parameters.put("paymentMethod", "");
