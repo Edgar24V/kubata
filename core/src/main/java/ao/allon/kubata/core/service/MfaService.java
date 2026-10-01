@@ -24,13 +24,16 @@ public class MfaService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AcessoService acessoService;
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
 
     public MfaService(UserRepository userRepository,
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder,
+                      AcessoService acessoService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.acessoService = acessoService;
     }
 
     /**
@@ -86,6 +89,14 @@ public class MfaService {
 
         if (user.getId() != null) {
             userRepository.save(user);
+            acessoService.registrarAuditoria(
+                    user,
+                    "MFA_ACTIVATED",
+                    "AUTH",
+                    null,
+                    "MFA TOTP activado",
+                    true
+            );
         }
 
         return new ActivationResult(
@@ -104,6 +115,14 @@ public class MfaService {
 
         if (user.getId() != null) {
             userRepository.save(user);
+            acessoService.registrarAuditoria(
+                    user,
+                    "MFA_DISABLED",
+                    "AUTH",
+                    null,
+                    "MFA TOTP desactivado",
+                    true
+            );
         }
     }
 
@@ -145,6 +164,14 @@ public class MfaService {
         );
 
         userRepository.save(user);
+        acessoService.registrarAuditoria(
+                user,
+                "MFA_RECOVERY_REGENERATED",
+                "AUTH",
+                null,
+                "Códigos de recuperação MFA regenerados",
+                true
+        );
         return recoveryCodes;
     }
 
