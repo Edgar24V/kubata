@@ -711,25 +711,19 @@ public class UtilizadoresView extends VBox {
             table.setLoading(true);
         }
 
-        Platform.runLater(() -> {
-            try {
-                users.setAll(userAdministrationService.listar());
-                refreshFilters();
-                applyFilters();
-                updateSummary();
-            } catch (Exception e) {
-                e.printStackTrace();
-                modalManager.showErrorModal(
-                        "Erro ao carregar utilizadores",
-                        "Não foi possível carregar a lista de utilizadores.",
-                        e
-                );
-            } finally {
-                if (table != null) {
-                    table.setLoading(false);
+        runUserTask(
+                "Carregar utilizadores",
+                () -> userAdministrationService.listar(sessionManager.getUser()),
+                loaded -> {
+                    users.setAll(loaded);
+                    refreshFilters();
+                    applyFilters();
+                    updateSummary();
+                    if (table != null) {
+                        table.setLoading(false);
+                    }
                 }
-            }
-        });
+        );
     }
 
     private void refreshFilters() {
@@ -1075,7 +1069,10 @@ public class UtilizadoresView extends VBox {
             Empresa selectedEmpresa = cbEmpresa.getValue();
             List<Filial> options = selectedEmpresa == null
                     ? List.of()
-                    : userAdministrationService.filiais(selectedEmpresa);
+                    : userAdministrationService.filiais(
+                            sessionManager.getUser(),
+                            selectedEmpresa
+                    );
             Filial currentFilial = cbFilial.getValue();
             cbFilial.getItems().setAll(options);
             if (currentFilial != null && options.stream()
@@ -1785,6 +1782,9 @@ public class UtilizadoresView extends VBox {
             }
         });
         task.setOnFailed(event -> {
+            if (table != null) {
+                table.setLoading(false);
+            }
             Throwable error = task.getException();
             modalManager.showErrorModal(
                     title,
