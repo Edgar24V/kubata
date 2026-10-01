@@ -2748,7 +2748,7 @@ public class UtilizadoresView extends VBox {
                                 : mfaService.confirmActivation(user, code);
 
                 if (user.getId() != null) {
-                    User refreshed = userAdministrationService.carregarParaEdicao(user.getId());
+                    User refreshed = userAdministrationService.carregarParaEdicao(sessionManager.getUser(), user.getId());
                     user.setMfaEnabled(refreshed.isMfaEnabled());
                     user.setMfaSecret(refreshed.getMfaSecret());
                     user.setMfaRecoveryCodes(refreshed.getMfaRecoveryCodes());
