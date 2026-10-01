@@ -9,6 +9,7 @@ import ao.allon.kubata.core.domain.UserSecurityFinancialUsage;
 import ao.allon.kubata.core.domain.UserSecurityProfile;
 import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
+import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.UserAccessPermissionRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSecurityFinancialUsageRepository;
@@ -44,6 +45,7 @@ public class UserSecurityProfileService {
     private final UserSessionRepository userSessionRepository;
     private final UserAccessPermissionRepository userAccessPermissionRepository;
     private final PerfilAcessoRepository perfilAcessoRepository;
+    private final EmpresaRepository empresaRepository;
     private final AuditService auditService;
 
     public UserSecurityProfileService(
@@ -53,6 +55,7 @@ public class UserSecurityProfileService {
             UserSessionRepository userSessionRepository,
             UserAccessPermissionRepository userAccessPermissionRepository,
             PerfilAcessoRepository perfilAcessoRepository,
+            EmpresaRepository empresaRepository,
             AuditService auditService) {
         this.profileRepository = profileRepository;
         this.financialUsageRepository = financialUsageRepository;
@@ -60,6 +63,7 @@ public class UserSecurityProfileService {
         this.userSessionRepository = userSessionRepository;
         this.userAccessPermissionRepository = userAccessPermissionRepository;
         this.perfilAcessoRepository = perfilAcessoRepository;
+        this.empresaRepository = empresaRepository;
         this.auditService = auditService;
     }
 
@@ -106,6 +110,14 @@ public class UserSecurityProfileService {
         }
         if (requested == null) {
             throw new IllegalArgumentException("Perfil de segurança inválido.");
+        }
+        if (managedActor.getId().equals(target.getId()) && !requested.isLoginEnabled()) {
+            throw new SecurityException("A própria conta não pode ser desactivada pela sua política de login.");
+        }
+        if (requested.isRequireMfa() && !target.isMfaEnabled()) {
+            throw new IllegalArgumentException(
+                    "Não é possível exigir MFA antes de o segundo factor estar activo na conta."
+            );
         }
 
         validateProfile(requested);
@@ -584,6 +596,16 @@ public class UserSecurityProfileService {
         }
         if (profile.getAllowedCompanyIds().size() > 100) {
             throw new IllegalArgumentException("É permitido configurar no máximo 100 empresas.");
+        }
+        if (!profile.getAllowedCompanyIds().isEmpty()) {
+            long validCompanies = empresaRepository.findAllById(profile.getAllowedCompanyIds()).stream()
+                    .filter(e -> Boolean.TRUE.equals(e.getAtiva()))
+                    .count();
+            if (validCompanies != profile.getAllowedCompanyIds().size()) {
+                throw new IllegalArgumentException(
+                        "Uma ou mais empresas seleccionadas não existem ou estão inactivas."
+                );
+            }
         }
         if (profile.getAllowedWeekDays() == null) {
             profile.setAllowedWeekDays(new LinkedHashSet<>());
