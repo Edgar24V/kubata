@@ -11,6 +11,7 @@ import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.TipoConta;
 import ao.allon.kubata.core.domain.UserDevice;
+import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
@@ -2007,7 +2008,7 @@ public class UtilizadoresView extends VBox {
         if (current != null && current.getId() != null && current.getId().equals(selected.getId())) {
             modalManager.alert(
                     "Operação não permitida",
-                    "Não pode remover a própria conta.",
+                    "Não pode arquivar a própria conta.",
                     "warning",
                     null
             );
@@ -2015,23 +2016,25 @@ public class UtilizadoresView extends VBox {
         }
 
         if (!can("REMOVER")) {
-            modalManager.alert("Acesso negado", "Não possui permissão para remover utilizadores.", "warning", null);
+            modalManager.alert("Acesso negado", "Não possui permissão para arquivar utilizadores.", "warning", null);
             return;
         }
 
         modalManager.showConfirmModal(
                 confirmationContent(
-                        "Remover utilizador",
-                        "A conta seleccionada será removida do sistema."
+                        "Arquivar utilizador",
+                        "A conta será desactivada e as sessões serão terminadas. "
+                                + "Os dados permanecem para garantir rastreabilidade."
                 ),
-                "Remover utilizador — " + safe(selected.getNome(), selected.getEmail()),
-                () -> persistenceService.deleteAsync(
-                        userRepository,
-                        selected,
-                        null,
-                        "UTILIZADOR",
-                        "Removido utilizador: " + selected.getEmail(),
-                        this::loadUsers
+                "Arquivar utilizador — " + safe(selected.getNome(), selected.getEmail()),
+                () -> runUserTask(
+                        "Arquivar utilizador",
+                        () -> userAdministrationService.arquivar(
+                                current,
+                                selected.getId(),
+                                "127.0.0.1"
+                        ),
+                        saved -> loadUsers()
                 ),
                 null
         );
@@ -2047,6 +2050,255 @@ public class UtilizadoresView extends VBox {
         messageLabel.getStyleClass().add("kubata-users-form-hint");
         box.getChildren().addAll(titleLabel, messageLabel);
         return box;
+    }
+
+    private void showDevicesModal(User user) {
+        if (user == null || !can("EDITAR")) {
+            return;
+        }
+
+        TableView<UserDevice> deviceTable = new TableView<>();
+        deviceTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        deviceTable.setPlaceholder(new Label("Nenhum dispositivo registado."));
+
+        TableColumn<UserDevice, String> name = deviceTextColumn("Dispositivo", d -> safe(d.getDeviceName(), "Dispositivo"));
+        TableColumn<UserDevice, String> type = deviceTextColumn("Tipo", d -> safe(d.getDeviceType(), "—"));
+        TableColumn<UserDevice, String> platform = deviceTextColumn("Plataforma", d -> safe(d.getPlatform(), "—"));
+        TableColumn<UserDevice, String> ip = deviceTextColumn("Último IP", d -> safe(d.getLastIp(), "—"));
+        TableColumn<UserDevice, String> trusted = deviceTextColumn("Confiança", d -> d.isTrusted() ? "Confiável" : "Normal");
+        TableColumn<UserDevice, String> lastSeen = deviceTextColumn(
+                "Última actividade",
+                d -> formatDateTime(d.getLastSeen())
+        );
+        TableColumn<UserDevice, String> state = deviceTextColumn(
+                "Estado",
+                d -> Boolean.TRUE.equals(d.getActive()) ? "Activo" : "Revogado"
+        );
+        deviceTable.getColumns().setAll(name, type, platform, ip, trusted, lastSeen, state);
+
+        Button trust = new Button("Alterar confiança", IconUtils.icon(Feather.SHIELD, 12));
+        Button revoke = new Button("Revogar", IconUtils.icon(Feather.X_CIRCLE, 12));
+        Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 12));
+        Button close = new Button("Fechar", IconUtils.icon(Feather.X, 12));
+        trust.getStyleClass().add("button-outlined");
+        revoke.getStyleClass().add("button-outlined");
+        refresh.getStyleClass().add("button-outlined");
+        close.getStyleClass().add("button-primary");
+
+        Runnable load = () -> runUserTask(
+                "Dispositivos",
+                () -> userDeviceService.listar(sessionManager.getUser(), user.getId()),
+                list -> deviceTable.getItems().setAll(list)
+        );
+        load.run();
+
+        deviceTable.getSelectionModel().selectedItemProperty().addListener((obs, old, selected) -> {
+            trust.setDisable(selected == null);
+            revoke.setDisable(selected == null || !Boolean.TRUE.equals(selected.getActive()));
+        });
+        trust.setDisable(true);
+        revoke.setDisable(true);
+
+        trust.setOnAction(e -> {
+            UserDevice selected = deviceTable.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+            boolean next = !selected.isTrusted();
+            modalManager.showConfirm(
+                    next ? "Marcar dispositivo como confiável" : "Retirar confiança",
+                    "Alterar o nível de confiança de "" + safe(selected.getDeviceName(), "Dispositivo") + ""?",
+                    () -> runUserTask(
+                            "Confiança do dispositivo",
+                            () -> userDeviceService.setTrusted(
+                                    sessionManager.getUser(),
+                                    selected.getId(),
+                                    next,
+                                    "127.0.0.1"
+                            ),
+                            saved -> load.run()
+                    )
+            );
+        });
+
+        revoke.setOnAction(e -> {
+            UserDevice selected = deviceTable.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+
+            TextArea reason = new TextArea();
+            reason.setPromptText("Motivo da revogação");
+            reason.setPrefRowCount(3);
+            reason.setWrapText(true);
+
+            modalManager.showConfirmModal(
+                    new VBox(10, new Label(
+                            "O dispositivo deixará de ser utilizável pela conta até ser registado novamente."
+                    ), reason),
+                    "Revogar dispositivo",
+                    () -> {
+                        String value = reason.getText() == null ? "" : reason.getText().trim();
+                        if (value.length() < 3) {
+                            modalManager.alert(
+                                    "Motivo obrigatório",
+                                    "Indique um motivo com pelo menos 3 caracteres.",
+                                    "warning",
+                                    null
+                            );
+                            return;
+                        }
+                        runUserTask(
+                                "Revogar dispositivo",
+                                () -> userDeviceService.revogar(
+                                        sessionManager.getUser(),
+                                        selected.getId(),
+                                        "127.0.0.1",
+                                        value
+                                ),
+                                saved -> load.run()
+                        );
+                    },
+                    null
+            );
+        });
+
+        refresh.setOnAction(e -> load.run());
+        close.setOnAction(e -> modalManager.hideModal());
+
+        HBox actions = new HBox(8, trust, revoke, new Pane(), refresh, close);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(actions.getChildren().get(2), Priority.ALWAYS);
+
+        VBox content = new VBox(
+                12,
+                new Label("Dispositivos reconhecidos para " + safe(user.getEmail(), user.getNome())),
+                deviceTable,
+                actions
+        );
+        content.setPadding(new Insets(4));
+        VBox.setVgrow(deviceTable, Priority.ALWAYS);
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Dispositivos")
+                        .subtitle("Identidade · confiança · revogação")
+                        .icon(Feather.CPU)
+                        .size(900, 520)
+                        .minSize(720, 440)
+                        .maximizable(true)
+                        .minimizable(false)
+        );
+    }
+
+    private void showSessionsModal(User user) {
+        if (user == null || !can("EDITAR")) {
+            return;
+        }
+
+        TableView<UserSession> sessionTable = new TableView<>();
+        sessionTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        sessionTable.setPlaceholder(new Label("Nenhuma sessão registada."));
+
+        TableColumn<UserSession, String> workstation = sessionTextColumn("Posto", UserSession::getWorkstation);
+        TableColumn<UserSession, String> ip = sessionTextColumn("IP", UserSession::getIpAddress);
+        TableColumn<UserSession, String> context = sessionTextColumn("Contexto", UserSession::getContext);
+        TableColumn<UserSession, String> login = sessionTextColumn(
+                "Login",
+                s -> formatDateTime(s.getLoginTime())
+        );
+        TableColumn<UserSession, String> memory = sessionTextColumn(
+                "Memória",
+                s -> safe(s.getMemoryUsage(), "—")
+        );
+        sessionTable.getColumns().setAll(workstation, ip, context, login, memory);
+
+        Button terminate = new Button(
+                "Terminar todas as sessões",
+                IconUtils.icon(Feather.LOG_OUT, 12)
+        );
+        terminate.getStyleClass().add("button-outlined");
+        Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 12));
+        refresh.getStyleClass().add("button-outlined");
+        Button close = new Button("Fechar", IconUtils.icon(Feather.X, 12));
+        close.getStyleClass().add("button-primary");
+
+        Runnable load = () -> runUserTask(
+                "Sessões",
+                () -> userAdministrationService.sessoes(
+                        sessionManager.getUser(),
+                        user.getId()
+                ),
+                list -> sessionTable.getItems().setAll(list)
+        );
+        load.run();
+
+        terminate.setOnAction(e -> modalManager.showConfirm(
+                "Terminar sessões",
+                "Todas as sessões registadas de " + safe(user.getNome(), user.getEmail()) + " serão terminadas.",
+                () -> runUserTask(
+                        "Terminar sessões",
+                        () -> userAdministrationService.terminarSessoes(
+                                sessionManager.getUser(),
+                                user.getId(),
+                                "127.0.0.1"
+                        ),
+                        count -> {
+                            load.run();
+                            modalManager.alert(
+                                    "Sessões terminadas",
+                                    count + " sessão(ões) terminada(s).",
+                                    "info",
+                                    null
+                            );
+                        }
+                )
+        ));
+
+        refresh.setOnAction(e -> load.run());
+        close.setOnAction(e -> modalManager.hideModal());
+
+        HBox actions = new HBox(8, terminate, new Pane(), refresh, close);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(actions.getChildren().get(1), Priority.ALWAYS);
+
+        VBox content = new VBox(
+                12,
+                new Label("Sessões registadas de " + safe(user.getEmail(), user.getNome())),
+                sessionTable,
+                actions
+        );
+        content.setPadding(new Insets(4));
+        VBox.setVgrow(sessionTable, Priority.ALWAYS);
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Sessões do utilizador")
+                        .subtitle("Administração de sessões e revogação de acesso")
+                        .icon(Feather.ACTIVITY)
+                        .size(860, 500)
+                        .minSize(700, 420)
+                        .maximizable(true)
+                        .minimizable(false)
+        );
+    }
+
+    private TableColumn<UserDevice, String> deviceTextColumn(
+            String title,
+            java.util.function.Function<UserDevice, String> mapper) {
+        TableColumn<UserDevice, String> column = new TableColumn<>(title);
+        column.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                safe(mapper.apply(data.getValue()), "—")
+        ));
+        return column;
+    }
+
+    private TableColumn<UserSession, String> sessionTextColumn(
+            String title,
+            java.util.function.Function<UserSession, String> mapper) {
+        TableColumn<UserSession, String> column = new TableColumn<>(title);
+        column.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                safe(mapper.apply(data.getValue()), "—")
+        ));
+        return column;
     }
 
     private void cloneUser() {
