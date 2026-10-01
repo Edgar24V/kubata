@@ -11,9 +11,12 @@ import java.util.List;
 public class SecurityService {
 
     private final UserAccessPermissionRepository permissionRepository;
+    private final UserSecurityProfileService userSecurityProfileService;
 
-    public SecurityService(UserAccessPermissionRepository permissionRepository) {
+    public SecurityService(UserAccessPermissionRepository permissionRepository,
+                           UserSecurityProfileService userSecurityProfileService) {
         this.permissionRepository = permissionRepository;
+        this.userSecurityProfileService = userSecurityProfileService;
     }
 
     /**
@@ -26,9 +29,15 @@ public class SecurityService {
      */
     @Transactional(readOnly = true)
     public boolean hasPermission(User user, String modulo, String operacao) {
-        if (user == null) return false;
-        
-        // Superadmin ou ADMIN têm acesso total por definição
+        if (user == null || modulo == null || modulo.isBlank()) return false;
+
+        // O perfil individual funciona como uma restrição adicional ao RBAC.
+        if (!userSecurityProfileService.isModuleAllowed(user, modulo)) {
+            return false;
+        }
+
+        // Superadmin ou ADMIN têm acesso total no RBAC, mas continuam sujeitos
+        // às restrições explícitas do perfil de segurança individual.
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) {
             return true;
         }
@@ -61,7 +70,8 @@ public class SecurityService {
      */
     @Transactional(readOnly = true)
     public boolean hasPermission(User user, String modulo, String recurso, PermissaoPerfil.Operacao operacao) {
-        if (user == null) return false;
+        if (user == null || modulo == null || modulo.isBlank()) return false;
+        if (!userSecurityProfileService.isModuleAllowed(user, modulo)) return false;
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
 
         // Verifica nos perfis
@@ -107,7 +117,8 @@ public class SecurityService {
      */
     @Transactional(readOnly = true)
     public boolean hasModuleAccess(User user, String modulo) {
-        if (user == null) return false;
+        if (user == null || modulo == null || modulo.isBlank()) return false;
+        if (!userSecurityProfileService.isModuleAllowed(user, modulo)) return false;
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
 
         // Verifica permissões legadas
