@@ -39,8 +39,6 @@ public class PasswordChangeService {
             throw new IllegalArgumentException("A palavra-passe actual é obrigatória.");
         }
 
-        validateNewPassword(newPassword);
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado."));
 
@@ -70,25 +68,4 @@ public class PasswordChangeService {
         return userRepository.save(user);
     }
 
-    private void validateNewPassword(String newPassword) {
-        if (newPassword == null || newPassword.isBlank()) {
-            throw new IllegalArgumentException("A nova palavra-passe é obrigatória.");
-        }
-
-        if (newPassword.length() < 8) {
-            throw new IllegalArgumentException(
-                    "A nova palavra-passe deve ter pelo menos 8 caracteres."
-            );
-        }
-
-        boolean upper = newPassword.chars().anyMatch(Character::isUpperCase);
-        boolean lower = newPassword.chars().anyMatch(Character::isLowerCase);
-        boolean digit = newPassword.chars().anyMatch(Character::isDigit);
-
-        if (!upper || !lower || !digit) {
-            throw new IllegalArgumentException(
-                    "A nova palavra-passe deve conter maiúsculas, minúsculas e números."
-            );
-        }
-    }
 }
