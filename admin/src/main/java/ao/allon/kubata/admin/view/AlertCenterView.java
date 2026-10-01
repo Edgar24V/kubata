@@ -538,6 +538,10 @@ public class AlertCenterView extends BorderPane {
         modalManager.alert(title, message, "error", null);
     }
 
+    private void show(String title, String message) {
+        modalManager.alert(title, message == null ? "" : message, "info", null);
+    }
+
     private Button button(String title, Feather icon, Runnable action) {
         Button button = new Button(title, ao.allon.kubata.admin.ui.util.IconUtils.icon(icon, 12));
         button.getStyleClass().add("button-outlined");
