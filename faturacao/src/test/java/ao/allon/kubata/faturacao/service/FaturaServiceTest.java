@@ -5,6 +5,7 @@ import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Produto;
+import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
@@ -73,6 +74,17 @@ class FaturaServiceTest {
         fatura.addItem(item);
         when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
         when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(serieService.findPadrao(any(ao.allon.kubata.faturacao.domain.enums.TipoDocumento.class)))
+                .thenAnswer(inv -> {
+                    ao.allon.kubata.faturacao.domain.enums.TipoDocumento tipo = inv.getArgument(0);
+                    Serie serie = new Serie();
+                    serie.setTipoDocumento(tipo);
+                    serie.setDesignacao("2026");
+                    serie.setAno(2026);
+                    serie.setAtiva(true);
+                    return Optional.of(serie);
+                });
+        when(serieService.getProximoNumero(any(Serie.class))).thenReturn(1L);
     }
 
     @Test
