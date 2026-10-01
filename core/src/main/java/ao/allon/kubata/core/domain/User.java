@@ -58,6 +58,9 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "mfa_enabled")
     private boolean mfaEnabled = false;
 
+    @Column(name = "mfa_recovery_codes", length = 2048)
+    private String mfaRecoveryCodes;
+
     @Column(name = "ultimo_acesso")
     private java.time.LocalDateTime ultimoAcesso;
 
@@ -255,6 +258,14 @@ public class User extends BaseEntity implements UserDetails {
 
     public void setMfaEnabled(boolean mfaEnabled) {
         this.mfaEnabled = mfaEnabled;
+    }
+
+    public String getMfaRecoveryCodes() {
+        return mfaRecoveryCodes;
+    }
+
+    public void setMfaRecoveryCodes(String mfaRecoveryCodes) {
+        this.mfaRecoveryCodes = mfaRecoveryCodes;
     }
 
     public java.time.LocalDateTime getUltimoAcesso() {
