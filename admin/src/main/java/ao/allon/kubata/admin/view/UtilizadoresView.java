@@ -951,6 +951,13 @@ public class UtilizadoresView extends VBox {
 
         GridPane personalGrid = formGrid();
 
+        TextField txtCodigo = field(
+                "Código",
+                isNew ? "" : safe(formUser.getCodigo(), ""),
+                "Gerado automaticamente"
+        );
+        txtCodigo.setEditable(false);
+
         TextField txtNome = field(
                 "Nome completo",
                 isNew ? "" : formUser.getNome(),
@@ -972,8 +979,9 @@ public class UtilizadoresView extends VBox {
                 "Contacto telefónico"
         );
 
-        addFormPair(personalGrid, 0, "Nome:*", txtNome, "Email:*", txtEmail);
-        addFormPair(personalGrid, 1, "NIF:", txtNif, "Telefone:", txtTelefone);
+        addFormPair(personalGrid, 0, "Código:", txtCodigo, "Nome:*", txtNome);
+        addFormPair(personalGrid, 1, "Email:*", txtEmail, "NIF:", txtNif);
+        addFormPair(personalGrid, 2, "Telefone:", txtTelefone, null, new Label());
 
         identitySection.getChildren().add(personalGrid);
 
@@ -1001,6 +1009,21 @@ public class UtilizadoresView extends VBox {
             }
         });
 
+        ComboBox<Filial> cbFilial = new ComboBox<>();
+        cbFilial.setMaxWidth(Double.MAX_VALUE);
+        cbFilial.setPromptText("Seleccionar filial");
+        cbFilial.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Filial object) {
+                return object == null ? "" : object.toString();
+            }
+
+            @Override
+            public Filial fromString(String string) {
+                return null;
+            }
+        });
+
         ComboBox<Role> cmbRole = new ComboBox<>(
                 FXCollections.observableArrayList(Role.values())
         );
@@ -1018,6 +1041,26 @@ public class UtilizadoresView extends VBox {
             }
         });
 
+        ComboBox<TipoConta> cmbTipoConta = new ComboBox<>(
+                FXCollections.observableArrayList(TipoConta.values())
+        );
+        cmbTipoConta.setValue(
+                isNew ? TipoConta.PESSOAL
+                        : (formUser.getTipoConta() == null ? TipoConta.PESSOAL : formUser.getTipoConta())
+        );
+        cmbTipoConta.setMaxWidth(Double.MAX_VALUE);
+        cmbTipoConta.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(TipoConta object) {
+                return object == null ? "" : tipoContaLabel(object);
+            }
+
+            @Override
+            public TipoConta fromString(String string) {
+                return null;
+            }
+        });
+
         TextField txtDepartamento = field(
                 "Departamento",
                 isNew ? "" : safe(formUser.getDepartamento(), ""),
@@ -1029,8 +1072,33 @@ public class UtilizadoresView extends VBox {
                 "Ex.: Operador de facturação"
         );
 
-        addFormPair(organizationGrid, 0, "Empresa:*", cbEmpresa, "Função:", cmbRole);
-        addFormPair(organizationGrid, 1, "Departamento:", txtDepartamento, "Cargo:", txtCargo);
+        Runnable refreshFiliais = () -> {
+            Empresa selectedEmpresa = cbEmpresa.getValue();
+            List<Filial> options = selectedEmpresa == null
+                    ? List.of()
+                    : userAdministrationService.filiais(selectedEmpresa);
+            Filial currentFilial = cbFilial.getValue();
+            cbFilial.getItems().setAll(options);
+            if (currentFilial != null && options.stream()
+                    .anyMatch(f -> f.getId() != null && f.getId().equals(currentFilial.getId()))) {
+                cbFilial.setValue(currentFilial);
+            } else if (!isNew && formUser.getFilial() != null && options.stream()
+                    .anyMatch(f -> f.getId() != null && f.getId().equals(formUser.getFilial().getId()))) {
+                cbFilial.setValue(formUser.getFilial());
+            } else {
+                cbFilial.setValue(null);
+            }
+        };
+
+        cbEmpresa.setOnAction(e -> refreshFiliais.run());
+        if (!isNew && formUser.getEmpresa() != null) {
+            cbEmpresa.setValue(formUser.getEmpresa());
+            refreshFiliais.run();
+        }
+
+        addFormPair(organizationGrid, 0, "Empresa:*", cbEmpresa, "Filial:", cbFilial);
+        addFormPair(organizationGrid, 1, "Função:", cmbRole, "Tipo de conta:", cmbTipoConta);
+        addFormPair(organizationGrid, 2, "Departamento:", txtDepartamento, "Cargo:", txtCargo);
 
         organizationSection.getChildren().add(organizationGrid);
         generalPage.getChildren().addAll(identitySection, organizationSection);
