@@ -365,7 +365,7 @@
                 
                 <textField textAdjust="StretchHeight">
                     <reportElement style="Legal" x="0" y="15" width="206" height="10" uuid="0a1b2c3d-4e5f-6a7b-8c9d-0a1b2c3d4e5f"/>
-                    <textFieldExpression><![CDATA["Hash: " + ($P{jwsDocumentSignature} != null ? $P{jwsDocumentSignature}.substring(0,4) : "N/D") + " - " + $P{softwareProductId} + " v" + $P{softwareVersion}]]></textFieldExpression>
+                    <textFieldExpression><![CDATA["Hash: " + ($P{jwsDocumentSignature} != null ? $P{jwsDocumentSignature}.length() >= 4 ? $P{jwsDocumentSignature}.substring(0,4) : $P{jwsDocumentSignature} : "N/D") + " - " + $P{softwareProductId} + " v" + $P{softwareVersion}]]></textFieldExpression>
                 </textField>
                 
                 <!-- QR CODE -->
