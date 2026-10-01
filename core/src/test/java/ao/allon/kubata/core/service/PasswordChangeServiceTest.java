@@ -85,8 +85,6 @@ class PasswordChangeServiceTest {
         user.setActive(true);
         user.setPassword("HASH-ANTIGA");
 
-        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.changeOwnPassword(10L, "Temporaria1", "1234567")
