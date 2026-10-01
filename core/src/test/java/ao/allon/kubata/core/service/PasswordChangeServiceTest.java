@@ -88,6 +88,13 @@ class PasswordChangeServiceTest {
         user.setId(10L);
         user.setActive(true);
         user.setPassword("HASH-ANTIGA");
+        UserSecurityProfile profile = new UserSecurityProfile();
+        profile.setPasswordMinLength(8);
+        profile.setPasswordRequireUpper(true);
+        profile.setPasswordRequireLower(true);
+        profile.setPasswordRequireDigit(true);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+        when(userSecurityProfileService.getEffectiveProfile(user)).thenReturn(profile);
 
         assertThrows(
                 IllegalArgumentException.class,
