@@ -2742,6 +2742,7 @@ public class UtilizadoresView extends VBox {
                 manageButton.setGraphic(IconUtils.icon(Feather.SHIELD, 12));
 
                 modalManager.hideModal();
+                loadUsers();
 
                 showRecoveryCodesModal(
                         user,
