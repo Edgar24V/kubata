@@ -644,8 +644,18 @@ public class UtilizadoresView extends VBox {
                 : "Seleccione uma linha para consultar os detalhes.");
 
         if (!hasSelection) {
+            detailCodigo.setText("-");
+            detailFilial.setText("-");
+            detailTipoConta.setText("-");
             setDetails("-", "-", "-", "-", "-", "-", "-", "-", "-", "-");
         } else {
+            detailCodigo.setText(safe(selected.getCodigo(), "-"));
+            detailFilial.setText(
+                    selected.getFilial() == null
+                            ? "Sem filial"
+                            : safe(selected.getFilial().getNome(), "Filial")
+            );
+            detailTipoConta.setText(tipoContaLabel(selected.getTipoConta()));
             setDetails(
                     userStatus(selected),
                     companyName(selected.getEmpresa()),
@@ -667,6 +677,8 @@ public class UtilizadoresView extends VBox {
         btnClonar.setDisable(!hasSelection || !can("CRIAR"));
         btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
         btnMfa.setDisable(!hasSelection || !can("EDITAR"));
+        btnDispositivos.setDisable(!hasSelection || !can("EDITAR"));
+        btnSessoes.setDisable(!hasSelection || !can("EDITAR"));
         btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
         btnStatus.setDisable(!hasSelection || !can("EDITAR") ||
                 (current != null && selected != null && current.getId() != null && current.getId().equals(selected.getId())));
@@ -704,7 +716,7 @@ public class UtilizadoresView extends VBox {
 
         Platform.runLater(() -> {
             try {
-                users.setAll(userRepository.findAll());
+                users.setAll(userAdministrationService.listar());
                 refreshFilters();
                 applyFilters();
                 updateSummary();
@@ -809,10 +821,10 @@ public class UtilizadoresView extends VBox {
     }
 
     public void showUserDialog(User user) {
-        boolean isNew = user == null;
+        boolean isNew = user == null || user.getId() == null;
 
         if (!isNew && user.getId() != null) {
-            user = userRepository.findByIdWithPerfis(user.getId()).orElse(user);
+            user = userAdministrationService.carregarParaEdicao(user.getId());
         }
 
         final User formUser = user;
