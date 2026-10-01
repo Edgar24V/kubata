@@ -26,10 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.management.ManagementFactory;
-import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -87,7 +85,6 @@ public class PlatformCommandCenterService {
         this.environment = environment;
     }
 
-    @Transactional(readOnly = true)
     public PlatformHealthSnapshot checkGlobal(User actor) {
         requirePermission(actor, VIEW_PERMISSION, ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.VER);
 
@@ -117,7 +114,6 @@ public class PlatformCommandCenterService {
         return snapshot;
     }
 
-    @Transactional(readOnly = true)
     public List<PlatformSessionSummary> sessions(User actor) {
         requirePermission(actor, SESSION_PERMISSION, ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.VER);
         return sessionsInternal();
