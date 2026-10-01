@@ -35,6 +35,9 @@ public class AcessoService {
     @Autowired
     private AuditService auditService;
 
+    @Autowired
+    private UserSecurityProfileService userSecurityProfileService;
+
     @Transactional
     public User salvarUsuario(User user, String rawPassword) {
         if (user.getId() == null) {
@@ -44,6 +47,7 @@ public class AcessoService {
             if (rawPassword == null || rawPassword.isBlank()) {
                 throw new IllegalArgumentException("Senha é obrigatória para novos usuários.");
             }
+            userSecurityProfileService.validatePassword(user, rawPassword);
             user.setPassword(passwordEncoder.encode(rawPassword));
             user.setPasswordChangedAt(LocalDateTime.now());
         } else {
@@ -161,6 +165,7 @@ public class AcessoService {
     @Transactional(readOnly = true)
     public boolean temAcesso(User user, String modulo, String recurso, ao.allon.kubata.core.domain.PermissaoPerfil.Operacao operacao) {
         if (user == null) return false;
+        if (!userSecurityProfileService.isModuleAllowed(user, modulo)) return false;
         if (user.isSuperadmin()) return true;
         if (user.getRole() == Role.ADMIN) return true;
 
