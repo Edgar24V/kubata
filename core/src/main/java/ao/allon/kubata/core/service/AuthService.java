@@ -146,12 +146,18 @@ public class AuthService {
         resetFailures(user);
         userRepository.save(user);
         
+        String workstation;
+        try {
+            workstation = InetAddress.getLocalHost().getHostName();
+        } catch (Exception ignored) {
+            workstation = "KUBATA-POSTO";
+        }
+
         // Criar sessão real na BD
-        UserSession session = new UserSession(user.getNome(), "STATION-01", ip, "KUBATA ERP");
+        UserSession session = new UserSession(user.getNome(), workstation, ip, "KUBATA ERP");
         userSessionRepository.save(session);
 
         try {
-            String workstation;
             try {
                 workstation = InetAddress.getLocalHost().getHostName();
             } catch (Exception ignored) {
