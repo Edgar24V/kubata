@@ -8,7 +8,6 @@ import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSecurityFinancialUsage;
 import ao.allon.kubata.core.domain.UserSecurityProfile;
 import ao.allon.kubata.core.domain.UserSession;
-import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.UserAccessPermissionRepository;
 import ao.allon.kubata.core.repository.UserRepository;
@@ -44,7 +43,6 @@ public class UserSecurityProfileService {
     private final UserRepository userRepository;
     private final UserSessionRepository userSessionRepository;
     private final UserAccessPermissionRepository userAccessPermissionRepository;
-    private final PerfilAcessoRepository perfilAcessoRepository;
     private final EmpresaRepository empresaRepository;
     private final AuditService auditService;
 
@@ -54,7 +52,6 @@ public class UserSecurityProfileService {
             UserRepository userRepository,
             UserSessionRepository userSessionRepository,
             UserAccessPermissionRepository userAccessPermissionRepository,
-            PerfilAcessoRepository perfilAcessoRepository,
             EmpresaRepository empresaRepository,
             AuditService auditService) {
         this.profileRepository = profileRepository;
@@ -62,7 +59,6 @@ public class UserSecurityProfileService {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.userAccessPermissionRepository = userAccessPermissionRepository;
-        this.perfilAcessoRepository = perfilAcessoRepository;
         this.empresaRepository = empresaRepository;
         this.auditService = auditService;
     }
