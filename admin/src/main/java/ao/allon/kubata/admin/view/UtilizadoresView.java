@@ -5,9 +5,11 @@ import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.Empresa;
+import ao.allon.kubata.core.domain.Filial;
 import ao.allon.kubata.core.domain.PerfilAcesso;
 import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
+import ao.allon.kubata.core.domain.TipoConta;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
@@ -16,6 +18,8 @@ import ao.allon.kubata.core.service.AcessoService;
 import ao.allon.kubata.core.service.PasswordResetService;
 import ao.allon.kubata.core.service.MfaService;
 import ao.allon.kubata.core.service.SecurityService;
+import ao.allon.kubata.core.service.UserAdministrationService;
+import ao.allon.kubata.core.service.UserDeviceService;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.ui.table.TextTableCell;
@@ -76,6 +80,8 @@ public class UtilizadoresView extends VBox {
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
+    private final UserAdministrationService userAdministrationService;
+    private final UserDeviceService userDeviceService;
 
     private final ObservableList<User> users = FXCollections.observableArrayList();
 
@@ -105,6 +111,9 @@ public class UtilizadoresView extends VBox {
     private Label detailMfa;
     private Label detailPassword;
     private Label detailFalhas;
+    private Label detailCodigo;
+    private Label detailFilial;
+    private Label detailTipoConta;
 
     private Button btnNovo;
     private Button btnEditar;
@@ -113,6 +122,8 @@ public class UtilizadoresView extends VBox {
     private Button btnDesbloquear;
     private Button btnResetPassword;
     private Button btnMfa;
+    private Button btnDispositivos;
+    private Button btnSessoes;
 
     private boolean dataLoaded;
 
@@ -126,7 +137,9 @@ public class UtilizadoresView extends VBox {
                             PasswordEncoder passwordEncoder,
                             SessionManager sessionManager,
                             ModalManager modalManager,
-                            PersistenceService persistenceService) {
+                            PersistenceService persistenceService,
+                            UserAdministrationService userAdministrationService,
+                            UserDeviceService userDeviceService) {
         this.userRepository = userRepository;
         this.perfilRepository = perfilRepository;
         this.empresaRepository = empresaRepository;
@@ -138,6 +151,8 @@ public class UtilizadoresView extends VBox {
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
+        this.userAdministrationService = userAdministrationService;
+        this.userDeviceService = userDeviceService;
 
         buildUI();
     }
