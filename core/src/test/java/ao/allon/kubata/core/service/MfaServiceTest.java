@@ -71,7 +71,8 @@ class MfaServiceTest {
         MfaService service = new MfaService(
                 userRepository,
                 passwordEncoder,
-                acessoService
+                acessoService,
+                securityService
         );
 
         User user = new User();
@@ -97,7 +98,8 @@ class MfaServiceTest {
         MfaService service = new MfaService(
                 userRepository,
                 passwordEncoder,
-                acessoService
+                acessoService,
+                securityService
         );
 
         User user = new User();
