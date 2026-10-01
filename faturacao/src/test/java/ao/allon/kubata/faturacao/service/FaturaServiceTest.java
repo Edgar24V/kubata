@@ -61,6 +61,7 @@ class FaturaServiceTest {
         fatura.setDataEmissao(LocalDate.now());
         fatura.setDataVencimento(LocalDate.now().plusDays(30));
         fatura.setStatus(StatusFatura.RASCUNHO);
+        fatura.setTipoDocumento(ao.allon.kubata.faturacao.domain.enums.TipoDocumento.FATURA);
         ItemFatura item = new ItemFatura();
         item.setDescricao("Produto A");
         item.setQuantidade(2);
@@ -87,7 +88,7 @@ class FaturaServiceTest {
         fatura.setStatus(StatusFatura.EMITIDA);
         faturaService.cancelarFatura(1L, "Cancelamento Teste");
         assertEquals(StatusFatura.CANCELADA, fatura.getStatus());
-        verify(produtoService, times(1)).incrementarEstoque(eq(10L), eq(2));
+        verify(produtoService, times(1)).registarEntrada(eq(10L), eq(2), anyString());
         verify(faturaRepository, times(1)).save(any(Fatura.class));
     }
 
