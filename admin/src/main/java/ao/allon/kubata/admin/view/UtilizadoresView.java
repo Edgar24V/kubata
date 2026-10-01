@@ -408,6 +408,20 @@ public class UtilizadoresView extends VBox {
                 new SimpleStringPropertySafe(companyName(cell.getValue().getEmpresa())));
         colEmpresa.setPrefWidth(180);
 
+        TableColumn<User, String> colFilial = new TableColumn<>("Filial");
+        colFilial.setCellValueFactory(cell ->
+                new SimpleStringPropertySafe(
+                        cell.getValue().getFilial() == null
+                                ? "-"
+                                : safe(cell.getValue().getFilial().getNome(), "-")
+                ));
+        colFilial.setPrefWidth(150);
+
+        TableColumn<User, String> colTipoConta = new TableColumn<>("Tipo de conta");
+        colTipoConta.setCellValueFactory(cell ->
+                new SimpleStringPropertySafe(tipoContaLabel(cell.getValue().getTipoConta())));
+        colTipoConta.setPrefWidth(150);
+
         TableColumn<User, Role> colRole = new TableColumn<>("Função");
         colRole.setCellValueFactory(cell ->
                 new SimpleObjectProperty<>(cell.getValue().getRole()));
@@ -817,7 +831,10 @@ public class UtilizadoresView extends VBox {
         boolean isNew = user == null || user.getId() == null;
 
         if (!isNew && user.getId() != null) {
-            user = userAdministrationService.carregarParaEdicao(user.getId());
+            user = userAdministrationService.carregarParaEdicao(
+                    sessionManager.getUser(),
+                    user.getId()
+            );
         }
 
         final User formUser = user;
