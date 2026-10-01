@@ -135,6 +135,6 @@ public final class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         }
         return value
                 .replace("\\", "\\\\")
-                .replace("\"", "\\"");
+                .replace("\"", "\\\"");
     }
 }
