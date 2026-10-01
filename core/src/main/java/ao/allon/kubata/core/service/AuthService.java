@@ -27,6 +27,7 @@ public class AuthService {
     private final AcessoService acessoService;
     private final MfaService mfaService;
     private final UserDeviceService userDeviceService;
+    private final UserSecurityProfileService userSecurityProfileService;
 
     @Value("${kubata.security.max-login-attempts:5}")
     private int maxAttempts;
@@ -42,13 +43,15 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        AcessoService acessoService,
                        MfaService mfaService,
-                       UserDeviceService userDeviceService) {
+                       UserDeviceService userDeviceService,
+                       UserSecurityProfileService userSecurityProfileService) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
         this.mfaService = mfaService;
         this.userDeviceService = userDeviceService;
+        this.userSecurityProfileService = userSecurityProfileService;
     }
 
     @Transactional
@@ -96,6 +99,7 @@ public class AuthService {
             throw new AuthenticationException("Conta inativa. Contate o administrador.");
         }
 
+        boolean mfaSatisfied = !user.isMfaEnabled();
         if (user.isMfaEnabled()) {
             boolean totpValid =
                     mfaCode != null
@@ -103,7 +107,8 @@ public class AuthService {
 
             if (!totpValid) {
                 boolean recoveryValid =
-                        recoveryCode != null
+                        securityProfileService.isRecoveryCodeAllowed(user)
+                                && recoveryCode != null
                                 && mfaService.verifyAndConsumeRecoveryCode(
                                 user,
                                 recoveryCode
@@ -124,6 +129,7 @@ public class AuthService {
                     );
                 }
 
+                mfaSatisfied = true;
                 acessoService.registrarAuditoria(
                         user,
                         "LOGIN_MFA_RECOVERY",
@@ -135,11 +141,20 @@ public class AuthService {
             }
         }
 
+        securityProfileService.validateLoginPolicy(
+                user,
+                ip,
+                LocalDateTime.now(),
+                mfaSatisfied
+        );
+
         // A senha provisória autentica a identidade, mas não concede acesso normal.
         // O cliente deve concluir a alteração obrigatória antes de entrar na aplicação.
         if (user.isPasswordProvisoria()) {
             throw new PasswordChangeRequiredException(user);
         }
+
+        securityProfileService.enforceConcurrentSessionLimit(user, LocalDateTime.now());
 
         user.setUltimoAcesso(LocalDateTime.now());
         user.setUltimoIpLogin(ip);
@@ -214,16 +229,23 @@ public class AuthService {
             return false;
         }
 
+        int policyExpiryDays = userSecurityProfileService.passwordExpiryDays(user);
+        if (policyExpiryDays <= 0) {
+            return false;
+        }
+
         return now.isAfter(
-                user.getPasswordChangedAt().plusDays(passwordExpiryDays)
+                user.getPasswordChangedAt().plusDays(policyExpiryDays)
         );
     }
 
     private void recordFailure(User user) {
         int attempts = user.getFailedAttempts() + 1;
         user.setFailedAttempts(attempts);
-        if (attempts >= maxAttempts) {
-            user.setLockoutEnd(LocalDateTime.now().plusMinutes(lockoutMinutes));
+        int policyMaxAttempts = userSecurityProfileService.maxLoginAttempts(user);
+        int policyLockoutMinutes = userSecurityProfileService.lockoutMinutes(user);
+        if (attempts >= policyMaxAttempts) {
+            user.setLockoutEnd(LocalDateTime.now().plusMinutes(policyLockoutMinutes));
         }
         userRepository.save(user);
     }
