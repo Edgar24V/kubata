@@ -11,7 +11,6 @@ import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockitoAnnotations;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -55,7 +54,6 @@ class FaturaServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         fatura = new Fatura();
         fatura.setId(1L);
         fatura.setNumero("FT202600001");
