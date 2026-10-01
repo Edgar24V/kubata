@@ -3,6 +3,7 @@ package ao.allon.kubata.core.service;
 import ao.allon.kubata.core.domain.AuditLog;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.domain.UserSecurityProfile;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
 import org.junit.jupiter.api.BeforeEach;
