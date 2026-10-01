@@ -25,6 +25,7 @@ public class AuthService {
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
     private final AcessoService acessoService;
     private final MfaService mfaService;
+    private final UserDeviceService userDeviceService;
 
     @Value("${kubata.security.max-login-attempts:5}")
     private int maxAttempts;
@@ -39,12 +40,14 @@ public class AuthService {
                        UserSessionRepository userSessionRepository,
                        PasswordEncoder passwordEncoder,
                        AcessoService acessoService,
-                       MfaService mfaService) {
+                       MfaService mfaService,
+                       UserDeviceService userDeviceService) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
         this.mfaService = mfaService;
+        this.userDeviceService = userDeviceService;
     }
 
     @Transactional
@@ -145,7 +148,19 @@ public class AuthService {
         // Criar sessão real na BD
         UserSession session = new UserSession(user.getNome(), "STATION-01", ip, "KUBATA ERP");
         userSessionRepository.save(session);
-        
+
+        try {
+            userDeviceService.registerLoginDevice(
+                    user,
+                    "STATION-01",
+                    ip,
+                    System.getProperty("os.name", "KUBATA DESKTOP")
+                            + " / Java " + System.getProperty("java.version", "21")
+            );
+        } catch (Exception ignored) {
+            // O registo de dispositivo não pode bloquear um login já autenticado.
+        }
+
         acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Sucesso", true);
         return user;
     }
