@@ -36,6 +36,7 @@ class UserAdministrationServiceTest {
     @Mock PasswordEncoder passwordEncoder;
     @Mock SecurityService securityService;
     @Mock AuditService auditService;
+    @Mock UserSecurityProfileService userSecurityProfileService;
 
     private UserAdministrationService service;
 
@@ -49,7 +50,8 @@ class UserAdministrationServiceTest {
                 userSessionRepository,
                 passwordEncoder,
                 securityService,
-                auditService
+                auditService,
+                userSecurityProfileService
         );
     }
 
@@ -100,6 +102,7 @@ class UserAdministrationServiceTest {
         when(userRepository.existsByCodigoIgnoreCase(anyString())).thenReturn(false);
         when(empresaRepository.findById(30L)).thenReturn(Optional.of(empresa));
         when(filialRepository.findById(40L)).thenReturn(Optional.of(filial));
+        doNothing().when(userSecurityProfileService).validatePassword(any(User.class), eq("SenhaForte1"));
         when(passwordEncoder.encode("SenhaForte1")).thenReturn("HASH-SENHA");
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
             User saved = inv.getArgument(0);
