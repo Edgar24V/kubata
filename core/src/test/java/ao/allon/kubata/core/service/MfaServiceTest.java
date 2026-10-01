@@ -57,6 +57,32 @@ class MfaServiceTest {
         verifyNoInteractions(userRepository);
     }
 
+
+    @Test
+    void recoveryCodeShouldBeConsumedAfterSuccessfulValidation() {
+        MfaService service = new MfaService(
+                userRepository,
+                passwordEncoder
+        );
+
+        User user = new User();
+        user.setMfaEnabled(true);
+        user.setMfaRecoveryCodes("hash-1\nhash-2");
+
+        when(passwordEncoder.matches("ABCDEFGHJKLMN", "hash-1"))
+                .thenReturn(true);
+
+        assertTrue(
+                service.verifyAndConsumeRecoveryCode(
+                        user,
+                        "ABCD-EFGH-JKLM-N"
+                )
+        );
+
+        assertEquals("hash-2", user.getMfaRecoveryCodes());
+        verify(userRepository).save(user);
+    }
+
     @Test
     void provisioningUriShouldUseTotpScheme() {
         MfaService service = new MfaService(
