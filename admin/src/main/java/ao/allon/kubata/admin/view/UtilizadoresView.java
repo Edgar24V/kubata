@@ -772,7 +772,9 @@ public class UtilizadoresView extends VBox {
                     || contains(user.getNif(), query)
                     || contains(user.getTelefone(), query)
                     || contains(user.getDepartamento(), query)
-                    || contains(user.getCargo(), query);
+                    || contains(user.getCargo(), query)
+                    || contains(user.getCodigo(), query)
+                    || (user.getFilial() != null && contains(user.getFilial().getNome(), query));
 
             boolean empresaMatch = empresa == null || sameId(user.getEmpresa(), empresa);
             boolean roleMatch = role == null || user.getRole() == role;
@@ -3166,6 +3168,7 @@ public class UtilizadoresView extends VBox {
 
         content.getChildren().addAll(
                 detailCard("Identidade", List.of(
+                        "Código: " + safe(user.getCodigo(), "-"),
                         "Nome: " + safe(user.getNome(), "-"),
                         "Email: " + safe(user.getEmail(), "-"),
                         "NIF: " + safe(user.getNif(), "-"),
@@ -3173,6 +3176,8 @@ public class UtilizadoresView extends VBox {
                 )),
                 detailCard("Organização", List.of(
                         "Empresa: " + companyName(user.getEmpresa()),
+                        "Filial: " + (user.getFilial() == null ? "Sem filial" : safe(user.getFilial().getNome(), "-")),
+                        "Tipo de conta: " + tipoContaLabel(user.getTipoConta()),
                         "Função: " + roleLabel(user.getRole()),
                         "Departamento: " + safe(user.getDepartamento(), "-"),
                         "Cargo: " + safe(user.getCargo(), "-")
@@ -3301,6 +3306,20 @@ public class UtilizadoresView extends VBox {
             return "Senha provisória";
         }
         return "Normal";
+    }
+
+    private String tipoContaLabel(TipoConta tipoConta) {
+        if (tipoConta == null) {
+            return "Pessoal";
+        }
+        return switch (tipoConta) {
+            case PESSOAL -> "Pessoal";
+            case ADMINISTRATIVA -> "Administrativa";
+            case SERVICO -> "Serviço";
+            case API -> "API";
+            case TECNICA -> "Técnica";
+            case TEMPORARIA -> "Temporária";
+        };
     }
 
     private String roleLabel(Role role) {
