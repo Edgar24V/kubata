@@ -399,7 +399,7 @@ public class UserSecurityProfileService {
         }
     }
 
-    private UserSecurityProfile managedTarget(User actor, Long targetUserId) {
+    private User managedTarget(User actor, Long targetUserId) {
         User managedActor = managedActor(actor);
         return managedTarget(managedActor, targetUserId);
     }
@@ -657,6 +657,12 @@ public class UserSecurityProfileService {
                 throw new IllegalArgumentException("Valor inválido em " + label + ".");
             }
         }
+    }
+
+    private String normalizeIp(String sourceIp) {
+        return sourceIp == null || sourceIp.isBlank()
+                ? "127.0.0.1"
+                : sourceIp.trim();
     }
 
     private String normalizeCurrency(String currency) {
