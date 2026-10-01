@@ -14,6 +14,7 @@ import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.service.AcessoService;
 import ao.allon.kubata.core.service.PasswordResetService;
+import ao.allon.kubata.core.service.MfaService;
 import ao.allon.kubata.core.service.SecurityService;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
@@ -30,6 +31,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.paint.Color;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
@@ -49,6 +52,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 @Component
 public class UtilizadoresView extends VBox {
@@ -64,6 +70,7 @@ public class UtilizadoresView extends VBox {
     private final EmpresaRepository empresaRepository;
     private final AcessoService acessoService;
     private final PasswordResetService passwordResetService;
+    private final MfaService mfaService;
     private final SecurityService securityService;
     private final PasswordEncoder passwordEncoder;
     private final SessionManager sessionManager;
@@ -105,6 +112,7 @@ public class UtilizadoresView extends VBox {
     private Button btnStatus;
     private Button btnDesbloquear;
     private Button btnResetPassword;
+    private Button btnMfa;
 
     private boolean dataLoaded;
 
@@ -113,6 +121,7 @@ public class UtilizadoresView extends VBox {
                             EmpresaRepository empresaRepository,
                             AcessoService acessoService,
                             PasswordResetService passwordResetService,
+                            MfaService mfaService,
                             SecurityService securityService,
                             PasswordEncoder passwordEncoder,
                             SessionManager sessionManager,
@@ -123,6 +132,7 @@ public class UtilizadoresView extends VBox {
         this.empresaRepository = empresaRepository;
         this.acessoService = acessoService;
         this.passwordResetService = passwordResetService;
+        this.mfaService = mfaService;
         this.securityService = securityService;
         this.passwordEncoder = passwordEncoder;
         this.sessionManager = sessionManager;
@@ -518,12 +528,14 @@ public class UtilizadoresView extends VBox {
         btnStatus = detailButton("Desactivar", Feather.POWER, "button-outlined");
         btnDesbloquear = detailButton("Desbloquear", Feather.UNLOCK, "button-outlined");
         btnResetPassword = detailButton("Redefinir senha", Feather.KEY, "button-outlined");
+        btnMfa = detailButton("Gerir MFA", Feather.SHIELD, "button-outlined");
 
         btnEditar.setOnAction(e -> selectedUser().ifPresent(this::showUserDialog));
         btnClonar.setOnAction(e -> cloneUser());
         btnStatus.setOnAction(e -> toggleSelectedStatus());
         btnDesbloquear.setOnAction(e -> unlockSelectedUser());
         btnResetPassword.setOnAction(e -> resetPassword());
+        btnMfa.setOnAction(e -> selectedUser().ifPresent(this::showMfaManagementModal));
 
         GridPane actions = new GridPane();
         actions.setHgap(7);
@@ -532,7 +544,10 @@ public class UtilizadoresView extends VBox {
         actions.add(btnClonar, 1, 0);
         actions.add(btnStatus, 0, 1);
         actions.add(btnDesbloquear, 1, 1);
-        actions.add(btnResetPassword, 0, 2, 2, 1);
+        actions.add(btnMfa, 0, 2);
+        actions.add(btnResetPassword, 1, 2);
+
+        GridPane.setHgrow(btnMfa, Priority.ALWAYS);
 
         GridPane.setHgrow(btnEditar, Priority.ALWAYS);
         GridPane.setHgrow(btnClonar, Priority.ALWAYS);
@@ -615,6 +630,7 @@ public class UtilizadoresView extends VBox {
         btnEditar.setDisable(!hasSelection || !can("EDITAR"));
         btnClonar.setDisable(!hasSelection || !can("CRIAR"));
         btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
+        btnMfa.setDisable(!hasSelection || !can("EDITAR"));
         btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
         btnStatus.setDisable(!hasSelection || !can("EDITAR") ||
                 (current != null && selected != null && current.getId() != null && current.getId().equals(selected.getId())));
@@ -2173,6 +2189,7 @@ public class UtilizadoresView extends VBox {
             btnEditar.setDisable(!hasSelection || !can("EDITAR"));
             btnClonar.setDisable(!hasSelection || !can("CRIAR"));
             btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
+            btnMfa.setDisable(!hasSelection || !can("EDITAR"));
             btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
             btnStatus.setDisable(!hasSelection || !can("EDITAR")
                     || (current != null && selected != null
