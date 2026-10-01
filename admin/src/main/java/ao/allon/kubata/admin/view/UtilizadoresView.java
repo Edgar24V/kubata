@@ -3021,6 +3021,7 @@ public class UtilizadoresView extends VBox {
                                 IconUtils.icon(Feather.SHIELD, 12)
                         );
                         loadUsers();
+                        modalManager.hideModal();
                     } catch (Exception ex) {
                         modalManager.showErrorModal(
                                 "MFA",
