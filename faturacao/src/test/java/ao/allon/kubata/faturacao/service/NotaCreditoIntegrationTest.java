@@ -74,6 +74,7 @@ class NotaCreditoIntegrationTest {
         item.setQuantidade(1);
         item.setPrecoUnitario(new BigDecimal("1000.00"));
         item.setPercentualIva(BigDecimal.ZERO);
+        item.setCodigoIsencao("M00");
         faturaOriginal.addItem(item);
         
         // Mock Serie NC
