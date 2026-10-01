@@ -2055,7 +2055,7 @@ public class UtilizadoresView extends VBox {
     }
 
     private void showDevicesModal(User user) {
-        if (user == null || !can("EDITAR")) {
+        if (user == null || !can("VER")) {
             return;
         }
 
@@ -2191,7 +2191,7 @@ public class UtilizadoresView extends VBox {
     }
 
     private void showSessionsModal(User user) {
-        if (user == null || !can("EDITAR")) {
+        if (user == null || !can("VER")) {
             return;
         }
 
@@ -3257,6 +3257,8 @@ public class UtilizadoresView extends VBox {
             btnClonar.setDisable(!hasSelection || !can("CRIAR"));
             btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
             btnMfa.setDisable(!hasSelection || !can("EDITAR"));
+            btnDispositivos.setDisable(!hasSelection || !can("VER"));
+            btnSessoes.setDisable(!hasSelection || !can("VER"));
             btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
             btnStatus.setDisable(!hasSelection || !can("EDITAR")
                     || (current != null && selected != null
