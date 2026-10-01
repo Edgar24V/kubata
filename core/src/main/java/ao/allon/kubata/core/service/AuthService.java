@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -150,9 +151,16 @@ public class AuthService {
         userSessionRepository.save(session);
 
         try {
+            String workstation;
+            try {
+                workstation = InetAddress.getLocalHost().getHostName();
+            } catch (Exception ignored) {
+                workstation = "KUBATA-POSTO";
+            }
+
             userDeviceService.registerLoginDevice(
                     user,
-                    "STATION-01",
+                    workstation,
                     ip,
                     System.getProperty("os.name", "KUBATA DESKTOP")
                             + " / Java " + System.getProperty("java.version", "21")
