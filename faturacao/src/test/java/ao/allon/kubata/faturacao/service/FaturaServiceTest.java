@@ -118,7 +118,8 @@ class FaturaServiceTest {
     void emitirNotaCredito_DeveDevolverEstoqueEAdicionarObservacao() {
         fatura.setStatus(StatusFatura.EMITIDA);
         Fatura res = faturaService.emitirNotaCredito(1L, "Devolução parcial");
-        assertTrue(res.getObservacoes().contains("Nota de Crédito"));
+        assertTrue(res.getObservacoes().contains("Referente à fatura"));
+        assertTrue(fatura.getObservacoes().contains("Nota de Crédito"));
         verify(produtoService, times(1)).registarEntrada(eq(10L), eq(2), anyString());
     }
 }
