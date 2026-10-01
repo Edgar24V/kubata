@@ -91,6 +91,8 @@ public class LoginController {
     private CheckBox rememberEmail;
     private Hyperlink forgotPasswordLink;
     private Button helpButton;
+    private Hyperlink recoveryModeLink;
+    private boolean recoveryMode;
     private Button maximizeButton;
     private Rectangle windowClip;
 
@@ -655,15 +657,28 @@ public class LoginController {
         mfaHeader.setAlignment(Pos.CENTER_LEFT);
 
         Label mfaLabel = createFieldLabel("Código MFA");
-        mfaHintLabel = new Label("Opcional quando o MFA não está activo");
+        mfaHintLabel = new Label("6 dígitos quando o MFA estiver activo");
         mfaHintLabel.setStyle(
                 "-fx-font-size: 11px;"
                         + "-fx-text-fill: #94a3b8;"
         );
 
+        Region mfaSpacer = new Region();
+        HBox.setHgrow(mfaSpacer, Priority.ALWAYS);
+
+        recoveryModeLink = new Hyperlink("Usar código de recuperação");
+        recoveryModeLink.setStyle(
+                "-fx-font-size: 11px;"
+                        + "-fx-font-weight: 700;"
+                        + "-fx-text-fill: #217346;"
+        );
+        recoveryModeLink.setOnAction(event -> setRecoveryMode(!recoveryMode));
+
         mfaHeader.getChildren().addAll(
                 mfaLabel,
-                mfaHintLabel
+                mfaHintLabel,
+                mfaSpacer,
+                recoveryModeLink
         );
 
         mfaCodeField = new TextField();
@@ -671,13 +686,7 @@ public class LoginController {
         mfaCodeField.setPrefHeight(46);
         mfaCodeField.getStyleClass().add("modern-text-field");
 
-        mfaCodeField.setTextFormatter(
-                new TextFormatter<String>(change ->
-                        change.getControlNewText().matches("\\d{0,6}")
-                                ? change
-                                : null
-                )
-        );
+        setRecoveryMode(false);
 
         mfaCodeField.setOnAction(event -> handleLogin());
 
@@ -753,6 +762,37 @@ public class LoginController {
         );
 
         return form;
+    }
+
+    private void setRecoveryMode(boolean enabled) {
+        recoveryMode = enabled;
+        mfaCodeField.clear();
+
+        if (recoveryMode) {
+            mfaCodeField.setPromptText("ABCD-EFGH-JKLM");
+            mfaHintLabel.setText("Código de recuperação de uso único");
+            recoveryModeLink.setText("Usar código MFA");
+            mfaCodeField.setTextFormatter(
+                    new TextFormatter<String>(change ->
+                            change.getControlNewText()
+                                    .toUpperCase()
+                                    .matches("[A-HJ-NP-Z2-9-]{0,14}")
+                                    ? change
+                                    : null
+                    )
+            );
+        } else {
+            mfaCodeField.setPromptText("Código de 6 dígitos");
+            mfaHintLabel.setText("6 dígitos quando o MFA estiver activo");
+            recoveryModeLink.setText("Usar código de recuperação");
+            mfaCodeField.setTextFormatter(
+                    new TextFormatter<String>(change ->
+                            change.getControlNewText().matches("\\d{0,6}")
+                                    ? change
+                                    : null
+                    )
+            );
+        }
     }
 
     private VBox createPasswordBox() {
@@ -935,22 +975,43 @@ public class LoginController {
         }
 
         Integer mfaCode = null;
+        String recoveryCode = null;
+
         if (!mfaRaw.isBlank()) {
-            if (mfaRaw.length() != 6) {
-                showMessage(
-                        "O código MFA deve ter 6 dígitos.",
-                        true
-                );
-                mfaCodeField.requestFocus();
-                return;
+            if (recoveryMode) {
+                String normalizedRecovery =
+                        mfaRaw.replace("-", "").trim().toUpperCase();
+
+                if (!(normalizedRecovery.length() == 12
+                        || normalizedRecovery.length() == 14)) {
+                    showMessage(
+                            "O código de recuperação deve ter 12 caracteres, "
+                                    + "com ou sem hífens.",
+                            true
+                    );
+                    mfaCodeField.requestFocus();
+                    return;
+                }
+
+                recoveryCode = mfaRaw;
+            } else {
+                if (mfaRaw.length() != 6) {
+                    showMessage(
+                            "O código MFA deve ter 6 dígitos.",
+                            true
+                    );
+                    mfaCodeField.requestFocus();
+                    return;
+                }
+                mfaCode = Integer.valueOf(mfaRaw);
             }
-            mfaCode = Integer.valueOf(mfaRaw);
         }
 
         setLoading(true);
         showMessage("", false);
 
         final Integer finalMfaCode = mfaCode;
+        final String finalRecoveryCode = recoveryCode;
         final String sourceIp = resolveSourceIp();
 
         Task<User> task = new Task<>() {
@@ -960,6 +1021,7 @@ public class LoginController {
                         email,
                         password,
                         finalMfaCode,
+                        finalRecoveryCode,
                         sourceIp
                 );
             }
@@ -1015,7 +1077,9 @@ public class LoginController {
                     .toLowerCase()
                     .contains("mfa")) {
                 showMessage(
-                        "A autenticação requer um código MFA válido.",
+                        recoveryMode
+                                ? "O código de recuperação é inválido ou já foi utilizado."
+                                : "A autenticação requer um código MFA válido.",
                         true
                 );
                 mfaCodeField.requestFocus();
