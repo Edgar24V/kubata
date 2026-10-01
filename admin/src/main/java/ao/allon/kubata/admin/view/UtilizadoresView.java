@@ -391,6 +391,11 @@ public class UtilizadoresView extends VBox {
 
         TableUtils.standardize(tv);
 
+        TableColumn<User, String> colCodigo = new TableColumn<>("Código");
+        colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
+        colCodigo.setCellFactory(tc -> TextTableCell.create());
+        colCodigo.setPrefWidth(125);
+
         TableColumn<User, String> colNome = new TableColumn<>("Nome");
         colNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
         colNome.setCellFactory(tc -> TextTableCell.create());
@@ -473,7 +478,8 @@ public class UtilizadoresView extends VBox {
         colUltimoAcesso.setPrefWidth(150);
 
         tv.getColumns().addAll(
-                colNome, colEmail, colEmpresa, colRole,
+                colCodigo, colNome, colEmail, colEmpresa, colFilial,
+                colTipoConta, colRole,
                 colAtivo, colEstado, colMfa, colUltimoAcesso
         );
 
@@ -514,8 +520,11 @@ public class UtilizadoresView extends VBox {
 
         Separator separator = new Separator();
 
+        detailCodigo = detailValue("Código", "-");
         detailStatus = detailValue("Estado", "-");
         detailEmpresa = detailValue("Empresa", "-");
+        detailFilial = detailValue("Filial", "-");
+        detailTipoConta = detailValue("Tipo de conta", "-");
         detailRole = detailValue("Função", "-");
         detailDepartamento = detailValue("Departamento", "-");
         detailCargo = detailValue("Cargo", "-");
@@ -528,7 +537,8 @@ public class UtilizadoresView extends VBox {
         pane.getChildren().addAll(
                 title,
                 separator,
-                detailStatus, detailEmpresa, detailRole,
+                detailCodigo, detailStatus, detailEmpresa, detailFilial,
+                detailTipoConta, detailRole,
                 detailDepartamento, detailCargo,
                 detailUltimoAcesso, detailIp,
                 detailMfa, detailPassword, detailFalhas
@@ -544,6 +554,8 @@ public class UtilizadoresView extends VBox {
         btnDesbloquear = detailButton("Desbloquear", Feather.UNLOCK, "button-outlined");
         btnResetPassword = detailButton("Redefinir senha", Feather.KEY, "button-outlined");
         btnMfa = detailButton("Gerir MFA", Feather.SHIELD, "button-outlined");
+        btnDispositivos = detailButton("Dispositivos", Feather.CPU, "button-outlined");
+        btnSessoes = detailButton("Sessões", Feather.ACTIVITY, "button-outlined");
 
         btnEditar.setOnAction(e -> selectedUser().ifPresent(this::showUserDialog));
         btnClonar.setOnAction(e -> cloneUser());
@@ -551,6 +563,8 @@ public class UtilizadoresView extends VBox {
         btnDesbloquear.setOnAction(e -> unlockSelectedUser());
         btnResetPassword.setOnAction(e -> resetPassword());
         btnMfa.setOnAction(e -> selectedUser().ifPresent(this::showMfaManagementModal));
+        btnDispositivos.setOnAction(e -> selectedUser().ifPresent(this::showDevicesModal));
+        btnSessoes.setOnAction(e -> selectedUser().ifPresent(this::showSessionsModal));
 
         GridPane actions = new GridPane();
         actions.setHgap(7);
@@ -561,6 +575,8 @@ public class UtilizadoresView extends VBox {
         actions.add(btnDesbloquear, 1, 1);
         actions.add(btnMfa, 0, 2);
         actions.add(btnResetPassword, 1, 2);
+        actions.add(btnDispositivos, 0, 3);
+        actions.add(btnSessoes, 1, 3);
 
         GridPane.setHgrow(btnMfa, Priority.ALWAYS);
 
@@ -569,6 +585,8 @@ public class UtilizadoresView extends VBox {
         GridPane.setHgrow(btnStatus, Priority.ALWAYS);
         GridPane.setHgrow(btnDesbloquear, Priority.ALWAYS);
         GridPane.setHgrow(btnResetPassword, Priority.ALWAYS);
+        GridPane.setHgrow(btnDispositivos, Priority.ALWAYS);
+        GridPane.setHgrow(btnSessoes, Priority.ALWAYS);
 
         pane.getChildren().addAll(actionsSeparator, actionsTitle, actions);
         pane.setDisable(false);
