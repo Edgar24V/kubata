@@ -134,13 +134,11 @@ public class MfaService {
     @Transactional
     public void adminDisableMfa(User actor, Long targetUserId, String sourceIp) {
         User target = authorizedAdminTarget(actor, targetUserId);
-        disableMfa(target);
-        acessoService.registrarAuditoria(
+        disableMfaInternal(
+                target,
                 actor,
-                "MFA_ADMIN_DISABLED",
-                "UTILIZADORES",
                 sourceIp,
-                "MFA desactivado administrativamente para " + target.getEmail(),
+                "MFA_ADMIN_DISABLED",
                 true
         );
     }
@@ -152,16 +150,13 @@ public class MfaService {
             String code,
             String sourceIp) {
         User target = authorizedAdminTarget(actor, targetUserId);
-        List<String> result = regenerateRecoveryCodes(target, code);
-        acessoService.registrarAuditoria(
+        return regenerateRecoveryCodesInternal(
+                target,
+                code,
                 actor,
-                "MFA_RECOVERY_CODES_REGENERATED",
-                "UTILIZADORES",
                 sourceIp,
-                "Códigos MFA regenerados administrativamente para " + target.getEmail(),
-                true
+                "MFA_RECOVERY_CODES_REGENERATED"
         );
-        return result;
     }
 
     private User authorizedAdminTarget(User actor, Long targetUserId) {
@@ -203,19 +198,29 @@ public class MfaService {
     @Transactional
     public void disableMfa(User user) {
         requireUser(user);
+        disableMfaInternal(user, user, null, "MFA_DISABLED", false);
+    }
 
-        user.setMfaEnabled(false);
-        user.setMfaSecret(null);
-        user.setMfaRecoveryCodes(null);
+    private void disableMfaInternal(
+            User target,
+            User auditActor,
+            String sourceIp,
+            String auditOperation,
+            boolean administrative) {
+        target.setMfaEnabled(false);
+        target.setMfaSecret(null);
+        target.setMfaRecoveryCodes(null);
 
-        if (user.getId() != null) {
-            userRepository.save(user);
+        if (target.getId() != null) {
+            userRepository.save(target);
             acessoService.registrarAuditoria(
-                    user,
-                    "MFA_DISABLED",
-                    "AUTH",
-                    null,
-                    "MFA TOTP desactivado",
+                    auditActor,
+                    auditOperation,
+                    administrative ? "UTILIZADORES" : "AUTH",
+                    sourceIp,
+                    administrative
+                            ? "MFA desactivado administrativamente para " + target.getEmail()
+                            : "MFA TOTP desactivado",
                     true
             );
         }
@@ -228,8 +233,22 @@ public class MfaService {
     @Transactional
     public List<String> regenerateRecoveryCodes(User user, String totpCode) {
         requireUser(user);
+        return regenerateRecoveryCodesInternal(
+                user,
+                totpCode,
+                user,
+                null,
+                "MFA_RECOVERY_REGENERATED"
+        );
+    }
 
-        if (!user.isMfaEnabled() || user.getMfaSecret() == null) {
+    private List<String> regenerateRecoveryCodesInternal(
+            User target,
+            String totpCode,
+            User auditActor,
+            String sourceIp,
+            String auditOperation) {
+        if (!target.isMfaEnabled() || target.getMfaSecret() == null) {
             throw new IllegalStateException(
                     "O MFA não está activo nesta conta."
             );
@@ -238,33 +257,35 @@ public class MfaService {
         String normalizedCode = normalizeTotpCode(totpCode);
         if (normalizedCode == null
                 || !googleAuthenticator.authorize(
-                user.getMfaSecret(),
+                target.getMfaSecret(),
                 Integer.parseInt(normalizedCode))) {
             throw new IllegalArgumentException(
                     "O código MFA está inválido ou expirado."
             );
         }
 
-        if (user.getId() == null) {
+        if (target.getId() == null) {
             throw new IllegalStateException(
                     "Guarde o utilizador antes de regenerar os códigos de recuperação."
             );
         }
 
         List<String> recoveryCodes = generateRecoveryCodes();
-        user.setMfaRecoveryCodes(
+        target.setMfaRecoveryCodes(
                 recoveryCodes.stream()
                         .map(passwordEncoder::encode)
                         .collect(Collectors.joining("\n"))
         );
 
-        userRepository.save(user);
+        userRepository.save(target);
         acessoService.registrarAuditoria(
-                user,
-                "MFA_RECOVERY_REGENERATED",
-                "AUTH",
-                null,
-                "Códigos de recuperação MFA regenerados",
+                auditActor,
+                auditOperation,
+                sourceIp == null ? "AUTH" : "UTILIZADORES",
+                sourceIp,
+                auditActor == target
+                        ? "Códigos de recuperação MFA regenerados"
+                        : "Códigos MFA regenerados administrativamente para " + target.getEmail(),
                 true
         );
         return recoveryCodes;
