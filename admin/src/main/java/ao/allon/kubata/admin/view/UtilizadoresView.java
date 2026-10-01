@@ -1132,6 +1132,43 @@ public class UtilizadoresView extends VBox {
                 !isNew && formUser.isMfaEnabled()
         );
 
+        final User mfaDraft = isNew ? new User() : formUser;
+        if (isNew) {
+            mfaDraft.setEmail(txtEmail.getText().trim());
+        }
+
+        final boolean[] mfaConfirmed = {
+                !isNew && formUser.isMfaEnabled()
+        };
+
+        Label mfaStatus = new Label(
+                chkMfa.isSelected()
+                        ? "MFA activo"
+                        : "MFA não configurado"
+        );
+        mfaStatus.getStyleClass().add(
+                chkMfa.isSelected()
+                        ? "kubata-users-security-ok"
+                        : "kubata-users-form-hint"
+        );
+
+        Button manageMfa = new Button(
+                chkMfa.isSelected()
+                        ? "Gerir MFA"
+                        : "Configurar MFA",
+                IconUtils.icon(Feather.SHIELD, 12)
+        );
+        manageMfa.getStyleClass().add("button-outlined");
+
+        manageMfa.setOnAction(e -> {
+            mfaDraft.setEmail(txtEmail.getText().trim());
+            if (mfaDraft.isMfaEnabled()) {
+                showMfaManagementModal(mfaDraft, chkMfa, mfaConfirmed, mfaStatus, manageMfa);
+            } else {
+                showMfaActivationModal(mfaDraft, chkMfa, mfaConfirmed, mfaStatus, manageMfa);
+            }
+        });
+
         CheckBox chkAtivo = new CheckBox("Conta activa");
         chkAtivo.setSelected(
                 isNew || Boolean.TRUE.equals(formUser.getActive())
@@ -1155,7 +1192,23 @@ public class UtilizadoresView extends VBox {
         accountGrid.add(dataExpiracao, 1, 0);
         GridPane.setHgrow(dataExpiracao, Priority.ALWAYS);
 
-        HBox policyLine = new HBox(18, chkProvisoria, chkMfa);
+        HBox mfaLine = new HBox(10, chkMfa, manageMfa, mfaStatus);
+        mfaLine.setAlignment(Pos.CENTER_LEFT);
+
+        chkMfa.setOnAction(e -> {
+            if (chkMfa.isSelected() && !mfaConfirmed[0]) {
+                mfaStatus.setText("Configure o MFA antes de guardar");
+                manageMfa.setText("Configurar MFA");
+                manageMfa.setGraphic(IconUtils.icon(Feather.SHIELD, 12));
+            } else if (!chkMfa.isSelected()) {
+                mfaConfirmed[0] = false;
+                mfaStatus.setText("MFA será desactivado ao guardar");
+                manageMfa.setText("Configurar MFA");
+                manageMfa.setGraphic(IconUtils.icon(Feather.SHIELD, 12));
+            }
+        });
+
+        HBox policyLine = new HBox(18, chkProvisoria);
         policyLine.setAlignment(Pos.CENTER_LEFT);
 
         HBox stateLine = new HBox(18, chkAtivo, chkSuperadmin);
@@ -1164,6 +1217,7 @@ public class UtilizadoresView extends VBox {
         accountCard.getChildren().addAll(
                 accountGrid,
                 policyLine,
+                mfaLine,
                 stateLine,
                 hint(
                         "MFA protege a conta com um segundo factor. "
@@ -1544,7 +1598,29 @@ public class UtilizadoresView extends VBox {
                     target.setCargo(blankToNull(txtCargo.getText()));
                     target.setAvatar(avatarBytes[0]);
                     target.setActive(chkAtivo.isSelected());
-                    target.setMfaEnabled(chkMfa.isSelected());
+
+                    if (chkMfa.isSelected()) {
+                        if (!mfaConfirmed[0]
+                                || mfaDraft.getMfaSecret() == null
+                                || !mfaDraft.isMfaEnabled()) {
+                            modalManager.alert(
+                                    "MFA não confirmado",
+                                    "Configure e confirme o MFA com um código de 6 dígitos antes de guardar.",
+                                    "warning",
+                                    null
+                            );
+                            return;
+                        }
+
+                        target.setMfaEnabled(true);
+                        target.setMfaSecret(mfaDraft.getMfaSecret());
+                        target.setMfaRecoveryCodes(mfaDraft.getMfaRecoveryCodes());
+                    } else {
+                        target.setMfaEnabled(false);
+                        target.setMfaSecret(null);
+                        target.setMfaRecoveryCodes(null);
+                    }
+
                     target.setSuperadmin(chkSuperadmin.isSelected());
                     target.setPasswordProvisoria(chkProvisoria.isSelected());
                     target.setDataExpiracaoPassword(
