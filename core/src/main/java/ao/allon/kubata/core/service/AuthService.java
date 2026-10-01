@@ -80,7 +80,7 @@ public class AuthService {
         User user = userOpt.get();
 
         if (isLocked(user)) {
-            throw new AuthenticationException("Conta temporariamente bloqueada. Tente novamente em " + lockoutMinutes + " minutos.");
+            throw new AuthenticationException("Conta temporariamente bloqueada. Tente novamente.");
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
@@ -104,6 +104,8 @@ public class AuthService {
             boolean totpValid =
                     mfaCode != null
                             && gAuth.authorize(user.getMfaSecret(), mfaCode);
+
+            mfaSatisfied = totpValid;
 
             if (!totpValid) {
                 boolean recoveryValid =
