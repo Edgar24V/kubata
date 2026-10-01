@@ -130,9 +130,10 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <release>${maven.compiler.release}</release>
-                    <compilerArgs>
-                        <arg>-proc:full</arg>
-                    </compilerArgs>
+                    <proc>full</proc>
+                    <annotationProcessors>
+                        <annotationProcessor>lombok.launch.AnnotationProcessorHider$AnnotationProcessor</annotationProcessor>
+                    </annotationProcessors>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
