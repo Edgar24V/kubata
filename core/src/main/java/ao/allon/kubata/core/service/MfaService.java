@@ -25,15 +25,18 @@ public class MfaService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AcessoService acessoService;
+    private final SecurityService securityService;
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
 
     public MfaService(UserRepository userRepository,
                       PasswordEncoder passwordEncoder,
-                      AcessoService acessoService) {
+                      AcessoService acessoService,
+                      SecurityService securityService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
+        this.securityService = securityService;
     }
 
     /**
@@ -103,6 +106,85 @@ public class MfaService {
                 recoveryCodes,
                 true
         );
+    }
+
+    /**
+     * Operações de MFA realizadas por um administrador sobre outra conta.
+     * A autorização é sempre validada no servidor.
+     */
+    @Transactional
+    public ActivationResult adminConfirmActivation(User actor, Long targetUserId, String code) {
+        User target = authorizedAdminTarget(actor, targetUserId);
+        return confirmActivation(target, code);
+    }
+
+    @Transactional
+    public void adminDisableMfa(User actor, Long targetUserId, String sourceIp) {
+        User target = authorizedAdminTarget(actor, targetUserId);
+        disableMfa(target);
+        acessoService.registrarAuditoria(
+                actor,
+                "MFA_ADMIN_DISABLED",
+                "UTILIZADORES",
+                sourceIp,
+                "MFA desactivado administrativamente para " + target.getEmail(),
+                true
+        );
+    }
+
+    @Transactional
+    public List<String> adminRegenerateRecoveryCodes(
+            User actor,
+            Long targetUserId,
+            String code,
+            String sourceIp) {
+        User target = authorizedAdminTarget(actor, targetUserId);
+        List<String> result = regenerateRecoveryCodes(target, code);
+        acessoService.registrarAuditoria(
+                actor,
+                "MFA_RECOVERY_CODES_REGENERATED",
+                "UTILIZADORES",
+                sourceIp,
+                "Códigos MFA regenerados administrativamente para " + target.getEmail(),
+                true
+        );
+        return result;
+    }
+
+    private User authorizedAdminTarget(User actor, Long targetUserId) {
+        if (actor == null || actor.getId() == null) {
+            throw new SecurityException("Sessão administrativa inválida.");
+        }
+
+        User managedActor = userRepository.findById(actor.getId())
+                .orElseThrow(() -> new SecurityException("Administrador da sessão não encontrado."));
+
+        if (!Boolean.TRUE.equals(managedActor.getActive())) {
+            throw new SecurityException("A conta administrativa está inactiva.");
+        }
+
+        if (!managedActor.isSuperadmin()
+                && managedActor.getRole() != ao.allon.kubata.core.domain.Role.ADMIN
+                && !securityService.hasPermission(
+                        managedActor,
+                        "ADMINISTRATOR",
+                        "UTILIZADORES",
+                        ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.EDITAR)) {
+            throw new SecurityException("Não possui permissão para gerir o MFA de utilizadores.");
+        }
+
+        if (targetUserId == null) {
+            throw new IllegalArgumentException("Utilizador de destino inválido.");
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado."));
+
+        if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
+            throw new SecurityException("Só um Superadministrador pode gerir o MFA de outro Superadministrador.");
+        }
+
+        return target;
     }
 
     @Transactional
