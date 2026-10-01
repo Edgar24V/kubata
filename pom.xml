@@ -40,7 +40,7 @@
         <jmetro.version>11.6.16</jmetro.version>
         <jfx-frameless.version>0.1.1</jfx-frameless.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
-        <lombok.version>1.18.38</lombok.version>
+        <lombok.version>1.18.48</lombok.version>
     </properties>
 
     <dependencyManagement>
