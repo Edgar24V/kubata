@@ -97,14 +97,6 @@ public class Alerta extends BaseEntity {
         INFO
     }
 
-    public Long getId() { return getIdInternal(); }
-
-    private Long getIdInternal() {
-        return super.getId();
-    }
-
-    public void setId(Long id) { super.setId(id); }
-
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
 
