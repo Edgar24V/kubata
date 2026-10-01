@@ -17,6 +17,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import org.kordamp.ikonli.feather.Feather;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import ao.allon.kubata.faturacao.ui.loading.LoadingService;
 import ao.allon.kubata.faturacao.ui.loading.LoadingScreen;
@@ -26,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 @Component
+@Lazy
 public class EmailManagerView extends BorderPane {
 
     private final EmailService emailService;
