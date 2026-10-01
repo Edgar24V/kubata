@@ -61,24 +61,28 @@ public class UserAdministrationService {
     }
 
     @Transactional(readOnly = true)
-    public List<User> listar() {
+    public List<User> listar(User actor) {
+        require(actor, "VER");
         return userRepository.findAllByOrderByNomeAsc();
     }
 
     @Transactional(readOnly = true)
-    public User carregarParaEdicao(Long id) {
+    public User carregarParaEdicao(User actor, Long id) {
+        require(actor, "VER");
         return userRepository.findByIdWithPerfis(id)
                 .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado."));
     }
 
     @Transactional(readOnly = true)
-    public List<Filial> filiais(Empresa empresa) {
+    public List<Filial> filiais(User actor, Empresa empresa) {
+        require(actor, "VER");
         if (empresa == null) return List.of();
         return filialRepository.findByEmpresaOrderByNomeAsc(empresa);
     }
 
     @Transactional(readOnly = true)
-    public List<Filial> todasFiliais() {
+    public List<Filial> todasFiliais(User actor) {
+        require(actor, "VER");
         return filialRepository.findAll().stream()
                 .sorted(java.util.Comparator.comparing(
                         f -> f.getEmpresa() == null ? "" : safeCompanyName(f.getEmpresa())
