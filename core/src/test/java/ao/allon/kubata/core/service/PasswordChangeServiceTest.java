@@ -1,6 +1,7 @@
 package ao.allon.kubata.core.service;
 
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.domain.UserSecurityProfile;
 import ao.allon.kubata.core.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
