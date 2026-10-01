@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -25,6 +26,7 @@ public class AuthService {
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
     private final AcessoService acessoService;
     private final MfaService mfaService;
+    private final UserDeviceService userDeviceService;
 
     @Value("${kubata.security.max-login-attempts:5}")
     private int maxAttempts;
@@ -39,12 +41,14 @@ public class AuthService {
                        UserSessionRepository userSessionRepository,
                        PasswordEncoder passwordEncoder,
                        AcessoService acessoService,
-                       MfaService mfaService) {
+                       MfaService mfaService,
+                       UserDeviceService userDeviceService) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
         this.mfaService = mfaService;
+        this.userDeviceService = userDeviceService;
     }
 
     @Transactional
@@ -142,10 +146,35 @@ public class AuthService {
         resetFailures(user);
         userRepository.save(user);
         
+        String workstation;
+        try {
+            workstation = InetAddress.getLocalHost().getHostName();
+        } catch (Exception ignored) {
+            workstation = "KUBATA-POSTO";
+        }
+
         // Criar sessão real na BD
-        UserSession session = new UserSession(user.getNome(), "STATION-01", ip, "KUBATA ERP");
+        UserSession session = new UserSession(user.getNome(), workstation, ip, "KUBATA ERP");
         userSessionRepository.save(session);
-        
+
+        try {
+            try {
+                workstation = InetAddress.getLocalHost().getHostName();
+            } catch (Exception ignored) {
+                workstation = "KUBATA-POSTO";
+            }
+
+            userDeviceService.registerLoginDevice(
+                    user,
+                    workstation,
+                    ip,
+                    System.getProperty("os.name", "KUBATA DESKTOP")
+                            + " / Java " + System.getProperty("java.version", "21")
+            );
+        } catch (Exception ignored) {
+            // O registo de dispositivo não pode bloquear um login já autenticado.
+        }
+
         acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Sucesso", true);
         return user;
     }

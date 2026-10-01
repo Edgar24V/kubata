@@ -1,13 +1,16 @@
 package ao.allon.kubata.admin.view;
 
-import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.Empresa;
+import ao.allon.kubata.core.domain.Filial;
 import ao.allon.kubata.core.domain.PerfilAcesso;
 import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
+import ao.allon.kubata.core.domain.TipoConta;
+import ao.allon.kubata.core.domain.UserDevice;
+import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
@@ -16,10 +19,13 @@ import ao.allon.kubata.core.service.AcessoService;
 import ao.allon.kubata.core.service.PasswordResetService;
 import ao.allon.kubata.core.service.MfaService;
 import ao.allon.kubata.core.service.SecurityService;
+import ao.allon.kubata.core.service.UserAdministrationService;
+import ao.allon.kubata.core.service.UserDeviceService;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.ui.table.TextTableCell;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -38,7 +44,6 @@ import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 import org.kordamp.ikonli.feather.Feather;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
@@ -52,6 +57,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
@@ -72,10 +79,10 @@ public class UtilizadoresView extends VBox {
     private final PasswordResetService passwordResetService;
     private final MfaService mfaService;
     private final SecurityService securityService;
-    private final PasswordEncoder passwordEncoder;
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
-    private final PersistenceService persistenceService;
+    private final UserAdministrationService userAdministrationService;
+    private final UserDeviceService userDeviceService;
 
     private final ObservableList<User> users = FXCollections.observableArrayList();
 
@@ -105,6 +112,9 @@ public class UtilizadoresView extends VBox {
     private Label detailMfa;
     private Label detailPassword;
     private Label detailFalhas;
+    private Label detailCodigo;
+    private Label detailFilial;
+    private Label detailTipoConta;
 
     private Button btnNovo;
     private Button btnEditar;
@@ -113,6 +123,8 @@ public class UtilizadoresView extends VBox {
     private Button btnDesbloquear;
     private Button btnResetPassword;
     private Button btnMfa;
+    private Button btnDispositivos;
+    private Button btnSessoes;
 
     private boolean dataLoaded;
 
@@ -123,10 +135,10 @@ public class UtilizadoresView extends VBox {
                             PasswordResetService passwordResetService,
                             MfaService mfaService,
                             SecurityService securityService,
-                            PasswordEncoder passwordEncoder,
                             SessionManager sessionManager,
                             ModalManager modalManager,
-                            PersistenceService persistenceService) {
+                            UserAdministrationService userAdministrationService,
+                            UserDeviceService userDeviceService) {
         this.userRepository = userRepository;
         this.perfilRepository = perfilRepository;
         this.empresaRepository = empresaRepository;
@@ -134,10 +146,10 @@ public class UtilizadoresView extends VBox {
         this.passwordResetService = passwordResetService;
         this.mfaService = mfaService;
         this.securityService = securityService;
-        this.passwordEncoder = passwordEncoder;
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
-        this.persistenceService = persistenceService;
+        this.userAdministrationService = userAdministrationService;
+        this.userDeviceService = userDeviceService;
 
         buildUI();
     }
@@ -376,6 +388,11 @@ public class UtilizadoresView extends VBox {
 
         TableUtils.standardize(tv);
 
+        TableColumn<User, String> colCodigo = new TableColumn<>("Código");
+        colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
+        colCodigo.setCellFactory(tc -> TextTableCell.create());
+        colCodigo.setPrefWidth(125);
+
         TableColumn<User, String> colNome = new TableColumn<>("Nome");
         colNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
         colNome.setCellFactory(tc -> TextTableCell.create());
@@ -390,6 +407,20 @@ public class UtilizadoresView extends VBox {
         colEmpresa.setCellValueFactory(cell ->
                 new SimpleStringPropertySafe(companyName(cell.getValue().getEmpresa())));
         colEmpresa.setPrefWidth(180);
+
+        TableColumn<User, String> colFilial = new TableColumn<>("Filial");
+        colFilial.setCellValueFactory(cell ->
+                new SimpleStringPropertySafe(
+                        cell.getValue().getFilial() == null
+                                ? "-"
+                                : safe(cell.getValue().getFilial().getNome(), "-")
+                ));
+        colFilial.setPrefWidth(150);
+
+        TableColumn<User, String> colTipoConta = new TableColumn<>("Tipo de conta");
+        colTipoConta.setCellValueFactory(cell ->
+                new SimpleStringPropertySafe(tipoContaLabel(cell.getValue().getTipoConta())));
+        colTipoConta.setPrefWidth(150);
 
         TableColumn<User, Role> colRole = new TableColumn<>("Função");
         colRole.setCellValueFactory(cell ->
@@ -458,7 +489,8 @@ public class UtilizadoresView extends VBox {
         colUltimoAcesso.setPrefWidth(150);
 
         tv.getColumns().addAll(
-                colNome, colEmail, colEmpresa, colRole,
+                colCodigo, colNome, colEmail, colEmpresa, colFilial,
+                colTipoConta, colRole,
                 colAtivo, colEstado, colMfa, colUltimoAcesso
         );
 
@@ -499,8 +531,11 @@ public class UtilizadoresView extends VBox {
 
         Separator separator = new Separator();
 
+        detailCodigo = detailValue("Código", "-");
         detailStatus = detailValue("Estado", "-");
         detailEmpresa = detailValue("Empresa", "-");
+        detailFilial = detailValue("Filial", "-");
+        detailTipoConta = detailValue("Tipo de conta", "-");
         detailRole = detailValue("Função", "-");
         detailDepartamento = detailValue("Departamento", "-");
         detailCargo = detailValue("Cargo", "-");
@@ -513,7 +548,8 @@ public class UtilizadoresView extends VBox {
         pane.getChildren().addAll(
                 title,
                 separator,
-                detailStatus, detailEmpresa, detailRole,
+                detailCodigo, detailStatus, detailEmpresa, detailFilial,
+                detailTipoConta, detailRole,
                 detailDepartamento, detailCargo,
                 detailUltimoAcesso, detailIp,
                 detailMfa, detailPassword, detailFalhas
@@ -529,6 +565,8 @@ public class UtilizadoresView extends VBox {
         btnDesbloquear = detailButton("Desbloquear", Feather.UNLOCK, "button-outlined");
         btnResetPassword = detailButton("Redefinir senha", Feather.KEY, "button-outlined");
         btnMfa = detailButton("Gerir MFA", Feather.SHIELD, "button-outlined");
+        btnDispositivos = detailButton("Dispositivos", Feather.CPU, "button-outlined");
+        btnSessoes = detailButton("Sessões", Feather.ACTIVITY, "button-outlined");
 
         btnEditar.setOnAction(e -> selectedUser().ifPresent(this::showUserDialog));
         btnClonar.setOnAction(e -> cloneUser());
@@ -536,6 +574,8 @@ public class UtilizadoresView extends VBox {
         btnDesbloquear.setOnAction(e -> unlockSelectedUser());
         btnResetPassword.setOnAction(e -> resetPassword());
         btnMfa.setOnAction(e -> selectedUser().ifPresent(this::showMfaManagementModal));
+        btnDispositivos.setOnAction(e -> selectedUser().ifPresent(this::showDevicesModal));
+        btnSessoes.setOnAction(e -> selectedUser().ifPresent(this::showSessionsModal));
 
         GridPane actions = new GridPane();
         actions.setHgap(7);
@@ -546,6 +586,8 @@ public class UtilizadoresView extends VBox {
         actions.add(btnDesbloquear, 1, 1);
         actions.add(btnMfa, 0, 2);
         actions.add(btnResetPassword, 1, 2);
+        actions.add(btnDispositivos, 0, 3);
+        actions.add(btnSessoes, 1, 3);
 
         GridPane.setHgrow(btnMfa, Priority.ALWAYS);
 
@@ -554,6 +596,8 @@ public class UtilizadoresView extends VBox {
         GridPane.setHgrow(btnStatus, Priority.ALWAYS);
         GridPane.setHgrow(btnDesbloquear, Priority.ALWAYS);
         GridPane.setHgrow(btnResetPassword, Priority.ALWAYS);
+        GridPane.setHgrow(btnDispositivos, Priority.ALWAYS);
+        GridPane.setHgrow(btnSessoes, Priority.ALWAYS);
 
         pane.getChildren().addAll(actionsSeparator, actionsTitle, actions);
         pane.setDisable(false);
@@ -611,8 +655,18 @@ public class UtilizadoresView extends VBox {
                 : "Seleccione uma linha para consultar os detalhes.");
 
         if (!hasSelection) {
+            detailCodigo.setText("-");
+            detailFilial.setText("-");
+            detailTipoConta.setText("-");
             setDetails("-", "-", "-", "-", "-", "-", "-", "-", "-", "-");
         } else {
+            detailCodigo.setText(safe(selected.getCodigo(), "-"));
+            detailFilial.setText(
+                    selected.getFilial() == null
+                            ? "Sem filial"
+                            : safe(selected.getFilial().getNome(), "Filial")
+            );
+            detailTipoConta.setText(tipoContaLabel(selected.getTipoConta()));
             setDetails(
                     userStatus(selected),
                     companyName(selected.getEmpresa()),
@@ -634,6 +688,8 @@ public class UtilizadoresView extends VBox {
         btnClonar.setDisable(!hasSelection || !can("CRIAR"));
         btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
         btnMfa.setDisable(!hasSelection || !can("EDITAR"));
+        btnDispositivos.setDisable(!hasSelection || !can("EDITAR"));
+        btnSessoes.setDisable(!hasSelection || !can("EDITAR"));
         btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
         btnStatus.setDisable(!hasSelection || !can("EDITAR") ||
                 (current != null && selected != null && current.getId() != null && current.getId().equals(selected.getId())));
@@ -669,25 +725,19 @@ public class UtilizadoresView extends VBox {
             table.setLoading(true);
         }
 
-        Platform.runLater(() -> {
-            try {
-                users.setAll(userRepository.findAll());
-                refreshFilters();
-                applyFilters();
-                updateSummary();
-            } catch (Exception e) {
-                e.printStackTrace();
-                modalManager.showErrorModal(
-                        "Erro ao carregar utilizadores",
-                        "Não foi possível carregar a lista de utilizadores.",
-                        e
-                );
-            } finally {
-                if (table != null) {
-                    table.setLoading(false);
+        runUserTask(
+                "Carregar utilizadores",
+                () -> userAdministrationService.listar(sessionManager.getUser()),
+                loaded -> {
+                    users.setAll(loaded);
+                    refreshFilters();
+                    applyFilters();
+                    updateSummary();
+                    if (table != null) {
+                        table.setLoading(false);
+                    }
                 }
-            }
-        });
+        );
     }
 
     private void refreshFilters() {
@@ -722,7 +772,9 @@ public class UtilizadoresView extends VBox {
                     || contains(user.getNif(), query)
                     || contains(user.getTelefone(), query)
                     || contains(user.getDepartamento(), query)
-                    || contains(user.getCargo(), query);
+                    || contains(user.getCargo(), query)
+                    || contains(user.getCodigo(), query)
+                    || (user.getFilial() != null && contains(user.getFilial().getNome(), query));
 
             boolean empresaMatch = empresa == null || sameId(user.getEmpresa(), empresa);
             boolean roleMatch = role == null || user.getRole() == role;
@@ -776,10 +828,13 @@ public class UtilizadoresView extends VBox {
     }
 
     public void showUserDialog(User user) {
-        boolean isNew = user == null;
+        boolean isNew = user == null || user.getId() == null;
 
         if (!isNew && user.getId() != null) {
-            user = userRepository.findByIdWithPerfis(user.getId()).orElse(user);
+            user = userAdministrationService.carregarParaEdicao(
+                    sessionManager.getUser(),
+                    user.getId()
+            );
         }
 
         final User formUser = user;
@@ -906,6 +961,13 @@ public class UtilizadoresView extends VBox {
 
         GridPane personalGrid = formGrid();
 
+        TextField txtCodigo = field(
+                "Código",
+                isNew ? "" : safe(formUser.getCodigo(), ""),
+                "Gerado automaticamente"
+        );
+        txtCodigo.setEditable(false);
+
         TextField txtNome = field(
                 "Nome completo",
                 isNew ? "" : formUser.getNome(),
@@ -927,8 +989,9 @@ public class UtilizadoresView extends VBox {
                 "Contacto telefónico"
         );
 
-        addFormPair(personalGrid, 0, "Nome:*", txtNome, "Email:*", txtEmail);
-        addFormPair(personalGrid, 1, "NIF:", txtNif, "Telefone:", txtTelefone);
+        addFormPair(personalGrid, 0, "Código:", txtCodigo, "Nome:*", txtNome);
+        addFormPair(personalGrid, 1, "Email:*", txtEmail, "NIF:", txtNif);
+        addFormPair(personalGrid, 2, "Telefone:", txtTelefone, null, new Label());
 
         identitySection.getChildren().add(personalGrid);
 
@@ -956,6 +1019,21 @@ public class UtilizadoresView extends VBox {
             }
         });
 
+        ComboBox<Filial> cbFilial = new ComboBox<>();
+        cbFilial.setMaxWidth(Double.MAX_VALUE);
+        cbFilial.setPromptText("Seleccionar filial");
+        cbFilial.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Filial object) {
+                return object == null ? "" : object.toString();
+            }
+
+            @Override
+            public Filial fromString(String string) {
+                return null;
+            }
+        });
+
         ComboBox<Role> cmbRole = new ComboBox<>(
                 FXCollections.observableArrayList(Role.values())
         );
@@ -973,6 +1051,26 @@ public class UtilizadoresView extends VBox {
             }
         });
 
+        ComboBox<TipoConta> cmbTipoConta = new ComboBox<>(
+                FXCollections.observableArrayList(TipoConta.values())
+        );
+        cmbTipoConta.setValue(
+                isNew ? TipoConta.PESSOAL
+                        : (formUser.getTipoConta() == null ? TipoConta.PESSOAL : formUser.getTipoConta())
+        );
+        cmbTipoConta.setMaxWidth(Double.MAX_VALUE);
+        cmbTipoConta.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(TipoConta object) {
+                return object == null ? "" : tipoContaLabel(object);
+            }
+
+            @Override
+            public TipoConta fromString(String string) {
+                return null;
+            }
+        });
+
         TextField txtDepartamento = field(
                 "Departamento",
                 isNew ? "" : safe(formUser.getDepartamento(), ""),
@@ -984,8 +1082,36 @@ public class UtilizadoresView extends VBox {
                 "Ex.: Operador de facturação"
         );
 
-        addFormPair(organizationGrid, 0, "Empresa:*", cbEmpresa, "Função:", cmbRole);
-        addFormPair(organizationGrid, 1, "Departamento:", txtDepartamento, "Cargo:", txtCargo);
+        Runnable refreshFiliais = () -> {
+            Empresa selectedEmpresa = cbEmpresa.getValue();
+            List<Filial> options = selectedEmpresa == null
+                    ? List.of()
+                    : userAdministrationService.filiais(
+                            sessionManager.getUser(),
+                            selectedEmpresa
+                    );
+            Filial currentFilial = cbFilial.getValue();
+            cbFilial.getItems().setAll(options);
+            if (currentFilial != null && options.stream()
+                    .anyMatch(f -> f.getId() != null && f.getId().equals(currentFilial.getId()))) {
+                cbFilial.setValue(currentFilial);
+            } else if (!isNew && formUser.getFilial() != null && options.stream()
+                    .anyMatch(f -> f.getId() != null && f.getId().equals(formUser.getFilial().getId()))) {
+                cbFilial.setValue(formUser.getFilial());
+            } else {
+                cbFilial.setValue(null);
+            }
+        };
+
+        cbEmpresa.setOnAction(e -> refreshFiliais.run());
+        if (!isNew && formUser.getEmpresa() != null) {
+            cbEmpresa.setValue(formUser.getEmpresa());
+            refreshFiliais.run();
+        }
+
+        addFormPair(organizationGrid, 0, "Empresa:*", cbEmpresa, "Filial:", cbFilial);
+        addFormPair(organizationGrid, 1, "Função:", cmbRole, "Tipo de conta:", cmbTipoConta);
+        addFormPair(organizationGrid, 2, "Departamento:", txtDepartamento, "Cargo:", txtCargo);
 
         organizationSection.getChildren().add(organizationGrid);
         generalPage.getChildren().addAll(identitySection, organizationSection);
@@ -1591,10 +1717,13 @@ public class UtilizadoresView extends VBox {
 
                     User target = isNew ? new User() : formUser;
 
+                    target.setCodigo(txtCodigo.getText().trim());
                     target.setNome(txtNome.getText().trim());
                     target.setEmail(txtEmail.getText().trim());
                     target.setEmpresa(cbEmpresa.getValue());
+                    target.setFilial(cbFilial.getValue());
                     target.setRole(cmbRole.getValue());
+                    target.setTipoConta(cmbTipoConta.getValue());
                     target.setNif(blankToNull(txtNif.getText()));
                     target.setTelefone(blankToNull(txtTelefone.getText()));
                     target.setDepartamento(blankToNull(txtDepartamento.getText()));
@@ -1626,9 +1755,7 @@ public class UtilizadoresView extends VBox {
 
                     target.setSuperadmin(chkSuperadmin.isSelected());
                     target.setPasswordProvisoria(chkProvisoria.isSelected());
-                    target.setDataExpiracaoPassword(
-                            dataExpiracao.getValue()
-                    );
+                    target.setDataExpiracaoPassword(dataExpiracao.getValue());
                     target.setIdioma(cmbIdioma.getValue());
                     target.setTema(cmbTema.getValue());
                     target.setLinhasPorPagina(linhas.getValue());
@@ -1638,33 +1765,56 @@ public class UtilizadoresView extends VBox {
                                     listPerfis.getSelectionModel()
                                             .getSelectedItems()
                             );
-                    target.setPerfis(selectedPerfis);
 
-                    if (!password.isBlank()) {
-                        target.setPassword(
-                                passwordEncoder.encode(password)
-                        );
-                        target.setPasswordChangedAt(LocalDateTime.now());
-                    }
-
-                    if (isNew) {
-                        target.setPasswordProvisoria(true);
-                        target.setFailedAttempts(0);
-                        target.setLockoutEnd(null);
-                    }
-
-                    persistenceService.saveAsync(
-                            userRepository,
-                            target,
-                            "UTILIZADOR",
-                            (isNew ? "Criado" : "Actualizado")
-                                    + " utilizador: " + target.getEmail(),
+                    runUserTask(
+                            isNew ? "Criar utilizador" : "Actualizar utilizador",
+                            () -> userAdministrationService.salvar(
+                                    sessionManager.getUser(),
+                                    target,
+                                    password,
+                                    selectedPerfis,
+                                    cbEmpresa.getValue(),
+                                    cbFilial.getValue(),
+                                    "127.0.0.1"
+                            ),
                             saved -> loadUsers()
                     );
                 },
                 null,
                 config
         );
+    }
+
+    private <T> void runUserTask(String title, Callable<T> operation, Consumer<T> onSuccess) {
+        Task<T> task = new Task<>() {
+            @Override
+            protected T call() throws Exception {
+                return operation.call();
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            if (onSuccess != null) {
+                onSuccess.accept(task.getValue());
+            }
+        });
+        task.setOnFailed(event -> {
+            if (table != null) {
+                table.setLoading(false);
+            }
+            Throwable error = task.getException();
+            modalManager.showErrorModal(
+                    title,
+                    error == null || error.getMessage() == null
+                            ? "Não foi possível concluir a operação."
+                            : error.getMessage(),
+                    error
+            );
+        });
+
+        Thread worker = new Thread(task, "kubata-user-admin");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private GridPane formGrid() {
@@ -1869,7 +2019,7 @@ public class UtilizadoresView extends VBox {
         if (current != null && current.getId() != null && current.getId().equals(selected.getId())) {
             modalManager.alert(
                     "Operação não permitida",
-                    "Não pode remover a própria conta.",
+                    "Não pode arquivar a própria conta.",
                     "warning",
                     null
             );
@@ -1877,23 +2027,25 @@ public class UtilizadoresView extends VBox {
         }
 
         if (!can("REMOVER")) {
-            modalManager.alert("Acesso negado", "Não possui permissão para remover utilizadores.", "warning", null);
+            modalManager.alert("Acesso negado", "Não possui permissão para arquivar utilizadores.", "warning", null);
             return;
         }
 
         modalManager.showConfirmModal(
                 confirmationContent(
-                        "Remover utilizador",
-                        "A conta seleccionada será removida do sistema."
+                        "Arquivar utilizador",
+                        "A conta será desactivada e as sessões serão terminadas. "
+                                + "Os dados permanecem para garantir rastreabilidade."
                 ),
-                "Remover utilizador — " + safe(selected.getNome(), selected.getEmail()),
-                () -> persistenceService.deleteAsync(
-                        userRepository,
-                        selected,
-                        null,
-                        "UTILIZADOR",
-                        "Removido utilizador: " + selected.getEmail(),
-                        this::loadUsers
+                "Arquivar utilizador — " + safe(selected.getNome(), selected.getEmail()),
+                () -> runUserTask(
+                        "Arquivar utilizador",
+                        () -> userAdministrationService.arquivar(
+                                current,
+                                selected.getId(),
+                                "127.0.0.1"
+                        ),
+                        saved -> loadUsers()
                 ),
                 null
         );
@@ -1911,6 +2063,257 @@ public class UtilizadoresView extends VBox {
         return box;
     }
 
+    private void showDevicesModal(User user) {
+        if (user == null || !can("VER")) {
+            return;
+        }
+
+        TableView<UserDevice> deviceTable = new TableView<>();
+        deviceTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        deviceTable.setPlaceholder(new Label("Nenhum dispositivo registado."));
+
+        TableColumn<UserDevice, String> name = deviceTextColumn("Dispositivo", d -> safe(d.getDeviceName(), "Dispositivo"));
+        TableColumn<UserDevice, String> type = deviceTextColumn("Tipo", d -> safe(d.getDeviceType(), "—"));
+        TableColumn<UserDevice, String> platform = deviceTextColumn("Plataforma", d -> safe(d.getPlatform(), "—"));
+        TableColumn<UserDevice, String> ip = deviceTextColumn("Último IP", d -> safe(d.getLastIp(), "—"));
+        TableColumn<UserDevice, String> trusted = deviceTextColumn("Confiança", d -> d.isTrusted() ? "Confiável" : "Normal");
+        TableColumn<UserDevice, String> lastSeen = deviceTextColumn(
+                "Última actividade",
+                d -> formatDateTime(d.getLastSeen())
+        );
+        TableColumn<UserDevice, String> state = deviceTextColumn(
+                "Estado",
+                d -> Boolean.TRUE.equals(d.getActive()) ? "Activo" : "Revogado"
+        );
+        deviceTable.getColumns().setAll(name, type, platform, ip, trusted, lastSeen, state);
+
+        Button trust = new Button("Alterar confiança", IconUtils.icon(Feather.SHIELD, 12));
+        Button revoke = new Button("Revogar", IconUtils.icon(Feather.X_CIRCLE, 12));
+        Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 12));
+        Button close = new Button("Fechar", IconUtils.icon(Feather.X, 12));
+        trust.getStyleClass().add("button-outlined");
+        revoke.getStyleClass().add("button-outlined");
+        refresh.getStyleClass().add("button-outlined");
+        close.getStyleClass().add("button-primary");
+
+        Runnable load = () -> runUserTask(
+                "Dispositivos",
+                () -> userDeviceService.listar(sessionManager.getUser(), user.getId()),
+                list -> deviceTable.getItems().setAll(list)
+        );
+        load.run();
+
+        deviceTable.getSelectionModel().selectedItemProperty().addListener((obs, old, selected) -> {
+            trust.setDisable(selected == null);
+            revoke.setDisable(selected == null || !Boolean.TRUE.equals(selected.getActive()));
+        });
+        trust.setDisable(true);
+        revoke.setDisable(true);
+
+        trust.setOnAction(e -> {
+            UserDevice selected = deviceTable.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+            boolean next = !selected.isTrusted();
+            modalManager.showConfirm(
+                    next ? "Marcar dispositivo como confiável" : "Retirar confiança",
+                    "Alterar o nível de confiança de \"" 
+                            + safe(selected.getDeviceName(), "Dispositivo") 
+                            + "\"?",
+                    () -> runUserTask(
+                            "Confiança do dispositivo",
+                            () -> userDeviceService.setTrusted(
+                                    sessionManager.getUser(),
+                                    selected.getId(),
+                                    next,
+                                    "127.0.0.1"
+                            ),
+                            saved -> load.run()
+                    )
+            );
+        });
+
+        revoke.setOnAction(e -> {
+            UserDevice selected = deviceTable.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+
+            TextArea reason = new TextArea();
+            reason.setPromptText("Motivo da revogação");
+            reason.setPrefRowCount(3);
+            reason.setWrapText(true);
+
+            modalManager.showConfirmModal(
+                    new VBox(10, new Label(
+                            "O dispositivo deixará de ser utilizável pela conta até ser registado novamente."
+                    ), reason),
+                    "Revogar dispositivo",
+                    () -> {
+                        String value = reason.getText() == null ? "" : reason.getText().trim();
+                        if (value.length() < 3) {
+                            modalManager.alert(
+                                    "Motivo obrigatório",
+                                    "Indique um motivo com pelo menos 3 caracteres.",
+                                    "warning",
+                                    null
+                            );
+                            return;
+                        }
+                        runUserTask(
+                                "Revogar dispositivo",
+                                () -> userDeviceService.revogar(
+                                        sessionManager.getUser(),
+                                        selected.getId(),
+                                        "127.0.0.1",
+                                        value
+                                ),
+                                saved -> load.run()
+                        );
+                    },
+                    null
+            );
+        });
+
+        refresh.setOnAction(e -> load.run());
+        close.setOnAction(e -> modalManager.hideModal());
+
+        HBox actions = new HBox(8, trust, revoke, new Pane(), refresh, close);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(actions.getChildren().get(2), Priority.ALWAYS);
+
+        VBox content = new VBox(
+                12,
+                new Label("Dispositivos reconhecidos para " + safe(user.getEmail(), user.getNome())),
+                deviceTable,
+                actions
+        );
+        content.setPadding(new Insets(4));
+        VBox.setVgrow(deviceTable, Priority.ALWAYS);
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Dispositivos")
+                        .subtitle("Identidade · confiança · revogação")
+                        .icon(Feather.CPU)
+                        .size(900, 520)
+                        .minSize(720, 440)
+                        .maximizable(true)
+                        .minimizable(false)
+        );
+    }
+
+    private void showSessionsModal(User user) {
+        if (user == null || !can("VER")) {
+            return;
+        }
+
+        TableView<UserSession> sessionTable = new TableView<>();
+        sessionTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        sessionTable.setPlaceholder(new Label("Nenhuma sessão registada."));
+
+        TableColumn<UserSession, String> workstation = sessionTextColumn("Posto", UserSession::getWorkstation);
+        TableColumn<UserSession, String> ip = sessionTextColumn("IP", UserSession::getIpAddress);
+        TableColumn<UserSession, String> context = sessionTextColumn("Contexto", UserSession::getContext);
+        TableColumn<UserSession, String> login = sessionTextColumn(
+                "Login",
+                s -> formatDateTime(s.getLoginTime())
+        );
+        TableColumn<UserSession, String> memory = sessionTextColumn(
+                "Memória",
+                s -> safe(s.getMemoryUsage(), "—")
+        );
+        sessionTable.getColumns().setAll(workstation, ip, context, login, memory);
+
+        Button terminate = new Button(
+                "Terminar todas as sessões",
+                IconUtils.icon(Feather.LOG_OUT, 12)
+        );
+        terminate.getStyleClass().add("button-outlined");
+        Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 12));
+        refresh.getStyleClass().add("button-outlined");
+        Button close = new Button("Fechar", IconUtils.icon(Feather.X, 12));
+        close.getStyleClass().add("button-primary");
+
+        Runnable load = () -> runUserTask(
+                "Sessões",
+                () -> userAdministrationService.sessoes(
+                        sessionManager.getUser(),
+                        user.getId()
+                ),
+                list -> sessionTable.getItems().setAll(list)
+        );
+        load.run();
+
+        terminate.setOnAction(e -> modalManager.showConfirm(
+                "Terminar sessões",
+                "Todas as sessões registadas de " + safe(user.getNome(), user.getEmail()) + " serão terminadas.",
+                () -> runUserTask(
+                        "Terminar sessões",
+                        () -> userAdministrationService.terminarSessoes(
+                                sessionManager.getUser(),
+                                user.getId(),
+                                "127.0.0.1"
+                        ),
+                        count -> {
+                            load.run();
+                            modalManager.alert(
+                                    "Sessões terminadas",
+                                    count + " sessão(ões) terminada(s).",
+                                    "info",
+                                    null
+                            );
+                        }
+                )
+        ));
+
+        refresh.setOnAction(e -> load.run());
+        close.setOnAction(e -> modalManager.hideModal());
+
+        HBox actions = new HBox(8, terminate, new Pane(), refresh, close);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(actions.getChildren().get(1), Priority.ALWAYS);
+
+        VBox content = new VBox(
+                12,
+                new Label("Sessões registadas de " + safe(user.getEmail(), user.getNome())),
+                sessionTable,
+                actions
+        );
+        content.setPadding(new Insets(4));
+        VBox.setVgrow(sessionTable, Priority.ALWAYS);
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Sessões do utilizador")
+                        .subtitle("Administração de sessões e revogação de acesso")
+                        .icon(Feather.ACTIVITY)
+                        .size(860, 500)
+                        .minSize(700, 420)
+                        .maximizable(true)
+                        .minimizable(false)
+        );
+    }
+
+    private TableColumn<UserDevice, String> deviceTextColumn(
+            String title,
+            java.util.function.Function<UserDevice, String> mapper) {
+        TableColumn<UserDevice, String> column = new TableColumn<>(title);
+        column.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                safe(mapper.apply(data.getValue()), "—")
+        ));
+        return column;
+    }
+
+    private TableColumn<UserSession, String> sessionTextColumn(
+            String title,
+            java.util.function.Function<UserSession, String> mapper) {
+        TableColumn<UserSession, String> column = new TableColumn<>(title);
+        column.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                safe(mapper.apply(data.getValue()), "—")
+        ));
+        return column;
+    }
+
     private void cloneUser() {
         User selected = selectedUser().orElse(null);
         if (selected == null) {
@@ -1926,31 +2329,22 @@ public class UtilizadoresView extends VBox {
         clone.setNome(safe(selected.getNome(), "Utilizador") + " (Cópia)");
         clone.setEmail("copy_" + System.currentTimeMillis() + "_" + safe(selected.getEmail(), "utilizador@kubata.local"));
         clone.setRole(selected.getRole());
+        clone.setTipoConta(selected.getTipoConta());
         clone.setEmpresa(selected.getEmpresa());
+        clone.setFilial(selected.getFilial());
         clone.setNif(selected.getNif());
         clone.setTelefone(selected.getTelefone());
         clone.setDepartamento(selected.getDepartamento());
         clone.setCargo(selected.getCargo());
         clone.setActive(true);
         clone.setMfaEnabled(false);
-        clone.setPassword(selected.getPassword());
         clone.setPasswordProvisoria(true);
         clone.setDataExpiracaoPassword(LocalDate.now().plusDays(90));
         clone.setPerfis(selected.getPerfis() == null
                 ? new HashSet<>()
                 : new HashSet<>(selected.getPerfis()));
 
-        persistenceService.saveAsync(
-                userRepository,
-                clone,
-                "UTILIZADOR",
-                "Clonado utilizador: " + selected.getEmail()
-                        + " para " + clone.getEmail(),
-                saved -> {
-                    loadUsers();
-                    Platform.runLater(() -> showUserDialog(saved));
-                }
-        );
+        showUserDialog(clone);
     }
 
     private void toggleSelectedStatus() {
@@ -1976,13 +2370,14 @@ public class UtilizadoresView extends VBox {
                 next ? "Activar utilizador" : "Desactivar utilizador",
                 "Confirma a alteração do estado de " + safe(selected.getNome(), selected.getEmail()) + "?",
                 () -> {
-                    selected.setActive(next);
-                    persistenceService.saveAsync(
-                            userRepository,
-                            selected,
-                            "UTILIZADOR",
-                            (next ? "Activado" : "Desactivado")
-                                    + " utilizador: " + selected.getEmail(),
+                    runUserTask(
+                            next ? "Activar utilizador" : "Desactivar utilizador",
+                            () -> userAdministrationService.alterarEstado(
+                                    current,
+                                    selected.getId(),
+                                    next,
+                                    "127.0.0.1"
+                            ),
                             saved -> loadUsers()
                     );
                 }
@@ -2000,13 +2395,13 @@ public class UtilizadoresView extends VBox {
                 "Os bloqueios e tentativas falhadas de " + safe(selected.getNome(), selected.getEmail())
                         + " serão limpos.",
                 () -> {
-                    selected.setFailedAttempts(0);
-                    selected.setLockoutEnd(null);
-                    persistenceService.saveAsync(
-                            userRepository,
-                            selected,
-                            "UTILIZADOR",
-                            "Desbloqueado utilizador: " + selected.getEmail(),
+                    runUserTask(
+                            "Desbloquear utilizador",
+                            () -> userAdministrationService.desbloquear(
+                                    sessionManager.getUser(),
+                                    selected.getId(),
+                                    "127.0.0.1"
+                            ),
                             saved -> loadUsers()
                     );
                 }
@@ -2344,7 +2739,20 @@ public class UtilizadoresView extends VBox {
 
             try {
                 MfaService.ActivationResult result =
-                        mfaService.confirmActivation(user, code);
+                        user.getId() != null
+                                ? mfaService.adminConfirmActivation(
+                                        sessionManager.getUser(),
+                                        user.getId(),
+                                        code
+                                )
+                                : mfaService.confirmActivation(user, code);
+
+                if (user.getId() != null) {
+                    User refreshed = userAdministrationService.carregarParaEdicao(user.getId());
+                    user.setMfaEnabled(refreshed.isMfaEnabled());
+                    user.setMfaSecret(refreshed.getMfaSecret());
+                    user.setMfaRecoveryCodes(refreshed.getMfaRecoveryCodes());
+                }
 
                 mfaCheckBox.setSelected(true);
                 mfaConfirmed[0] = true;
@@ -2360,6 +2768,7 @@ public class UtilizadoresView extends VBox {
                 manageButton.setGraphic(IconUtils.icon(Feather.SHIELD, 12));
 
                 modalManager.hideModal();
+                loadUsers();
 
                 showRecoveryCodesModal(
                         user,
@@ -2563,7 +2972,14 @@ public class UtilizadoresView extends VBox {
                     new javafx.concurrent.Task<>() {
                         @Override
                         protected List<String> call() {
-                            return mfaService.regenerateRecoveryCodes(user, code);
+                            return user.getId() != null
+                                    ? mfaService.adminRegenerateRecoveryCodes(
+                                            sessionManager.getUser(),
+                                            user.getId(),
+                                            code,
+                                            "127.0.0.1"
+                                    )
+                                    : mfaService.regenerateRecoveryCodes(user, code);
                         }
                     };
 
@@ -2611,7 +3027,15 @@ public class UtilizadoresView extends VBox {
                 "Desactivar MFA",
                 () -> {
                     try {
-                        mfaService.disableMfa(user);
+                        if (user.getId() != null) {
+                            mfaService.adminDisableMfa(
+                                    sessionManager.getUser(),
+                                    user.getId(),
+                                    "127.0.0.1"
+                            );
+                        } else {
+                            mfaService.disableMfa(user);
+                        }
                         mfaCheckBox.setSelected(false);
                         mfaConfirmed[0] = false;
                         mfaStatus.setText("MFA será desactivado ao guardar");
@@ -2623,6 +3047,7 @@ public class UtilizadoresView extends VBox {
                                 IconUtils.icon(Feather.SHIELD, 12)
                         );
                         loadUsers();
+                        modalManager.hideModal();
                     } catch (Exception ex) {
                         modalManager.showErrorModal(
                                 "MFA",
@@ -2784,6 +3209,7 @@ public class UtilizadoresView extends VBox {
 
         content.getChildren().addAll(
                 detailCard("Identidade", List.of(
+                        "Código: " + safe(user.getCodigo(), "-"),
                         "Nome: " + safe(user.getNome(), "-"),
                         "Email: " + safe(user.getEmail(), "-"),
                         "NIF: " + safe(user.getNif(), "-"),
@@ -2791,6 +3217,8 @@ public class UtilizadoresView extends VBox {
                 )),
                 detailCard("Organização", List.of(
                         "Empresa: " + companyName(user.getEmpresa()),
+                        "Filial: " + (user.getFilial() == null ? "Sem filial" : safe(user.getFilial().getNome(), "-")),
+                        "Tipo de conta: " + tipoContaLabel(user.getTipoConta()),
                         "Função: " + roleLabel(user.getRole()),
                         "Departamento: " + safe(user.getDepartamento(), "-"),
                         "Cargo: " + safe(user.getCargo(), "-")
@@ -2849,6 +3277,8 @@ public class UtilizadoresView extends VBox {
             btnClonar.setDisable(!hasSelection || !can("CRIAR"));
             btnResetPassword.setDisable(!hasSelection || !can("EDITAR"));
             btnMfa.setDisable(!hasSelection || !can("EDITAR"));
+            btnDispositivos.setDisable(!hasSelection || !can("VER"));
+            btnSessoes.setDisable(!hasSelection || !can("VER"));
             btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
             btnStatus.setDisable(!hasSelection || !can("EDITAR")
                     || (current != null && selected != null
@@ -2919,6 +3349,20 @@ public class UtilizadoresView extends VBox {
             return "Senha provisória";
         }
         return "Normal";
+    }
+
+    private String tipoContaLabel(TipoConta tipoConta) {
+        if (tipoConta == null) {
+            return "Pessoal";
+        }
+        return switch (tipoConta) {
+            case PESSOAL -> "Pessoal";
+            case ADMINISTRATIVA -> "Administrativa";
+            case SERVICO -> "Serviço";
+            case API -> "API";
+            case TECNICA -> "Técnica";
+            case TEMPORARIA -> "Temporária";
+        };
     }
 
     private String roleLabel(Role role) {

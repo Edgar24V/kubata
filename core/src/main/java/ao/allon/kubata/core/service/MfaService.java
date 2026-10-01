@@ -25,15 +25,18 @@ public class MfaService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AcessoService acessoService;
+    private final SecurityService securityService;
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
 
     public MfaService(UserRepository userRepository,
                       PasswordEncoder passwordEncoder,
-                      AcessoService acessoService) {
+                      AcessoService acessoService,
+                      SecurityService securityService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
+        this.securityService = securityService;
     }
 
     /**
@@ -62,7 +65,15 @@ public class MfaService {
     @Transactional
     public ActivationResult confirmActivation(User user, String code) {
         requireUser(user);
+        return confirmActivationInternal(user, code, user, null, "MFA_ACTIVATED");
+    }
 
+    private ActivationResult confirmActivationInternal(
+            User user,
+            String code,
+            User auditActor,
+            String sourceIp,
+            String auditOperation) {
         if (user.getMfaSecret() == null || user.getMfaSecret().isBlank()) {
             throw new IllegalStateException(
                     "Primeiro gere uma configuração MFA."
@@ -90,37 +101,126 @@ public class MfaService {
         if (user.getId() != null) {
             userRepository.save(user);
             acessoService.registrarAuditoria(
-                    user,
-                    "MFA_ACTIVATED",
-                    "AUTH",
-                    null,
-                    "MFA TOTP activado",
+                    auditActor,
+                    auditOperation,
+                    sourceIp == null ? "AUTH" : "UTILIZADORES",
+                    sourceIp,
+                    (auditActor == user
+                            ? "MFA TOTP activado"
+                            : "MFA TOTP activado administrativamente para " + user.getEmail()),
                     true
             );
         }
 
-        return new ActivationResult(
-                recoveryCodes,
+        return new ActivationResult(recoveryCodes, true);
+    }
+
+    /**
+     * Operações de MFA realizadas por um administrador sobre outra conta.
+     * A autorização é sempre validada no servidor.
+     */
+    @Transactional
+    public ActivationResult adminConfirmActivation(User actor, Long targetUserId, String code) {
+        User target = authorizedAdminTarget(actor, targetUserId);
+        return confirmActivationInternal(
+                target,
+                code,
+                actor,
+                "127.0.0.1",
+                "MFA_ADMIN_ACTIVATED"
+        );
+    }
+
+    @Transactional
+    public void adminDisableMfa(User actor, Long targetUserId, String sourceIp) {
+        User target = authorizedAdminTarget(actor, targetUserId);
+        disableMfaInternal(
+                target,
+                actor,
+                sourceIp,
+                "MFA_ADMIN_DISABLED",
                 true
         );
     }
 
     @Transactional
+    public List<String> adminRegenerateRecoveryCodes(
+            User actor,
+            Long targetUserId,
+            String code,
+            String sourceIp) {
+        User target = authorizedAdminTarget(actor, targetUserId);
+        return regenerateRecoveryCodesInternal(
+                target,
+                code,
+                actor,
+                sourceIp,
+                "MFA_RECOVERY_CODES_REGENERATED"
+        );
+    }
+
+    private User authorizedAdminTarget(User actor, Long targetUserId) {
+        if (actor == null || actor.getId() == null) {
+            throw new SecurityException("Sessão administrativa inválida.");
+        }
+
+        User managedActor = userRepository.findById(actor.getId())
+                .orElseThrow(() -> new SecurityException("Administrador da sessão não encontrado."));
+
+        if (!Boolean.TRUE.equals(managedActor.getActive())) {
+            throw new SecurityException("A conta administrativa está inactiva.");
+        }
+
+        if (!managedActor.isSuperadmin()
+                && managedActor.getRole() != ao.allon.kubata.core.domain.Role.ADMIN
+                && !securityService.hasPermission(
+                        managedActor,
+                        "ADMINISTRATOR",
+                        "UTILIZADORES",
+                        ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.EDITAR)) {
+            throw new SecurityException("Não possui permissão para gerir o MFA de utilizadores.");
+        }
+
+        if (targetUserId == null) {
+            throw new IllegalArgumentException("Utilizador de destino inválido.");
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado."));
+
+        if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
+            throw new SecurityException("Só um Superadministrador pode gerir o MFA de outro Superadministrador.");
+        }
+
+        return target;
+    }
+
+    @Transactional
     public void disableMfa(User user) {
         requireUser(user);
+        disableMfaInternal(user, user, null, "MFA_DISABLED", false);
+    }
 
-        user.setMfaEnabled(false);
-        user.setMfaSecret(null);
-        user.setMfaRecoveryCodes(null);
+    private void disableMfaInternal(
+            User target,
+            User auditActor,
+            String sourceIp,
+            String auditOperation,
+            boolean administrative) {
+        target.setMfaEnabled(false);
+        target.setMfaSecret(null);
+        target.setMfaRecoveryCodes(null);
 
-        if (user.getId() != null) {
-            userRepository.save(user);
+        if (target.getId() != null) {
+            userRepository.save(target);
             acessoService.registrarAuditoria(
-                    user,
-                    "MFA_DISABLED",
-                    "AUTH",
-                    null,
-                    "MFA TOTP desactivado",
+                    auditActor,
+                    auditOperation,
+                    administrative ? "UTILIZADORES" : "AUTH",
+                    sourceIp,
+                    administrative
+                            ? "MFA desactivado administrativamente para " + target.getEmail()
+                            : "MFA TOTP desactivado",
                     true
             );
         }
@@ -133,8 +233,22 @@ public class MfaService {
     @Transactional
     public List<String> regenerateRecoveryCodes(User user, String totpCode) {
         requireUser(user);
+        return regenerateRecoveryCodesInternal(
+                user,
+                totpCode,
+                user,
+                null,
+                "MFA_RECOVERY_REGENERATED"
+        );
+    }
 
-        if (!user.isMfaEnabled() || user.getMfaSecret() == null) {
+    private List<String> regenerateRecoveryCodesInternal(
+            User target,
+            String totpCode,
+            User auditActor,
+            String sourceIp,
+            String auditOperation) {
+        if (!target.isMfaEnabled() || target.getMfaSecret() == null) {
             throw new IllegalStateException(
                     "O MFA não está activo nesta conta."
             );
@@ -143,33 +257,35 @@ public class MfaService {
         String normalizedCode = normalizeTotpCode(totpCode);
         if (normalizedCode == null
                 || !googleAuthenticator.authorize(
-                user.getMfaSecret(),
+                target.getMfaSecret(),
                 Integer.parseInt(normalizedCode))) {
             throw new IllegalArgumentException(
                     "O código MFA está inválido ou expirado."
             );
         }
 
-        if (user.getId() == null) {
+        if (target.getId() == null) {
             throw new IllegalStateException(
                     "Guarde o utilizador antes de regenerar os códigos de recuperação."
             );
         }
 
         List<String> recoveryCodes = generateRecoveryCodes();
-        user.setMfaRecoveryCodes(
+        target.setMfaRecoveryCodes(
                 recoveryCodes.stream()
                         .map(passwordEncoder::encode)
                         .collect(Collectors.joining("\n"))
         );
 
-        userRepository.save(user);
+        userRepository.save(target);
         acessoService.registrarAuditoria(
-                user,
-                "MFA_RECOVERY_REGENERATED",
-                "AUTH",
-                null,
-                "Códigos de recuperação MFA regenerados",
+                auditActor,
+                auditOperation,
+                sourceIp == null ? "AUTH" : "UTILIZADORES",
+                sourceIp,
+                auditActor == target
+                        ? "Códigos de recuperação MFA regenerados"
+                        : "Códigos MFA regenerados administrativamente para " + target.getEmail(),
                 true
         );
         return recoveryCodes;

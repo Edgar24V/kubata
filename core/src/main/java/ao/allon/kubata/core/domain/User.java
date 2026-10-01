@@ -30,6 +30,9 @@ public class User extends BaseEntity implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = false, unique = true, length = 40)
+    private String codigo;
+
     @NotBlank(message = "A senha é obrigatória")
     @Column(nullable = false)
     private String password;
@@ -37,6 +40,10 @@ public class User extends BaseEntity implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_conta", nullable = false, length = 30)
+    private TipoConta tipoConta = TipoConta.PESSOAL;
 
     @Column(length = 20)
     private String nif;
@@ -101,9 +108,21 @@ public class User extends BaseEntity implements UserDetails {
     @JoinColumn(name = "empresa_id")
     private Empresa empresa;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "filial_id")
+    private Filial filial;
+
     @Override
     public String toString() {
         return nome != null ? nome : (email != null ? email : "Usuário sem identificação");
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
     }
 
     public String getNome() {
@@ -202,6 +221,14 @@ public class User extends BaseEntity implements UserDetails {
         this.empresa = empresa;
     }
 
+    public Filial getFilial() {
+        return filial;
+    }
+
+    public void setFilial(Filial filial) {
+        this.filial = filial;
+    }
+
     public String getEmail() {
         return email;
     }
@@ -224,6 +251,14 @@ public class User extends BaseEntity implements UserDetails {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public TipoConta getTipoConta() {
+        return tipoConta;
+    }
+
+    public void setTipoConta(TipoConta tipoConta) {
+        this.tipoConta = tipoConta;
     }
 
     public String getNif() {
