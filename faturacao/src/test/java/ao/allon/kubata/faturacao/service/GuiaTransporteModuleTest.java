@@ -74,7 +74,7 @@ class GuiaTransporteModuleTest {
         it.setPercentualIva(BigDecimal.ZERO);
         guia.addItem(it);
 
-        when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test
