@@ -45,6 +45,7 @@ public class UserDevice extends BaseEntity {
     @Column(name = "last_ip", length = 45)
     private String lastIp;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean trusted = false;
 
