@@ -12473,3 +12473,30 @@ Text {
     -fx-border-color: -kubata-green-light;
     -fx-effect: dropshadow(gaussian, rgba(102,187,106,0.35), 4, 0.2, 0, 0);
 }
+
+/* ── Gestão de sessões ───────────────────────────────── */
+.kubata-sessions-actions {
+    -fx-padding: 11px 12px;
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-border-default;
+    -fx-border-radius: 10px;
+}
+
+.kubata-sessions-actions .button {
+    -fx-min-height: 34px;
+}
+
+.kubata-session-confirm-card {
+    -fx-padding: 4px;
+    -fx-min-width: 430px;
+}
+
+.kubata-server-properties-table .table-row-cell:selected {
+    -fx-background-color: rgba(33,115,70,0.10);
+    -fx-text-background-color: -color-fg-default;
+}
+
+.kubata-server-properties-table .table-row-cell:hover {
+    -fx-background-color: -kubata-green-pale;
+}
