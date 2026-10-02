@@ -3,6 +3,7 @@ package ao.allon.kubata.admin.controller;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.StageReadyEvent;
 import ao.allon.kubata.admin.ui.event.LoginSuccessEvent;
+import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.ThemeManager;
 import ao.allon.kubata.admin.view.AdminMainView;
 import ao.allon.kubata.core.domain.Role;
@@ -24,17 +25,21 @@ public class MainController {
     private final SessionManager sessionManager;
     private final ApplicationContext applicationContext;
     private final AuthService authService;
+    private final ModalManager modalManager;
 
     private Stage stage;
+    private AdminMainView activeMainView;
 
     public MainController(LoginController loginController,
                           SessionManager sessionManager,
                           ApplicationContext applicationContext,
-                          AuthService authService) {
+                          AuthService authService,
+                          ModalManager modalManager) {
         this.loginController = loginController;
         this.sessionManager = sessionManager;
         this.applicationContext = applicationContext;
         this.authService = authService;
+        this.modalManager = modalManager;
     }
 
     @EventListener
@@ -86,14 +91,18 @@ public class MainController {
 
     private void switchToMain() {
         AdminMainView view = applicationContext.getBean(AdminMainView.class);
+        activeMainView = view;
         view.init(stage);
-        // O X do cabeçalho usa o mesmo encerramento seguro da janela.
-        // A sessão exacta é removida através do sessionId guardado no utilizador.
-        view.setOnLogout(this::performLogoutAndExit);
+
+        // "Encerrar Sessão" volta ao login; o X da janela encerra o processo.
+        view.setOnLogout(this::confirmLogout);
+        view.setOnWindowClose(this::requestApplicationClose);
+
         stage.setOnCloseRequest(event -> {
             event.consume();
-            performLogoutAndExit();
+            requestApplicationClose();
         });
+
         Parent root = view;
 
         javafx.geometry.Rectangle2D vb = Screen.getPrimary().getVisualBounds();
@@ -109,14 +118,69 @@ public class MainController {
         stage.centerOnScreen();
     }
 
+    private void requestApplicationClose() {
+        if (activeMainView != null && activeMainView.hasUnsavedChanges()) {
+            showUnsavedChangesWarning();
+            return;
+        }
+
+        performLogoutAndExit();
+    }
+
+    private void showUnsavedChangesWarning() {
+        VBox content = new VBox(12);
+        content.setPadding(new javafx.geometry.Insets(4));
+
+        Label title = new Label("Existem alterações ou operações por concluir.");
+        title.getStyleClass().add("label-title");
+
+        Label message = new Label(
+                "Há conteúdo aberto que pode ainda não ter sido guardado. "
+                        + "Fechar agora pode descartar essas alterações."
+        );
+        message.setWrapText(true);
+        message.getStyleClass().add("text-muted");
+
+        Label action = new Label(
+                "Escolha «Fechar sem guardar» apenas depois de confirmar que não precisa destes dados."
+        );
+        action.setWrapText(true);
+        action.getStyleClass().add("kubata-modal-warning-text");
+
+        content.getChildren().addAll(title, message, action);
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Alterações por guardar")
+                        .subtitle("Confirmar encerramento do Kubata Administrator")
+                        .icon(org.kordamp.ikonli.feather.Feather.ALERT_TRIANGLE)
+                        .tone(ModalManager.ModalTone.WARNING)
+                        .size(560, 310)
+                        .minSize(500, 280)
+                        .maximizable(false)
+                        .minimizable(false)
+                        .withConfirmButtons("Fechar sem guardar", "Cancelar")
+                        .confirmStyle("button-danger")
+                        .cancelStyle("button-outlined")
+                        .closeOnOverlayClick(false)
+                        .onConfirm(() -> {
+                            modalManager.hideModal();
+                            performLogoutAndExit();
+                        })
+        );
+    }
+
     private void performLogoutAndExit() {
         User user = sessionManager.getUser();
+        Long exactSessionId = sessionManager.getSessionId();
+
         try {
             if (user != null) {
-                authService.logout(user, "127.0.0.1");
+                authService.logout(user, exactSessionId, "127.0.0.1");
             }
         } catch (Exception ignored) {
-            // O encerramento da aplicação não deve ficar bloqueado por falha de persistência.
+            // O encerramento não fica bloqueado por uma falha de persistência.
         } finally {
             sessionManager.logout();
             stage.setOnCloseRequest(null);
