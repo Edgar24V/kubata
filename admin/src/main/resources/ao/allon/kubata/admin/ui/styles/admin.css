@@ -12445,3 +12445,31 @@ Text {
 .kubata-center-navigation > .separator {
     -fx-padding: 2 0;
 }
+
+/* ── Centro de Ajuda no cabeçalho ───────────────────── */
+.title-bar-help-btn {
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(255,255,255,0.24);
+    -fx-border-radius: 6px;
+    -fx-padding: 6px 10px;
+    -fx-cursor: hand;
+    -fx-min-height: 32px;
+}
+
+.title-bar-help-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.22);
+    -fx-border-color: rgba(255,255,255,0.40);
+}
+
+.title-bar-help-btn:pressed {
+    -fx-background-color: rgba(255,255,255,0.28);
+}
+
+.title-bar-help-btn:focused {
+    -fx-border-color: -kubata-green-light;
+    -fx-effect: dropshadow(gaussian, rgba(102,187,106,0.35), 4, 0.2, 0, 0);
+}
