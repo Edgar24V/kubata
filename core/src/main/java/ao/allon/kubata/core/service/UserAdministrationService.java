@@ -424,6 +424,67 @@ public class UserAdministrationService {
         return saved;
     }
 
+    /**
+     * Termina exactamente uma sessão seleccionada na consola administrativa.
+     * A própria sessão do administrador não pode ser terminada por esta acção;
+     * para isso deve ser usado o logout normal no cabeçalho.
+     */
+    @Transactional
+    public void terminarSessao(User actor, Long sessionId, String sourceIp) {
+        require(actor, "EDITAR");
+        User managedActor = managedActor(actor);
+
+        if (sessionId == null) {
+            throw new IllegalArgumentException("Sessão inválida.");
+        }
+
+        UserSession session = userSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("A sessão seleccionada já não existe."));
+
+        String sessionUsername = session.getUsername();
+        if (sessionUsername != null
+                && managedActor.getNome() != null
+                && managedActor.getNome().equalsIgnoreCase(sessionUsername)) {
+            throw new SecurityException(
+                    "A sessão administrativa actual deve ser encerrada pelo comando “Encerrar Sessão” do cabeçalho."
+            );
+        }
+
+        User target = userRepository.findAllByNomeIgnoreCase(sessionUsername == null ? "" : sessionUsername)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "O utilizador associado à sessão já não foi encontrado."
+                ));
+
+        if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
+            throw new SecurityException(
+                    "Só um Superadministrador pode terminar a sessão de outro Superadministrador."
+            );
+        }
+
+        userSessionRepository.delete(session);
+
+        auditService.logAction(
+                managedActor,
+                null,
+                AuditLog.AuditActionType.LOGOUT,
+                "USER_SESSION",
+                String.valueOf(session.getId()),
+                "Sessão terminada administrativamente: " + target.getEmail()
+                        + " | posto=" + session.getWorkstation()
+                        + " | ip=" + session.getIpAddress(),
+                null,
+                snapshotState(target),
+                MODULE,
+                sourceIp,
+                null,
+                null,
+                false,
+                AuditLog.AGTComplianceLevel.NORMAL
+        );
+    }
+
     @Transactional
     public long terminarSessoes(User actor, Long targetUserId, String sourceIp) {
         require(actor, "EDITAR");
