@@ -25,6 +25,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
+import javafx.scene.Cursor;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Component;
 
@@ -43,6 +44,8 @@ public class PerfisView extends VBox {
     private final PersistenceService persistenceService;
 
     private final ObservableList<PerfilAcesso> perfis = FXCollections.observableArrayList();
+    private final Map<String, VBox> kpiCards = new LinkedHashMap<>();
+    private String activeKpiFilter = "PERFIS";
 
     private AdvancedTableView<PerfilAcesso> table;
     private TextField searchField;
@@ -288,8 +291,10 @@ public class PerfisView extends VBox {
                 kpi("GLOBAIS", Feather.GLOBE, globalValue),
                 kpi("SISTEMA", Feather.LOCK, systemValue)
         );
+        kpis.setFillHeight(true);
 
         header.getChildren().addAll(titleLine, kpis);
+        updateKpiVisualState();
         return header;
     }
 
@@ -298,6 +303,10 @@ public class PerfisView extends VBox {
         card.getStyleClass().add("kubata-profiles-kpi");
         card.setPadding(new Insets(10, 14, 10, 14));
         card.setMinWidth(160);
+        card.setCursor(Cursor.HAND);
+        card.setFocusTraversable(true);
+        card.setAccessibleRole(javafx.scene.AccessibleRole.BUTTON);
+        card.setAccessibleText("Filtrar por " + title.toLowerCase(Locale.ROOT));
 
         HBox top = new HBox(7);
         top.setAlignment(Pos.CENTER_LEFT);
@@ -310,7 +319,51 @@ public class PerfisView extends VBox {
 
         value.getStyleClass().add("kubata-profiles-kpi-value");
         card.getChildren().addAll(top, value);
+
+        kpiCards.put(title, card);
+        card.setOnMouseClicked(e -> setKpiFilter(title));
+        card.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ENTER
+                    || e.getCode() == javafx.scene.input.KeyCode.SPACE) {
+                setKpiFilter(title);
+                e.consume();
+            }
+        });
         return card;
+    }
+
+    private void setKpiFilter(String filter) {
+        activeKpiFilter = filter == null ? "PERFIS" : filter;
+
+        switch (activeKpiFilter) {
+            case "ACTIVOS" -> {
+                empresaFilter.setValue(null);
+                estadoFilter.setValue("Activos");
+            }
+            case "SISTEMA" -> {
+                empresaFilter.setValue(null);
+                estadoFilter.setValue("Sistema");
+            }
+            case "GLOBAIS", "PERFIS" -> {
+                empresaFilter.setValue(null);
+                estadoFilter.setValue("Todos");
+            }
+            default -> {
+                estadoFilter.setValue("Todos");
+            }
+        }
+
+        updateKpiVisualState();
+        applyFilters();
+    }
+
+    private void updateKpiVisualState() {
+        kpiCards.forEach((name, card) -> {
+            card.getStyleClass().remove("kubata-profiles-kpi-active");
+            if (Objects.equals(name, activeKpiFilter)) {
+                card.getStyleClass().add("kubata-profiles-kpi-active");
+            }
+        });
     }
 
     private HBox buildFilters() {
@@ -329,14 +382,24 @@ public class PerfisView extends VBox {
         empresaFilter.getItems().addAll(empresaRepository.findAll());
         empresaFilter.setPromptText("Empresa");
         empresaFilter.setPrefWidth(190);
-        empresaFilter.valueProperty().addListener((obs, old, value) -> applyFilters());
+        empresaFilter.valueProperty().addListener((obs, old, value) -> {
+            activeKpiFilter = "PERFIS";
+            updateKpiVisualState();
+            applyFilters();
+        });
 
         estadoFilter = new ComboBox<>(FXCollections.observableArrayList(
                 "Todos", "Activos", "Inactivos", "Sistema", "Personalizados"
         ));
         estadoFilter.setValue("Todos");
         estadoFilter.setPrefWidth(150);
-        estadoFilter.valueProperty().addListener((obs, old, value) -> applyFilters());
+        estadoFilter.valueProperty().addListener((obs, old, value) -> {
+            if (!"Activos".equals(value) && !"Sistema".equals(value)) {
+                activeKpiFilter = "PERFIS";
+                updateKpiVisualState();
+            }
+            applyFilters();
+        });
 
         Button clear = new Button(
                 "Limpar filtros",
@@ -347,6 +410,9 @@ public class PerfisView extends VBox {
             searchField.clear();
             empresaFilter.setValue(null);
             estadoFilter.setValue("Todos");
+            activeKpiFilter = "PERFIS";
+            updateKpiVisualState();
+            applyFilters();
         });
 
         Pane spacer = new Pane();
@@ -834,7 +900,14 @@ public class PerfisView extends VBox {
                 default -> true;
             };
 
-            return textMatch && empresaMatch && stateMatch;
+            boolean kpiMatch = switch (activeKpiFilter) {
+                case "ACTIVOS" -> Boolean.TRUE.equals(profile.getActivo());
+                case "GLOBAIS" -> profile.getEmpresa() == null;
+                case "SISTEMA" -> Boolean.TRUE.equals(profile.getSistema());
+                default -> true;
+            };
+
+            return textMatch && empresaMatch && stateMatch && kpiMatch;
         });
     }
 
