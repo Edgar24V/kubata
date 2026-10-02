@@ -1575,6 +1575,73 @@ public class ConsoleView extends VBox {
         return content;
     }
 
+    private HBox buildConsoleSubtabHeader(
+            String eyebrowText,
+            String titleText,
+            String subtitleText,
+            Feather icon,
+            Label countLabel,
+            String countCaption) {
+
+        HBox header = new HBox(12);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("console-subtab-header");
+
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("console-subtab-header-icon");
+        iconBox.setPrefSize(44, 44);
+        iconBox.setMinSize(44, 44);
+        iconBox.setMaxSize(44, 44);
+        iconBox.getChildren().add(IconUtils.icon(icon, 19));
+
+        VBox text = new VBox(2);
+
+        Label eyebrow = new Label(eyebrowText);
+        eyebrow.getStyleClass().add("console-subtab-eyebrow");
+
+        Label title = new Label(titleText);
+        title.getStyleClass().add("console-subtab-title");
+
+        Label subtitle = new Label(subtitleText);
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("console-subtab-subtitle");
+
+        text.getChildren().addAll(eyebrow, title, subtitle);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        VBox metric = new VBox(1);
+        metric.setAlignment(Pos.CENTER_RIGHT);
+
+        countLabel.getStyleClass().add("console-subtab-count");
+        Label caption = new Label(countCaption);
+        caption.getStyleClass().add("console-subtab-count-caption");
+
+        metric.getChildren().addAll(countLabel, caption);
+        header.getChildren().addAll(iconBox, text, spacer, metric);
+        return header;
+    }
+
+    private VBox createConsoleMiniStat(
+            String title,
+            Feather icon,
+            Label value) {
+
+        VBox card = new VBox(4);
+        card.getStyleClass().add("console-mini-stat");
+        card.setPrefWidth(150);
+        card.setMinWidth(130);
+        card.setPrefHeight(66);
+
+        Label name = new Label(title, IconUtils.icon(icon, 11));
+        name.getStyleClass().add("console-mini-stat-title");
+
+        value.getStyleClass().add("console-mini-stat-value");
+        card.getChildren().addAll(name, value);
+        return card;
+    }
+
     private void refreshAll() {
         persistenceService.executeSilent(() -> {
             // Obter dados principais da base de dados
