@@ -43,6 +43,7 @@ public class UserAdministrationService {
     private final SecurityService securityService;
     private final AuditService auditService;
     private final UserSecurityProfileService userSecurityProfileService;
+    private final PasswordPolicyService passwordPolicyService;
 
     public UserAdministrationService(UserRepository userRepository,
                                      EmpresaRepository empresaRepository,
@@ -52,7 +53,8 @@ public class UserAdministrationService {
                                      PasswordEncoder passwordEncoder,
                                      SecurityService securityService,
                                      AuditService auditService,
-                                     UserSecurityProfileService userSecurityProfileService) {
+                                     UserSecurityProfileService userSecurityProfileService,
+                                     PasswordPolicyService passwordPolicyService) {
         this.userRepository = userRepository;
         this.empresaRepository = empresaRepository;
         this.filialRepository = filialRepository;
@@ -62,6 +64,7 @@ public class UserAdministrationService {
         this.securityService = securityService;
         this.auditService = auditService;
         this.userSecurityProfileService = userSecurityProfileService;
+        this.passwordPolicyService = passwordPolicyService;
     }
 
     @Transactional(readOnly = true)
@@ -268,9 +271,23 @@ public class UserAdministrationService {
         String previousSessionUsername = isNew ? null : target.getNome();
         String oldPasswordHash = target.getPassword();
         if (rawPassword != null && !rawPassword.isBlank()) {
-            userSecurityProfileService.validatePassword(target, rawPassword);
+            if (!isNew) {
+                passwordPolicyService.validateMinimumPasswordAge(target, LocalDateTime.now());
+            }
+            passwordPolicyService.validateNewPassword(target, rawPassword);
+            if (!isNew) {
+                passwordPolicyService.recordPreviousPassword(
+                        target,
+                        oldPasswordHash,
+                        managedActor.getEmail(),
+                        "ALTERACAO_ADMINISTRATIVA"
+                );
+            }
             target.setPassword(passwordEncoder.encode(rawPassword));
             target.setPasswordChangedAt(LocalDateTime.now());
+            target.setPasswordProvisoria(false);
+            target.setDataExpiracaoPassword(null);
+            target.setPasswordResetExpiresAt(null);
         } else if (isNew) {
             throw new IllegalArgumentException("A palavra-passe inicial é obrigatória.");
         } else {
