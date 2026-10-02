@@ -8138,6 +8138,23 @@ Text {
     -fx-border-radius: 7px;
     -fx-background-radius: 7px;
     -fx-min-height: 62px;
+    -fx-cursor: hand;
+}
+
+.kubata-profiles-kpi:hover {
+    -fx-background-color: #f2f8f4;
+    -fx-border-color: #b9d6c3;
+}
+
+.kubata-profiles-kpi:focused {
+    -fx-border-color: #7db48e;
+    -fx-effect: dropshadow(gaussian, rgba(33, 115, 70, 0.14), 7, 0.12, 0, 1);
+}
+
+.kubata-profiles-kpi-active {
+    -fx-background-color: #e8f5e9;
+    -fx-border-color: #6aa77d;
+    -fx-border-width: 1.5px;
 }
 
 .kubata-profiles-kpi-icon {
