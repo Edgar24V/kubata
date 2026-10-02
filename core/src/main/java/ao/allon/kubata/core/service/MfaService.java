@@ -530,9 +530,11 @@ public class MfaService {
             return legacyPolicy(user);
         }
 
-        return findUserPolicy(user)
-                .orElseGet(() -> findProfilePolicy(user)
-                        .orElseGet(() -> findCompanyPolicy(user)
+        User policyUser = userRepository.findByIdWithPerfis(user.getId()).orElse(user);
+
+        return findUserPolicy(policyUser)
+                .orElseGet(() -> findProfilePolicy(policyUser)
+                        .orElseGet(() -> findCompanyPolicy(policyUser)
                                 .orElseGet(() -> mfaPolicyRepository
                                         .findByScopeTypeAndActiveTrue(MfaPolicy.ScopeType.GLOBAL)
                                         .orElseGet(() -> legacyPolicy(user)))));
@@ -556,7 +558,7 @@ public class MfaService {
     @Transactional(readOnly = true)
     public MfaIndicators getIndicators(User actor) {
         authorizedAdminActor(actor);
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAllByOrderByNomeAsc();
         long total = users.size();
         long active = users.stream().filter(u -> Boolean.TRUE.equals(u.getActive())).count();
         long enabled = users.stream().filter(User::isMfaEnabled).count();
