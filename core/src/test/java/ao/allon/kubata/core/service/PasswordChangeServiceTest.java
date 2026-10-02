@@ -137,7 +137,8 @@ class PasswordChangeServiceTest {
                 () -> service.changeOwnPassword(10L, "Temporaria1", "1234567")
         );
 
-        verifyNoInteractions(passwordEncoder);
+        verify(passwordEncoder).matches("Temporaria1", "HASH-ANTIGA");
+        verify(passwordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any(User.class));
     }
 }
