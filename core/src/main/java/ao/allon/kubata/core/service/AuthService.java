@@ -307,11 +307,27 @@ public class AuthService {
 
     @Transactional
     public void logout(User user, String ip) {
-        if (user != null) {
-            userSessionRepository.findByUsername(user.getNome())
-                .ifPresent(userSessionRepository::delete);
-            acessoService.registrarAuditoria(user, "LOGOUT", "AUTH", ip, "Saída do sistema", true);
+        if (user == null) {
+            return;
         }
+
+        // A sessão mais recente corresponde normalmente ao posto que está a efectuar
+        // o logout neste cliente. Evitamos findByUsername(), que não identifica
+        // de forma determinística qual sessão deve ser removida quando existem várias.
+        userSessionRepository
+                .findAllByUsernameOrderByLoginTimeDesc(user.getNome())
+                .stream()
+                .findFirst()
+                .ifPresent(userSessionRepository::delete);
+
+        acessoService.registrarAuditoria(
+                user,
+                "LOGOUT",
+                "AUTH",
+                ip,
+                "Saída do sistema",
+                true
+        );
     }
 
     private boolean isLocked(User user) {
