@@ -39,6 +39,7 @@ import javafx.stage.FileChooser;
 import net.sf.jasperreports.engine.JasperPrint;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Lazy;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -61,6 +62,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
+@Lazy
 public class RelatoriosView extends VBox {
 
     private final FaturaService faturaService;
