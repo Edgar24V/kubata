@@ -16,12 +16,17 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component
 public class MainController {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(MainController.class);
 
     private final LoginController loginController;
     private final SessionManager sessionManager;
@@ -177,17 +182,45 @@ public class MainController {
         User user = sessionManager.getUser();
         Long exactSessionId = sessionManager.getSessionId();
 
-        try {
-            if (user != null) {
-                authService.logout(user, exactSessionId, "127.0.0.1");
-            }
-        } catch (Exception ignored) {
-            // O encerramento não fica bloqueado por uma falha de persistência.
-        } finally {
-            sessionManager.logout();
-            stage.setOnCloseRequest(null);
-            stage.close();
+        if (user == null) {
+            closeStage();
+            return;
         }
+
+        try {
+            // O X usa sempre o ID exacto da sessão desta instância.
+            // A operação no servidor é idempotente e não pode terminar
+            // outra sessão do mesmo utilizador.
+            authService.logout(user, exactSessionId, "127.0.0.1");
+
+            // Só depois da confirmação do serviço é que limpamos o
+            // contexto local e fechamos a janela.
+            sessionManager.logout();
+            activeMainView = null;
+            closeStage();
+        } catch (Exception ex) {
+            log.error(
+                    "Falha ao encerrar a sessão {} pelo botão X.",
+                    exactSessionId,
+                    ex
+            );
+
+            modalManager.showErrorModal(
+                    "Encerramento da sessão",
+                    "Não foi possível confirmar o encerramento da sessão no servidor. "
+                            + "A janela permanece aberta para evitar deixar uma sessão activa.",
+                    ex
+            );
+        }
+    }
+
+    private void closeStage() {
+        if (stage == null) {
+            return;
+        }
+
+        stage.setOnCloseRequest(null);
+        javafx.application.Platform.runLater(stage::close);
     }
 
     private void confirmLogout() {
