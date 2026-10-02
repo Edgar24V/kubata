@@ -300,6 +300,44 @@ class UserAdministrationServiceTest {
     }
 
     @Test
+    void devePermitirTerminarOutraSessaoDoMesmoUtilizador() {
+        User actor = admin(10L);
+        actor.setSessionId(100L);
+
+        UserSession anotherSession = new UserSession();
+        anotherSession.setId(101L);
+        anotherSession.setUsername(actor.getNome());
+        anotherSession.setWorkstation("POSTO-02");
+        anotherSession.setIpAddress("10.0.0.30");
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(userSessionRepository.findById(101L)).thenReturn(Optional.of(anotherSession));
+        when(userRepository.findAllByNomeIgnoreCase(actor.getNome()))
+                .thenReturn(java.util.List.of(actor));
+
+        boolean result = service.terminarSessao(actor, 101L, "127.0.0.1");
+
+        assertTrue(result);
+        verify(userSessionRepository).delete(anotherSession);
+        verify(auditService).logAction(
+                eq(actor),
+                isNull(),
+                eq(ao.allon.kubata.core.domain.AuditLog.AuditActionType.LOGOUT),
+                eq("USER_SESSION"),
+                eq("101"),
+                contains(actor.getEmail()),
+                isNull(),
+                anyMap(),
+                eq("ADMINISTRATOR"),
+                eq("127.0.0.1"),
+                isNull(),
+                isNull(),
+                eq(false),
+                eq(ao.allon.kubata.core.domain.AuditLog.AGTComplianceLevel.NORMAL)
+        );
+    }
+
+    @Test
     void deveImpedirTerminoGlobalDeSessoesPorContaNaoAdministrativa() {
         User actor = operator(10L);
         when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
