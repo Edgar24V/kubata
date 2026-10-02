@@ -609,10 +609,8 @@ public class MfaCenterView extends VBox {
             qr.setPreserveRatio(true);
 
             Label instructions = new Label(
-                    "1. Abra o autenticador.
-"
-                            + "2. Leia o QR Code.
-"
+                    "1. Abra o autenticador.\n"
+                            + "2. Leia o QR Code.\n"
                             + "3. Introduza o código TOTP de 6 dígitos."
             );
             instructions.setWrapText(true);
@@ -624,7 +622,7 @@ public class MfaCenterView extends VBox {
             TextField codeField = new TextField();
             codeField.setPromptText("Código TOTP de 6 dígitos");
             codeField.setTextFormatter(new TextFormatter<String>(change ->
-                    change.getControlNewText().matches("\d{0,6}")
+                    change.getControlNewText().matches("\\d{0,6}")
                             ? change
                             : null
             ));
