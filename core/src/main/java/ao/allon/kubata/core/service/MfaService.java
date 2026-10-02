@@ -400,6 +400,15 @@ public class MfaService {
                                 : String.join("\n", hashes)
                 );
                 userRepository.save(user);
+
+                acessoService.registrarAuditoria(
+                        user,
+                        "CONFIG_CHANGE",
+                        "MFA_RECOVERY_CODE",
+                        user.getUltimoIpLogin(),
+                        "Código de recuperação MFA consumido; códigos restantes: " + hashes.size(),
+                        true
+                );
                 return true;
             }
         }
