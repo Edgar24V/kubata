@@ -23,4 +23,8 @@ public interface PasswordPolicyRepository extends JpaRepository<PasswordPolicy, 
     List<PasswordPolicy> findAllByScopeTypeAndActiveTrue(
             PasswordPolicy.ScopeType scopeType
     );
+
+    Optional<PasswordPolicy> findByScopeTypeAndActiveTrue(
+            PasswordPolicy.ScopeType scopeType
+    );
 }
