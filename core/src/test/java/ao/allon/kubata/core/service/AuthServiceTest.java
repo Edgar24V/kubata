@@ -90,6 +90,42 @@ class AuthServiceTest {
     }
 
     @Test
+    void terminateOldestSessionForLogin_ShouldRejectNonAdministrativeAccount() {
+        user.setRole(ao.allon.kubata.core.domain.Role.USER);
+        user.setSuperadmin(false);
+
+        when(userRepository.findByEmail("test@example.com"))
+                .thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password", "encodedPassword"))
+                .thenReturn(true);
+
+        AuthenticationException exception = assertThrows(
+                AuthenticationException.class,
+                () -> authService.terminateOldestSessionForLogin(
+                        "test@example.com",
+                        "password",
+                        "127.0.0.1"
+                )
+        );
+
+        assertEquals(
+                "Apenas Administradores e Superadministradores podem terminar sessões a partir do ecrã de login.",
+                exception.getMessage()
+        );
+        verify(userSessionRepository, never()).delete(any(UserSession.class));
+        verify(userSessionRepository, never())
+                .findAllByUsernameOrderByLoginTimeDesc(anyString());
+        verify(acessoService).registrarAuditoria(
+                eq(user),
+                eq("LOGIN_SESSION_TERMINATE"),
+                eq("AUTH"),
+                eq("127.0.0.1"),
+                contains("conta não administrativa"),
+                eq(false)
+        );
+    }
+
+    @Test
     void terminateOldestSessionForLogin_ShouldDeleteOnlyOldestSession() {
         UserSession newer = new UserSession();
         newer.setId(2L);
