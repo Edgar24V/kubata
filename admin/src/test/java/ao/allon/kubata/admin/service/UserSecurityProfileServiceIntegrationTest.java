@@ -137,8 +137,10 @@ class UserSecurityProfileServiceIntegrationTest {
         assertFalse(service.isCompanyAllowed(target, outraEmpresa.getId()));
         assertTrue(service.isCriticalOperationAllowed(target, "APROVAR_PAGAMENTO"));
         assertFalse(service.isCriticalOperationAllowed(target, "ANULAR_FACTURA"));
+
+        final User targetFinal = target;
         assertDoesNotThrow(() -> service.validateLoginPolicy(
-                target,
+                targetFinal,
                 "10.10.10.20",
                 java.time.LocalDateTime.of(2026, 10, 1, 10, 0),
                 false
