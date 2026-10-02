@@ -37,6 +37,7 @@ public class MfaService {
     private final AcessoService acessoService;
     private final SecurityService securityService;
     private final MfaPolicyRepository mfaPolicyRepository;
+    private final UserSecurityProfileService userSecurityProfileService;
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -44,12 +45,14 @@ public class MfaService {
                       PasswordEncoder passwordEncoder,
                       AcessoService acessoService,
                       SecurityService securityService,
-                      MfaPolicyRepository mfaPolicyRepository) {
+                      MfaPolicyRepository mfaPolicyRepository,
+                      UserSecurityProfileService userSecurityProfileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
         this.securityService = securityService;
         this.mfaPolicyRepository = mfaPolicyRepository;
+        this.userSecurityProfileService = userSecurityProfileService;
     }
 
     public MfaService(UserRepository userRepository,
@@ -61,6 +64,7 @@ public class MfaService {
         this.acessoService = acessoService;
         this.securityService = securityService;
         this.mfaPolicyRepository = null;
+        this.userSecurityProfileService = null;
     }
 
     /**
@@ -495,12 +499,16 @@ public class MfaService {
     @Transactional(readOnly = true)
     public boolean isMfaRequired(User user) {
         return getEffectivePolicy(user).isRequired()
-                || (user != null && user.isMfaEnabled() && false);
+                || (user != null && userSecurityProfileService != null
+                && userSecurityProfileService.getEffectiveProfile(user).isRequireMfa());
     }
 
     @Transactional(readOnly = true)
     public boolean isRecoveryCodeAllowed(User user) {
-        return getEffectivePolicy(user).isAllowRecoveryCodes();
+        boolean policyAllowed = getEffectivePolicy(user).isAllowRecoveryCodes();
+        boolean legacyAllowed = user == null || userSecurityProfileService == null
+                || userSecurityProfileService.getEffectiveProfile(user).isAllowRecoveryCode();
+        return policyAllowed && legacyAllowed;
     }
 
     @Transactional(readOnly = true)
