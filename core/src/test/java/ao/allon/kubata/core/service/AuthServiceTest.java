@@ -58,6 +58,8 @@ class AuthServiceTest {
         user.setEmail("test@example.com");
         user.setPassword("encodedPassword");
         user.setActive(true);
+        user.setRole(ao.allon.kubata.core.domain.Role.ADMIN);
+        user.setSuperadmin(false);
         user.setPasswordProvisoria(false);
     }
 
