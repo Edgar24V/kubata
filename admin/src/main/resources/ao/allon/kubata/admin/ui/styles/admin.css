@@ -13189,3 +13189,178 @@ Text {
     -fx-background-radius: 5px;
     -fx-padding: 0;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · INFRAESTRUTURA · Aplicações
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-applications-page {
+    -fx-background-color: -color-light;
+}
+
+.kubata-app-eyebrow {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-letter-spacing: 0.8px;
+}
+
+.kubata-applications-filterbar {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-padding: 9px 11px;
+}
+
+.kubata-app-filter-label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-applications-split {
+    -fx-background-color: transparent;
+}
+
+.kubata-applications-split > .split-pane-divider {
+    -fx-background-color: -color-base-2;
+    -fx-padding: 0 1px;
+}
+
+.kubata-applications-table .column-header-background,
+.kubata-applications-table .column-header {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-applications-table .column-header {
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+}
+
+.kubata-applications-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-applications-table .table-row-cell:hover {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-applications-table .table-row-cell:selected {
+    -fx-background-color: rgba(33,115,70,0.10);
+    -fx-text-background-color: -color-base-9;
+}
+
+.kubata-applications-table .table-cell {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-8;
+    -fx-padding: 0 8px;
+}
+
+.kubata-applications-details {
+    -fx-background-color: white;
+    -fx-background-radius: 11px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 11px;
+}
+
+.kubata-app-details-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 10px;
+    -fx-alignment: center;
+}
+
+.kubata-app-details-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-app-details-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-app-details-caption {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-app-details-card {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 9px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 9px;
+    -fx-padding: 9px;
+}
+
+.kubata-app-details-row {
+    -fx-padding: 5px 0;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-app-details-key {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-app-details-value {
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-app-details-section {
+    -fx-font-size: 9px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-7;
+}
+
+.kubata-app-details-description {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-6;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-app-details-info {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 8px;
+    -fx-padding: 8px;
+    -fx-font-size: 8px;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-app-status-badge {
+    -fx-background-radius: 9px;
+    -fx-padding: 3px 7px;
+    -fx-font-size: 7px;
+    -fx-font-weight: 900;
+}
+
+.kubata-app-status-ok {
+    -fx-background-color: -kubata-green-pale;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-app-status-warning {
+    -fx-background-color: rgba(245,158,11,0.13);
+    -fx-text-fill: #92400e;
+}
+
+.kubata-app-status-error {
+    -fx-background-color: rgba(220,38,38,0.10);
+    -fx-text-fill: #b91c1c;
+}
+
+.kubata-app-status-offline {
+    -fx-background-color: rgba(220,38,38,0.08);
+    -fx-text-fill: #b91c1c;
+}
+
+.kubata-app-status-neutral {
+    -fx-background-color: -color-base-1;
+    -fx-text-fill: -color-base-6;
+}
