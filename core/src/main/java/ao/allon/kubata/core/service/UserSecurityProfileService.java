@@ -774,62 +774,6 @@ public class UserSecurityProfileService {
         map.put("allowedCriticalOperations", profile.getAllowedCriticalOperations());
         return map;
     }
-}    private User managedTarget(User managedActor, Long targetUserId) {
-        if (targetUserId == null) {
-            throw new IllegalArgumentException("Utilizador de destino inválido.");
-        }
-        User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado."));
-
-        if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
-            throw new SecurityException(
-                    "Só um Superadministrador pode gerir o perfil de segurança de outro Superadministrador."
-            );
-        }
-        return target;
-    }
-
-    private User managedActor(User actor) {
-        if (actor == null || actor.getId() == null) {
-            throw new SecurityException("Sessão administrativa inválida.");
-        }
-
-        User managed = userRepository.findById(actor.getId())
-                .orElseThrow(() -> new SecurityException("Administrador da sessão não encontrado."));
-
-        if (!Boolean.TRUE.equals(managed.getActive())) {
-            throw new SecurityException("A conta administrativa está inactiva.");
-        }
-
-        if (managed.isSuperadmin() || managed.getRole() == Role.ADMIN) {
-            return managed;
-        }
-
-        boolean direct = userAccessPermissionRepository
-                .existsByUserAndModuloIgnoreCaseAndOpcaoIgnoreCase(
-                        managed, MODULE, "EDITAR"
-                );
-
-        boolean viaProfile = managed.getPerfis() != null
-                && managed.getPerfis().stream()
-                .filter(p -> p != null && Boolean.TRUE.equals(p.getActivo()))
-                .flatMap(p -> p.getPermissoes().stream())
-                .anyMatch(pm ->
-                        MODULE.equalsIgnoreCase(pm.getModulo())
-                                && ("TODOS".equalsIgnoreCase(pm.getRecurso())
-                                || RESOURCE.equalsIgnoreCase(pm.getRecurso()))
-                                && pm.getOperacao() == PermissaoPerfil.Operacao.EDITAR
-                                && Boolean.TRUE.equals(pm.getPermitido())
-                );
-
-        if (!direct && !viaProfile) {
-            throw new SecurityException(
-                    "Não possui permissão para administrar perfis de segurança."
-            );
-        }
-
-        return managed;
-    }
 
     private boolean isIpAllowed(UserSecurityProfile profile, String sourceIp) {
         Set<String> ranges = profile.getAllowedIpRanges();
