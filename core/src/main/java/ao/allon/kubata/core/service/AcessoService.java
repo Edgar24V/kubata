@@ -52,6 +52,9 @@ public class AcessoService {
             user.setPasswordChangedAt(LocalDateTime.now());
         } else {
             if (rawPassword != null && !rawPassword.isBlank()) {
+                // A política individual de palavra-passe também se aplica
+                // quando uma conta existente recebe uma nova credencial.
+                userSecurityProfileService.validatePassword(user, rawPassword);
                 user.setPassword(passwordEncoder.encode(rawPassword));
                 user.setPasswordChangedAt(LocalDateTime.now());
             }
