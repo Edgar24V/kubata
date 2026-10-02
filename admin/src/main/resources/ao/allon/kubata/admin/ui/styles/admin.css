@@ -8053,6 +8053,45 @@ Text {
     -fx-background-color: #f5faf7;
 }
 
+.kubata-users-profile-card .list-cell:disabled {
+    -fx-opacity: 0.58;
+    -fx-background-color: #f7f8f8;
+}
+
+.kubata-users-profile-scope-global,
+.kubata-users-profile-scope-company,
+.kubata-users-profile-state {
+    -fx-font-size: 8px;
+    -fx-font-weight: 800;
+    -fx-padding: 2px 5px;
+    -fx-background-radius: 99px;
+}
+
+.kubata-users-profile-scope-global {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: #217346;
+}
+
+.kubata-users-profile-scope-company {
+    -fx-background-color: #eef2ff;
+    -fx-text-fill: #4f5f9f;
+}
+
+.kubata-users-profile-state-active {
+    -fx-background-color: #edf8f0;
+    -fx-text-fill: #28764d;
+}
+
+.kubata-users-profile-state-inactive {
+    -fx-background-color: #f3f4f4;
+    -fx-text-fill: #707976;
+}
+
+.kubata-users-profile-state-incompatible {
+    -fx-background-color: #fff4df;
+    -fx-text-fill: #9a6700;
+}
+
 .kubata-users-form-avatar > .ikonli-font-icon {
     -fx-icon-size: 18px;
     -fx-icon-color: -kubata-green-dark;
@@ -8196,6 +8235,44 @@ Text {
     -fx-font-size: 10.5px;
     -fx-font-weight: 800;
     -fx-text-fill: #344139;
+}
+
+/* Edição rápida no painel lateral */
+.kubata-profiles-inline-editor {
+    -fx-background-color: #f7faf8;
+    -fx-border-color: #cfe0d5;
+    -fx-border-width: 1px;
+    -fx-border-radius: 9px;
+    -fx-background-radius: 9px;
+    -fx-padding: 11px;
+}
+
+.kubata-profiles-inline-title {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #2d3b33;
+}
+
+.kubata-profiles-inline-hint {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #718078;
+}
+
+.kubata-profiles-inline-label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #69766f;
+}
+
+.kubata-profiles-inline-editor .text-field,
+.kubata-profiles-inline-editor .combo-box,
+.kubata-profiles-inline-editor .text-area {
+    -fx-min-height: 31px;
+}
+
+.kubata-profiles-inline-editor .check-box {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
 }
 
 .kubata-profiles-statusbar {
