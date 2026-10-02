@@ -13755,3 +13755,174 @@ Text {
     -fx-text-fill: -kubata-green-dark;
     -fx-line-spacing: 1px;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · INÍCIO · Parâmetros do Sistema
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-parameters-page {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-parameters-hero {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-parameters-hero-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 12px;
+    -fx-alignment: center;
+}
+
+.kubata-parameters-hero-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-parameters-eyebrow {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-letter-spacing: 0.8px;
+}
+
+.kubata-parameters-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-parameters-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-parameters-contextbar {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 9px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 9px;
+    -fx-padding: 8px 10px;
+}
+
+.kubata-parameters-context-title {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-parameters-audit-note {
+    -fx-font-size: 8px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-parameters-metric {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-padding: 10px;
+    -fx-min-height: 65px;
+}
+
+.kubata-parameters-metric:hover {
+    -fx-border-color: -kubata-green-border;
+}
+
+.kubata-parameters-metric-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 8px;
+    -fx-alignment: center;
+}
+
+.kubata-parameters-metric-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-parameters-metric-caption {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-parameters-metric-value {
+    -fx-font-size: 17px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-parameters-filterbar {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-padding: 9px 11px;
+}
+
+.kubata-parameters-filter-label {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-parameters-search {
+    -fx-background-radius: 8px;
+}
+
+.kubata-parameters-table-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 11px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 11px;
+}
+
+.kubata-parameters-section-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-parameters-section-note {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-parameters-table-panel .table-row-cell:selected {
+    -fx-background-color: rgba(33,115,70,0.10);
+    -fx-text-background-color: -color-base-9;
+}
+
+.kubata-parameters-table-panel .table-row-cell:hover {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-parameters-table-panel .table-cell {
+    -fx-font-size: 9px;
+}
+
+.kubata-parameters-table-panel .column-header .label {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+}
+
+.kubata-parameters-table-panel .table-row-cell {
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-parameters-page .combo-box,
+.kubata-parameters-page .text-field,
+.kubata-parameters-page .text-area {
+    -fx-background-radius: 8px;
+}
+
+.kubata-parameters-page .button-primary,
+.kubata-parameters-page .button-success,
+.kubata-parameters-page .button-outlined,
+.kubata-parameters-page .button-danger {
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
