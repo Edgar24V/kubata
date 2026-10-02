@@ -226,6 +226,66 @@ class UserAdministrationServiceTest {
     }
 
     @Test
+    void deveTerminarApenasASessaoSeleccionadaERegistarAuditoria() {
+        User actor = admin(10L);
+
+        User target = operator(20L);
+        target.setNome("Operador A");
+        target.setEmail("operador.a@kubata.local");
+
+        UserSession session = new UserSession();
+        session.setId(55L);
+        session.setUsername(target.getNome());
+        session.setWorkstation("POSTO-01");
+        session.setIpAddress("10.0.0.20");
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(userSessionRepository.findById(55L)).thenReturn(Optional.of(session));
+        when(userRepository.findAllByNomeIgnoreCase("Operador A"))
+                .thenReturn(java.util.List.of(target));
+
+        service.terminarSessao(actor, 55L, "127.0.0.1");
+
+        verify(userSessionRepository).delete(session);
+        verify(auditService).logAction(
+                eq(actor),
+                isNull(),
+                eq(ao.allon.kubata.core.domain.AuditLog.AuditActionType.LOGOUT),
+                eq("USER_SESSION"),
+                eq("55"),
+                contains("operador.a@kubata.local"),
+                isNull(),
+                anyMap(),
+                eq("ADMINISTRATOR"),
+                eq("127.0.0.1"),
+                isNull(),
+                isNull(),
+                eq(false),
+                eq(ao.allon.kubata.core.domain.AuditLog.AGTComplianceLevel.NORMAL)
+        );
+    }
+
+    @Test
+    void deveImpedirAdministradorDeTerminarASuaPropriaSessaoPelaGestaoAdministrativa() {
+        User actor = admin(10L);
+
+        UserSession session = new UserSession();
+        session.setId(66L);
+        session.setUsername(actor.getNome());
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(userSessionRepository.findById(66L)).thenReturn(Optional.of(session));
+
+        assertThrows(
+                SecurityException.class,
+                () -> service.terminarSessao(actor, 66L, "127.0.0.1")
+        );
+
+        verify(userSessionRepository, never()).delete(any(UserSession.class));
+        verifyNoInteractions(auditService);
+    }
+
+    @Test
     void deveImpedirTerminoGlobalDeSessoesPorContaNaoAdministrativa() {
         User actor = operator(10L);
         when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
