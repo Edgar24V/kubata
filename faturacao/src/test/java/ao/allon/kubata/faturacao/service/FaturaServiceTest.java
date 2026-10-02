@@ -39,6 +39,8 @@ class FaturaServiceTest {
 
     @Mock
     private AGTService agtService;
+    @Mock
+    private JWSDigitalSignatureService signatureService;
 
     @Mock
     private AGTElectronicInvoiceService agtElectronicInvoiceService;
