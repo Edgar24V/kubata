@@ -2,11 +2,13 @@ package ao.allon.kubata.core.service;
 
 import ao.allon.kubata.core.domain.AuditLog;
 import ao.allon.kubata.core.domain.PasswordPolicy;
+import ao.allon.kubata.core.domain.UserSecurityProfile;
 import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +37,10 @@ public class PasswordResetService {
     private final SecurityService securityService;
     private final AuditService auditService;
     private final PasswordPolicyService passwordPolicyService;
+    private final UserSecurityProfileService legacyUserSecurityProfileService;
     private final SecureRandom secureRandom = new SecureRandom();
+
+    private int resetValidityDays = 1;
 
     public PasswordResetService(UserRepository userRepository,
                                 UserSessionRepository userSessionRepository,
