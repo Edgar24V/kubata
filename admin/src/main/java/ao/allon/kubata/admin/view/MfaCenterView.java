@@ -502,7 +502,7 @@ public class MfaCenterView extends VBox {
         }
 
         try {
-            users.setAll(userRepository.findAll());
+            users.setAll(userRepository.findAllByOrderByNomeAsc());
             updateIndicators();
             applyFilters();
             loadGlobalPolicy();
