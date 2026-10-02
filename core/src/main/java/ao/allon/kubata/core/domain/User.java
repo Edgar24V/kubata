@@ -86,6 +86,9 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "data_expiracao_password")
     private java.time.LocalDate dataExpiracaoPassword;
 
+    @Column(name = "password_reset_expires_at")
+    private LocalDateTime passwordResetExpiresAt;
+
     private String departamento;
     private String cargo;
 
@@ -155,6 +158,14 @@ public class User extends BaseEntity implements UserDetails {
 
     public void setDataExpiracaoPassword(java.time.LocalDate dataExpiracaoPassword) {
         this.dataExpiracaoPassword = dataExpiracaoPassword;
+    }
+
+    public LocalDateTime getPasswordResetExpiresAt() {
+        return passwordResetExpiresAt;
+    }
+
+    public void setPasswordResetExpiresAt(LocalDateTime passwordResetExpiresAt) {
+        this.passwordResetExpiresAt = passwordResetExpiresAt;
     }
 
     public String getDepartamento() {
