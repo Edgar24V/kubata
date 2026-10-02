@@ -547,9 +547,27 @@ public class UserAdministrationService {
         UserSession session = sessionOpt.get();
 
         String sessionUsername = session.getUsername();
-        if (sessionUsername != null
-                && managedActor.getNome() != null
-                && managedActor.getNome().equalsIgnoreCase(sessionUsername)) {
+
+        // A protecção da sessão actual deve usar o identificador transitório
+        // da sessão autenticada. managedActor vem da BD e não transporta
+        // esse valor @Transient.
+        Long currentSessionId = actor.getSessionId();
+        if (currentSessionId != null
+                && session.getId() != null
+                && currentSessionId.equals(session.getId())) {
+            throw new SecurityException(
+                    "A sessão administrativa actual deve ser encerrada pelo comando “Encerrar Sessão” do cabeçalho."
+            );
+        }
+
+        // Compatibilidade apenas para registos legados em que ambos os IDs
+        // não estejam disponíveis. Nunca usar o nome para bloquear uma sessão
+        // que possui um ID próprio.
+        if (currentSessionId == null
+                && session.getId() == null
+                && sessionUsername != null
+                && actor.getNome() != null
+                && actor.getNome().equalsIgnoreCase(sessionUsername)) {
             throw new SecurityException(
                     "A sessão administrativa actual deve ser encerrada pelo comando “Encerrar Sessão” do cabeçalho."
             );
