@@ -395,10 +395,14 @@ public class PerfisView extends VBox {
         estadoFilter.setValue("Todos");
         estadoFilter.setPrefWidth(150);
         estadoFilter.valueProperty().addListener((obs, old, value) -> {
-            if (!"Activos".equals(value) && !"Sistema".equals(value)) {
+            if ("Activos".equals(value)) {
+                activeKpiFilter = "ACTIVOS";
+            } else if ("Sistema".equals(value)) {
+                activeKpiFilter = "SISTEMA";
+            } else {
                 activeKpiFilter = "PERFIS";
-                updateKpiVisualState();
             }
+            updateKpiVisualState();
             applyFilters();
         });
 
