@@ -431,6 +431,31 @@ public class MfaService {
                 .count();
     }
 
+    public String buildProvisioningUri(User user, String secret) {
+        requireUser(user);
+
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "A conta ainda não possui um segredo MFA."
+            );
+        }
+
+        String label = encodeComponent(
+                "Kubata:" + safe(user.getEmail(), user.getNome())
+        );
+        String issuer = encodeComponent(
+                getEffectivePolicy(user).getIssuer()
+        );
+
+        return "otpauth://totp/"
+                + label
+                + "?secret="
+                + secret
+                + "&issuer="
+                + issuer
+                + "&algorithm=SHA1&digits=6&period=30";
+    }
+
     public String buildProvisioningUri(User user) {
         requireUser(user);
 
