@@ -164,6 +164,35 @@ class AuthServiceTest {
     }
 
     @Test
+    void logout_ShouldDeleteMostRecentSessionAndAudit() {
+        UserSession newer = new UserSession();
+        newer.setId(20L);
+        newer.setUsername(user.getNome());
+        newer.setLoginTime(LocalDateTime.of(2026, 10, 2, 11, 0));
+
+        UserSession older = new UserSession();
+        older.setId(10L);
+        older.setUsername(user.getNome());
+        older.setLoginTime(LocalDateTime.of(2026, 10, 2, 10, 0));
+
+        when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome()))
+                .thenReturn(List.of(newer, older));
+
+        authService.logout(user, "127.0.0.1");
+
+        verify(userSessionRepository).delete(newer);
+        verify(userSessionRepository, never()).delete(older);
+        verify(acessoService).registrarAuditoria(
+                eq(user),
+                eq("LOGOUT"),
+                eq("AUTH"),
+                eq("127.0.0.1"),
+                eq("Saída do sistema"),
+                eq(true)
+        );
+    }
+
+    @Test
     void authenticate_ShouldThrowException_WhenUserIsInactive() {
         user.setActive(false);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
