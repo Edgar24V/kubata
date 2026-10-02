@@ -173,6 +173,68 @@ class UserAdministrationServiceTest {
     }
 
     @Test
+    void deveTerminarTodasSessoesDosOutrosUtilizadoresPreservandoASessaoDoAdministrador() {
+        User actor = admin(10L);
+        UserSession own = new UserSession();
+        own.setId(1L);
+        own.setUsername(actor.getNome());
+        UserSession otherA = new UserSession();
+        otherA.setId(2L);
+        otherA.setUsername("Operador A");
+        UserSession otherB = new UserSession();
+        otherB.setId(3L);
+        otherB.setUsername("Operador B");
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(userSessionRepository.findAll())
+                .thenReturn(java.util.List.of(own, otherA, otherB));
+
+        long terminated = service.terminarTodasSessoesDeUtilizadores(
+                actor,
+                "127.0.0.1"
+        );
+
+        assertEquals(2L, terminated);
+        verify(userSessionRepository).deleteAll(
+                argThat(list -> list.size() == 2
+                        && list.contains(otherA)
+                        && list.contains(otherB)
+                        && !list.contains(own))
+        );
+        verify(auditService).logAction(
+                eq(actor),
+                isNull(),
+                eq(ao.allon.kubata.core.domain.AuditLog.AuditActionType.LOGOUT),
+                eq("USER_SESSION_BULK"),
+                eq("ALL_USERS_EXCEPT_ACTOR"),
+                contains("(2)"),
+                isNull(),
+                anyMap(),
+                eq("ADMINISTRATOR"),
+                eq("127.0.0.1"),
+                isNull(),
+                isNull(),
+                eq(false),
+                eq(ao.allon.kubata.core.domain.AuditLog.AGTComplianceLevel.HIGH)
+        );
+    }
+
+    @Test
+    void deveImpedirTerminoGlobalDeSessoesPorContaNaoAdministrativa() {
+        User actor = operator(10L);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+
+        assertThrows(
+                SecurityException.class,
+                () -> service.terminarTodasSessoesDeUtilizadores(actor, "127.0.0.1")
+        );
+
+        verify(userSessionRepository, never()).findAll();
+        verify(userSessionRepository, never()).deleteAll(anyList());
+        verifyNoInteractions(auditService);
+    }
+
+    @Test
     void deveImpedirQueSuperadministradorAltereOSeuProprioEstatuto() {
         User actor = admin(10L);
         actor.setSuperadmin(true);
