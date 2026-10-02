@@ -62,7 +62,7 @@ class UserSecurityProfileServiceTest {
 
     @Test
     void deveBloquearIpForaDaPolitica() {
-        User user = admin(10L);
+        User user = commonUser(10L);
         UserSecurityProfile profile = new UserSecurityProfile();
         profile.setUser(user);
         profile.setAllowedIpRanges(Set.of("10.0.0.0/24"));
@@ -81,8 +81,8 @@ class UserSecurityProfileServiceTest {
     }
 
     @Test
-    void deveBloquearModuloNaoAutorizadoMesmoParaAdmin() {
-        User user = admin(10L);
+    void deveRespeitarRestricaoDeModuloParaUtilizadorComum() {
+        User user = commonUser(10L);
         UserSecurityProfile profile = new UserSecurityProfile();
         profile.setAllowedModules(Set.of("FINANCEIRO"));
 
@@ -277,5 +277,49 @@ class UserSecurityProfileServiceTest {
         user.setRole(Role.ADMIN);
         user.setActive(true);
         return user;
+    }
+
+    private static User commonUser(Long id) {
+        User user = new User();
+        user.setId(id);
+        user.setNome("Utilizador");
+        user.setEmail("user-" + id + "@kubata.local");
+        user.setRole(Role.USER);
+        user.setActive(true);
+        return user;
+    }
+
+    @Test
+    void deveRecusarPerfilIndividualParaAdministrador() {
+        User actor = admin(1L);
+        User target = admin(2L);
+        UserSecurityProfile request = new UserSecurityProfile();
+        request.setAllowedModules(Set.of("FINANCEIRO"));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(actor));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+
+        assertThrows(
+                SecurityException.class,
+                () -> service.saveProfile(actor, 2L, request, "127.0.0.1")
+        );
+
+        verify(profileRepository, never()).save(any(UserSecurityProfile.class));
+    }
+
+    @Test
+    void deveIgnorarPerfilIndividualNoAdministrador() {
+        User user = admin(10L);
+        UserSecurityProfile stored = new UserSecurityProfile();
+        stored.setUser(user);
+        stored.setLoginEnabled(false);
+        stored.setAllowedModules(Set.of("FINANCEIRO"));
+        when(profileRepository.findByUserId(10L)).thenReturn(Optional.of(stored));
+
+        UserSecurityProfile effective = service.getEffectiveProfile(user);
+
+        assertTrue(effective.isLoginEnabled());
+        assertTrue(service.isModuleAllowed(user, "ADMINISTRATOR"));
+        assertTrue(service.isModuleAllowed(user, "VENDAS"));
     }
 }
