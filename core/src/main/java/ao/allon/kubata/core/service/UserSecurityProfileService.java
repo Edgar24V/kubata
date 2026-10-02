@@ -111,11 +111,6 @@ public class UserSecurityProfileService {
         User target = managedTarget(managedActor, targetUserId);
         requireCommonUserTarget(target);
 
-        if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
-            throw new SecurityException(
-                    "Só um Superadministrador pode alterar o perfil de segurança de outro Superadministrador."
-            );
-        }
         if (requested == null) {
             throw new IllegalArgumentException("Perfil de segurança inválido.");
         }
