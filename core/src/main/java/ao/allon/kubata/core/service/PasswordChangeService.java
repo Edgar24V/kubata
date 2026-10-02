@@ -3,6 +3,7 @@ package ao.allon.kubata.core.service;
 import ao.allon.kubata.core.domain.AuditLog;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,8 +20,10 @@ public class PasswordChangeService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicyService passwordPolicyService;
+    private final UserSecurityProfileService legacyUserSecurityProfileService;
     private final AuditService auditService;
 
+    @Autowired
     public PasswordChangeService(UserRepository userRepository,
                                  PasswordEncoder passwordEncoder,
                                  PasswordPolicyService passwordPolicyService,
@@ -28,6 +31,18 @@ public class PasswordChangeService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicyService = passwordPolicyService;
+        this.legacyUserSecurityProfileService = null;
+        this.auditService = auditService;
+    }
+
+    public PasswordChangeService(UserRepository userRepository,
+                                 PasswordEncoder passwordEncoder,
+                                 UserSecurityProfileService userSecurityProfileService,
+                                 AuditService auditService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.passwordPolicyService = null;
+        this.legacyUserSecurityProfileService = userSecurityProfileService;
         this.auditService = auditService;
     }
 
@@ -64,8 +79,12 @@ public class PasswordChangeService {
             throw new SecurityException("A palavra-passe actual está incorrecta.");
         }
 
-        passwordPolicyService.validateMinimumPasswordAge(user, LocalDateTime.now());
-        passwordPolicyService.validateNewPassword(user, newPassword);
+        if (passwordPolicyService != null) {
+            passwordPolicyService.validateMinimumPasswordAge(user, LocalDateTime.now());
+            passwordPolicyService.validateNewPassword(user, newPassword);
+        } else {
+            legacyUserSecurityProfileService.validatePassword(user, newPassword);
+        }
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IllegalArgumentException(
@@ -74,12 +93,14 @@ public class PasswordChangeService {
         }
 
         String previousPasswordHash = user.getPassword();
-        passwordPolicyService.recordPreviousPassword(
-                user,
-                previousPasswordHash,
-                user.getEmail(),
-                "ALTERACAO"
-        );
+        if (passwordPolicyService != null) {
+            passwordPolicyService.recordPreviousPassword(
+                    user,
+                    previousPasswordHash,
+                    user.getEmail(),
+                    "ALTERACAO"
+            );
+        }
 
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setPasswordChangedAt(LocalDateTime.now());
