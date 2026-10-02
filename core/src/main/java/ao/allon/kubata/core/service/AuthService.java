@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -194,6 +196,73 @@ public class AuthService {
 
         acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Sucesso", true);
         return user;
+    }
+
+    /**
+     * Termina uma única sessão antiga para permitir um novo login quando o
+     * limite de sessões simultâneas foi atingido. A operação exige a palavra-
+     * passe da própria conta e nunca expõe detalhes das sessões existentes.
+     *
+     * @return 1 quando uma sessão foi terminada; 0 quando não havia sessão.
+     */
+    @Transactional
+    public int terminateOldestSessionForLogin(
+            String email,
+            String password,
+            String ip) {
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            throw new AuthenticationException("Credenciais inválidas.");
+        }
+
+        User user = userOpt.get();
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            acessoService.registrarAuditoria(
+                    user,
+                    "LOGIN_SESSION_TERMINATE",
+                    "AUTH",
+                    ip,
+                    "Tentativa de terminar sessão com credencial inválida",
+                    false
+            );
+            throw new AuthenticationException("Credenciais inválidas.");
+        }
+
+        if (!user.isEnabled()) {
+            throw new AuthenticationException("Conta inativa. Contate o administrador.");
+        }
+
+        List<UserSession> sessions = userSessionRepository
+                .findAllByUsernameOrderByLoginTimeDesc(user.getNome());
+
+        if (sessions.isEmpty()) {
+            return 0;
+        }
+
+        UserSession oldest = sessions.stream()
+                .min(Comparator.comparing(
+                        UserSession::getLoginTime,
+                        Comparator.nullsFirst(Comparator.naturalOrder())))
+                .orElse(null);
+
+        if (oldest == null) {
+            return 0;
+        }
+
+        userSessionRepository.delete(oldest);
+
+        acessoService.registrarAuditoria(
+                user,
+                "LOGOUT",
+                "AUTH",
+                ip,
+                "Sessão antiga terminada pelo próprio utilizador para libertar o limite de sessões",
+                true
+        );
+
+        return 1;
     }
 
     @Transactional
