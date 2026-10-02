@@ -49,6 +49,7 @@ public class AdminMainView extends StackPane {
             titleBar.setUserName(sessionManager.getUser().getNome());
         }
         buildUI();
+        titleBar.setOnHelp(this::openHelpCenter);
         buildRibbon();
     }
 
@@ -116,6 +117,11 @@ public class AdminMainView extends StackPane {
 
         bar.getChildren().addAll(userLbl, spacer, version);
         return bar;
+    }
+
+    private void openHelpCenter() {
+        HelpCenterView view = applicationContext.getBean(HelpCenterView.class);
+        openOrFocusTab("help", "Centro de Ajuda", () -> view, true);
     }
 
     private void buildRibbon() {
