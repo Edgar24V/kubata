@@ -633,7 +633,8 @@ public class HelpCenterView extends BorderPane {
                 "Fechar a janela e terminar a sessão são conceitos diferentes.",
                 paragraphs(
                         "O logout explícito permite que a aplicação execute o fluxo de encerramento, registe a operação e limpe o contexto local de autenticação.",
-                        "Para o utilizador comum, a regra prática é simples: termine sempre a sessão pelo comando “Encerrar Sessão” disponibilizado no módulo."
+                        "Para o utilizador comum, a regra prática é simples: termine sempre a sessão pelo comando “Encerrar Sessão” disponibilizado no módulo.",
+                        "No módulo Kubata Faturação, por exemplo, o comando encontra-se no menu do utilizador no cabeçalho e aparece como “Encerrar Sessão”. Depois da confirmação, a aplicação limpa a sessão local e regressa ao login."
                 )
         ));
 
