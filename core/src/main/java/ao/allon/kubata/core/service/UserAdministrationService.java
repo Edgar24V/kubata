@@ -116,6 +116,11 @@ public class UserAdministrationService {
         }
 
         User managedActor = managedActor(actor);
+        if (!Boolean.TRUE.equals(managedActor.getActive())) {
+            throw new SecurityException(
+                    "A conta administrativa está inactiva e não pode terminar sessões."
+            );
+        }
         if (!managedActor.isSuperadmin() && managedActor.getRole() != Role.ADMIN) {
             throw new SecurityException(
                     "Apenas Administradores e Superadministradores podem terminar todas as sessões."
