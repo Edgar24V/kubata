@@ -79,7 +79,7 @@ class PasswordPolicyServiceTest {
         policy.setRequireSymbol(true);
 
         when(policyRepository.findByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL))
-                .thenReturn(List.of(policy));
+                .thenReturn(Optional.of(policy));
         when(userSecurityProfileRepository.findByUserId(10L))
                 .thenReturn(Optional.empty());
 
