@@ -13364,3 +13364,222 @@ Text {
     -fx-background-color: -color-base-1;
     -fx-text-fill: -color-base-6;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · INFRAESTRUTURA · Moedas e Câmbios
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-currency-page {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-currency-eyebrow {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #238636;
+    -fx-letter-spacing: 0.8px;
+}
+
+.kubata-currency-context {
+    -fx-padding: 8px 11px;
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 8px;
+    -fx-border-color: -color-base-1;
+    -fx-border-radius: 8px;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-currency-filterbar {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-padding: 9px 11px;
+}
+
+.kubata-currency-filter-label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-currency-split {
+    -fx-background-color: transparent;
+}
+
+.kubata-currency-split > .split-pane-divider {
+    -fx-background-color: -color-base-2;
+    -fx-padding: 0 1px;
+}
+
+.kubata-currency-table {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 11px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 11px;
+}
+
+.kubata-currency-table .column-header-background {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 11px 11px 0 0;
+}
+
+.kubata-currency-table .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-padding: 0 8px;
+}
+
+.kubata-currency-table .column-header .label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-currency-table .table-row-cell {
+    -fx-cell-size: 40px;
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-currency-table .table-row-cell:hover {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-currency-table .table-row-cell:selected {
+    -fx-background-color: rgba(33,115,70,0.10);
+    -fx-text-background-color: -color-base-9;
+}
+
+.kubata-currency-table .table-cell {
+    -fx-padding: 0 9px;
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-currency-badge {
+    -fx-background-radius: 9px;
+    -fx-padding: 3px 7px;
+    -fx-font-size: 7px;
+    -fx-font-weight: 900;
+}
+
+.kubata-currency-active {
+    -fx-background-color: -kubata-green-pale;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-currency-inactive {
+    -fx-background-color: -color-base-1;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-currency-base {
+    -fx-background-color: rgba(59,130,246,0.12);
+    -fx-text-fill: #1d4ed8;
+}
+
+.kubata-currency-rate-ok {
+    -fx-background-color: -kubata-green-pale;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-currency-rate-missing {
+    -fx-background-color: rgba(245,158,11,0.13);
+    -fx-text-fill: #92400e;
+}
+
+.kubata-currency-details {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 11px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 11px;
+}
+
+.kubata-currency-details-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 10px;
+    -fx-alignment: center;
+}
+
+.kubata-currency-details-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-currency-details-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-currency-details-caption {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-currency-details-card {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 9px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 9px;
+    -fx-padding: 9px;
+}
+
+.kubata-currency-details-row {
+    -fx-padding: 6px 0;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-currency-details-key {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-currency-details-value {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-currency-rate-card {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 9px;
+    -fx-border-color: -kubata-green-border;
+    -fx-border-radius: 9px;
+    -fx-padding: 10px;
+}
+
+.kubata-currency-rate-title {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-currency-rate-value {
+    -fx-font-size: 19px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-currency-detail-note {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 8px;
+    -fx-padding: 8px;
+    -fx-font-size: 8px;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-currency-actionbar {
+    -fx-padding: 4px 0 0 0;
+}
+
+.kubata-currency-summary-value {
+    -fx-font-size: 17px;
+    -fx-font-weight: 900;
+}
