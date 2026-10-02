@@ -372,9 +372,7 @@ public class PasswordPolicyService {
     }
 
     private PasswordPolicy findGlobalPolicyOrLegacy(User user) {
-        return policyRepository.findAllByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL)
-                .stream()
-                .findFirst()
+        return policyRepository.findByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL)
                 .orElseGet(() -> legacyDefaultPolicy(user));
     }
 
