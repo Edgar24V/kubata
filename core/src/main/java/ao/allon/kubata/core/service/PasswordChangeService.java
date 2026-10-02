@@ -18,16 +18,16 @@ public class PasswordChangeService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserSecurityProfileService userSecurityProfileService;
+    private final PasswordPolicyService passwordPolicyService;
     private final AuditService auditService;
 
     public PasswordChangeService(UserRepository userRepository,
                                  PasswordEncoder passwordEncoder,
-                                 UserSecurityProfileService userSecurityProfileService,
+                                 PasswordPolicyService passwordPolicyService,
                                  AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.userSecurityProfileService = userSecurityProfileService;
+        this.passwordPolicyService = passwordPolicyService;
         this.auditService = auditService;
     }
 
@@ -64,7 +64,8 @@ public class PasswordChangeService {
             throw new SecurityException("A palavra-passe actual está incorrecta.");
         }
 
-        userSecurityProfileService.validatePassword(user, newPassword);
+        passwordPolicyService.validateMinimumPasswordAge(user, LocalDateTime.now());
+        passwordPolicyService.validateNewPassword(user, newPassword);
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IllegalArgumentException(
@@ -72,10 +73,19 @@ public class PasswordChangeService {
             );
         }
 
+        String previousPasswordHash = user.getPassword();
+        passwordPolicyService.recordPreviousPassword(
+                user,
+                previousPasswordHash,
+                user.getEmail(),
+                "ALTERACAO"
+        );
+
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setPasswordChangedAt(LocalDateTime.now());
         user.setPasswordProvisoria(false);
         user.setDataExpiracaoPassword(null);
+        user.setPasswordResetExpiresAt(null);
         user.setFailedAttempts(0);
         user.setLockoutEnd(null);
 
