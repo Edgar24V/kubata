@@ -351,6 +351,56 @@ public class UserAdministrationService {
         return saved;
     }
 
+    /**
+     * Actualiza exclusivamente os perfis RBAC atribuídos a um utilizador.
+     * Esta operação é auditada como alteração de permissão.
+     */
+    @Transactional
+    public User actualizarPerfisAcesso(User actor,
+                                       Long targetUserId,
+                                       Set<PerfilAcesso> requestedProfiles,
+                                       String sourceIp) {
+        require(actor, "EDITAR");
+        User managedActor = managedActor(actor);
+        User target = target(targetUserId);
+
+        if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
+            throw new SecurityException(
+                    "Só um Superadministrador pode alterar os perfis de acesso de outro Superadministrador."
+            );
+        }
+
+        Set<PerfilAcesso> profiles = validateProfiles(
+                requestedProfiles,
+                target.getEmpresa()
+        );
+
+        String anterior = profileSnapshot(target.getPerfis());
+        String novo = profileSnapshot(profiles);
+
+        target.setPerfis(new LinkedHashSet<>(profiles));
+        User saved = userRepository.save(target);
+
+        auditService.logAction(
+                managedActor,
+                null,
+                AuditLog.AuditActionType.PERMISSION_CHANGE,
+                "USER_ACCESS",
+                String.valueOf(saved.getId()),
+                "Perfis de acesso actualizados: " + saved.getEmail(),
+                java.util.Map.of("perfis", anterior),
+                java.util.Map.of("perfis", novo),
+                MODULE,
+                sourceIp,
+                null,
+                null,
+                false,
+                AuditLog.AGTComplianceLevel.HIGH
+        );
+
+        return saved;
+    }
+
     @Transactional
     public User alterarEstado(User actor, Long targetUserId, boolean active, String sourceIp) {
         require(actor, "EDITAR");
