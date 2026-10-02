@@ -37,6 +37,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -1071,19 +1072,17 @@ public class LoginController {
                 return;
             }
 
-            if (error instanceof AuthenticationException
-                    && error.getMessage() != null
-                    && error.getMessage()
-                    .toLowerCase()
-                    .contains("mfa")) {
-                showMessage(
-                        recoveryMode
-                                ? "O código de recuperação é inválido ou já foi utilizado."
-                                : "A autenticação requer um código MFA válido.",
-                        true
+            if (error instanceof AuthenticationException authenticationException) {
+                log.warn(
+                        "Falha de autenticação para {}: {}",
+                        email,
+                        authenticationException.getMessage()
                 );
-                mfaCodeField.requestFocus();
-                mfaCodeField.selectAll();
+                showAuthenticationErrorModal(
+                        email,
+                        authenticationException.getMessage()
+                );
+                shakeNode(loginButton);
                 return;
             }
 
@@ -1091,13 +1090,14 @@ public class LoginController {
                 log.warn(
                         "Falha de autenticação para {}: {}",
                         email,
-                        error.getMessage()
+                        error.getMessage(),
+                        error
                 );
             }
 
             showMessage(
                     "Não foi possível iniciar a sessão. "
-                            + "Verifique as credenciais e tente novamente.",
+                            + "Consulte os detalhes da falha para saber como resolver.",
                     true
             );
             shakeNode(loginButton);
@@ -1105,6 +1105,312 @@ public class LoginController {
 
         executor.submit(task);
     }
+
+    private void showAuthenticationErrorModal(
+            String email,
+            String reason
+    ) {
+        AuthenticationErrorDetails details = describeAuthenticationError(reason);
+
+        VBox content = new VBox(14);
+        content.setPadding(new Insets(6));
+        content.setPrefWidth(570);
+
+        HBox summary = new HBox(12);
+        summary.setAlignment(Pos.TOP_LEFT);
+        summary.setPadding(new Insets(14));
+        summary.setStyle(
+                "-fx-background-color: #f8fafc;"
+                        + "-fx-background-radius: 12;"
+                        + "-fx-border-color: #e2e8f0;"
+                        + "-fx-border-radius: 12;"
+                        + "-fx-border-width: 1;"
+        );
+
+        FontIcon summaryIcon = new FontIcon(details.icon());
+        summaryIcon.setIconSize(24);
+        summaryIcon.setIconColor(details.toneColor());
+
+        VBox summaryText = new VBox(4);
+        Label summaryTitle = new Label(details.title());
+        summaryTitle.setStyle(
+                "-fx-font-size: 16px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #1e293b;"
+        );
+
+        Label accountLabel = new Label(
+                "Conta: " + (email == null || email.isBlank() ? "-" : email)
+        );
+        accountLabel.setStyle(
+                "-fx-font-size: 11px;"
+                        + "-fx-text-fill: #64748b;"
+        );
+
+        summaryText.getChildren().addAll(summaryTitle, accountLabel);
+        summary.getChildren().addAll(summaryIcon, summaryText);
+
+        VBox explanation = createAuthenticationErrorSection(
+                Feather.INFO,
+                "O que aconteceu",
+                details.explanation(),
+                "kubata-auth-modal-info"
+        );
+
+        VBox resolution = createAuthenticationErrorSection(
+                Feather.TOOL,
+                "Como resolver",
+                details.resolution(),
+                "kubata-auth-modal-resolution"
+        );
+
+        Label securityNote = new Label(
+                "Por segurança, o Kubata não apresenta senhas, tokens MFA "
+                        + "ou outros segredos neste diagnóstico."
+        );
+        securityNote.setWrapText(true);
+        securityNote.setStyle(
+                "-fx-font-size: 11px;"
+                        + "-fx-text-fill: #64748b;"
+        );
+
+        content.getChildren().addAll(
+                summary,
+                explanation,
+                resolution,
+                securityNote
+        );
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Não foi possível iniciar a sessão")
+                        .subtitle("Diagnóstico da autenticação")
+                        .icon(details.icon())
+                        .tone(details.tone())
+                        .singleButton("Entendido")
+                        .size(650, 480)
+                        .minSize(570, 430)
+                        .maxSize(760, 620)
+                        .maximizable(false)
+                        .minimizable(false)
+                        .closeOnOverlayClick(false)
+                        .closeOnEscape(true)
+                        .footerHint("Corrija a causa indicada e tente iniciar a sessão novamente.")
+        );
+
+        Platform.runLater(() -> {
+            if (details.focusMfa()) {
+                mfaCodeField.requestFocus();
+                mfaCodeField.selectAll();
+            } else if (details.focusPassword()) {
+                passwordField.requestFocus();
+                passwordField.selectAll();
+            } else if (details.focusEmail()) {
+                emailField.requestFocus();
+                emailField.selectAll();
+            }
+        });
+    }
+
+    private VBox createAuthenticationErrorSection(
+            Feather icon,
+            String title,
+            String text,
+            String styleClass
+    ) {
+        VBox box = new VBox(8);
+        box.setPadding(new Insets(12));
+        box.getStyleClass().add(styleClass);
+
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        FontIcon sectionIcon = new FontIcon(icon);
+        sectionIcon.setIconSize(15);
+        sectionIcon.setIconColor(Color.web("#217346"));
+
+        Label label = new Label(title);
+        label.setStyle(
+                "-fx-font-size: 12px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #334155;"
+        );
+
+        header.getChildren().addAll(sectionIcon, label);
+
+        Label description = new Label(text);
+        description.setWrapText(true);
+        description.setMaxWidth(Double.MAX_VALUE);
+        description.setStyle(
+                "-fx-font-size: 12px;"
+                        + "-fx-line-spacing: 2;"
+                        + "-fx-text-fill: #64748b;"
+        );
+
+        box.getChildren().addAll(header, description);
+        return box;
+    }
+
+    private AuthenticationErrorDetails describeAuthenticationError(String reason) {
+        String normalized = reason == null
+                ? ""
+                : reason.toLowerCase(Locale.ROOT);
+
+        if (normalized.contains("limite de sessões simultâneas")) {
+            return new AuthenticationErrorDetails(
+                    "Limite de sessões atingido",
+                    "A conta já possui o número máximo de sessões simultâneas permitido pela sua política de segurança.",
+                    "Feche uma sessão que esteja activa noutro computador ou dispositivo. No Kubata Administrator, abra Administração > Sessões para terminar sessões que já não estejam em uso. Se todas forem necessárias, peça a um administrador autorizado para rever o limite de sessões no Perfil de Segurança do utilizador. As sessões antigas também podem desaparecer automaticamente quando o tempo limite configurado for ultrapassado.",
+                    Feather.USERS,
+                    ModalManager.ModalTone.WARNING,
+                    Color.web("#b45309"),
+                    false,
+                    false,
+                    false
+            );
+        }
+
+        if (normalized.contains("temporariamente bloqueada")) {
+            return new AuthenticationErrorDetails(
+                    "Conta temporariamente bloqueada",
+                    "A política de segurança bloqueou temporariamente novas tentativas de autenticação nesta conta.",
+                    "Aguarde o fim do período de bloqueio antes de tentar novamente. Se o bloqueio ocorreu por engano ou continuar depois do período previsto, peça a um administrador autorizado para verificar a política de login e o estado da conta.",
+                    Feather.LOCK,
+                    ModalManager.ModalTone.WARNING,
+                    Color.web("#b45309"),
+                    true,
+                    false,
+                    false
+            );
+        }
+
+        if (normalized.contains("credenciais inválidas")) {
+            return new AuthenticationErrorDetails(
+                    "Credenciais não validadas",
+                    "O email ou a palavra-passe fornecidos não correspondem às credenciais aceites pelo Kubata. Por segurança, o sistema não informa qual dos dois dados está incorrecto.",
+                    "Confirme o email da conta e introduza novamente a palavra-passe. Evite copiar espaços antes ou depois do email. Se continuar a falhar, utilize a recuperação de acesso disponível ou peça a um administrador autorizado para confirmar o estado da conta e redefinir a palavra-passe, quando aplicável.",
+                    Feather.KEY,
+                    ModalManager.ModalTone.DANGER,
+                    Color.web("#b91c1c"),
+                    false,
+                    true,
+                    true
+            );
+        }
+
+        if (normalized.contains("senha expirada") || normalized.contains("password expirou")) {
+            return new AuthenticationErrorDetails(
+                    "Palavra-passe expirada",
+                    "A política de segurança da conta determinou que a palavra-passe actual já não pode ser usada para iniciar uma sessão normal.",
+                    "Altere a palavra-passe através do procedimento de alteração disponibilizado para a conta. Caso não exista uma opção de auto-atendimento neste ambiente, peça a um administrador autorizado para efectuar a redefinição e, depois, volte a iniciar a sessão.",
+                    Feather.KEY,
+                    ModalManager.ModalTone.WARNING,
+                    Color.web("#b45309"),
+                    false,
+                    true,
+                    false
+            );
+        }
+
+        if (normalized.contains("conta inativa")) {
+            return new AuthenticationErrorDetails(
+                    "Conta inactiva",
+                    "A conta existe, mas está actualmente marcada como inactiva e a política de autenticação impede o acesso.",
+                    "Peça a um administrador autorizado para verificar o estado da conta no módulo Utilizadores e activá-la, caso o acesso deva continuar permitido.",
+                    Feather.USER_X,
+                    ModalManager.ModalTone.DANGER,
+                    Color.web("#b91c1c"),
+                    false,
+                    false,
+                    false
+            );
+        }
+
+        if (normalized.contains("endereço ip não está autorizado")) {
+            return new AuthenticationErrorDetails(
+                    "Endereço IP não autorizado",
+                    "A política de segurança individual desta conta restringe os endereços de rede a partir dos quais o login é permitido.",
+                    "Entre a partir de uma rede autorizada ou peça a um administrador autorizado para verificar e actualizar os IPs permitidos no Perfil de Segurança do utilizador. Não tente contornar a restrição com credenciais de outra conta.",
+                    Feather.GLOBE,
+                    ModalManager.ModalTone.WARNING,
+                    Color.web("#b45309"),
+                    false,
+                    false,
+                    false
+            );
+        }
+
+        if (normalized.contains("não está autorizado neste horário")) {
+            return new AuthenticationErrorDetails(
+                    "Horário de acesso não permitido",
+                    "O período actual está fora do horário definido na política de segurança desta conta.",
+                    "Tente novamente dentro do horário autorizado. Se o horário estiver incorrecto para a sua função, peça a um administrador autorizado para rever a agenda definida no Perfil de Segurança.",
+                    Feather.CLOCK,
+                    ModalManager.ModalTone.WARNING,
+                    Color.web("#b45309"),
+                    false,
+                    false,
+                    false
+            );
+        }
+
+        if (normalized.contains("não está autorizado neste dia")) {
+            return new AuthenticationErrorDetails(
+                    "Dia de acesso não permitido",
+                    "O dia actual não está incluído nos dias da semana autorizados para esta conta.",
+                    "Tente novamente num dia permitido ou peça a um administrador autorizado para rever os dias autorizados no Perfil de Segurança do utilizador.",
+                    Feather.CALENDAR,
+                    ModalManager.ModalTone.WARNING,
+                    Color.web("#b45309"),
+                    false,
+                    false,
+                    false
+            );
+        }
+
+        if (normalized.contains("multifactor")
+                || normalized.contains("código mfa")
+                || normalized.contains("código de recuperação")) {
+            return new AuthenticationErrorDetails(
+                    "Segundo factor não validado",
+                    "A conta exige um segundo factor, mas o código MFA ou o código de recuperação fornecido não foi aceite.",
+                    "Confirme o código de 6 dígitos no aplicativo autenticador e tente novamente. Se estiver a usar um código de recuperação, confirme que é o código correcto e que ainda pode ser utilizado. Nunca partilhe estes códigos com outra pessoa.",
+                    Feather.SHIELD,
+                    ModalManager.ModalTone.WARNING,
+                    Color.web("#b45309"),
+                    false,
+                    false,
+                    false
+            );
+        }
+
+        return new AuthenticationErrorDetails(
+                "Autenticação rejeitada",
+                reason == null || reason.isBlank()
+                        ? "O servidor recusou a tentativa de autenticação por uma regra de segurança ou de acesso."
+                        : "O servidor recusou a tentativa de autenticação: " + reason,
+                "Verifique os dados introduzidos e tente novamente. Se o problema persistir, peça a um administrador autorizado para consultar a política de segurança da conta, o estado do utilizador e os registos de auditoria.",
+                Feather.ALERT_TRIANGLE,
+                ModalManager.ModalTone.DANGER,
+                Color.web("#b91c1c"),
+                false,
+                true,
+                false
+        );
+    }
+
+    private record AuthenticationErrorDetails(
+            String title,
+            String explanation,
+            String resolution,
+            Feather icon,
+            ModalManager.ModalTone tone,
+            Color toneColor,
+            boolean focusEmail,
+            boolean focusPassword,
+            boolean focusMfa
+    ) {}
 
     private void showMandatoryPasswordChange(
             User user,
