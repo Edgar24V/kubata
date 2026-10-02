@@ -68,10 +68,16 @@ class AuthServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
 
+        UserSession createdSession = new UserSession();
+        createdSession.setId(42L);
+        createdSession.setUsername(user.getNome());
+        when(userSessionRepository.save(any(UserSession.class))).thenReturn(createdSession);
+
         User result = authService.authenticate("test@example.com", "password", null, "127.0.0.1");
 
         assertNotNull(result);
         assertEquals("test@example.com", result.getEmail());
+        assertEquals(42L, result.getSessionId());
     }
 
     @Test
@@ -177,13 +183,16 @@ class AuthServiceTest {
         older.setUsername(user.getNome());
         older.setLoginTime(LocalDateTime.of(2026, 10, 2, 10, 0));
 
-        when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome()))
-                .thenReturn(List.of(newer, older));
+        user.setSessionId(20L);
+        when(userSessionRepository.findById(20L))
+                .thenReturn(Optional.of(newer));
 
         authService.logout(user, "127.0.0.1");
 
         verify(userSessionRepository).delete(newer);
         verify(userSessionRepository, never()).delete(older);
+        verify(userSessionRepository, never())
+                .findAllByUsernameOrderByLoginTimeDesc(user.getNome());
         verify(acessoService).registrarAuditoria(
                 eq(user),
                 eq("LOGOUT"),
