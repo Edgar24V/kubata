@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -26,10 +27,28 @@ public class MoedasCambiosView extends BorderPane {
     private final MoedaRepository repository;
     private final ModalManager modalManager;
     private final ObservableList<Moeda> moedas = FXCollections.observableArrayList();
-    private final TableView<Moeda> table = new TableView<>(moedas);
+    private final FilteredList<Moeda> filteredMoedas = new FilteredList<>(moedas, m -> true);
+    private final TableView<Moeda> table = new TableView<>(filteredMoedas);
+
     private final Label totalValue = new Label("0");
     private final Label activeValue = new Label("0");
     private final Label baseValue = new Label("—");
+    private final Label ratesValue = new Label("0");
+    private final Label pendingValue = new Label("0");
+
+    private TextField searchField;
+    private ComboBox<String> statusFilter;
+    private ComboBox<String> baseFilter;
+
+    private Label detailName;
+    private Label detailCode;
+    private Label detailSymbol;
+    private Label detailRate;
+    private Label detailRateDate;
+    private Label detailDecimals;
+    private Label detailBase;
+    private Label detailActive;
+    private Label detailRateStatus;
 
     public MoedasCambiosView(MoedaRepository repository, ModalManager modalManager) {
         this.repository = repository;
@@ -127,6 +146,209 @@ public class MoedasCambiosView extends BorderPane {
             HBox.setHgrow(node, Priority.ALWAYS);
         }
         return row;
+    }
+
+    private HBox buildFilters() {
+        HBox bar = new HBox(8);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.getStyleClass().add("kubata-currency-filterbar");
+
+        searchField = new TextField();
+        searchField.setPromptText("Pesquisar código, nome ou símbolo...");
+        searchField.setPrefWidth(290);
+        searchField.setGraphic(IconUtils.icon(Feather.SEARCH, 13));
+
+        Label statusLabel = new Label("Estado");
+        statusLabel.getStyleClass().add("kubata-currency-filter-label");
+
+        statusFilter = new ComboBox<>(FXCollections.observableArrayList(
+                "TODOS", "ACTIVA", "INACTIVA"
+        ));
+        statusFilter.setValue("TODOS");
+        statusFilter.setPrefWidth(130);
+
+        Label baseLabel = new Label("Base");
+        baseLabel.getStyleClass().add("kubata-currency-filter-label");
+
+        baseFilter = new ComboBox<>(FXCollections.observableArrayList(
+                "TODAS", "BASE", "NÃO BASE"
+        ));
+        baseFilter.setValue("TODAS");
+        baseFilter.setPrefWidth(130);
+
+        Button clear = new Button("Limpar", IconUtils.icon(Feather.X, 12));
+        clear.getStyleClass().add("button-outlined");
+        clear.setOnAction(e -> {
+            searchField.clear();
+            statusFilter.setValue("TODOS");
+            baseFilter.setValue("TODAS");
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label note = new Label(
+                "Taxa = referência configurada para a moeda",
+                IconUtils.icon(Feather.INFO, 11)
+        );
+        note.getStyleClass().add("kubata-server-note");
+
+        bar.getChildren().addAll(
+                searchField, statusLabel, statusFilter,
+                baseLabel, baseFilter, clear, spacer, note
+        );
+        return bar;
+    }
+
+    private VBox buildDetailsPane() {
+        VBox pane = new VBox(10);
+        pane.setPadding(new Insets(14));
+        pane.getStyleClass().add("kubata-currency-details");
+
+        HBox titleRow = new HBox(9);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane icon = new StackPane();
+        icon.getStyleClass().add("kubata-currency-details-icon");
+        icon.setPrefSize(40, 40);
+        icon.setMinSize(40, 40);
+        icon.setMaxSize(40, 40);
+        icon.getChildren().add(IconUtils.icon(Feather.DOLLAR_SIGN, 17));
+
+        VBox titleText = new VBox(2);
+        detailName = new Label("Nenhuma moeda seleccionada");
+        detailName.getStyleClass().add("kubata-currency-details-title");
+
+        Label caption = new Label("Configuração e estado");
+        caption.getStyleClass().add("kubata-currency-details-caption");
+        titleText.getChildren().addAll(detailName, caption);
+
+        titleRow.getChildren().addAll(icon, titleText);
+
+        VBox facts = new VBox(4);
+        facts.getStyleClass().add("kubata-currency-details-card");
+
+        detailCode = detailRow(facts, "Código ISO");
+        detailSymbol = detailRow(facts, "Símbolo");
+        detailRateDate = detailRow(facts, "Data da taxa");
+        detailDecimals = detailRow(facts, "Casas decimais");
+        detailBase = detailRow(facts, "Moeda base");
+        detailActive = detailRow(facts, "Estado");
+        detailRateStatus = detailRow(facts, "Situação da taxa");
+
+        VBox rateCard = new VBox(2);
+        rateCard.getStyleClass().add("kubata-currency-rate-card");
+        Label rateTitle = new Label("TAXA DE CÂMBIO CONFIGURADA");
+        rateTitle.getStyleClass().add("kubata-currency-rate-title");
+
+        detailRate = new Label("—");
+        detailRate.getStyleClass().add("kubata-currency-rate-value");
+        rateCard.getChildren().addAll(rateTitle, detailRate);
+
+        Button edit = new Button("Editar moeda", IconUtils.icon(Feather.EDIT_2, 12));
+        edit.getStyleClass().add("button-primary");
+        edit.setOnAction(e -> openDialog(table.getSelectionModel().getSelectedItem()));
+
+        Button delete = new Button("Remover", IconUtils.icon(Feather.TRASH_2, 12));
+        delete.getStyleClass().addAll("button-outlined", "danger");
+        delete.setOnAction(e -> delete(table.getSelectionModel().getSelectedItem()));
+
+        HBox actions = new HBox(7, edit, delete);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        actions.getStyleClass().add("kubata-currency-actionbar");
+
+        Label info = new Label(
+                "A moeda base é única. Alterá-la actualiza a configuração das restantes moedas.",
+                IconUtils.icon(Feather.INFO, 11)
+        );
+        info.setWrapText(true);
+        info.getStyleClass().add("kubata-currency-detail-note");
+
+        pane.getChildren().addAll(titleRow, rateCard, facts, actions, info);
+        return pane;
+    }
+
+    private Label detailRow(VBox parent, String title) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("kubata-currency-details-row");
+
+        Label key = new Label(title.toUpperCase());
+        key.getStyleClass().add("kubata-currency-details-key");
+        key.setMinWidth(100);
+
+        Label value = new Label("—");
+        value.getStyleClass().add("kubata-currency-details-value");
+        HBox.setHgrow(value, Priority.ALWAYS);
+
+        row.getChildren().addAll(key, value);
+        parent.getChildren().add(row);
+        return value;
+    }
+
+    private void updateDetails(Moeda selected) {
+        if (selected == null) {
+            detailName.setText("Nenhuma moeda seleccionada");
+            detailCode.setText("—");
+            detailSymbol.setText("—");
+            detailRate.setText("—");
+            detailRateDate.setText("—");
+            detailDecimals.setText("—");
+            detailBase.setText("—");
+            detailActive.setText("—");
+            detailRateStatus.setText("—");
+            return;
+        }
+
+        detailName.setText(safe(selected.getNome()));
+        detailCode.setText(safe(selected.getCodigoISO()));
+        detailSymbol.setText(safe(selected.getSimbolo()));
+        detailRate.setText(selected.getTaxaCambio() == null
+                ? "Não configurada"
+                : selected.getTaxaCambio().toPlainString());
+        detailRateDate.setText(selected.getDataTaxaCambio() == null
+                ? "—"
+                : selected.getDataTaxaCambio().toString());
+        detailDecimals.setText(selected.getCasasDecimais() == null
+                ? "2"
+                : selected.getCasasDecimais().toString());
+        detailBase.setText(Boolean.TRUE.equals(selected.getMoedaBase()) ? "SIM" : "NÃO");
+        detailActive.setText(Boolean.TRUE.equals(selected.getActiva()) ? "ACTIVA" : "INACTIVA");
+
+        if (selected.getTaxaCambio() == null) {
+            detailRateStatus.setText("SEM TAXA");
+        } else if (selected.getDataTaxaCambio() == null) {
+            detailRateStatus.setText("SEM DATA");
+        } else if (selected.getDataTaxaCambio().isBefore(LocalDate.now())) {
+            detailRateStatus.setText("DESACTUALIZADA");
+        } else {
+            detailRateStatus.setText("ACTUALIZADA");
+        }
+    }
+
+    private void applyFilters() {
+        String query = searchField == null ? "" : searchField.getText();
+        String normalized = query == null ? "" : query.trim().toLowerCase();
+        String status = statusFilter == null ? "TODOS" : statusFilter.getValue();
+        String base = baseFilter == null ? "TODAS" : baseFilter.getValue();
+
+        filteredMoedas.setPredicate(moeda -> {
+            if (moeda == null) return false;
+
+            boolean textMatch = normalized.isBlank()
+                    || safe(moeda.getCodigoISO()).toLowerCase().contains(normalized)
+                    || safe(moeda.getNome()).toLowerCase().contains(normalized)
+                    || safe(moeda.getSimbolo()).toLowerCase().contains(normalized);
+
+            boolean statusMatch = "TODOS".equals(status)
+                    || ("ACTIVA".equals(status) && Boolean.TRUE.equals(moeda.getActiva()))
+                    || ("INACTIVA".equals(status) && !Boolean.TRUE.equals(moeda.getActiva()));
+
+            boolean baseMatch = "TODAS".equals(base)
+                    || ("BASE".equals(base) && Boolean.TRUE.equals(moeda.getMoedaBase()))
+                    || ("NÃO BASE".equals(base) && !Boolean.TRUE.equals(moeda.getMoedaBase()));
+
+            return textMatch && statusMatch && baseMatch;
+        });
     }
 
     private VBox metric(String title, Label value, Feather icon) {
