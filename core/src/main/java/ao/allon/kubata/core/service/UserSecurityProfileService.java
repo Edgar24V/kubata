@@ -399,11 +399,6 @@ public class UserSecurityProfileService {
         }
     }
 
-    private UserSecurityProfile managedProfileTarget(User actor, Long targetUserId) {
-        User managedActor = managedActor(actor);
-        return managedTarget(managedActor, targetUserId);
-    }
-
     private User managedTarget(User managedActor, Long targetUserId) {
         if (targetUserId == null) {
             throw new IllegalArgumentException("Utilizador de destino inválido.");
