@@ -105,6 +105,63 @@ public class UserAdministrationService {
         return userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(target.getNome());
     }
 
+    /**
+     * Termina todas as sessões dos restantes utilizadores a partir da consola
+     * administrativa, preservando todas as sessões do próprio administrador.
+     */
+    @Transactional
+    public long terminarTodasSessoesDeUtilizadores(User actor, String sourceIp) {
+        if (actor == null || actor.getId() == null) {
+            throw new SecurityException("Sessão administrativa inválida.");
+        }
+
+        User managedActor = managedActor(actor);
+        if (!managedActor.isSuperadmin() && managedActor.getRole() != Role.ADMIN) {
+            throw new SecurityException(
+                    "Apenas Administradores e Superadministradores podem terminar todas as sessões."
+            );
+        }
+
+        String currentUsername = managedActor.getNome();
+        long before = currentUsername == null || currentUsername.isBlank()
+                ? userSessionRepository.count()
+                : userSessionRepository.countByUsernameNot(currentUsername);
+
+        if (before > 0) {
+            if (currentUsername == null || currentUsername.isBlank()) {
+                userSessionRepository.deleteAll();
+            } else {
+                List<UserSession> sessions = userSessionRepository.findAll().stream()
+                        .filter(session -> session != null)
+                        .filter(session -> session.getUsername() == null
+                                || !currentUsername.equals(session.getUsername()))
+                        .toList();
+                if (!sessions.isEmpty()) {
+                    userSessionRepository.deleteAll(sessions);
+                }
+            }
+        }
+
+        auditService.logAction(
+                managedActor,
+                null,
+                AuditLog.AuditActionType.LOGOUT,
+                "USER_SESSION_BULK",
+                "ALL_USERS_EXCEPT_ACTOR",
+                "Sessões de outros utilizadores terminadas administrativamente (" + before + ")",
+                null,
+                snapshotState(managedActor),
+                MODULE,
+                sourceIp,
+                null,
+                null,
+                false,
+                AuditLog.AGTComplianceLevel.HIGH
+        );
+
+        return before;
+    }
+
     @Transactional
     public User salvar(User actor,
                        User draft,
