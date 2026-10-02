@@ -114,9 +114,6 @@ class PasswordPolicyServiceTest {
         user.setPasswordChangedAt(LocalDateTime.now().minusHours(2));
         user.setPasswordResetExpiresAt(LocalDateTime.now().minusMinutes(5));
 
-        PasswordPolicy policy = policy(PasswordPolicy.ScopeType.GLOBAL, null, 8);
-        when(policyRepository.findByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL))
-                .thenReturn(Optional.of(policy));
         assertTrue(service.isPasswordExpired(user, LocalDateTime.now()));
     }
 
