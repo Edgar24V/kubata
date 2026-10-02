@@ -155,12 +155,21 @@ public class MfaService {
      */
     @Transactional
     public ActivationResult adminConfirmActivation(User actor, Long targetUserId, String code) {
+        return adminConfirmActivation(actor, targetUserId, code, "127.0.0.1");
+    }
+
+    @Transactional
+    public ActivationResult adminConfirmActivation(
+            User actor,
+            Long targetUserId,
+            String code,
+            String sourceIp) {
         User target = authorizedAdminTarget(actor, targetUserId);
         return confirmActivationInternal(
                 target,
                 code,
                 actor,
-                "127.0.0.1",
+                sourceIp,
                 "MFA_ADMIN_ACTIVATED"
         );
     }
