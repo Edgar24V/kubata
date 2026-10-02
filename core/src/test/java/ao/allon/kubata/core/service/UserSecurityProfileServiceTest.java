@@ -5,6 +5,7 @@ import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSecurityFinancialUsage;
 import ao.allon.kubata.core.domain.UserSecurityProfile;
+import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserAccessPermissionRepository;
@@ -24,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
