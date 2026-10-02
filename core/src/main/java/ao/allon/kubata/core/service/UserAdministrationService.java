@@ -123,23 +123,16 @@ public class UserAdministrationService {
         }
 
         String currentUsername = managedActor.getNome();
-        long before = currentUsername == null || currentUsername.isBlank()
-                ? userSessionRepository.count()
-                : userSessionRepository.countByUsernameNot(currentUsername);
+        List<UserSession> sessions = userSessionRepository.findAll().stream()
+                .filter(session -> session != null)
+                .filter(session -> currentUsername == null || currentUsername.isBlank()
+                        || session.getUsername() == null
+                        || !currentUsername.equals(session.getUsername()))
+                .toList();
+        long before = sessions.size();
 
         if (before > 0) {
-            if (currentUsername == null || currentUsername.isBlank()) {
-                userSessionRepository.deleteAll();
-            } else {
-                List<UserSession> sessions = userSessionRepository.findAll().stream()
-                        .filter(session -> session != null)
-                        .filter(session -> session.getUsername() == null
-                                || !currentUsername.equals(session.getUsername()))
-                        .toList();
-                if (!sessions.isEmpty()) {
-                    userSessionRepository.deleteAll(sessions);
-                }
-            }
+            userSessionRepository.deleteAll(sessions);
         }
 
         auditService.logAction(
