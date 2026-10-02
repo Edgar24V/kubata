@@ -36,6 +36,7 @@ public class CustomTitleBar extends HBox {
     private Consumer<String> onSearchCallback;
     private Runnable onHelpCallback;
     private Runnable onLogoutCallback;
+    private Runnable onWindowCloseCallback;
     private final ContextMenu userMenu = new ContextMenu();
 
     public CustomTitleBar(Stage stage, String appTitle) {
@@ -140,7 +141,16 @@ public class CustomTitleBar extends HBox {
                 ? new FontIcon(MaterialDesignW.WINDOW_RESTORE) 
                 : new FontIcon(MaterialDesignW.WINDOW_MAXIMIZE));
         });
-        closeBtn.setOnAction(e -> stage.close());
+        closeBtn.setOnAction(e -> {
+            if (onWindowCloseCallback != null) {
+                onWindowCloseCallback.run();
+            } else if (onLogoutCallback != null) {
+                onLogoutCallback.run();
+            } else {
+                stage.close();
+            }
+            e.consume();
+        });
 
         // ── Montagem ────────────────────────────────────────
         getChildren().addAll(
@@ -179,6 +189,14 @@ public class CustomTitleBar extends HBox {
 
     public void setOnLogout(Runnable callback) {
         this.onLogoutCallback = callback;
+    }
+
+    /**
+     * Callback exclusivo do botão X da janela principal.
+     * O callback deve terminar a sessão actual antes de fechar a janela.
+     */
+    public void setOnWindowClose(Runnable callback) {
+        this.onWindowCloseCallback = callback;
     }
 
     public void setUserName(String name) {
