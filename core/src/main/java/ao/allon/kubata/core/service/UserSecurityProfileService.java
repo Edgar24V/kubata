@@ -250,6 +250,51 @@ public class UserSecurityProfileService {
         return allowed.contains(empresaId);
     }
 
+    /**
+     * Valida o contexto empresarial actualmente associado à conta.
+     * Quando o perfil não restringe empresas, qualquer contexto empresarial é aceite.
+     * Quando existem empresas autorizadas, a conta deve estar associada a uma delas.
+     */
+    @Transactional(readOnly = true)
+    public boolean isCompanyContextAllowed(User user) {
+        if (user == null || user.getId() == null) {
+            return false;
+        }
+
+        Set<Long> allowed = getEffectiveProfile(user).getAllowedCompanyIds();
+        if (allowed == null || allowed.isEmpty()) {
+            return true;
+        }
+
+        return user.getEmpresa() != null
+                && user.getEmpresa().getId() != null
+                && allowed.contains(user.getEmpresa().getId());
+    }
+
+    public void requireModuleAccess(User user, String modulo) {
+        if (!isModuleAllowed(user, modulo)) {
+            throw new SecurityException(
+                    "O módulo não está autorizado para esta conta."
+            );
+        }
+    }
+
+    public void requireCompanyAccess(User user, Long empresaId) {
+        if (!isCompanyAllowed(user, empresaId)) {
+            throw new SecurityException(
+                    "A empresa não está autorizada para esta conta."
+            );
+        }
+    }
+
+    public void requireCriticalOperationAccess(User user, String operationCode) {
+        if (!isCriticalOperationAllowed(user, operationCode)) {
+            throw new SecurityException(
+                    "A operação crítica não está autorizada para esta conta."
+            );
+        }
+    }
+
     public boolean isCriticalOperationAllowed(User user, String operationCode) {
         if (user == null || operationCode == null || operationCode.isBlank()) {
             return false;
@@ -354,6 +399,19 @@ public class UserSecurityProfileService {
             );
             throw ex;
         }
+    }
+
+    /**
+     * Expõe a validação de sessão para os serviços do servidor sem depender da UI.
+     */
+    @Transactional
+    public void requireAuthenticatedSessionPolicy(
+            User user,
+            String sourceIp,
+            LocalDateTime now,
+            boolean mfaSatisfied) {
+        validateLoginPolicy(user, sourceIp, now, mfaSatisfied);
+        enforceConcurrentSessionLimit(user, now);
     }
 
     public void validatePassword(User user, String rawPassword) {
