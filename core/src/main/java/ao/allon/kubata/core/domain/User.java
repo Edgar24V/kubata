@@ -277,7 +277,13 @@ public class User extends BaseEntity implements UserDetails {
         this.telefone = telefone;
     }
 
-    // Métodos de acesso a perfil removidos
+    public java.util.Set<PerfilAcesso> getPerfis() {
+        return perfis;
+    }
+
+    public void setPerfis(java.util.Set<PerfilAcesso> perfis) {
+        this.perfis = perfis;
+    }
 
     public String getMfaSecret() {
         return mfaSecret;
