@@ -1,4 +1,3 @@
-@SpringBootTest
 package ao.allon.kubata.faturacao;
 
 import org.junit.jupiter.api.Test;
@@ -13,6 +12,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
+@SpringBootTest
 class FaturaSchemaValidationTest {
 
     @Autowired
