@@ -69,7 +69,7 @@ public class PasswordPolicyService {
         PasswordPolicy explicit = findUserPolicy(user)
                 .orElseGet(() -> findProfilePolicy(user)
                         .orElseGet(() -> findCompanyPolicy(user)
-                                .orElseGet(this::findGlobalPolicyOrLegacy)));
+                                .orElseGet(() -> findGlobalPolicyOrLegacy(user))));
 
         validatePolicyValues(explicit);
         return explicit;
@@ -370,28 +370,27 @@ public class PasswordPolicyService {
         );
     }
 
-    private PasswordPolicy findGlobalPolicyOrLegacy() {
+    private PasswordPolicy findGlobalPolicyOrLegacy(User user) {
         return policyRepository.findAllByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL)
                 .stream()
                 .findFirst()
-                .orElseGet(this::legacyDefaultPolicy);
+                .orElseGet(() -> legacyDefaultPolicy(user));
     }
 
-    private PasswordPolicy legacyDefaultPolicy() {
+    private PasswordPolicy legacyDefaultPolicy(User user) {
         PasswordPolicy fallback = new PasswordPolicy();
 
-        Optional<UserSecurityProfile> legacy = userSecurityProfileRepository.findAll().stream()
-                .findFirst();
-
-        if (legacy.isPresent()) {
-            UserSecurityProfile profile = legacy.get();
-            fallback.setMinLength(profile.getPasswordMinLength());
-            fallback.setMaxLength(Math.max(128, profile.getPasswordMinLength()));
-            fallback.setRequireUpper(profile.isPasswordRequireUpper());
-            fallback.setRequireLower(profile.isPasswordRequireLower());
-            fallback.setRequireDigit(profile.isPasswordRequireDigit());
-            fallback.setRequireSymbol(profile.isPasswordRequireSymbol());
-            fallback.setExpiryDays(profile.getPasswordExpiryDays());
+        if (user != null && user.getId() != null) {
+            userSecurityProfileRepository.findByUserId(user.getId())
+                    .ifPresent(profile -> {
+                        fallback.setMinLength(profile.getPasswordMinLength());
+                        fallback.setMaxLength(Math.max(128, profile.getPasswordMinLength()));
+                        fallback.setRequireUpper(profile.isPasswordRequireUpper());
+                        fallback.setRequireLower(profile.isPasswordRequireLower());
+                        fallback.setRequireDigit(profile.isPasswordRequireDigit());
+                        fallback.setRequireSymbol(profile.isPasswordRequireSymbol());
+                        fallback.setExpiryDays(profile.getPasswordExpiryDays());
+                    });
         }
 
         fallback.setScopeType(PasswordPolicy.ScopeType.GLOBAL);
