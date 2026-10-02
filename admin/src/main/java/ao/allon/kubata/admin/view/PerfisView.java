@@ -333,9 +333,9 @@ public class PerfisView extends VBox {
     }
 
     private void setKpiFilter(String filter) {
-        activeKpiFilter = filter == null ? "PERFIS" : filter;
+        String nextFilter = filter == null ? "PERFIS" : filter;
 
-        switch (activeKpiFilter) {
+        switch (nextFilter) {
             case "ACTIVOS" -> {
                 empresaFilter.setValue(null);
                 estadoFilter.setValue("Activos");
@@ -353,6 +353,7 @@ public class PerfisView extends VBox {
             }
         }
 
+        activeKpiFilter = nextFilter;
         updateKpiVisualState();
         applyFilters();
     }
