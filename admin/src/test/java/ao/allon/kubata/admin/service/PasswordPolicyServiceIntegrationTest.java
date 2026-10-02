@@ -145,16 +145,16 @@ class PasswordPolicyServiceIntegrationTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.validateNewPassword(target, "SenhaInicial1")
+                () -> service.validateNewPassword(targetFinal, "SenhaInicial1")
         );
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.validateNewPassword(target, "senha-fraca")
+                () -> service.validateNewPassword(targetFinal, "senha-fraca")
         );
 
         assertDoesNotThrow(
-                () -> service.validateNewPassword(target, "NovaSenhaForte1!")
+                () -> service.validateNewPassword(targetFinal, "NovaSenhaForte1!")
         );
     }
 
@@ -167,6 +167,7 @@ class PasswordPolicyServiceIntegrationTest {
                 Role.OPERATOR
         );
         operator = userRepository.saveAndFlush(operator);
+        final User operatorFinal = operator;
 
         PasswordPolicy policy = policy(
                 PasswordPolicy.ScopeType.GLOBAL,
@@ -176,7 +177,7 @@ class PasswordPolicyServiceIntegrationTest {
 
         assertThrows(
                 SecurityException.class,
-                () -> service.savePolicy(operator, policy, "127.0.0.1")
+                () -> service.savePolicy(operatorFinal, policy, "127.0.0.1")
         );
 
         assertFalse(
