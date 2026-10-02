@@ -74,7 +74,7 @@ public class UserSecurityProfileService {
 
     @Transactional
     public UserSecurityProfile getOrCreateProfile(User actor, Long targetUserId) {
-        User target = managedTarget(actor, targetUserId);
+        User target = managedProfileTarget(actor, targetUserId);
         return profileRepository.findByUserId(target.getId())
                 .orElseGet(() -> {
                     UserSecurityProfile profile = defaultProfile(target);
@@ -399,7 +399,7 @@ public class UserSecurityProfileService {
         }
     }
 
-    private UserSecurityProfile managedTarget(User actor, Long targetUserId) {
+    private UserSecurityProfile managedProfileTarget(User actor, Long targetUserId) {
         User managedActor = managedActor(actor);
         return managedTarget(managedActor, targetUserId);
     }
