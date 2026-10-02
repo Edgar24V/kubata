@@ -12,10 +12,12 @@ import ao.allon.kubata.core.domain.SystemLog;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.domain.RecordLock;
+import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.repository.SystemLogRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
 import ao.allon.kubata.core.repository.RecordLockRepository;
+import ao.allon.kubata.core.service.UserAdministrationService;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.module.ModuleRegistry;
@@ -53,6 +55,8 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -77,6 +81,7 @@ public class ConsoleView extends VBox {
     private final JobManager jobManager;
     private final ModuleRegistry moduleRegistry;
     private final ModuleCommunicationService moduleCommunicationService;
+    private final UserAdministrationService userAdministrationService;
 
     private final TabPane tabPane = new TabPane();
     
@@ -115,7 +120,8 @@ public class ConsoleView extends VBox {
                        Environment environment,
                        JobManager jobManager,
                        ModuleRegistry moduleRegistry,
-                       ModuleCommunicationService moduleCommunicationService) {
+                       ModuleCommunicationService moduleCommunicationService,
+                       UserAdministrationService userAdministrationService) {
         this.systemLogRepository = systemLogRepository;
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
@@ -129,6 +135,7 @@ public class ConsoleView extends VBox {
         this.jobManager = jobManager;
         this.moduleRegistry = moduleRegistry;
         this.moduleCommunicationService = moduleCommunicationService;
+        this.userAdministrationService = userAdministrationService;
         this.backgroundProcesses = jobManager.getJobs();
 
         buildUI();
@@ -423,12 +430,24 @@ public class ConsoleView extends VBox {
         btnMaintenance.setTooltip(new Tooltip("Activar ou desactivar o modo de manutenção"));
         btnMaintenance.setOnAction(e -> toggleMaintenanceMode());
 
+        Button btnTerminateAllSessions = new Button(
+                "Terminar sessões",
+                IconUtils.icon(Feather.LOG_OUT, IconUtils.SIZE_SMALL)
+        );
+        btnTerminateAllSessions.getStyleClass().add("button-outlined");
+        btnTerminateAllSessions.setTooltip(
+                new Tooltip("Terminar todas as sessões de outros utilizadores")
+        );
+        btnTerminateAllSessions.setOnAction(e -> confirmTerminateAllSessions());
+        btnTerminateAllSessions.setDisable(!isAdministrativeActor());
+
         box.getChildren().addAll(
                 heading,
                 maintenance,
                 spacer,
                 btnRefresh,
                 btnBroadcast,
+                btnTerminateAllSessions,
                 btnMaintenance
         );
         return box;
@@ -792,6 +811,101 @@ public class ConsoleView extends VBox {
                 lblLockedRecordsCount.setText(String.valueOf(lockedRecords.size()));
             });
         }, null);
+    }
+
+    private boolean isAdministrativeActor() {
+        User actor = sessionManager.getUser();
+        return actor != null
+                && (actor.isSuperadmin() || actor.getRole() == Role.ADMIN);
+    }
+
+    private void confirmTerminateAllSessions() {
+        if (!isAdministrativeActor()) {
+            modalManager.alert(
+                    "Acesso negado",
+                    "Apenas Administradores e Superadministradores podem terminar sessões em massa.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        User actor = sessionManager.getUser();
+        Label warning = new Label(
+                "Esta operação irá terminar todas as sessões dos outros utilizadores actualmente registadas no Kubata. "
+                        + "A sessão do administrador que está a executar a operação será preservada para manter a consola operacional."
+        );
+        warning.setWrapText(true);
+
+        VBox caution = new VBox(7);
+        caution.setPadding(new Insets(12));
+        caution.getStyleClass().add("console-danger-card");
+
+        Label cautionTitle = new Label(
+                "ATENÇÃO · operação global"
+        );
+        cautionTitle.getStyleClass().add("h4");
+
+        Label cautionText = new Label(
+                "Utilizadores que estejam a trabalhar noutros computadores poderão perder a sessão imediatamente. "
+                        + "A operação será registada na auditoria administrativa."
+        );
+        cautionText.setWrapText(true);
+        cautionText.getStyleClass().add("text-muted");
+        caution.getChildren().addAll(cautionTitle, cautionText);
+
+        VBox content = new VBox(12, warning, caution);
+        content.setPadding(new Insets(6));
+
+        modalManager.showConfirmModal(
+                content,
+                "Terminar todas as sessões",
+                () -> terminateAllSessions(actor),
+                null
+        );
+    }
+
+    private void terminateAllSessions(User actor) {
+        AtomicLong terminatedCount = new AtomicLong();
+        AtomicReference<Exception> failure = new AtomicReference<>();
+
+        persistenceService.executeSilent(
+                () -> {
+                    try {
+                        terminatedCount.set(
+                                userAdministrationService.terminarTodasSessoesDeUtilizadores(
+                                        actor,
+                                        "127.0.0.1"
+                                )
+                        );
+                    } catch (Exception ex) {
+                        failure.set(ex);
+                    }
+                },
+                () -> {
+                    Exception ex = failure.get();
+                    if (ex != null) {
+                        modalManager.alert(
+                                "Falha ao terminar sessões",
+                                ex.getMessage() == null || ex.getMessage().isBlank()
+                                        ? "Não foi possível concluir a operação."
+                                        : ex.getMessage(),
+                                "error",
+                                ex
+                        );
+                        return;
+                    }
+
+                    long count = terminatedCount.get();
+                    notificationService.showSuccess(
+                            "Sessões terminadas",
+                            count == 0
+                                    ? "Não foram encontradas sessões de outros utilizadores para terminar."
+                                    : count + " sessão(ões) de outros utilizadores foram terminadas."
+                    );
+                    refreshAll();
+                }
+        );
     }
 
     private void toggleMaintenanceMode() {
