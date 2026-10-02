@@ -75,6 +75,7 @@ public class MainController {
         ThemeManager.applyTheme(scene);
 
         stage.setScene(scene);
+        stage.setOnCloseRequest(null);
         stage.setMinWidth(920);
         stage.setMinHeight(560);
         stage.setResizable(true);
@@ -86,6 +87,10 @@ public class MainController {
     private void switchToMain() {
         AdminMainView view = applicationContext.getBean(AdminMainView.class);
         view.init(stage);
+        stage.setOnCloseRequest(event -> {
+            event.consume();
+            performLogoutAndExit();
+        });
         Parent root = view;
 
         javafx.geometry.Rectangle2D vb = Screen.getPrimary().getVisualBounds();
@@ -99,6 +104,21 @@ public class MainController {
         stage.setMinHeight(680);
         stage.setResizable(true);
         stage.centerOnScreen();
+    }
+
+    private void performLogoutAndExit() {
+        User user = sessionManager.getUser();
+        try {
+            if (user != null) {
+                authService.logout(user, "127.0.0.1");
+            }
+        } catch (Exception ignored) {
+            // O encerramento da aplicação não deve ficar bloqueado por falha de persistência.
+        } finally {
+            sessionManager.logout();
+            stage.setOnCloseRequest(null);
+            stage.close();
+        }
     }
 
     private void confirmLogout() {
