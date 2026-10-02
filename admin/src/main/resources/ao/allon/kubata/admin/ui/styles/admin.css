@@ -12769,3 +12769,208 @@ Text {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · CONSOLE · Centro de Comando moderno
+   ════════════════════════════════════════════════════════════════════════════ */
+.console-dashboard-hero {
+    -fx-background-color: linear-gradient(to right, #123f29, #217346);
+    -fx-background-radius: 14px;
+    -fx-padding: 18px 20px;
+    -fx-min-height: 92px;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 14, 0.16, 0, 3);
+}
+
+.console-dashboard-eyebrow {
+    -fx-font-size: 9px;
+    -fx-font-weight: 900;
+    -fx-text-fill: rgba(255,255,255,0.72);
+    -fx-letter-spacing: 1px;
+}
+
+.console-dashboard-title {
+    -fx-font-size: 23px;
+    -fx-font-weight: 900;
+    -fx-text-fill: white;
+}
+
+.console-dashboard-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(255,255,255,0.78);
+}
+
+.console-dashboard-operational {
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #ffffff;
+    -fx-padding: 6px 9px;
+    -fx-background-color: rgba(255,255,255,0.14);
+    -fx-background-radius: 7px;
+    -fx-border-color: rgba(255,255,255,0.20);
+    -fx-border-radius: 7px;
+}
+
+.console-dashboard-live,
+.console-dashboard-section-subtitle {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.console-dashboard-live {
+    -fx-text-fill: rgba(255,255,255,0.68);
+}
+
+.console-dashboard-kpi {
+    -fx-background-color: white;
+    -fx-background-radius: 11px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 11px;
+    -fx-padding: 11px;
+}
+
+.console-dashboard-kpi:hover {
+    -fx-border-color: -kubata-green-border;
+    -fx-effect: dropshadow(gaussian, rgba(33,115,70,0.12), 10, 0.16, 0, 2);
+}
+
+.console-dashboard-kpi-icon,
+.console-dashboard-health-icon,
+.console-dashboard-activity-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 8px;
+    -fx-alignment: center;
+}
+
+.console-dashboard-kpi-icon .ikonli-font-icon,
+.console-dashboard-health-icon .ikonli-font-icon,
+.console-dashboard-activity-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.console-dashboard-kpi-title {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.console-dashboard-kpi-value {
+    -fx-font-size: 24px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.console-dashboard-kpi-hint {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.console-dashboard-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 11px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 11px;
+}
+
+.console-dashboard-panel-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.console-dashboard-panel-text {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+    -fx-line-spacing: 1px;
+}
+
+.console-dashboard-live-badge {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-padding: 4px 7px;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 8px;
+}
+
+.console-dashboard-health-value {
+    -fx-font-size: 19px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.console-dashboard-quick-action {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-padding: 6px 9px;
+    -fx-background-radius: 7px;
+    -fx-border-radius: 7px;
+}
+
+.console-dashboard-info {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 9px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 9px;
+    -fx-padding: 10px;
+}
+
+.console-dashboard-info-title {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.console-dashboard-info-title .ikonli-font-icon {
+    -fx-icon-color: -color-base-5;
+}
+
+.console-dashboard-info-value {
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-8;
+}
+
+.console-dashboard-section-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.console-dashboard-activity-list {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 8px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 8px;
+}
+
+.console-dashboard-activity-row {
+    -fx-padding: 9px 10px;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.console-dashboard-activity-row:last-child {
+    -fx-border-color: transparent;
+}
+
+.console-dashboard-activity-icon {
+    -fx-background-radius: 7px;
+}
+
+.console-dashboard-activity-title {
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-base-8;
+}
+
+.console-dashboard-activity-detail,
+.console-dashboard-empty,
+.console-dashboard-diagnostic-text {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.console-dashboard-empty {
+    -fx-padding: 14px;
+}
