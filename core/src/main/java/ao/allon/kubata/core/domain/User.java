@@ -96,6 +96,14 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "ultimo_ip_login", length = 45)
     private String ultimoIpLogin;
 
+    /**
+     * Identificador da sessão criada pelo último login desta instância.
+     * Não é persistido na tabela users; serve apenas para a sessão local
+     * encerrar exactamente o registo que lhe pertence.
+     */
+    @Transient
+    private Long sessionId;
+
     private boolean superadmin = false;
 
     private String idioma = "pt-AO";
@@ -179,6 +187,14 @@ public class User extends BaseEntity implements UserDetails {
 
     public void setUltimoIpLogin(String ultimoIpLogin) {
         this.ultimoIpLogin = ultimoIpLogin;
+    }
+
+    public Long getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(Long sessionId) {
+        this.sessionId = sessionId;
     }
 
     public boolean isSuperadmin() {
