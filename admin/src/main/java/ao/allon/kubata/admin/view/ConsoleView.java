@@ -93,6 +93,14 @@ public class ConsoleView extends VBox {
     private Label lblUptime;
     private Label lblDBStatus;
     private Label maintenanceStatusLabel;
+
+    // Dashboard moderno
+    private Label lblUsersCount;
+    private Label lblActiveUsersCount;
+    private Label lblModulesOnlineCount;
+    private Label lblRunningJobsCount;
+    private Label lblLastRefresh;
+    private VBox recentActivityBox;
     
     // Performance Chart Data
     private XYChart.Series<Number, Number> cpuSeries = new XYChart.Series<>();
@@ -288,45 +296,511 @@ public class ConsoleView extends VBox {
     }
 
     private Node buildDashboardTab() {
-        VBox dash = new VBox(25);
-        dash.setPadding(new Insets(30));
+        VBox dash = new VBox(18);
+        dash.setPadding(new Insets(22));
         dash.getStyleClass().add("dashboard-pane");
 
-        // Painel de KPIs Superiores
-        FlowPane kpiPaneTop = new FlowPane(20, 20);
-        kpiPaneTop.setAlignment(Pos.CENTER);
-        kpiPaneTop.getChildren().addAll(
-            createKPI("Sessões Ativas", Feather.USERS, lblActiveSessionsCount = new Label("0"), "-fx-text-fill: -kubata-green;"),
-            createKPI("Bloqueios", Feather.LOCK, lblLockedRecordsCount = new Label("0"), "-fx-text-fill: #f39c12;"),
-            createKPI("Erros Hoje", Feather.ALERT_CIRCLE, lblErrorCount = new Label("0"), "-fx-text-fill: #e74c3c;"),
-            createKPI("Estado Motor", Feather.SHIELD, lblSystemHealth = new Label("ESTÁVEL"), "-fx-text-fill: #27ae60;")
+        // ── Cabeçalho executivo ─────────────────────────────────────────────
+        HBox hero = new HBox(18);
+        hero.setAlignment(Pos.CENTER_LEFT);
+        hero.getStyleClass().add("console-dashboard-hero");
+
+        VBox heroText = new VBox(5);
+        Label eyebrow = new Label(
+                "CENTRO DE COMANDO · ADMINISTRATOR",
+                IconUtils.icon(Feather.SHIELD, 12)
+        );
+        eyebrow.getStyleClass().add("console-dashboard-eyebrow");
+
+        Label title = new Label("Visão Geral do Kubata");
+        title.getStyleClass().add("console-dashboard-title");
+
+        Label subtitle = new Label(
+                "Estado operacional, segurança, desempenho e actividade do sistema num único painel."
+        );
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("console-dashboard-subtitle");
+
+        heroText.getChildren().addAll(eyebrow, title, subtitle);
+
+        Pane heroSpacer = new Pane();
+        HBox.setHgrow(heroSpacer, Priority.ALWAYS);
+
+        VBox heroStatus = new VBox(4);
+        heroStatus.setAlignment(Pos.CENTER_RIGHT);
+
+        Label operational = new Label("SISTEMA OPERACIONAL");
+        operational.getStyleClass().add("console-dashboard-operational");
+
+        Label updated = new Label("A monitorizar em tempo real");
+        updated.getStyleClass().add("console-dashboard-live");
+
+        heroStatus.getChildren().addAll(operational, updated);
+        hero.getChildren().addAll(heroText, heroSpacer, heroStatus);
+
+        // ── KPIs ─────────────────────────────────────────────────────────────
+        FlowPane kpis = new FlowPane(12, 12);
+        kpis.setPrefWrapLength(1120);
+
+        kpis.getChildren().addAll(
+                createDashboardKpi(
+                        "Sessões activas",
+                        Feather.USERS,
+                        lblActiveSessionsCount = new Label("0"),
+                        "Utilizadores ligados"
+                ),
+                createDashboardKpi(
+                        "Utilizadores",
+                        Feather.USER,
+                        lblUsersCount = new Label("0"),
+                        "Contas registadas"
+                ),
+                createDashboardKpi(
+                        "Utilizadores activos",
+                        Feather.USER_CHECK,
+                        lblActiveUsersCount = new Label("0"),
+                        "Contas habilitadas"
+                ),
+                createDashboardKpi(
+                        "Bloqueios",
+                        Feather.LOCK,
+                        lblLockedRecordsCount = new Label("0"),
+                        "Registos em edição"
+                ),
+                createDashboardKpi(
+                        "Erros hoje",
+                        Feather.ALERT_TRIANGLE,
+                        lblErrorCount = new Label("0"),
+                        "Eventos críticos"
+                ),
+                createDashboardKpi(
+                        "Módulos online",
+                        Feather.GRID,
+                        lblModulesOnlineCount = new Label("0"),
+                        "Componentes activos"
+                )
         );
 
-        // Painel de KPIs de Infraestrutura
-        FlowPane kpiPaneBottom = new FlowPane(20, 20);
-        kpiPaneBottom.setAlignment(Pos.CENTER);
-        kpiPaneBottom.getChildren().addAll(
-            createKPI("Uptime Servidor", Feather.CLOCK, lblUptime = new Label("00h 00m 00s"), "-fx-text-fill: #3498db;"),
-            createKPI("Base de Dados", Feather.DATABASE, lblDBStatus = new Label("LIGADO"), "-fx-text-fill: #27ae60;"),
-            createKPI("Versão Core", Feather.INFO, new Label(resolveCoreVersion()), "-fx-text-fill: #7f8c8d;"),
-            createKPI("Ambiente", Feather.SERVER, new Label(resolveEnvironmentName()), "-fx-text-fill: #8e44ad;")
+        // ── Operação + acções rápidas ───────────────────────────────────────
+        HBox commandRow = new HBox(14);
+        commandRow.setAlignment(Pos.TOP_LEFT);
+
+        VBox healthCard = buildOperationalHealthCard();
+        VBox quickActions = buildQuickActionsCard();
+
+        HBox.setHgrow(healthCard, Priority.ALWAYS);
+        HBox.setHgrow(quickActions, Priority.ALWAYS);
+
+        commandRow.getChildren().addAll(healthCard, quickActions);
+
+        // ── Gráficos ─────────────────────────────────────────────────────────
+        HBox chartArea = new HBox(14);
+        chartArea.setAlignment(Pos.CENTER_LEFT);
+
+        VBox cpuBox = buildChartBox(
+                "Carga de CPU",
+                cpuSeries,
+                0,
+                100,
+                "%"
         );
 
-        // Gráfico de Performance Real-Time
-        HBox chartArea = new HBox(20);
-        chartArea.setAlignment(Pos.CENTER);
-        
-        VBox cpuBox = buildChartBox("Carga de CPU", cpuSeries, 0, 100, "%");
-        double maxMemoryMb = Math.max(512, Math.ceil(Runtime.getRuntime().maxMemory() / (1024.0 * 1024.0)));
-        VBox memBox = buildChartBox("Consumo de Memória", memSeries, 0, maxMemoryMb, "MB");
-        
+        double maxMemoryMb = Math.max(
+                512,
+                Math.ceil(Runtime.getRuntime().maxMemory() / (1024.0 * 1024.0))
+        );
+
+        VBox memBox = buildChartBox(
+                "Consumo de Memória",
+                memSeries,
+                0,
+                maxMemoryMb,
+                "MB"
+        );
+
+        HBox.setHgrow(cpuBox, Priority.ALWAYS);
+        HBox.setHgrow(memBox, Priority.ALWAYS);
         chartArea.getChildren().addAll(cpuBox, memBox);
 
-        dash.getChildren().addAll(kpiPaneTop, kpiPaneBottom, chartArea);
+        // ── Actividade recente ──────────────────────────────────────────────
+        VBox activity = buildRecentActivityCard();
+
+        // ── Infraestrutura ──────────────────────────────────────────────────
+        FlowPane infra = new FlowPane(12, 12);
+        infra.setPrefWrapLength(1120);
+        infra.getChildren().addAll(
+                createDashboardInfoCard(
+                        "Uptime",
+                        Feather.CLOCK,
+                        lblUptime = new Label("00h 00m 00s")
+                ),
+                createDashboardInfoCard(
+                        "Base de dados",
+                        Feather.DATABASE,
+                        lblDBStatus = new Label("LIGADO")
+                ),
+                createDashboardInfoCard(
+                        "Processos em execução",
+                        Feather.CPU,
+                        lblRunningJobsCount = new Label("0")
+                ),
+                createDashboardInfoCard(
+                        "Versão Core",
+                        Feather.INFO,
+                        new Label(resolveCoreVersion())
+                ),
+                createDashboardInfoCard(
+                        "Ambiente",
+                        Feather.SERVER,
+                        new Label(resolveEnvironmentName())
+                ),
+                createDashboardInfoCard(
+                        "Última actualização",
+                        Feather.REFRESH_CW,
+                        lblLastRefresh = new Label("—")
+                )
+        );
+
+        VBox section = new VBox(8);
+        Label sectionTitle = new Label("Infraestrutura e operação");
+        sectionTitle.getStyleClass().add("console-dashboard-section-title");
+        Label sectionSubtitle = new Label(
+                "Indicadores técnicos para acompanhamento diário do ambiente Kubata."
+        );
+        sectionSubtitle.getStyleClass().add("console-dashboard-section-subtitle");
+        section.getChildren().addAll(sectionTitle, sectionSubtitle, infra);
+
+        dash.getChildren().addAll(
+                hero,
+                kpis,
+                commandRow,
+                chartArea,
+                activity,
+                section
+        );
+
         ScrollPane scroll = new ScrollPane(dash);
         scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.getStyleClass().add("transparent-scroll");
         return scroll;
+    }
+
+    private VBox createDashboardKpi(
+            String title,
+            Feather icon,
+            Label value,
+            String hint) {
+
+        VBox box = new VBox(6);
+        box.getStyleClass().add("console-dashboard-kpi");
+        box.setPrefWidth(178);
+        box.setMinWidth(155);
+        box.setPrefHeight(105);
+
+        HBox top = new HBox(8);
+        top.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("console-dashboard-kpi-icon");
+        iconBox.setPrefSize(32, 32);
+        iconBox.setMinSize(32, 32);
+        iconBox.setMaxSize(32, 32);
+        iconBox.getChildren().add(IconUtils.icon(icon, 15));
+
+        Label label = new Label(title.toUpperCase());
+        label.getStyleClass().add("console-dashboard-kpi-title");
+
+        top.getChildren().addAll(iconBox, label);
+
+        value.getStyleClass().add("console-dashboard-kpi-value");
+
+        Label detail = new Label(hint);
+        detail.getStyleClass().add("console-dashboard-kpi-hint");
+
+        box.getChildren().addAll(top, value, detail);
+        return box;
+    }
+
+    private VBox createDashboardInfoCard(
+            String title,
+            Feather icon,
+            Label value) {
+
+        VBox box = new VBox(5);
+        box.getStyleClass().add("console-dashboard-info");
+        box.setPrefWidth(175);
+        box.setMinWidth(150);
+        box.setPrefHeight(82);
+
+        Label titleLabel = new Label(title.toUpperCase(), IconUtils.icon(icon, 12));
+        titleLabel.getStyleClass().add("console-dashboard-info-title");
+
+        value.getStyleClass().add("console-dashboard-info-value");
+        box.getChildren().addAll(titleLabel, value);
+        return box;
+    }
+
+    private VBox buildOperationalHealthCard() {
+        VBox card = new VBox(10);
+        card.getStyleClass().add("console-dashboard-panel");
+        card.setPadding(new Insets(14));
+        card.setMinHeight(160);
+
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label(
+                "Saúde operacional",
+                IconUtils.icon(Feather.HEART, 14)
+        );
+        title.getStyleClass().add("console-dashboard-panel-title");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label badge = new Label("MONITORIZAÇÃO ACTIVA");
+        badge.getStyleClass().add("console-dashboard-live-badge");
+
+        header.getChildren().addAll(title, spacer, badge);
+
+        HBox body = new HBox(12);
+        body.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane shield = new StackPane();
+        shield.getStyleClass().add("console-dashboard-health-icon");
+        shield.setPrefSize(52, 52);
+        shield.setMinSize(52, 52);
+        shield.setMaxSize(52, 52);
+        shield.getChildren().add(IconUtils.icon(Feather.SHIELD, 24));
+
+        VBox statusBox = new VBox(3);
+        lblSystemHealth = new Label("ESTÁVEL");
+        lblSystemHealth.getStyleClass().add("console-dashboard-health-value");
+
+        Label description = new Label(
+                "CPU, memória, base de dados, sessões, bloqueios e erros estão sob acompanhamento."
+        );
+        description.setWrapText(true);
+        description.getStyleClass().add("console-dashboard-panel-text");
+
+        statusBox.getChildren().addAll(lblSystemHealth, description);
+        body.getChildren().addAll(shield, statusBox);
+
+        Button diagnostics = new Button(
+                "Executar diagnóstico",
+                IconUtils.icon(Feather.ACTIVITY, 12)
+        );
+        diagnostics.getStyleClass().add("button-outlined");
+        diagnostics.setOnAction(e -> showSystemDiagnostics());
+
+        HBox footer = new HBox(diagnostics);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+
+        card.getChildren().addAll(header, body, footer);
+        return card;
+    }
+
+    private VBox buildQuickActionsCard() {
+        VBox card = new VBox(10);
+        card.getStyleClass().add("console-dashboard-panel");
+        card.setPadding(new Insets(14));
+        card.setMinHeight(160);
+
+        Label title = new Label(
+                "Acções rápidas",
+                IconUtils.icon(Feather.ZAP, 14)
+        );
+        title.getStyleClass().add("console-dashboard-panel-title");
+
+        Label hint = new Label(
+                "Aceda directamente às operações mais utilizadas pela administração."
+        );
+        hint.getStyleClass().add("console-dashboard-panel-text");
+
+        FlowPane actions = new FlowPane(7, 7);
+        actions.getChildren().addAll(
+                quickAction("Sessões", Feather.USERS, () -> selectConsoleTab("Utilizadores Ligados")),
+                quickAction("Bloqueios", Feather.LOCK, () -> selectConsoleTab("Registos Bloqueados")),
+                quickAction("Eventos", Feather.ACTIVITY, () -> selectConsoleTab("Eventos do Sistema")),
+                quickAction("Módulos", Feather.GRID, () -> selectConsoleTab("Estado dos Módulos")),
+                quickAction("Processos", Feather.CPU, () -> selectConsoleTab("Processos em Background")),
+                quickAction("Exportar logs", Feather.DOWNLOAD, this::exportLogs)
+        );
+
+        card.getChildren().addAll(title, hint, actions);
+        return card;
+    }
+
+    private Button quickAction(String text, Feather icon, Runnable action) {
+        Button button = new Button(text, IconUtils.icon(icon, 12));
+        button.getStyleClass().add("console-dashboard-quick-action");
+        button.setOnAction(e -> action.run());
+        return button;
+    }
+
+    private VBox buildRecentActivityCard() {
+        VBox card = new VBox(9);
+        card.getStyleClass().add("console-dashboard-panel");
+        card.setPadding(new Insets(14));
+
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label(
+                "Actividade recente",
+                IconUtils.icon(Feather.LIST, 14)
+        );
+        title.getStyleClass().add("console-dashboard-panel-title");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button seeAll = new Button(
+                "Ver todos",
+                IconUtils.icon(Feather.CHEVRON_RIGHT, 11)
+        );
+        seeAll.getStyleClass().add("button-outlined");
+        seeAll.setOnAction(e -> selectConsoleTab("Eventos do Sistema"));
+
+        header.getChildren().addAll(title, spacer, seeAll);
+
+        recentActivityBox = new VBox(0);
+        recentActivityBox.getStyleClass().add("console-dashboard-activity-list");
+
+        updateRecentActivity();
+        card.getChildren().addAll(header, recentActivityBox);
+        return card;
+    }
+
+    private void updateRecentActivity() {
+        if (recentActivityBox == null) {
+            return;
+        }
+
+        recentActivityBox.getChildren().clear();
+
+        List<SystemLog> recent = systemLogs.stream()
+                .filter(java.util.Objects::nonNull)
+                .sorted(java.util.Comparator.comparing(
+                        SystemLog::getTimestamp,
+                        java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())
+                ))
+                .limit(5)
+                .toList();
+
+        if (recent.isEmpty()) {
+            Label empty = new Label("Nenhuma actividade recente registada.");
+            empty.getStyleClass().add("console-dashboard-empty");
+            recentActivityBox.getChildren().add(empty);
+            return;
+        }
+
+        for (SystemLog log : recent) {
+            HBox row = new HBox(9);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.getStyleClass().add("console-dashboard-activity-row");
+
+            StackPane iconBox = new StackPane();
+            iconBox.getStyleClass().add("console-dashboard-activity-icon");
+            iconBox.setPrefSize(28, 28);
+            iconBox.setMinSize(28, 28);
+            iconBox.setMaxSize(28, 28);
+
+            Feather icon = log.getLogLevel() == SystemLog.LogLevel.ERROR
+                    ? Feather.ALERT_CIRCLE
+                    : log.getLogLevel() == SystemLog.LogLevel.WARN
+                            ? Feather.ALERT_TRIANGLE
+                            : Feather.CHECK_CIRCLE;
+            iconBox.getChildren().add(IconUtils.icon(icon, 13));
+
+            VBox text = new VBox(2);
+            String category = log.getCategory() == null || log.getCategory().isBlank()
+                    ? "EVENTO"
+                    : log.getCategory();
+
+            Label line = new Label(
+                    category + " · "
+                            + (log.getMessage() == null || log.getMessage().isBlank()
+                            ? "Sem descrição"
+                            : log.getMessage())
+            );
+            line.setWrapText(true);
+            line.getStyleClass().add("console-dashboard-activity-title");
+
+            String time = log.getTimestamp() == null
+                    ? "—"
+                    : log.getTimestamp().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+
+            Label detail = new Label(
+                    time + " · " + (log.getSource() == null ? "Kubata" : log.getSource())
+            );
+            detail.getStyleClass().add("console-dashboard-activity-detail");
+
+            text.getChildren().addAll(line, detail);
+            HBox.setHgrow(text, Priority.ALWAYS);
+            row.getChildren().addAll(iconBox, text);
+            recentActivityBox.getChildren().add(row);
+        }
+    }
+
+    private void selectConsoleTab(String title) {
+        tabPane.getTabs().stream()
+                .filter(tab -> title.equals(tab.getText()))
+                .findFirst()
+                .ifPresent(tab -> tabPane.getSelectionModel().select(tab));
+    }
+
+    private void showSystemDiagnostics() {
+        StringBuilder report = new StringBuilder();
+
+        report.append("Estado geral: ")
+                .append(lblSystemHealth == null ? "—" : lblSystemHealth.getText())
+                .append("\n\n");
+
+        report.append("Base de dados: ")
+                .append(lblDBStatus == null ? "—" : lblDBStatus.getText())
+                .append("\n");
+
+        report.append("Sessões activas: ")
+                .append(lblActiveSessionsCount == null ? "—" : lblActiveSessionsCount.getText())
+                .append("\n");
+
+        report.append("Utilizadores activos: ")
+                .append(lblActiveUsersCount == null ? "—" : lblActiveUsersCount.getText())
+                .append("\n");
+
+        report.append("Bloqueios: ")
+                .append(lblLockedRecordsCount == null ? "—" : lblLockedRecordsCount.getText())
+                .append("\n");
+
+        report.append("Erros hoje: ")
+                .append(lblErrorCount == null ? "—" : lblErrorCount.getText())
+                .append("\n");
+
+        report.append("Módulos online: ")
+                .append(lblModulesOnlineCount == null ? "—" : lblModulesOnlineCount.getText())
+                .append("\n");
+
+        report.append("Processos em execução: ")
+                .append(lblRunningJobsCount == null ? "—" : lblRunningJobsCount.getText());
+
+        Label content = new Label(report.toString());
+        content.setWrapText(true);
+        content.setMaxWidth(520);
+        content.getStyleClass().add("console-dashboard-diagnostic-text");
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Diagnóstico rápido do Kubata")
+                        .subtitle("Resumo do estado operacional actual")
+                        .icon(Feather.ACTIVITY)
+                        .tone(ModalManager.ModalTone.INFO)
+                        .singleButton("Fechar")
+                        .size(560, 380)
+                        .minSize(500, 330)
+        );
     }
 
     private VBox buildChartBox(String title, XYChart.Series<Number, Number> series, double min, double max, String unit) {
@@ -753,6 +1227,7 @@ public class ConsoleView extends VBox {
 
                 systemLogs.setAll(logs);
                 filteredLogs.setAll(logs);
+                updateRecentActivity();
 
                 moduleStatuses.clear();
                 for (KubataModule m : modules) {
@@ -767,6 +1242,29 @@ public class ConsoleView extends VBox {
                 // Atualizar KPIs
                 lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
                 lblLockedRecordsCount.setText(String.valueOf(lockedRecords.size()));
+
+                long totalUsers = users.size();
+                long activeUsers = users.stream()
+                        .filter(java.util.Objects::nonNull)
+                        .filter(u -> Boolean.TRUE.equals(u.getActive()))
+                        .count();
+                long onlineModules = moduleStatuses.stream()
+                        .filter(m -> "ONLINE".equalsIgnoreCase(m.getStatus()))
+                        .count();
+                long runningJobs = backgroundProcesses.stream()
+                        .filter(java.util.Objects::nonNull)
+                        .filter(j -> j.getStatus() == AdminJob.Status.RUNNING)
+                        .count();
+
+                if (lblUsersCount != null) lblUsersCount.setText(String.valueOf(totalUsers));
+                if (lblActiveUsersCount != null) lblActiveUsersCount.setText(String.valueOf(activeUsers));
+                if (lblModulesOnlineCount != null) lblModulesOnlineCount.setText(String.valueOf(onlineModules));
+                if (lblRunningJobsCount != null) lblRunningJobsCount.setText(String.valueOf(runningJobs));
+                if (lblLastRefresh != null) {
+                    lblLastRefresh.setText(LocalDateTime.now().format(
+                            DateTimeFormatter.ofPattern("HH:mm:ss")
+                    ));
+                }
                 
                 LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
                 long errorCount = systemLogs.stream()
