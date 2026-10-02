@@ -45,6 +45,8 @@ public class HelpCenterView extends BorderPane {
     public HelpCenterView(SessionManager sessionManager) {
         this.sessionManager = sessionManager;
         getStyleClass().add("kubata-help-root");
+        String css = getClass().getResource("/ao/allon/kubata/admin/ui/styles/help-center.css").toExternalForm();
+        getStylesheets().add(css);
         setMinSize(0, 0);
         buildTopics();
         buildUI();
@@ -524,7 +526,7 @@ public class HelpCenterView extends BorderPane {
         ));
 
         p.getChildren().add(sectionCard(
-                Feather.COLUMNS,
+                Feather.GRID,
                 "Janelas e separadores",
                 "As funcionalidades podem abrir em separadores no centro da aplicação.",
                 paragraphs(
