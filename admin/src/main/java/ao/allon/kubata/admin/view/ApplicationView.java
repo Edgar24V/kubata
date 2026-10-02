@@ -63,6 +63,10 @@ public class ApplicationView extends VBox {
     private final ObjectProvider<JrxmlStudioView> jrxmlStudioProvider;
 
     private final TabPane tabPane = new TabPane();
+    private Label moduleHealthValue;
+    private Label pendingMigrationValue;
+    private Label applicationDbValue;
+    private Label applicationBackupValue;
     
     // Dados
     private final ObservableList<ModuloSistema> modulos = FXCollections.observableArrayList();
@@ -106,34 +110,137 @@ public class ApplicationView extends VBox {
 
     private void buildUI() {
         setSpacing(0);
-        getStyleClass().add("application-view");
+        getStyleClass().addAll("application-view", "kubata-application-page");
 
-        // Toolbar de Engenharia
-        HBox toolbar = buildToolbar();
-        
-        tabPane.getStyleClass().add("office365-tabs");
+        VBox hero = new VBox(11);
+        hero.setPadding(new Insets(16, 20, 13, 20));
+        hero.getStyleClass().add("kubata-application-hero");
+
+        HBox top = new HBox(12);
+        top.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane heroIcon = new StackPane();
+        heroIcon.getStyleClass().add("kubata-application-hero-icon");
+        heroIcon.setPrefSize(46, 46);
+        heroIcon.setMinSize(46, 46);
+        heroIcon.setMaxSize(46, 46);
+        heroIcon.getChildren().add(IconUtils.icon(Feather.GRID, 21));
+
+        VBox titleBox = new VBox(2);
+        Label eyebrow = new Label("INÍCIO · ADMINISTRAÇÃO DA APLICAÇÃO");
+        eyebrow.getStyleClass().add("kubata-application-eyebrow");
+
+        Label title = new Label("Aplicação");
+        title.getStyleClass().add("kubata-application-title");
+
+        Label subtitle = new Label(
+                "Centro de gestão técnica do Kubata: módulos, base de dados, integração, licenciamento e relatórios."
+        );
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("kubata-application-subtitle");
+        titleBox.getChildren().addAll(eyebrow, title, subtitle);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label environment = new Label(
+                "RUNTIME KUBATA",
+                IconUtils.icon(Feather.SERVER, 10)
+        );
+        environment.getStyleClass().add("kubata-application-runtime-badge");
+
+        Button refresh = new Button(
+                "Actualizar",
+                IconUtils.icon(Feather.REFRESH_CW, 12)
+        );
+        refresh.getStyleClass().add("button-outlined");
+        refresh.setOnAction(e -> refreshAll());
+
+        Button updatesButton = new Button(
+                "Procurar actualizações",
+                IconUtils.icon(Feather.DOWNLOAD_CLOUD, 12)
+        );
+        updatesButton.getStyleClass().add("button-primary");
+        updatesButton.setOnAction(e -> checkForUpdates());
+
+        top.getChildren().addAll(heroIcon, titleBox, spacer, environment, refresh, updatesButton);
+
+        HBox metrics = new HBox(10);
+        moduleHealthValue = createValueLabel("A carregar...");
+        pendingMigrationValue = createValueLabel("A carregar...");
+        applicationDbValue = createValueLabel("A carregar...");
+        applicationBackupValue = createValueLabel("A carregar...");
+
+        metrics.getChildren().addAll(
+                createApplicationMetric("MÓDULOS", moduleHealthValue, Feather.PACKAGE),
+                createApplicationMetric("BASE DE DADOS", pendingMigrationValue, Feather.DATABASE),
+                createApplicationMetric("ESTRUTURA", applicationDbValue, Feather.GIT_COMMIT),
+                createApplicationMetric("ÚLTIMO BACKUP", applicationBackupValue, Feather.ARCHIVE)
+        );
+        for (Node metric : metrics.getChildren()) {
+            HBox.setHgrow(metric, Priority.ALWAYS);
+        }
+
+        hero.getChildren().addAll(top, metrics);
+
+        tabPane.getStyleClass().addAll("office365-tabs", "kubata-application-tabs");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         Tab tabModules = new Tab("Módulos & Instalação", buildModulesTab());
-        tabModules.setGraphic(IconUtils.icon(Feather.PACKAGE, 14));
+        tabModules.setGraphic(IconUtils.icon(Feather.PACKAGE, 13));
 
         Tab tabDB = new Tab("Manutenção BD", buildDatabaseTab());
-        tabDB.setGraphic(IconUtils.icon(Feather.DATABASE, 14));
+        tabDB.setGraphic(IconUtils.icon(Feather.DATABASE, 13));
 
         Tab tabAPI = new Tab("Web API & Integração", buildApiTab());
-        tabAPI.setGraphic(IconUtils.icon(Feather.SHARE_2, 14));
+        tabAPI.setGraphic(IconUtils.icon(Feather.SHARE_2, 13));
 
         Tab tabLicense = new Tab("Licenciamento", buildLicenseTab());
-        tabLicense.setGraphic(IconUtils.icon(Feather.KEY, 14));
+        tabLicense.setGraphic(IconUtils.icon(Feather.KEY, 13));
 
-        Tab tabJrxml = new Tab("JRXML & Relatórios", jrxmlStudioProvider.getObject());
-        tabJrxml.setGraphic(IconUtils.icon(Feather.FILE_TEXT, 14));
+        Node jrxml = jrxmlStudioProvider.getObject();
+        VBox jrxmlWrapper = new VBox(8);
+        jrxmlWrapper.getStyleClass().add("kubata-application-subtab-shell");
+        Label jrxmlHint = new Label(
+                "Studio de relatórios JRXML · criação, edição e validação dos modelos JasperReports."
+        );
+        jrxmlHint.getStyleClass().add("kubata-application-subtab-note");
+        jrxmlWrapper.getChildren().addAll(jrxmlHint, jrxml);
+        VBox.setVgrow(jrxml, Priority.ALWAYS);
+
+        Tab tabJrxml = new Tab("JRXML & Relatórios", jrxmlWrapper);
+        tabJrxml.setGraphic(IconUtils.icon(Feather.FILE_TEXT, 13));
 
         tabPane.getTabs().addAll(tabModules, tabDB, tabAPI, tabLicense, tabJrxml);
 
-        getChildren().addAll(toolbar, tabPane);
+        getChildren().addAll(hero, tabPane);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
     }
+
+    private VBox createApplicationMetric(String caption, Label value, Feather icon) {
+        HBox row = new HBox(9);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-application-metric-icon");
+        iconBox.setPrefSize(32, 32);
+        iconBox.setMinSize(32, 32);
+        iconBox.setMaxSize(32, 32);
+        iconBox.getChildren().add(IconUtils.icon(icon, 13));
+
+        VBox text = new VBox(1);
+        Label captionLabel = new Label(caption);
+        captionLabel.getStyleClass().add("kubata-application-metric-caption");
+        value.getStyleClass().add("kubata-application-metric-value");
+        text.getChildren().addAll(captionLabel, value);
+
+        row.getChildren().addAll(iconBox, text);
+        VBox card = new VBox(row);
+        card.getStyleClass().add("kubata-application-metric");
+        return card;
+    }
+
+
 
     private HBox buildToolbar() {
         HBox box = new HBox(12);
@@ -158,6 +265,8 @@ public class ApplicationView extends VBox {
 
     private Node buildModulesTab() {
         VBox content = new VBox(12);
+        content.getStyleClass().add("kubata-application-subtab-shell");
+        content.setPadding(new Insets(14, 16, 16, 16));
         content.setPadding(new Insets(15));
 
         HBox heading = new HBox(10);
@@ -404,8 +513,9 @@ public class ApplicationView extends VBox {
     }
 
     private Node buildDatabaseTab() {
-        VBox content = new VBox(16);
-        content.setPadding(new Insets(20));
+        VBox content = new VBox(14);
+        content.getStyleClass().add("kubata-application-subtab-shell");
+        content.setPadding(new Insets(14, 16, 16, 16));
 
         HBox heading = new HBox(10);
         heading.setAlignment(Pos.CENTER_LEFT);
@@ -610,8 +720,9 @@ public class ApplicationView extends VBox {
     }
 
     private Node buildApiTab() {
-        VBox content = new VBox(20);
-        content.setPadding(new Insets(25));
+        VBox content = new VBox(14);
+        content.getStyleClass().add("kubata-application-subtab-shell");
+        content.setPadding(new Insets(16));
 
         GridPane grid = new GridPane();
         grid.setHgap(20);
@@ -698,24 +809,85 @@ public class ApplicationView extends VBox {
     }
 
     private Node buildLicenseTab() {
-        VBox content = new VBox(16);
-        content.setPadding(new Insets(24));
-        Label hint = new Label("Resumo local: use o separador «Licenciamento» no ribbon (Segurança) para validade por módulo, alertas e edição de chaves.");
-        hint.setWrapText(true);
-        hint.getStyleClass().add("text-muted");
-        VBox card = new VBox(12);
-        card.getStyleClass().add("card");
-        card.setPadding(new Insets(20));
-        card.setMaxWidth(560);
-        card.getChildren().addAll(
-                new Label("Política de licenciamento", IconUtils.icon(Feather.SHIELD, 18)),
-                new Separator(),
-                hint,
-                new Label("Os detalhes por módulo (adm_modulo_sistema) são geridos na vista dedicada para manter paridade com o BSS Primavera e alertas de expiração.")
+        VBox content = new VBox(14);
+        content.getStyleClass().add("kubata-application-subtab-shell");
+        content.setPadding(new Insets(16));
+
+        HBox heading = new HBox(10);
+        heading.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-application-license-icon");
+        iconBox.setPrefSize(40, 40);
+        iconBox.setMinSize(40, 40);
+        iconBox.setMaxSize(40, 40);
+        iconBox.getChildren().add(IconUtils.icon(Feather.KEY, 17));
+
+        VBox headingText = new VBox(2);
+        Label title = new Label("Licenciamento da plataforma");
+        title.getStyleClass().add("h4");
+        Label subtitle = new Label(
+                "Controlo administrativo de chaves, validade e estado de licenciamento dos módulos Kubata."
         );
-        content.getChildren().add(card);
+        subtitle.getStyleClass().add("text-muted");
+        subtitle.setWrapText(true);
+        headingText.getChildren().addAll(title, subtitle);
+
+        heading.getChildren().addAll(iconBox, headingText);
+
+        HBox cards = new HBox(10);
+        cards.getChildren().addAll(
+                licenceCard("VALIDAÇÃO", "Por módulo", Feather.SHIELD),
+                licenceCard("EXPIRAÇÃO", "Monitorizada", Feather.CLOCK),
+                licenceCard("AUDITORIA", "Registada", Feather.FILE_TEXT)
+        );
+        for (Node n : cards.getChildren()) {
+            HBox.setHgrow(n, Priority.ALWAYS);
+        }
+
+        VBox detail = new VBox(10);
+        detail.getStyleClass().add("kubata-application-info-card");
+        detail.setPadding(new Insets(14));
+
+        Label detailTitle = new Label(
+                "Gestão detalhada",
+                IconUtils.icon(Feather.LIST, 13)
+        );
+        detailTitle.getStyleClass().add("h4");
+
+        Label text = new Label(
+                "Os detalhes por módulo (adm_modulo_sistema) são geridos na vista dedicada de licenciamento. "
+                        + "A validação por estado e validade deve permanecer sincronizada com o catálogo real de módulos."
+        );
+        text.setWrapText(true);
+        text.getStyleClass().add("text-muted");
+
+        Label hint = new Label(
+                "Para operações de instalação e activação, utilize «Módulos & Instalação». "
+                        + "Para políticas de licenciamento, utilize a área dedicada do ribbon Segurança."
+        );
+        hint.setWrapText(true);
+        hint.getStyleClass().add("kubata-application-info-note");
+
+        detail.getChildren().addAll(detailTitle, new Separator(), text, hint);
+
+        content.getChildren().addAll(heading, cards, detail);
         return content;
     }
+
+    private VBox licenceCard(String title, String value, Feather icon) {
+        VBox card = new VBox(5);
+        card.getStyleClass().add("kubata-application-info-card");
+        card.setPadding(new Insets(12));
+        Label label = new Label(title, IconUtils.icon(icon, 11));
+        label.getStyleClass().add("text-muted");
+        Label val = new Label(value);
+        val.getStyleClass().add("kubata-application-info-value");
+        card.getChildren().addAll(label, val);
+        return card;
+    }
+
+
 
     private VBox createStatCard(String title, Label value, Feather icon) {
         VBox box = new VBox(5);
@@ -746,6 +918,22 @@ public class ApplicationView extends VBox {
 
             Platform.runLater(() -> {
                 modulos.setAll(mods);
+
+                long activeModules = mods.stream()
+                        .filter(m -> m != null && m.getEstado() == ModuloSistema.EstadoModulo.ACTIVO)
+                        .count();
+                long pendingModules = mods.stream()
+                        .filter(m -> m != null && m.getEstado() == ModuloSistema.EstadoModulo.ACTUALIZACAO_PENDENTE)
+                        .count();
+
+                if (moduleHealthValue != null) {
+                    moduleHealthValue.setText(
+                            activeModules + " activos · " + mods.size() + " totais"
+                                    + (pendingModules > 0 ? " · " + pendingModules + " pend." : "")
+                    );
+                }
+
+
                 updates.setAll(migrationRows);
                 dbTables.setAll(tableRows);
 
@@ -757,6 +945,20 @@ public class ApplicationView extends VBox {
                 }
                 if (lastBackupValue != null) {
                     lastBackupValue.setText(summary.lastBackup());
+                }
+                if (pendingMigrationValue != null) {
+                    pendingMigrationValue.setText(
+                            summary.pendingMigrations() == 0 ? "Actualizada" : summary.pendingMigrations() + " pendente(s)"
+                    );
+                }
+                if (applicationDbValue != null) {
+                    applicationDbValue.setText(summary.schemaVersion());
+                }
+                if (applicationBackupValue != null) {
+                    applicationBackupValue.setText(summary.lastBackup());
+                }
+                if (applicationDbValue != null) {
+                    applicationDbValue.setTooltip(new Tooltip(summary.databaseName()));
                 }
                 if (migrationStatusLabel != null) {
                     migrationStatusLabel.setText(summary.pendingMigrations() == 0
