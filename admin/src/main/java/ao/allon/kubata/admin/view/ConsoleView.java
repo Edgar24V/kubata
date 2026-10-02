@@ -729,13 +729,14 @@ public class ConsoleView extends VBox {
             Platform.runLater(() -> {
                 activeSessions.clear();
                 DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-                for (UserSession s : sessions) {
+                        for (UserSession s : sessions) {
                     activeSessions.add(new ActiveSession(
-                        s.getUsername(), 
-                        s.getLoginTime().format(timeFormatter), 
-                        s.getWorkstation(), 
-                        s.getIpAddress(), 
-                        s.getContext(), 
+                        s.getId(),
+                        s.getUsername(),
+                        s.getLoginTime() == null ? "—" : s.getLoginTime().format(timeFormatter),
+                        s.getWorkstation(),
+                        s.getIpAddress(),
+                        s.getContext(),
                         s.getMemoryUsage() != null ? s.getMemoryUsage() : "N/A"
                     ));
                 }
@@ -792,12 +793,18 @@ public class ConsoleView extends VBox {
         modalManager.showConfirmModal(new Label("Forçar a saída do utilizador " + session.getUserName() + "?\nEsta ação encerrará a sessão imediatamente."), 
                 "Kick Utilizador", () -> {
             persistenceService.executeAsync(() -> {
-                userSessionRepository.findByUsername(session.getUserName())
+                if (session.getId() == null) {
+                    throw new IllegalArgumentException("Sessão inválida: identificador não encontrado.");
+                }
+                userSessionRepository.findById(session.getId())
                     .ifPresent(userSessionRepository::delete);
-            }, "USER_KICK", "CONSOLE", "Utilizador " + session.getUserName() + " removido do sistema", () -> {
-                activeSessions.remove(session);
-                lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
-            });
+            }, "USER_KICK", "CONSOLE",
+                    "Sessão " + session.getId() + " do utilizador " + session.getUserName()
+                            + " removida do sistema",
+                    () -> {
+                        activeSessions.remove(session);
+                        lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
+                    });
         }, null);
     }
 
@@ -1141,8 +1148,11 @@ public class ConsoleView extends VBox {
 
     // Classes Auxiliares (Diferente do Primavera, aqui usamos POJOs simples para a UI)
     public static class ActiveSession {
+        private final Long id;
         private final SimpleStringProperty userName, loginTime, workstation, ip, context, memory;
-        public ActiveSession(String u, String l, String w, String ip, String c, String m) { 
+
+        public ActiveSession(Long id, String u, String l, String w, String ip, String c, String m) {
+            this.id = id;
             this.userName = new SimpleStringProperty(u);
             this.loginTime = new SimpleStringProperty(l);
             this.workstation = new SimpleStringProperty(w);
@@ -1150,6 +1160,8 @@ public class ConsoleView extends VBox {
             this.context = new SimpleStringProperty(c);
             this.memory = new SimpleStringProperty(m);
         }
+
+        public Long getId() { return id; }
         public String getUserName() { return userName.get(); }
         public String getLoginTime() { return loginTime.get(); }
         public String getWorkstation() { return workstation.get(); }
