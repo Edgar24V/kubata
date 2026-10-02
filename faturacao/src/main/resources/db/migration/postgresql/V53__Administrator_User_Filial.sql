@@ -20,19 +20,5 @@ CREATE INDEX IF NOT EXISTS idx_filial_active ON filiais(active);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo_conta VARCHAR(30) NOT NULL DEFAULT 'PESSOAL';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS filial_id BIGINT;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM information_schema.table_constraints
-        WHERE constraint_name = 'fk_users_filial'
-          AND table_name = 'users'
-    ) THEN
-        ALTER TABLE users
-            ADD CONSTRAINT fk_users_filial
-            FOREIGN KEY (filial_id) REFERENCES filiais(id);
-    END IF;
-END $$;
-
 CREATE INDEX IF NOT EXISTS idx_users_filial ON users(filial_id);
 CREATE INDEX IF NOT EXISTS idx_users_tipo_conta ON users(tipo_conta);
