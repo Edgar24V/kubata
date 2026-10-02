@@ -699,7 +699,7 @@ public class UtilizadoresView extends VBox {
         btnMfa.setDisable(!hasSelection || !can("EDITAR"));
         btnDispositivos.setDisable(!hasSelection || !can("EDITAR"));
         btnSessoes.setDisable(!hasSelection || !can("EDITAR"));
-        btnPerfilSeguranca.setDisable(!hasSelection || !can("EDITAR"));
+        btnPerfilSeguranca.setDisable(!hasSelection || !can("EDITAR") || !isCommonUser(selected));
         btnDesbloquear.setDisable(!hasSelection || !can("EDITAR") || !isBlocked(selected));
         btnStatus.setDisable(!hasSelection || !can("EDITAR") ||
                 (current != null && selected != null && current.getId() != null && current.getId().equals(selected.getId())));
@@ -3379,6 +3379,12 @@ public class UtilizadoresView extends VBox {
                     || (current != null && selected != null
                     && current.getId() != null && current.getId().equals(selected.getId())));
         }
+    }
+
+    private boolean isCommonUser(User user) {
+        return user != null
+                && !user.isSuperadmin()
+                && user.getRole() != Role.ADMIN;
     }
 
     private boolean can(String operation) {

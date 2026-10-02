@@ -37,8 +37,8 @@ public class SecurityService {
             return false;
         }
 
-        // Superadmin ou ADMIN têm acesso total no RBAC, mas continuam sujeitos
-        // às restrições explícitas do perfil de segurança individual.
+        // Superadmin ou ADMIN têm acesso administrativo total no RBAC.
+        // O Perfil de Segurança Individual é uma camada exclusiva das contas comuns.
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) {
             return true;
         }
