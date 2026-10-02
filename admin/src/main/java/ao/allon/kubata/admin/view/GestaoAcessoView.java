@@ -861,15 +861,10 @@ public class GestaoAcessoView extends BorderPane {
                             list.getSelectionModel().getSelectedItems()
                     );
 
-                    User draft = copyForAccessUpdate(managed, selectedProfiles);
-
-                    userAdministrationService.salvar(
+                    userAdministrationService.actualizarPerfisAcesso(
                             current,
-                            draft,
-                            null,
+                            managed.getId(),
                             selectedProfiles,
-                            managed.getEmpresa(),
-                            managed.getFilial(),
                             "127.0.0.1"
                     );
 
@@ -906,36 +901,6 @@ public class GestaoAcessoView extends BorderPane {
                     ex
             );
         }
-    }
-
-    private User copyForAccessUpdate(User source, Set<PerfilAcesso> profiles) {
-        User draft = new User();
-        draft.setId(source.getId());
-        draft.setCodigo(source.getCodigo());
-        draft.setNome(source.getNome());
-        draft.setEmail(source.getEmail());
-        draft.setPassword(source.getPassword());
-        draft.setRole(source.getRole());
-        draft.setTipoConta(source.getTipoConta());
-        draft.setEmpresa(source.getEmpresa());
-        draft.setFilial(source.getFilial());
-        draft.setNif(source.getNif());
-        draft.setTelefone(source.getTelefone());
-        draft.setDepartamento(source.getDepartamento());
-        draft.setCargo(source.getCargo());
-        draft.setAvatar(source.getAvatar());
-        draft.setActive(source.getActive());
-        draft.setIdioma(source.getIdioma());
-        draft.setTema(source.getTema());
-        draft.setLinhasPorPagina(source.getLinhasPorPagina());
-        draft.setPasswordProvisoria(source.isPasswordProvisoria());
-        draft.setDataExpiracaoPassword(source.getDataExpiracaoPassword());
-        draft.setSuperadmin(source.isSuperadmin());
-        draft.setMfaEnabled(source.isMfaEnabled());
-        draft.setMfaSecret(source.getMfaSecret());
-        draft.setMfaRecoveryCodes(source.getMfaRecoveryCodes());
-        draft.setPerfis(profiles);
-        return draft;
     }
 
     private String profileText(User user) {
