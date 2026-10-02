@@ -14,7 +14,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import ao.allon.kubata.core.domain.UserSession;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -84,6 +87,44 @@ class AuthServiceTest {
 
         assertThrows(AuthenticationException.class, () -> 
             authService.authenticate("test@example.com", "wrongPassword", null, "127.0.0.1"));
+    }
+
+    @Test
+    void terminateOldestSessionForLogin_ShouldDeleteOnlyOldestSession() {
+        UserSession newer = new UserSession();
+        newer.setId(2L);
+        newer.setUsername(user.getNome());
+        newer.setLoginTime(LocalDateTime.of(2026, 10, 2, 10, 30));
+
+        UserSession older = new UserSession();
+        older.setId(1L);
+        older.setUsername(user.getNome());
+        older.setLoginTime(LocalDateTime.of(2026, 10, 2, 9, 30));
+
+        when(userRepository.findByEmail("test@example.com"))
+                .thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password", "encodedPassword"))
+                .thenReturn(true);
+        when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome()))
+                .thenReturn(List.of(newer, older));
+
+        int deleted = authService.terminateOldestSessionForLogin(
+                "test@example.com",
+                "password",
+                "127.0.0.1"
+        );
+
+        assertEquals(1, deleted);
+        verify(userSessionRepository).delete(older);
+        verify(userSessionRepository, never()).delete(newer);
+        verify(acessoService).registrarAuditoria(
+                eq(user),
+                eq("LOGOUT"),
+                eq("AUTH"),
+                eq("127.0.0.1"),
+                contains("Sessão antiga terminada"),
+                eq(true)
+        );
     }
 
     @Test
