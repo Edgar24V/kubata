@@ -180,6 +180,51 @@ public class SessoesView extends VBox {
         );
     }
 
+    private HBox buildFilters() {
+        HBox bar = new HBox(8);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.getStyleClass().add("kubata-sessions-filterbar");
+
+        Label searchLabel = new Label("Pesquisa");
+        searchLabel.getStyleClass().add("kubata-server-properties-label");
+
+        searchField = new TextField();
+        searchField.setPromptText("Utilizador, posto, IP ou contexto...");
+        searchField.setPrefWidth(300);
+        searchField.getStyleClass().add("kubata-sessions-search");
+
+        Label contextLabel = new Label("Contexto");
+        contextLabel.getStyleClass().add("kubata-server-properties-label");
+
+        contextFilter = new ComboBox<>();
+        contextFilter.getItems().add("TODOS");
+        contextFilter.setValue("TODOS");
+        contextFilter.setPrefWidth(175);
+
+        Button clear = new Button("Limpar", IconUtils.icon(Feather.X, 12));
+        clear.getStyleClass().add("button-outlined");
+        clear.setOnAction(e -> {
+            searchField.clear();
+            contextFilter.setValue("TODOS");
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label hint = new Label(
+                "Filtros locais · não alteram os registos da base de dados",
+                IconUtils.icon(Feather.INFO, 10)
+        );
+        hint.getStyleClass().add("kubata-server-note");
+
+        bar.getChildren().addAll(
+                searchLabel, searchField,
+                contextLabel, contextFilter,
+                clear, spacer, hint
+        );
+        return bar;
+    }
+
     private HBox buildActionsBar() {
         HBox bar = new HBox(8);
         bar.setAlignment(Pos.CENTER_LEFT);
