@@ -199,6 +199,31 @@ public class AuthService {
     }
 
     /**
+     * Indica se as credenciais pertencem a uma conta administrativa autorizada
+     * a terminar uma sessão a partir do ecrã de login.
+     */
+    @Transactional(readOnly = true)
+    public boolean canTerminateOldestSessionForLogin(
+            String email,
+            String password) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return false;
+        }
+
+        User user = userOpt.get();
+        if (!user.isEnabled() || password == null || password.isBlank()) {
+            return false;
+        }
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            return false;
+        }
+
+        return user.isSuperadmin() || user.getRole() == ao.allon.kubata.core.domain.Role.ADMIN;
+    }
+
+    /**
      * Termina uma única sessão antiga para permitir um novo login quando o
      * limite de sessões simultâneas foi atingido. A operação exige a palavra-
      * passe da própria conta e nunca expõe detalhes das sessões existentes.
@@ -232,6 +257,21 @@ public class AuthService {
 
         if (!user.isEnabled()) {
             throw new AuthenticationException("Conta inativa. Contate o administrador.");
+        }
+
+        if (!user.isSuperadmin()
+                && user.getRole() != ao.allon.kubata.core.domain.Role.ADMIN) {
+            acessoService.registrarAuditoria(
+                    user,
+                    "LOGIN_SESSION_TERMINATE",
+                    "AUTH",
+                    ip,
+                    "Tentativa não autorizada de terminar sessão a partir do login: conta não administrativa",
+                    false
+            );
+            throw new AuthenticationException(
+                    "Apenas Administradores e Superadministradores podem terminar sessões a partir do ecrã de login."
+            );
         }
 
         List<UserSession> sessions = userSessionRepository
