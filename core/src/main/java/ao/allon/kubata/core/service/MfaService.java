@@ -1,6 +1,11 @@
 package ao.allon.kubata.core.service;
 
+import ao.allon.kubata.core.domain.MfaPolicy;
+import ao.allon.kubata.core.domain.PerfilAcesso;
+import ao.allon.kubata.core.domain.AuditLog;
+import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.repository.MfaPolicyRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
@@ -13,6 +18,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,8 +36,21 @@ public class MfaService {
     private final PasswordEncoder passwordEncoder;
     private final AcessoService acessoService;
     private final SecurityService securityService;
+    private final MfaPolicyRepository mfaPolicyRepository;
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
+
+    public MfaService(UserRepository userRepository,
+                      PasswordEncoder passwordEncoder,
+                      AcessoService acessoService,
+                      SecurityService securityService,
+                      MfaPolicyRepository mfaPolicyRepository) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.acessoService = acessoService;
+        this.securityService = securityService;
+        this.mfaPolicyRepository = mfaPolicyRepository;
+    }
 
     public MfaService(UserRepository userRepository,
                       PasswordEncoder passwordEncoder,
@@ -37,6 +60,7 @@ public class MfaService {
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
         this.securityService = securityService;
+        this.mfaPolicyRepository = null;
     }
 
     /**
