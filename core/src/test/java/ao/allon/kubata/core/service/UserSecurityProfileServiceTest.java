@@ -147,6 +147,88 @@ class UserSecurityProfileServiceTest {
     }
 
     @Test
+    void deveAplicarHorarioEQuerMfaNoLogin() {
+        User user = admin(10L);
+        UserSecurityProfile profile = new UserSecurityProfile();
+        profile.setLoginStart(LocalTime.of(8, 0));
+        profile.setLoginEnd(LocalTime.of(18, 0));
+        profile.setAllowedWeekDays(Set.of(DayOfWeek.MONDAY));
+        profile.setRequireMfa(true);
+
+        when(profileRepository.findByUserId(10L)).thenReturn(Optional.of(profile));
+
+        assertThrows(
+                ao.allon.kubata.core.exception.AuthenticationException.class,
+                () -> service.validateLoginPolicy(
+                        user,
+                        "10.0.0.10",
+                        LocalDateTime.of(2026, 10, 5, 9, 0),
+                        false
+                )
+        );
+
+        assertThrows(
+                ao.allon.kubata.core.exception.AuthenticationException.class,
+                () -> service.validateLoginPolicy(
+                        user,
+                        "10.0.0.10",
+                        LocalDateTime.of(2026, 10, 6, 7, 59),
+                        true
+                )
+        );
+
+        assertDoesNotThrow(() -> service.validateLoginPolicy(
+                user,
+                "10.0.0.10",
+                LocalDateTime.of(2026, 10, 5, 9, 0),
+                true
+        ));
+    }
+
+    @Test
+    void deveBloquearSessaoAcimaDoLimiteIndividual() {
+        User user = admin(10L);
+        user.setNome("Administrador");
+        UserSecurityProfile profile = new UserSecurityProfile();
+        profile.setMaxConcurrentSessions(1);
+
+        UserSession activeSession = new UserSession();
+        activeSession.setUsername("Administrador");
+        activeSession.setLoginTime(LocalDateTime.of(2026, 10, 2, 9, 0));
+
+        when(profileRepository.findByUserId(10L)).thenReturn(Optional.of(profile));
+        when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc("Administrador"))
+                .thenReturn(List.of(activeSession));
+
+        assertThrows(
+                ao.allon.kubata.core.exception.AuthenticationException.class,
+                () -> service.enforceConcurrentSessionLimit(
+                        user,
+                        LocalDateTime.of(2026, 10, 2, 10, 0)
+                )
+        );
+    }
+
+    @Test
+    void deveValidarContextoDeEmpresaNoServidor() {
+        User user = admin(10L);
+        UserSecurityProfile profile = new UserSecurityProfile();
+        profile.setAllowedCompanyIds(Set.of(100L));
+
+        when(profileRepository.findByUserId(10L)).thenReturn(Optional.of(profile));
+
+        assertFalse(service.isCompanyContextAllowed(user));
+
+        Empresa empresa = new Empresa();
+        empresa.setId(100L);
+        user.setEmpresa(empresa);
+
+        assertTrue(service.isCompanyContextAllowed(user));
+        assertDoesNotThrow(() -> service.requireCompanyAccess(user, 100L));
+        assertThrows(SecurityException.class, () -> service.requireCompanyAccess(user, 200L));
+    }
+
+    @Test
     void deveGuardarPerfilEAuditarOperacao() {
         User actor = admin(1L);
         User target = new User();

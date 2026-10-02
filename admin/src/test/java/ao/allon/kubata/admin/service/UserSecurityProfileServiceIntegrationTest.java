@@ -79,6 +79,10 @@ class UserSecurityProfileServiceIntegrationTest {
         outraEmpresa.setAtiva(true);
         outraEmpresa = empresaRepository.saveAndFlush(outraEmpresa);
 
+        // A política de empresa é avaliada no contexto actual da conta.
+        target.setEmpresa(empresaPermitida);
+        target = userRepository.saveAndFlush(target);
+
         UserSecurityProfile request = new UserSecurityProfile();
         request.setLoginEnabled(true);
         request.setRequireMfa(false);

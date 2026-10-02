@@ -1,5 +1,6 @@
 package ao.allon.kubata.core.service;
 
+import ao.allon.kubata.core.domain.AuditLog;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,13 +19,16 @@ public class PasswordChangeService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserSecurityProfileService userSecurityProfileService;
+    private final AuditService auditService;
 
     public PasswordChangeService(UserRepository userRepository,
                                  PasswordEncoder passwordEncoder,
-                                 UserSecurityProfileService userSecurityProfileService) {
+                                 UserSecurityProfileService userSecurityProfileService,
+                                 AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userSecurityProfileService = userSecurityProfileService;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -47,6 +51,16 @@ public class PasswordChangeService {
         }
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            auditService.logError(
+                    user,
+                    null,
+                    AuditLog.AuditActionType.REJECT,
+                    "USER_PASSWORD",
+                    String.valueOf(user.getId()),
+                    "Tentativa de alteração de palavra-passe com credencial actual inválida.",
+                    "CORE",
+                    null
+            );
             throw new SecurityException("A palavra-passe actual está incorrecta.");
         }
 
@@ -65,7 +79,29 @@ public class PasswordChangeService {
         user.setFailedAttempts(0);
         user.setLockoutEnd(null);
 
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+
+        auditService.logAction(
+                saved,
+                null,
+                AuditLog.AuditActionType.UPDATE,
+                "USER_PASSWORD",
+                String.valueOf(saved.getId()),
+                "Palavra-passe alterada pelo próprio utilizador.",
+                null,
+                java.util.Map.of(
+                        "passwordChanged", true,
+                        "passwordProvisoria", false
+                ),
+                "CORE",
+                null,
+                null,
+                null,
+                false,
+                AuditLog.AGTComplianceLevel.HIGH
+        );
+
+        return saved;
     }
 
 }

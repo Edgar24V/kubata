@@ -29,11 +29,19 @@ class PasswordChangeServiceTest {
     @Mock
     private UserSecurityProfileService userSecurityProfileService;
 
+    @Mock
+    private AuditService auditService;
+
     private PasswordChangeService service;
 
     @BeforeEach
     void setUp() {
-        service = new PasswordChangeService(userRepository, passwordEncoder, userSecurityProfileService);
+        service = new PasswordChangeService(
+                userRepository,
+                passwordEncoder,
+                userSecurityProfileService,
+                auditService
+        );
     }
 
     @Test
@@ -63,6 +71,22 @@ class PasswordChangeServiceTest {
         assertNull(user.getLockoutEnd());
 
         verify(userRepository).save(user);
+        verify(auditService).logAction(
+                eq(user),
+                isNull(),
+                eq(ao.allon.kubata.core.domain.AuditLog.AuditActionType.UPDATE),
+                eq("USER_PASSWORD"),
+                eq("10"),
+                eq("Palavra-passe alterada pelo próprio utilizador."),
+                isNull(),
+                anyMap(),
+                eq("CORE"),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(false),
+                eq(ao.allon.kubata.core.domain.AuditLog.AGTComplianceLevel.HIGH)
+        );
     }
 
     @Test
@@ -81,6 +105,16 @@ class PasswordChangeServiceTest {
         );
 
         verify(userRepository, never()).save(any(User.class));
+        verify(auditService).logError(
+                eq(user),
+                isNull(),
+                eq(ao.allon.kubata.core.domain.AuditLog.AuditActionType.REJECT),
+                eq("USER_PASSWORD"),
+                eq("10"),
+                contains("credencial actual inválida"),
+                eq("CORE"),
+                isNull()
+        );
     }
 
     @Test

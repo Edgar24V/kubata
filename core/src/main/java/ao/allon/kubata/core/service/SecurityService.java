@@ -32,7 +32,8 @@ public class SecurityService {
         if (user == null || modulo == null || modulo.isBlank()) return false;
 
         // O perfil individual funciona como uma restrição adicional ao RBAC.
-        if (!userSecurityProfileService.isModuleAllowed(user, modulo)) {
+        if (!userSecurityProfileService.isModuleAllowed(user, modulo)
+                || !userSecurityProfileService.isCompanyContextAllowed(user)) {
             return false;
         }
 
@@ -71,7 +72,10 @@ public class SecurityService {
     @Transactional(readOnly = true)
     public boolean hasPermission(User user, String modulo, String recurso, PermissaoPerfil.Operacao operacao) {
         if (user == null || modulo == null || modulo.isBlank()) return false;
-        if (!userSecurityProfileService.isModuleAllowed(user, modulo)) return false;
+        if (!userSecurityProfileService.isModuleAllowed(user, modulo)
+                || !userSecurityProfileService.isCompanyContextAllowed(user)) {
+            return false;
+        }
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
 
         // Verifica nos perfis
@@ -118,7 +122,10 @@ public class SecurityService {
     @Transactional(readOnly = true)
     public boolean hasModuleAccess(User user, String modulo) {
         if (user == null || modulo == null || modulo.isBlank()) return false;
-        if (!userSecurityProfileService.isModuleAllowed(user, modulo)) return false;
+        if (!userSecurityProfileService.isModuleAllowed(user, modulo)
+                || !userSecurityProfileService.isCompanyContextAllowed(user)) {
+            return false;
+        }
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
 
         // Verifica permissões legadas
