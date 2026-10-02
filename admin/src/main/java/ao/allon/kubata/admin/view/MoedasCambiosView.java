@@ -181,7 +181,6 @@ public class MoedasCambiosView extends BorderPane {
         searchField = new TextField();
         searchField.setPromptText("Pesquisar código, nome ou símbolo...");
         searchField.setPrefWidth(290);
-        searchField.setGraphic(IconUtils.icon(Feather.SEARCH, 13));
 
         Label statusLabel = new Label("Estado");
         statusLabel.getStyleClass().add("kubata-currency-filter-label");
@@ -508,6 +507,24 @@ public class MoedasCambiosView extends BorderPane {
         });
 
         table.getColumns().setAll(codigo, nome, simbolo, taxa, data, base, estado, rateState, acao);
+    }
+
+    private String rateStatus(Moeda moeda) {
+        if (moeda == null) {
+            return "SEM TAXA";
+        }
+
+        if (moeda.getTaxaCambio() == null) {
+            return "SEM TAXA";
+        }
+
+        if (moeda.getDataTaxaCambio() == null) {
+            return "SEM DATA";
+        }
+
+        return moeda.getDataTaxaCambio().isBefore(java.time.LocalDate.now())
+                ? "DESACTUALIZADA"
+                : "ACTUALIZADA";
     }
 
     private void load() {
