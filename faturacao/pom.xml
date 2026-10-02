@@ -36,6 +36,7 @@
         <dependency>
             <groupId>ao.allon</groupId>
             <artifactId>kubata-core</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.controlsfx</groupId>
