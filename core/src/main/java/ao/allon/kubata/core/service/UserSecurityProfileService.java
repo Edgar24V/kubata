@@ -74,7 +74,8 @@ public class UserSecurityProfileService {
 
     @Transactional
     public UserSecurityProfile getOrCreateProfile(User actor, Long targetUserId) {
-        User target = managedTarget(actor, targetUserId);
+        User managedActor = managedActor(actor);
+        User target = managedTarget(managedActor, targetUserId);
         return profileRepository.findByUserId(target.getId())
                 .orElseGet(() -> {
                     UserSecurityProfile profile = defaultProfile(target);
@@ -84,7 +85,8 @@ public class UserSecurityProfileService {
 
     @Transactional(readOnly = true)
     public UserSecurityProfile loadForAdministration(User actor, Long targetUserId) {
-        User target = managedTarget(actor, targetUserId);
+        User managedActor = managedActor(actor);
+        User target = managedTarget(managedActor, targetUserId);
         return profileRepository.findByUserId(target.getId())
                 .orElseGet(() -> defaultProfile(target));
     }
@@ -399,11 +401,6 @@ public class UserSecurityProfileService {
         }
     }
 
-    private UserSecurityProfile managedTarget(User actor, Long targetUserId) {
-        User managedActor = managedActor(actor);
-        return managedTarget(managedActor, targetUserId);
-    }
-
     private User managedTarget(User managedActor, Long targetUserId) {
         if (targetUserId == null) {
             throw new IllegalArgumentException("Utilizador de destino inválido.");
@@ -657,6 +654,12 @@ public class UserSecurityProfileService {
                 throw new IllegalArgumentException("Valor inválido em " + label + ".");
             }
         }
+    }
+
+    private String normalizeIp(String sourceIp) {
+        return sourceIp == null || sourceIp.isBlank()
+                ? "127.0.0.1"
+                : sourceIp.trim();
     }
 
     private String normalizeCurrency(String currency) {

@@ -6,8 +6,6 @@
 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="invoice_thermal_80mm_professional" pageWidth="226" pageHeight="2000" columnWidth="206" leftMargin="10" rightMargin="10" topMargin="10" bottomMargin="10" isIgnorePagination="true" uuid="f4d5e6f7-a8b9-4c0d-b1c2-d3e4f5a6b7c8">
     <property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
-    <import value="java.text.NumberFormat"/>
-    <import value="java.util.Locale"/>
     <property name="com.jaspersoft.studio.unit." value="pixel"/>
     <property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
     <property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
@@ -17,6 +15,9 @@
     <property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
     <property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
     <property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+
+    <import value="java.text.NumberFormat"/>
+    <import value="java.util.Locale"/>
     
     <!-- Estilos Profissionais -->
     <style name="Base" isDefault="true" fontName="Courier New" fontSize="8" pdfFontName="Courier" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
@@ -364,7 +365,7 @@
                 
                 <textField textAdjust="StretchHeight">
                     <reportElement style="Legal" x="0" y="15" width="206" height="10" uuid="0a1b2c3d-4e5f-6a7b-8c9d-0a1b2c3d4e5f"/>
-                    <textFieldExpression><![CDATA["Hash: " + ($P{jwsDocumentSignature} != null ? $P{jwsDocumentSignature}.substring(0,4) : "N/D") + " - " + $P{softwareProductId} + " v" + $P{softwareVersion}]]></textFieldExpression>
+                    <textFieldExpression><![CDATA["Hash: " + ($P{jwsDocumentSignature} != null ? $P{jwsDocumentSignature}.length() >= 4 ? $P{jwsDocumentSignature}.substring(0,4) : $P{jwsDocumentSignature} : "N/D") + " - " + $P{softwareProductId} + " v" + $P{softwareVersion}]]></textFieldExpression>
                 </textField>
                 
                 <!-- QR CODE -->

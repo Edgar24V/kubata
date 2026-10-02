@@ -37,6 +37,8 @@ class GuiaRemessaModuleTest {
     @Mock
     private AGTService agtService;
     @Mock
+    private ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService signatureService;
+    @Mock
     private AGTElectronicInvoiceService agtElectronicInvoiceService;
     @Mock
     private ContabilidadeService contabilidadeService;
@@ -56,7 +58,7 @@ class GuiaRemessaModuleTest {
         Cliente c = new Cliente();
         c.setId(10L);
         c.setNome("Cliente X");
-        c.setNif("5000000000");
+        c.setNif("1000000001");
         guia.setCliente(c);
         guia.setDataEmissao(LocalDate.now());
         guia.setDataVencimento(LocalDate.now());
@@ -69,9 +71,10 @@ class GuiaRemessaModuleTest {
         it.setQuantidade(2);
         it.setPrecoUnitario(new BigDecimal("1000.00"));
         it.setPercentualIva(BigDecimal.ZERO);
+        it.setCodigoIsencao("M00");
         guia.addItem(it);
 
-        when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test
@@ -87,7 +90,7 @@ class GuiaRemessaModuleTest {
         assertEquals(StatusFatura.EMITIDA, res.getStatus());
         assertNotNull(res.getNumero());
         assertTrue(res.getNumero().contains("GR"));
-        assertEquals("HASH1", res.getHashControl());
+        assertEquals("HASH", res.getHashControl());
         verify(faturaRepository, atLeastOnce()).save(any(Fatura.class));
     }
 

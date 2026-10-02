@@ -133,8 +133,16 @@ public final class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         if (value == null) {
             return "";
         }
-        return value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\"");
+
+        StringBuilder escaped = new StringBuilder(value.length() + 16);
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            switch (ch) {
+                case 92 -> escaped.append((char) 92).append((char) 92);
+                case 34 -> escaped.append((char) 92).append((char) 34);
+                default -> escaped.append(ch);
+            }
+        }
+        return escaped.toString();
     }
 }

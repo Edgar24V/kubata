@@ -24,5 +24,7 @@ CREATE TABLE IF NOT EXISTS backup_config (
 
 -- Inserir configuração padrão
 INSERT INTO backup_config (id, enabled, frequency, schedule_time, retention_days)
-VALUES (1, true, 'DAILY', '02:00:00', 30)
-ON CONFLICT (id) DO NOTHING;
+SELECT 1, TRUE, 'DAILY', '02:00:00', 30
+WHERE NOT EXISTS (
+    SELECT 1 FROM backup_config WHERE id = 1
+);

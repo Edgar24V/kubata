@@ -29,9 +29,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 @Component
+@Lazy
 public class DashboardView extends VBox {
 
     private final DashboardController controller;

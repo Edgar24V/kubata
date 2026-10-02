@@ -4,14 +4,16 @@ import ao.allon.kubata.core.repository.PlanoContaRepository;
 import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
+import ao.allon.kubata.faturacao.domain.Produto;
+import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
+import ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockitoAnnotations;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -38,6 +40,8 @@ class FaturaServiceTest {
 
     @Mock
     private AGTService agtService;
+    @Mock
+    private JWSDigitalSignatureService signatureService;
 
     @Mock
     private AGTElectronicInvoiceService agtElectronicInvoiceService;
@@ -55,22 +59,37 @@ class FaturaServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         fatura = new Fatura();
         fatura.setId(1L);
         fatura.setNumero("FT202600001");
         fatura.setDataEmissao(LocalDate.now());
         fatura.setDataVencimento(LocalDate.now().plusDays(30));
         fatura.setStatus(StatusFatura.RASCUNHO);
+        fatura.setTipoDocumento(ao.allon.kubata.faturacao.domain.enums.TipoDocumento.FATURA);
         ItemFatura item = new ItemFatura();
         item.setDescricao("Produto A");
         item.setQuantidade(2);
         item.setPrecoUnitario(new BigDecimal("1000"));
         item.setPercentualIva(new BigDecimal("14.00"));
-        item.setProdutoId(10L);
+        Produto produto = new Produto();
+        produto.setId(10L);
+        item.setProduto(produto);
         fatura.addItem(item);
         when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
         when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(serieService.findPadrao(any(ao.allon.kubata.faturacao.domain.enums.TipoDocumento.class)))
+                .thenAnswer(inv -> {
+                    ao.allon.kubata.faturacao.domain.enums.TipoDocumento tipo = inv.getArgument(0);
+                    Serie serie = new Serie();
+                    serie.setTipoDocumento(tipo);
+                    serie.setDesignacao("2026");
+                    serie.setAno(2026);
+                    serie.setAtiva(true);
+                    return Optional.of(serie);
+                });
+        lenient().when(serieService.getProximoNumero(any(Serie.class))).thenReturn(1L);
+        lenient().when(agtElectronicInvoiceService.submitInvoiceAsync(any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(new ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO()));
     }
 
     @Test
@@ -86,7 +105,7 @@ class FaturaServiceTest {
         fatura.setStatus(StatusFatura.EMITIDA);
         faturaService.cancelarFatura(1L, "Cancelamento Teste");
         assertEquals(StatusFatura.CANCELADA, fatura.getStatus());
-        verify(produtoService, times(1)).incrementarEstoque(eq(10L), eq(2));
+        verify(produtoService, times(1)).registarEntrada(eq(10L), eq(2), anyString());
         verify(faturaRepository, times(1)).save(any(Fatura.class));
     }
 
@@ -102,7 +121,8 @@ class FaturaServiceTest {
     void emitirNotaCredito_DeveDevolverEstoqueEAdicionarObservacao() {
         fatura.setStatus(StatusFatura.EMITIDA);
         Fatura res = faturaService.emitirNotaCredito(1L, "Devolução parcial");
-        assertTrue(res.getObservacoes().contains("Nota de Crédito"));
+        assertTrue(res.getObservacoes().contains("Referente à fatura"));
+        assertTrue(fatura.getObservacoes().contains("Nota de Crédito"));
         verify(produtoService, times(1)).registarEntrada(eq(10L), eq(2), anyString());
     }
 }

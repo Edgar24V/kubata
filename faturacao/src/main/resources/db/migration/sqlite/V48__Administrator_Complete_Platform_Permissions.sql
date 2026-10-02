@@ -1,4 +1,30 @@
 -- V48: permissões para todas as capacidades do Centro Completo da Plataforma.
+-- Algumas execuções do módulo Faturação podem não carregar a migração
+-- de RBAC do Administrator. Garantimos a estrutura antes do seed.
+CREATE TABLE IF NOT EXISTS adm_perfil_acesso (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    codigo VARCHAR(20) NOT NULL UNIQUE,
+    descricao VARCHAR(100) NOT NULL,
+    observacoes VARCHAR(500),
+    sistema BOOLEAN DEFAULT 0,
+    activo BOOLEAN DEFAULT 1,
+    empresa_id INTEGER
+);
+
+INSERT OR IGNORE INTO adm_perfil_acesso (codigo, descricao, sistema, activo)
+VALUES ('ADMIN', 'Administrador do Sistema', 1, 1);
+
+CREATE TABLE IF NOT EXISTS adm_permissao_perfil (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    perfil_id INTEGER NOT NULL,
+    modulo VARCHAR(50) NOT NULL,
+    recurso VARCHAR(50) NOT NULL,
+    operacao VARCHAR(50) NOT NULL,
+    permitido BOOLEAN DEFAULT 0 NOT NULL,
+    valor_restricao VARCHAR(255),
+    CONSTRAINT uk_permissao_perfil UNIQUE (perfil_id, modulo, recurso, operacao),
+    CONSTRAINT fk_permissao_perfil FOREIGN KEY (perfil_id) REFERENCES adm_perfil_acesso(id) ON DELETE CASCADE
+);
 INSERT OR IGNORE INTO adm_permissao_perfil (perfil_id, modulo, recurso, operacao, permitido)
 SELECT p.id, 'ADMINISTRATOR', x.recurso, x.operacao, 1
 FROM adm_perfil_acesso p

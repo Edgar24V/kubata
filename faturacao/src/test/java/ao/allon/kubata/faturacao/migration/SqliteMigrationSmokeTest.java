@@ -10,8 +10,8 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
 @ActiveProfiles("sqlite")
+@SpringBootTest
 public class SqliteMigrationSmokeTest {
 
     @Autowired

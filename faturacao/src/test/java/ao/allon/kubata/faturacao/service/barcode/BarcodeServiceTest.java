@@ -39,10 +39,9 @@ class BarcodeServiceTest {
 
         String formatted = agtService.formatQRCodeData("123456789", data);
         
-        // Verifica se contém os elementos essenciais
-        Assertions.assertTrue(formatted.contains("H:HASH"));
-        Assertions.assertTrue(formatted.contains("T:1000.50"));
-        Assertions.assertTrue(formatted.contains("N:999999999"));
+        // O formato actual é: NIF_Emitente;NIF_Cliente;TipoDoc;NumDoc;Data;Total;Hash
+        Assertions.assertTrue(formatted.startsWith("123456789;999999999;FT;FT 2024/1;2024-01-01;1000.50;"));
+        Assertions.assertTrue(formatted.endsWith("HASH_BASE64_STRING_EXAMPLE"));
     }
 
     @Test

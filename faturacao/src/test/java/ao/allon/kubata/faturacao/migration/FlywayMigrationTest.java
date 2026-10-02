@@ -9,8 +9,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
 @ActiveProfiles("test")
+@SpringBootTest
 public class FlywayMigrationTest {
 
     @Autowired
