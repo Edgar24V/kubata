@@ -109,6 +109,8 @@ public class RibbonProgrammaticService {
                 () -> opener.open("gestao_acesso", "Gestão de Acesso", () -> bl.apply(GestaoAcessoView.class), true)));
         acesso.addLargeButton(largeBtn("utilizadores", "Utilizadores", Feather.USERS, "Gerir utilizadores",
                 () -> opener.open("utilizadores", "Utilizadores", () -> bl.apply(UtilizadoresView.class), true)));
+        acesso.addLargeButton(largeBtn("mfa_center", "MFA Center", Feather.SHIELD, "Centro de administração e política MFA",
+                () -> opener.open("mfa_center", "MFA Center", () -> bl.apply(MfaCenterView.class), true)));
         acesso.addLargeButton(largeBtn("perfis", "Perfis", Feather.SHIELD, "Configurar perfis e permissões",
                 () -> opener.open("perfis", "Perfis", () -> bl.apply(PerfisView.class), true)));
         acesso.addLargeButton(largeBtn("licencas", "Licenças", Feather.KEY, "Gestão de licenciamento",
