@@ -7,6 +7,7 @@ import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
 import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class AuthService {
     @Value("${kubata.security.password-expiry-days:90}")
     private int passwordExpiryDays;
 
+    @Autowired
     public AuthService(UserRepository userRepository, 
                        UserSessionRepository userSessionRepository,
                        PasswordEncoder passwordEncoder,
@@ -57,6 +59,23 @@ public class AuthService {
         this.userDeviceService = userDeviceService;
         this.userSecurityProfileService = userSecurityProfileService;
         this.passwordPolicyService = passwordPolicyService;
+    }
+
+    public AuthService(UserRepository userRepository,
+                       UserSessionRepository userSessionRepository,
+                       PasswordEncoder passwordEncoder,
+                       AcessoService acessoService,
+                       MfaService mfaService,
+                       UserDeviceService userDeviceService,
+                       UserSecurityProfileService userSecurityProfileService) {
+        this.userRepository = userRepository;
+        this.userSessionRepository = userSessionRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.acessoService = acessoService;
+        this.mfaService = mfaService;
+        this.userDeviceService = userDeviceService;
+        this.userSecurityProfileService = userSecurityProfileService;
+        this.passwordPolicyService = null;
     }
 
     @Transactional
@@ -358,7 +377,22 @@ public class AuthService {
     }
 
     private boolean isPasswordExpired(User user) {
-        return passwordPolicyService.isPasswordExpired(user, LocalDateTime.now());
+        if (passwordPolicyService != null) {
+            return passwordPolicyService.isPasswordExpired(user, LocalDateTime.now());
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (user.getDataExpiracaoPassword() != null
+                && user.getDataExpiracaoPassword().isBefore(now.toLocalDate())) {
+            return true;
+        }
+        if (user.getPasswordChangedAt() == null) {
+            return false;
+        }
+
+        int policyExpiryDays = userSecurityProfileService.passwordExpiryDays(user);
+        return policyExpiryDays > 0
+                && now.isAfter(user.getPasswordChangedAt().plusDays(policyExpiryDays));
     }
 
     private void recordFailure(User user) {
