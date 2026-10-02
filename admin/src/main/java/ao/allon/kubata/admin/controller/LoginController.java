@@ -1181,6 +1181,19 @@ public class LoginController {
                 securityNote
         );
 
+        Runnable focusAfterClose = () -> Platform.runLater(() -> {
+            if (details.focusMfa()) {
+                mfaCodeField.requestFocus();
+                mfaCodeField.selectAll();
+            } else if (details.focusPassword()) {
+                passwordField.requestFocus();
+                passwordField.selectAll();
+            } else if (details.focusEmail()) {
+                emailField.requestFocus();
+                emailField.selectAll();
+            }
+        });
+
         modalManager.showModal(
                 content,
                 new ModalManager.ModalConfig()
@@ -1197,20 +1210,8 @@ public class LoginController {
                         .closeOnOverlayClick(false)
                         .closeOnEscape(true)
                         .footerHint("Corrija a causa indicada e tente iniciar a sessão novamente.")
+                        .onConfirm(focusAfterClose)
         );
-
-        Platform.runLater(() -> {
-            if (details.focusMfa()) {
-                mfaCodeField.requestFocus();
-                mfaCodeField.selectAll();
-            } else if (details.focusPassword()) {
-                passwordField.requestFocus();
-                passwordField.selectAll();
-            } else if (details.focusEmail()) {
-                emailField.requestFocus();
-                emailField.selectAll();
-            }
-        });
     }
 
     private VBox createAuthenticationErrorSection(
