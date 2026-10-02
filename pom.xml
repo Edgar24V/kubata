@@ -133,9 +133,6 @@
                     <compilerArgs>
                         <arg>-proc:full</arg>
                     </compilerArgs>
-                    <annotationProcessors>
-                        <annotationProcessor>lombok.launch.AnnotationProcessorHider$AnnotationProcessor</annotationProcessor>
-                    </annotationProcessors>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
