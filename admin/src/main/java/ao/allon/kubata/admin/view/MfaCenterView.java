@@ -617,7 +617,7 @@ public class MfaCenterView extends VBox {
                     sourceIp()
             );
 
-            String uri = mfaService.buildProvisioningUri(user, secret);
+            String uri = mfaService.buildProvisioningUri(user);
 
             ImageView qr = new ImageView(createQrImage(uri, 210));
             qr.setFitWidth(210);
