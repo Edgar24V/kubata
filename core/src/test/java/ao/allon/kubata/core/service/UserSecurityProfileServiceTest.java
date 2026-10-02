@@ -94,7 +94,7 @@ class UserSecurityProfileServiceTest {
 
     @Test
     void deveAplicarRegrasDePalavraPasse() {
-        User user = admin(10L);
+        User user = commonUser(10L);
         UserSecurityProfile profile = new UserSecurityProfile();
         profile.setPasswordMinLength(12);
         profile.setPasswordRequireUpper(true);
@@ -111,7 +111,7 @@ class UserSecurityProfileServiceTest {
 
     @Test
     void deveAplicarLimiteFinanceiroDiario() {
-        User user = admin(10L);
+        User user = commonUser(10L);
         UserSecurityProfile profile = new UserSecurityProfile();
         profile.setFinancialCurrency("AOA");
         profile.setFinancialOperationLimit(new BigDecimal("1000"));
@@ -150,7 +150,7 @@ class UserSecurityProfileServiceTest {
 
     @Test
     void deveAplicarHorarioEQuerMfaNoLogin() {
-        User user = admin(10L);
+        User user = commonUser(10L);
         UserSecurityProfile profile = new UserSecurityProfile();
         profile.setLoginStart(LocalTime.of(8, 0));
         profile.setLoginEnd(LocalTime.of(18, 0));
@@ -189,8 +189,8 @@ class UserSecurityProfileServiceTest {
 
     @Test
     void deveBloquearSessaoAcimaDoLimiteIndividual() {
-        User user = admin(10L);
-        user.setNome("Administrador");
+        User user = commonUser(10L);
+        user.setNome("Utilizador");
         UserSecurityProfile profile = new UserSecurityProfile();
         profile.setMaxConcurrentSessions(1);
 
@@ -213,7 +213,7 @@ class UserSecurityProfileServiceTest {
 
     @Test
     void deveValidarContextoDeEmpresaNoServidor() {
-        User user = admin(10L);
+        User user = commonUser(10L);
         UserSecurityProfile profile = new UserSecurityProfile();
         profile.setAllowedCompanyIds(Set.of(100L));
 
@@ -309,7 +309,7 @@ class UserSecurityProfileServiceTest {
 
     @Test
     void deveIgnorarPerfilIndividualNoAdministrador() {
-        User user = admin(10L);
+        User user = commonUser(10L);
         UserSecurityProfile stored = new UserSecurityProfile();
         stored.setUser(user);
         stored.setLoginEnabled(false);
