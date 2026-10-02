@@ -431,7 +431,7 @@ public class ConsoleView extends VBox {
         btnMaintenance.setOnAction(e -> toggleMaintenanceMode());
 
         Button btnTerminateAllSessions = new Button(
-                "Terminar sessões",
+                "Terminar todas",
                 IconUtils.icon(Feather.LOG_OUT, IconUtils.SIZE_SMALL)
         );
         btnTerminateAllSessions.getStyleClass().add("button-outlined");
