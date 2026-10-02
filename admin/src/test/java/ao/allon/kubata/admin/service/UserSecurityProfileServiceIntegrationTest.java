@@ -5,6 +5,8 @@ import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSecurityProfile;
 import ao.allon.kubata.core.repository.EmpresaRepository;
+import ao.allon.kubata.core.domain.UserAccessPermission;
+import ao.allon.kubata.core.repository.UserAccessPermissionRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSecurityProfileRepository;
 import ao.allon.kubata.core.service.SecurityService;
@@ -44,6 +46,9 @@ class UserSecurityProfileServiceIntegrationTest {
     private UserSecurityProfileRepository profileRepository;
 
     @Autowired
+    private UserAccessPermissionRepository userAccessPermissionRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Test
@@ -62,7 +67,7 @@ class UserSecurityProfileServiceIntegrationTest {
         target.setNome("Security Target");
         target.setEmail("security-target-" + System.nanoTime() + "@test.local");
         target.setPassword(passwordEncoder.encode("TargetSenha1"));
-        target.setRole(Role.ADMIN);
+        target.setRole(Role.USER);
         target.setActive(true);
         target.setCodigo("SEC-TARGET-" + System.nanoTime());
         target = userRepository.saveAndFlush(target);
@@ -114,6 +119,12 @@ class UserSecurityProfileServiceIntegrationTest {
         request.setFinancialDailyLimit(new BigDecimal("2000"));
         request.setFinancialCurrency("AOA");
 
+        UserAccessPermission permission = new UserAccessPermission();
+        permission.setUser(target);
+        permission.setModulo("FINANCEIRO");
+        permission.setOpcao("VER");
+        userAccessPermissionRepository.saveAndFlush(permission);
+
         UserSecurityProfile saved =
                 service.saveProfile(actor, target.getId(), request, "10.10.0.5");
 
@@ -127,14 +138,12 @@ class UserSecurityProfileServiceIntegrationTest {
         assertTrue(securityService.hasPermission(
                 target,
                 "FINANCEIRO",
-                "TODOS",
-                ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.VER
+                "VER"
         ));
         assertFalse(securityService.hasPermission(
                 target,
                 "VENDAS",
-                "TODOS",
-                ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.VER
+                "VER"
         ));
 
         assertTrue(service.isCompanyAllowed(target, empresaPermitida.getId()));
