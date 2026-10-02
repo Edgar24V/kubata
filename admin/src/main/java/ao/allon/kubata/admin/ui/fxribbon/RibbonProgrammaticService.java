@@ -104,6 +104,9 @@ public class RibbonProgrammaticService {
         RibbonTab tab = new RibbonTab("Segurança");
 
         RibbonGroup acesso = new RibbonGroup("Acesso");
+        acesso.addLargeButton(largeBtn("gestao_acesso", "Gestão de Acesso", Feather.LOCK,
+                "Gerir atribuição de perfis, permissões e políticas individuais",
+                () -> opener.open("gestao_acesso", "Gestão de Acesso", () -> bl.apply(GestaoAcessoView.class), true)));
         acesso.addLargeButton(largeBtn("utilizadores", "Utilizadores", Feather.USERS, "Gerir utilizadores",
                 () -> opener.open("utilizadores", "Utilizadores", () -> bl.apply(UtilizadoresView.class), true)));
         acesso.addLargeButton(largeBtn("perfis", "Perfis", Feather.SHIELD, "Configurar perfis e permissões",
