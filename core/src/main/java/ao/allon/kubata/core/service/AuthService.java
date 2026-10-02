@@ -340,23 +340,30 @@ public class AuthService {
 
     @Transactional
     public void logout(User user, String ip) {
+        logout(user, user == null ? null : user.getSessionId(), ip);
+    }
+
+    /**
+     * Termina explicitamente a sessão identificada pelo SessionManager.
+     * Isto evita seleccionar outra sessão do mesmo utilizador quando existem
+     * vários logins simultâneos.
+     */
+    public void logout(User user, Long exactSessionId, String ip) {
         if (user == null) {
             return;
         }
 
-        Long sessionId = user.getSessionId();
-        if (sessionId != null) {
-            userSessionRepository.findById(sessionId)
+        if (exactSessionId != null) {
+            userSessionRepository.findById(exactSessionId)
                     .ifPresent(userSessionRepository::delete);
         } else {
-            // Compatibilidade com sessões antigas/instâncias que ainda não tinham
-            // o identificador local. Nunca usar findByUsername(), pois pode haver
-            // várias sessões para o mesmo utilizador.
+            // Compatibilidade apenas para sessões antigas sem identificador local.
             userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome())
                     .stream()
                     .findFirst()
                     .ifPresent(userSessionRepository::delete);
         }
+
         user.setSessionId(null);
 
         acessoService.registrarAuditoria(
