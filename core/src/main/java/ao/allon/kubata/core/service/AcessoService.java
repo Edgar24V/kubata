@@ -38,6 +38,9 @@ public class AcessoService {
     @Autowired
     private UserSecurityProfileService userSecurityProfileService;
 
+    @Autowired
+    private PasswordPolicyService passwordPolicyService;
+
     @Transactional
     public User salvarUsuario(User user, String rawPassword) {
         if (user.getId() == null) {
@@ -47,14 +50,14 @@ public class AcessoService {
             if (rawPassword == null || rawPassword.isBlank()) {
                 throw new IllegalArgumentException("Senha é obrigatória para novos usuários.");
             }
-            userSecurityProfileService.validatePassword(user, rawPassword);
+            passwordPolicyService.validateNewPassword(user, rawPassword);
             user.setPassword(passwordEncoder.encode(rawPassword));
             user.setPasswordChangedAt(LocalDateTime.now());
         } else {
             if (rawPassword != null && !rawPassword.isBlank()) {
                 // A política individual de palavra-passe também se aplica
                 // quando uma conta existente recebe uma nova credencial.
-                userSecurityProfileService.validatePassword(user, rawPassword);
+                passwordPolicyService.validateNewPassword(user, rawPassword);
                 user.setPassword(passwordEncoder.encode(rawPassword));
                 user.setPasswordChangedAt(LocalDateTime.now());
             }
