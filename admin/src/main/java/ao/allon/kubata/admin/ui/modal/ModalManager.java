@@ -523,6 +523,19 @@ public class ModalManager {
         return !modalStack.isEmpty();
     }
 
+    /**
+     * Indica se existe uma operação modal de confirmação ainda pendente.
+     * É usado pelo fecho da aplicação para evitar perder uma edição/operação
+     * que ainda aguarda Confirmar/Cancelar.
+     */
+    public boolean hasPendingChanges() {
+        return modalStack.stream()
+                .filter(frame -> !frame.minimized)
+                .anyMatch(frame ->
+                        frame.config != null && frame.config.showConfirmButtons
+                );
+    }
+
     private void showStandardModal(JMetroModalPane targetPane,
                                    Node content,
                                    ModalConfig config) {
