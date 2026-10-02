@@ -156,7 +156,7 @@ public class AuthService {
             throw new PasswordChangeRequiredException(user);
         }
 
-        securityProfileService.enforceConcurrentSessionLimit(user, LocalDateTime.now());
+        userSecurityProfileService.enforceConcurrentSessionLimit(user, LocalDateTime.now());
 
         user.setUltimoAcesso(LocalDateTime.now());
         user.setUltimoIpLogin(ip);
