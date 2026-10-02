@@ -137,7 +137,7 @@ class MfaCenterServiceTest {
         when(securityService.hasPermission(
                 eq(actor),
                 eq("ADMINISTRATOR"),
-                eq("MFA_CENTER"),
+                eq("UTILIZADORES"),
                 any()
         )).thenReturn(false);
 
