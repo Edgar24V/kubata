@@ -174,7 +174,10 @@ public class AuthService {
 
         // Criar sessão real na BD
         UserSession session = new UserSession(user.getNome(), workstation, ip, "KUBATA ERP");
-        userSessionRepository.save(session);
+        session = userSessionRepository.save(session);
+        // Guarda apenas em memória qual é o registo desta instância do cliente.
+        // Assim, o fecho pelo X não remove por engano uma sessão de outro posto.
+        user.setSessionId(session.getId());
 
         try {
             try {
@@ -311,14 +314,20 @@ public class AuthService {
             return;
         }
 
-        // A sessão mais recente corresponde normalmente ao posto que está a efectuar
-        // o logout neste cliente. Evitamos findByUsername(), que não identifica
-        // de forma determinística qual sessão deve ser removida quando existem várias.
-        userSessionRepository
-                .findAllByUsernameOrderByLoginTimeDesc(user.getNome())
-                .stream()
-                .findFirst()
-                .ifPresent(userSessionRepository::delete);
+        Long sessionId = user.getSessionId();
+        if (sessionId != null) {
+            userSessionRepository.findById(sessionId)
+                    .ifPresent(userSessionRepository::delete);
+        } else {
+            // Compatibilidade com sessões antigas/instâncias que ainda não tinham
+            // o identificador local. Nunca usar findByUsername(), pois pode haver
+            // várias sessões para o mesmo utilizador.
+            userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome())
+                    .stream()
+                    .findFirst()
+                    .ifPresent(userSessionRepository::delete);
+        }
+        user.setSessionId(null);
 
         acessoService.registrarAuditoria(
                 user,
