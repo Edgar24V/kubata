@@ -55,11 +55,20 @@ public class AcessoService {
             user.setPasswordChangedAt(LocalDateTime.now());
         } else {
             if (rawPassword != null && !rawPassword.isBlank()) {
-                // A política individual de palavra-passe também se aplica
-                // quando uma conta existente recebe uma nova credencial.
+                // A política central também controla idade mínima e histórico.
+                passwordPolicyService.validateMinimumPasswordAge(user, LocalDateTime.now());
                 passwordPolicyService.validateNewPassword(user, rawPassword);
+                passwordPolicyService.recordPreviousPassword(
+                        user,
+                        user.getPassword(),
+                        user.getEmail(),
+                        "ALTERACAO"
+                );
                 user.setPassword(passwordEncoder.encode(rawPassword));
                 user.setPasswordChangedAt(LocalDateTime.now());
+                user.setPasswordProvisoria(false);
+                user.setDataExpiracaoPassword(null);
+                user.setPasswordResetExpiresAt(null);
             }
         }
         return userRepository.save(user);
