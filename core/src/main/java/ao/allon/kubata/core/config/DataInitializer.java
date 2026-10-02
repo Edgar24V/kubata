@@ -44,6 +44,7 @@ public class DataInitializer {
                 User admin = new User();
                 admin.setNome("Administrador");
                 admin.setEmail(adminEmail);
+                admin.setCodigo("ADMIN-BOOTSTRAP");
                 admin.setPassword(passwordEncoder.encode(adminPassword));
                 admin.setRole(Role.ADMIN);
                 admin.setActive(true);
