@@ -1176,6 +1176,11 @@ public class LoginController {
                     password,
                     sourceIp
             );
+            resolveAdminSessionActionVisibility(
+                    sessionAction,
+                    email,
+                    password
+            );
         }
 
         Label securityNote = new Label(
@@ -1242,6 +1247,37 @@ public class LoginController {
         return reason != null
                 && reason.toLowerCase(Locale.ROOT)
                 .contains("limite de sessões simultâneas");
+    }
+
+    private void resolveAdminSessionActionVisibility(
+            VBox sessionAction,
+            String email,
+            String password
+    ) {
+        sessionAction.setManaged(false);
+        sessionAction.setVisible(false);
+
+        executor.submit(() -> {
+            boolean allowed;
+            try {
+                allowed = authService.canTerminateOldestSessionForLogin(
+                        email,
+                        password
+                );
+            } catch (Exception ex) {
+                log.debug(
+                        "Não foi possível confirmar autorização administrativa para término de sessão no login.",
+                        ex
+                );
+                allowed = false;
+            }
+
+            boolean authorized = allowed;
+            Platform.runLater(() -> {
+                sessionAction.setManaged(authorized);
+                sessionAction.setVisible(authorized);
+            });
+        });
     }
 
     private VBox buildTerminateOldestSessionAction(
