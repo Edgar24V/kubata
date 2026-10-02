@@ -74,7 +74,7 @@ class PasswordPolicyServiceIntegrationTest {
         );
         target.setEmpresa(empresa);
         target = userRepository.saveAndFlush(target);
-        final User targetFinal = target;
+        final Long targetUserId = target.getId();
 
         PasswordPolicy global = policy(
                 PasswordPolicy.ScopeType.GLOBAL,
@@ -146,16 +146,16 @@ class PasswordPolicyServiceIntegrationTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.validateNewPassword(targetFinal, "SenhaInicial1")
+                () -> service.validateNewPassword(userRepository.findById(targetUserId).orElseThrow(), "SenhaInicial1")
         );
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.validateNewPassword(targetFinal, "senha-fraca")
+                () -> service.validateNewPassword(userRepository.findById(targetUserId).orElseThrow(), "senha-fraca")
         );
 
         assertDoesNotThrow(
-                () -> service.validateNewPassword(targetFinal, "NovaSenhaForte1!")
+                () -> service.validateNewPassword(userRepository.findById(targetUserId).orElseThrow(), "NovaSenhaForte1!")
         );
     }
 
