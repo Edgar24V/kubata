@@ -101,25 +101,6 @@ public class MainController {
         stage.centerOnScreen();
     }
 
-    /**
-     * Encerra a sessão do administrador autenticado e regressa ao login.
-     * O contexto local é sempre limpo, mesmo que o registo da saída falhe.
-     */
-    public void performLogoutAndShowLogin() {
-        User user = sessionManager.getUser();
-
-        try {
-            if (user != null) {
-                authService.logout(user, "127.0.0.1");
-            }
-        } catch (Exception ignored) {
-            // O encerramento local não deve ficar bloqueado por uma falha de auditoria/persistência.
-        } finally {
-            sessionManager.logout();
-            switchToLogin();
-        }
-    }
-
     private void confirmLogout() {
         User user = sessionManager.getUser();
 
@@ -129,7 +110,8 @@ public class MainController {
         confirmation.setContentText(
                 user == null || user.getNome() == null
                         ? "Será devolvido ao ecrã de login."
-                        : "A sessão de "" + user.getNome() + "" será encerrada e voltará ao ecrã de login."
+                        : "A sessão de \"" + user.getNome()
+                                + "\" será encerrada e voltará ao ecrã de login."
         );
 
         confirmation.showAndWait().ifPresent(result -> {
@@ -151,7 +133,7 @@ public class MainController {
                 authService.logout(user, "127.0.0.1");
             }
         } catch (Exception ignored) {
-            // O encerramento local não deve ficar bloqueado por uma falha de auditoria/persistência.
+            // O encerramento local não deve ficar bloqueado por uma falha de persistência.
         } finally {
             sessionManager.logout();
             switchToLogin();
