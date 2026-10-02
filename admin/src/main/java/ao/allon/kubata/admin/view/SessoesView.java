@@ -305,9 +305,19 @@ public class SessoesView extends VBox {
 
     private boolean isOwnSession(UserSession session) {
         User actor = sessionManager.getUser();
-        return actor != null
-                && session != null
-                && actor.getNome() != null
+        if (actor == null || session == null) {
+            return false;
+        }
+
+        // Protege apenas a sessão desta instância. Sessões antigas do mesmo
+        // utilizador podem ser encerradas pelo administrador sem bloquear a sessão actual.
+        Long currentSessionId = sessionManager.getSessionId();
+        if (currentSessionId != null && session.getId() != null) {
+            return currentSessionId.equals(session.getId());
+        }
+
+        // Compatibilidade com sessões criadas antes do rastreio por ID.
+        return actor.getNome() != null
                 && actor.getNome().equalsIgnoreCase(session.getUsername());
     }
 
