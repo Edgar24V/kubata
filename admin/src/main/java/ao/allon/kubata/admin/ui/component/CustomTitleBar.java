@@ -10,6 +10,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.feather.Feather;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignM;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignW;
@@ -31,6 +32,7 @@ public class CustomTitleBar extends HBox {
     private double dragOffsetY;
 
     private Consumer<String> onSearchCallback;
+    private Runnable onHelpCallback;
 
     public CustomTitleBar(Stage stage, String appTitle) {
         this.stage = stage;
@@ -105,6 +107,16 @@ public class CustomTitleBar extends HBox {
         userBox.setAlignment(Pos.CENTER);
         userBox.setPadding(new Insets(0, 8, 0, 8));
 
+        // ── Ajuda do Administrator ──────────────────────────
+        FontIcon helpIcon = new FontIcon(Feather.HELP_CIRCLE);
+        helpIcon.setIconSize(15);
+        helpIcon.setIconColor(javafx.scene.paint.Color.WHITE);
+        Button helpBtn = new Button("Ajuda", helpIcon);
+        helpBtn.getStyleClass().add("title-bar-help-btn");
+        helpBtn.setTooltip(new Tooltip("Abrir o Centro de Ajuda do Kubata Administrator"));
+        helpBtn.setFocusTraversable(false);
+        helpBtn.setOnAction(e -> triggerHelp());
+
         // ── Botões de controlo da janela ────────────────────
         Button minimizeBtn = createWindowButton(new FontIcon(MaterialDesignW.WINDOW_MINIMIZE), "Minimizar", false);
         Button maximizeBtn = createWindowButton(new FontIcon(MaterialDesignW.WINDOW_MAXIMIZE), "Maximizar / Restaurar", false);
@@ -127,6 +139,7 @@ public class CustomTitleBar extends HBox {
             searchContainer,
             rightSpacer,
             userBox,
+            helpBtn,
             minimizeBtn,
             maximizeBtn,
             closeBtn
@@ -147,6 +160,10 @@ public class CustomTitleBar extends HBox {
 
     public void setOnSearch(Consumer<String> callback) {
         this.onSearchCallback = callback;
+    }
+
+    public void setOnHelp(Runnable callback) {
+        this.onHelpCallback = callback;
     }
 
     public void setUserName(String name) {
@@ -170,6 +187,12 @@ public class CustomTitleBar extends HBox {
     }
 
     // ── Privado ─────────────────────────────────────────────
+
+    private void triggerHelp() {
+        if (onHelpCallback != null) {
+            onHelpCallback.run();
+        }
+    }
 
     private void triggerSearch(String query) {
         if (onSearchCallback != null && !query.isEmpty()) {
