@@ -1188,8 +1188,9 @@ public class ConsoleView extends VBox {
 
     private void refreshAll() {
         persistenceService.executeSilent(() -> {
-            // Obter sessões reais da base de dados
+            // Obter dados principais da base de dados
             List<UserSession> sessions = userSessionRepository.findAll();
+            List<User> users = userRepository.findAll();
             
             // Obter bloqueios reais da base de dados
             List<RecordLock> locks = recordLockRepository.findAll();
