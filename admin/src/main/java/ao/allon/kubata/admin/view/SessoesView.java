@@ -13,6 +13,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -21,6 +22,8 @@ import javafx.scene.layout.*;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 
@@ -39,10 +42,19 @@ public class SessoesView extends VBox {
     private final NotificationService notificationService;
 
     private final ObservableList<UserSession> sessions = FXCollections.observableArrayList();
-    private final TableView<UserSession> table = new TableView<>(sessions);
+    private final FilteredList<UserSession> filteredSessions = new FilteredList<>(sessions, s -> true);
+    private final TableView<UserSession> table = new TableView<>(filteredSessions);
     private final Label status = new Label();
     private final Label totalValue = new Label("0");
+    private final Label usersValue = new Label("0");
+    private final Label currentValue = new Label("0");
     private final Label latestValue = new Label("—");
+    private final Label refreshValue = new Label("—");
+
+    private TextField searchField;
+    private ComboBox<String> contextFilter;
+    private Label detailUser, detailSessionId, detailWorkstation, detailIp,
+            detailContext, detailLogin, detailDuration, detailCurrent;
 
     private Button terminateSelectedButton;
     private Button terminateUserButton;
@@ -67,7 +79,7 @@ public class SessoesView extends VBox {
     }
 
     private void buildUi() {
-        VBox header = new VBox(10);
+        VBox header = new VBox(12);
         header.setPadding(new Insets(20, 22, 16, 22));
         header.getStyleClass().add("kubata-server-header");
 
@@ -77,75 +89,95 @@ public class SessoesView extends VBox {
         StackPane iconBox = new StackPane();
         iconBox.setAlignment(Pos.CENTER);
         iconBox.getStyleClass().add("kubata-server-title-icon");
-        iconBox.getChildren().add(new Label("", IconUtils.icon(Feather.USERS, 22)));
+        iconBox.setPrefSize(48, 48);
+        iconBox.setMinSize(48, 48);
+        iconBox.setMaxSize(48, 48);
+        iconBox.getChildren().add(IconUtils.icon(Feather.USERS, 22));
 
-        VBox titles = new VBox(2);
-        Label title = new Label("Sessões do Sistema");
+        VBox titles = new VBox(3);
+        Label eyebrow = new Label("INFRAESTRUTURA · SEGURANÇA");
+        eyebrow.getStyleClass().add("kubata-sessions-eyebrow");
+
+        Label title = new Label("Sessões");
         title.getStyleClass().add("kubata-server-title");
 
         Label subtitle = new Label(
-                "Consulte as sessões activas e termine sessões de outros utilizadores de forma controlada."
+                "Centro de monitorização das sessões registadas, origem, contexto e controlo administrativo."
         );
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("kubata-server-subtitle");
-        titles.getChildren().addAll(title, subtitle);
+        titles.getChildren().addAll(eyebrow, title, subtitle);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button refresh = new Button(
-                "Actualizar sessões",
-                IconUtils.icon(Feather.REFRESH_CW, 13)
-        );
+        Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 13));
         refresh.getStyleClass().add("button-primary");
         refresh.setOnAction(e -> load());
 
         line.getChildren().addAll(iconBox, titles, spacer, refresh);
 
         Label context = new Label(
-                "SEGURANÇA · terminar sessões é uma operação administrativa auditada"
+                "CONTROLO DE SESSÕES · encerramento exacto por identificador e auditoria administrativa",
+                IconUtils.icon(Feather.SHIELD, 11)
         );
-        context.getStyleClass().add("kubata-server-status-bar");
+        context.getStyleClass().add("kubata-sessions-context");
 
         header.getChildren().addAll(line, context);
 
         buildTable();
 
-        VBox content = new VBox(14);
+        VBox content = new VBox(12);
         content.setPadding(new Insets(16, 20, 20, 20));
         content.setFillWidth(true);
+        content.getChildren().addAll(buildMetrics(), buildFilters(), buildActionsBar());
 
-        content.getChildren().addAll(
-                buildMetrics(),
-                buildActionsBar()
-        );
+        SplitPane split = new SplitPane();
+        split.setOrientation(javafx.geometry.Orientation.HORIZONTAL);
+        split.setDividerPositions(0.72);
+        split.getStyleClass().add("kubata-sessions-split");
+
+        VBox tableSection = new VBox(9);
+        tableSection.setPadding(new Insets(12));
+        tableSection.getStyleClass().add("kubata-server-panel");
 
         HBox tableHeader = new HBox(8);
         tableHeader.setAlignment(Pos.CENTER_LEFT);
 
         VBox tableTitles = new VBox(2);
-        Label tableTitle = new Label("Registo de sessões");
+        Label tableTitle = new Label("Sessões registadas");
         tableTitle.getStyleClass().add("kubata-server-panel-title");
+
         Label tableSubtitle = new Label(
-                "Seleccione uma sessão para disponibilizar as acções correspondentes."
+                "Seleccione uma sessão para consultar os detalhes e operações disponíveis."
         );
         tableSubtitle.getStyleClass().add("kubata-server-note");
         tableTitles.getChildren().addAll(tableTitle, tableSubtitle);
 
         Region tableSpacer = new Region();
         HBox.setHgrow(tableSpacer, Priority.ALWAYS);
-        status.getStyleClass().add("kubata-server-status-value");
         tableHeader.getChildren().addAll(tableTitles, tableSpacer, status);
 
-        VBox section = new VBox(10, tableHeader, table);
-        section.getStyleClass().add("kubata-server-panel");
+        tableSection.getChildren().addAll(tableHeader, table);
         VBox.setVgrow(table, Priority.ALWAYS);
-        VBox.setVgrow(section, Priority.ALWAYS);
+        VBox.setVgrow(tableSection, Priority.ALWAYS);
 
-        content.getChildren().add(section);
+        split.getItems().addAll(tableSection, buildDetailsPane());
+        VBox.setVgrow(split, Priority.ALWAYS);
+
+        content.getChildren().add(split);
         VBox.setVgrow(content, Priority.ALWAYS);
-
         getChildren().addAll(header, content);
+
+        searchField.textProperty().addListener((obs, oldValue, newValue) -> applyFilters());
+        contextFilter.valueProperty().addListener((obs, oldValue, newValue) -> applyFilters());
+
+        table.getSelectionModel().selectedItemProperty().addListener(
+                (obs, oldValue, newValue) -> {
+                    updateActionState();
+                    updateDetails(newValue);
+                }
+        );
     }
 
     private HBox buildActionsBar() {
@@ -191,14 +223,15 @@ public class SessoesView extends VBox {
     }
 
     private HBox buildMetrics() {
-        HBox row = new HBox(12);
+        HBox row = new HBox(10);
         row.getChildren().addAll(
-                metricCard("SESSÕES REGISTADAS", totalValue, Feather.LIST),
-                metricCard("ÚLTIMO LOGIN", latestValue, Feather.CLOCK)
+                metricCard("SESSÕES", totalValue, Feather.USERS),
+                metricCard("UTILIZADORES", usersValue, Feather.USER),
+                metricCard("SESSÃO ACTUAL", currentValue, Feather.SHIELD),
+                metricCard("ÚLTIMO LOGIN", latestValue, Feather.CLOCK),
+                metricCard("ACTUALIZADO", refreshValue, Feather.REFRESH_CW)
         );
-        for (Node node : row.getChildren()) {
-            HBox.setHgrow(node, Priority.ALWAYS);
-        }
+        for (Node node : row.getChildren()) HBox.setHgrow(node, Priority.ALWAYS);
         return row;
     }
 
@@ -226,64 +259,81 @@ public class SessoesView extends VBox {
 
     private void buildTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        table.getStyleClass().add("kubata-server-properties-table");
-        table.setPlaceholder(new Label("Nenhuma sessão registada."));
+        table.setFixedCellSize(40);
+        table.getStyleClass().addAll("kubata-server-properties-table", "kubata-sessions-table");
+        table.setPlaceholder(new Label("Nenhuma sessão corresponde aos filtros."));
 
-        TableColumn<UserSession, String> user =
-                textColumn("Utilizador", UserSession::getUsername);
-        TableColumn<UserSession, String> workstation =
-                textColumn("Posto", UserSession::getWorkstation);
-        TableColumn<UserSession, String> ip =
-                textColumn("IP", UserSession::getIpAddress);
-        TableColumn<UserSession, String> context =
-                textColumn("Contexto", UserSession::getContext);
+        TableColumn<UserSession, String> id = textColumn(
+                "ID", s -> s.getId() == null ? "—" : String.valueOf(s.getId()));
+        id.setPrefWidth(70);
+        id.setMaxWidth(85);
+
+        TableColumn<UserSession, String> user = textColumn(
+                "Utilizador", UserSession::getUsername);
+        TableColumn<UserSession, String> workstation = textColumn(
+                "Posto", UserSession::getWorkstation);
+        TableColumn<UserSession, String> ip = textColumn(
+                "IP", UserSession::getIpAddress);
+        TableColumn<UserSession, String> context = textColumn(
+                "Contexto", UserSession::getContext);
         TableColumn<UserSession, String> login = textColumn(
-                "Login",
-                s -> s.getLoginTime() == null ? "—" : s.getLoginTime().format(DATE_TIME)
-        );
+                "Login", s -> s.getLoginTime() == null ? "—" : s.getLoginTime().format(DATE_TIME));
 
-        TableColumn<UserSession, Void> actions = new TableColumn<>("Ações");
-        actions.setPrefWidth(110);
-        actions.setMinWidth(110);
-        actions.setMaxWidth(130);
-        actions.setCellFactory(col -> new TableCell<>() {
-            private final Button button = new Button(
-                    "Terminar",
-                    IconUtils.icon(Feather.LOG_OUT, 11)
-            );
-
-            {
-                button.getStyleClass().add("button-danger-outlined");
-                button.setOnAction(e -> {
-                    UserSession session = getTableView().getItems().get(getIndex());
-                    confirmTerminateSession(session);
-                });
+        TableColumn<UserSession, String> state = new TableColumn<>("Estado");
+        state.setCellValueFactory(data -> new SimpleStringProperty(
+                isOwnSession(data.getValue()) ? "SESSÃO ACTUAL" : "ACTIVA"
+        ));
+        state.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                Label badge = new Label(item);
+                badge.getStyleClass().addAll(
+                        "kubata-session-status-badge",
+                        "SESSÃO ACTUAL".equals(item)
+                                ? "kubata-session-current"
+                                : "kubata-session-active"
+                );
+                setText(null);
+                setGraphic(badge);
+                setAlignment(Pos.CENTER);
             }
+        });
 
-            @Override
-            protected void updateItem(Void item, boolean empty) {
+        TableColumn<UserSession, Void> actions = new TableColumn<>("Acções");
+        actions.setPrefWidth(82);
+        actions.setMinWidth(82);
+        actions.setMaxWidth(95);
+        actions.setCellFactory(col -> new TableCell<>() {
+            private final Button button = new Button("", IconUtils.icon(Feather.LOG_OUT, 11));
+            {
+                button.getStyleClass().add("button-icon-danger");
+                button.setOnAction(e -> confirmTerminateSession(
+                        getTableView().getItems().get(getIndex())));
+            }
+            @Override protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || getIndex() < 0 || getIndex() >= getTableView().getItems().size()) {
                     setGraphic(null);
                     return;
                 }
-
                 UserSession session = getTableView().getItems().get(getIndex());
                 boolean own = isOwnSession(session);
                 button.setDisable(own);
                 button.setTooltip(new Tooltip(
-                        own
-                                ? "Use “Encerrar Sessão” no cabeçalho para sair da sua própria sessão."
+                        own ? "A sessão actual está protegida."
                                 : "Terminar esta sessão."
                 ));
                 setGraphic(button);
+                setAlignment(Pos.CENTER);
             }
         });
 
-        table.getColumns().setAll(user, workstation, ip, context, login, actions);
-        table.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldValue, newValue) -> updateActionState()
-        );
+        table.getColumns().setAll(id, user, workstation, ip, context, login, state, actions);
     }
 
     private TableColumn<UserSession, String> textColumn(
@@ -294,6 +344,142 @@ public class SessoesView extends VBox {
                 mapper.apply(data.getValue()) == null ? "—" : mapper.apply(data.getValue())
         ));
         return col;
+    }
+
+    private VBox buildDetailsPane() {
+        VBox pane = new VBox(10);
+        pane.setPadding(new Insets(14));
+        pane.getStyleClass().add("kubata-sessions-details");
+
+        HBox titleRow = new HBox(9);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane icon = new StackPane();
+        icon.getStyleClass().add("kubata-sessions-details-icon");
+        icon.setPrefSize(40, 40);
+        icon.setMinSize(40, 40);
+        icon.setMaxSize(40, 40);
+        icon.getChildren().add(IconUtils.icon(Feather.USER, 17));
+
+        VBox titleText = new VBox(2);
+        detailUser = new Label("Nenhuma sessão seleccionada");
+        detailUser.getStyleClass().add("kubata-sessions-details-title");
+
+        Label caption = new Label("Detalhes da sessão");
+        caption.getStyleClass().add("kubata-sessions-details-caption");
+        titleText.getChildren().addAll(detailUser, caption);
+        titleRow.getChildren().addAll(icon, titleText);
+
+        VBox facts = new VBox(4);
+        facts.getStyleClass().add("kubata-sessions-details-card");
+        detailSessionId = detailRow(facts, "ID da sessão");
+        detailWorkstation = detailRow(facts, "Posto");
+        detailIp = detailRow(facts, "Endereço IP");
+        detailContext = detailRow(facts, "Contexto");
+        detailLogin = detailRow(facts, "Login");
+        detailDuration = detailRow(facts, "Duração");
+        detailCurrent = detailRow(facts, "Sessão actual");
+
+        Label security = new Label(
+                "O encerramento utiliza o ID da sessão e fica registado no histórico administrativo.",
+                IconUtils.icon(Feather.SHIELD, 11)
+        );
+        security.setWrapText(true);
+        security.getStyleClass().add("kubata-sessions-security-card");
+
+        Button terminate = new Button("Terminar sessão", IconUtils.icon(Feather.LOG_OUT, 12));
+        terminate.getStyleClass().add("button-danger-outlined");
+        terminate.setOnAction(e -> terminateSelectedSession());
+
+        Button terminateUser = new Button(
+                "Terminar todas deste utilizador",
+                IconUtils.icon(Feather.USER_X, 12)
+        );
+        terminateUser.getStyleClass().add("button-outlined");
+        terminateUser.setOnAction(e -> terminateAllSelectedUserSessions());
+
+        HBox actions = new HBox(7, terminate, terminateUser);
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        pane.getChildren().addAll(titleRow, facts, security, actions);
+        return pane;
+    }
+
+    private Label detailRow(VBox parent, String title) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("kubata-sessions-details-row");
+
+        Label key = new Label(title.toUpperCase());
+        key.getStyleClass().add("kubata-sessions-details-key");
+        key.setMinWidth(105);
+
+        Label value = new Label("—");
+        value.getStyleClass().add("kubata-sessions-details-value");
+        HBox.setHgrow(value, Priority.ALWAYS);
+
+        row.getChildren().addAll(key, value);
+        parent.getChildren().add(row);
+        return value;
+    }
+
+    private void updateDetails(UserSession selected) {
+        if (selected == null) {
+            detailUser.setText("Nenhuma sessão seleccionada");
+            detailSessionId.setText("—");
+            detailWorkstation.setText("—");
+            detailIp.setText("—");
+            detailContext.setText("—");
+            detailLogin.setText("—");
+            detailDuration.setText("—");
+            detailCurrent.setText("—");
+            return;
+        }
+
+        detailUser.setText(safe(selected.getUsername()));
+        detailSessionId.setText(selected.getId() == null ? "—" : String.valueOf(selected.getId()));
+        detailWorkstation.setText(safe(selected.getWorkstation()));
+        detailIp.setText(safe(selected.getIpAddress()));
+        detailContext.setText(safe(selected.getContext()));
+        detailLogin.setText(formatDate(selected));
+        detailDuration.setText(formatDuration(selected));
+        detailCurrent.setText(isOwnSession(selected) ? "SIM · PROTEGIDA" : "NÃO");
+    }
+
+    private String formatDuration(UserSession session) {
+        if (session == null || session.getLoginTime() == null) return "—";
+        Duration duration = Duration.between(session.getLoginTime(), LocalDateTime.now());
+        if (duration.isNegative()) return "—";
+
+        long seconds = duration.getSeconds();
+        long days = seconds / 86400;
+        long hours = (seconds % 86400) / 3600;
+        long minutes = (seconds % 3600) / 60;
+
+        return days > 0
+                ? String.format("%dd %02dh %02dm", days, hours, minutes)
+                : String.format("%02dh %02dm", hours, minutes);
+    }
+
+    private void applyFilters() {
+        String query = searchField == null ? "" : searchField.getText();
+        String normalized = query == null ? "" : query.trim().toLowerCase();
+        String context = contextFilter == null ? "TODOS" : contextFilter.getValue();
+
+        filteredSessions.setPredicate(session -> {
+            if (session == null) return false;
+
+            boolean textMatch = normalized.isBlank()
+                    || safe(session.getUsername()).toLowerCase().contains(normalized)
+                    || safe(session.getWorkstation()).toLowerCase().contains(normalized)
+                    || safe(session.getIpAddress()).toLowerCase().contains(normalized)
+                    || safe(session.getContext()).toLowerCase().contains(normalized);
+
+            return textMatch
+                    && ("TODOS".equals(context)
+                    || safe(session.getContext()).equalsIgnoreCase(context));
+        });
+
+        status.setText(filteredSessions.size() + " sessão(ões) visível(is)");
     }
 
     private void updateActionState() {
@@ -521,7 +707,17 @@ public class SessoesView extends VBox {
 
                 Platform.runLater(() -> {
                     sessions.setAll(result);
-                    totalValue.setText(Integer.toString(sessions.size()));
+
+                    long uniqueUsers = sessions.stream()
+                            .map(UserSession::getUsername)
+                            .filter(java.util.Objects::nonNull)
+                            .map(String::toLowerCase)
+                            .distinct()
+                            .count();
+
+                    long current = sessions.stream()
+                            .filter(this::isOwnSession)
+                            .count();
 
                     String latest = sessions.stream()
                             .map(UserSession::getLoginTime)
@@ -529,14 +725,35 @@ public class SessoesView extends VBox {
                             .findFirst()
                             .map(v -> v.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
                             .orElse("—");
-                    latestValue.setText(latest);
 
-                    String current = sessionManager.getUser() == null
+                    totalValue.setText(Integer.toString(sessions.size()));
+                    usersValue.setText(Long.toString(uniqueUsers));
+                    currentValue.setText(Long.toString(current));
+                    latestValue.setText(latest);
+                    refreshValue.setText(LocalDateTime.now().format(
+                            DateTimeFormatter.ofPattern("HH:mm:ss")));
+
+                    contextFilter.getItems().setAll("TODOS");
+                    sessions.stream()
+                            .map(UserSession::getContext)
+                            .filter(java.util.Objects::nonNull)
+                            .map(String::trim)
+                            .filter(v -> !v.isBlank())
+                            .distinct()
+                            .sorted(String.CASE_INSENSITIVE_ORDER)
+                            .forEach(contextFilter.getItems()::add);
+
+                    applyFilters();
+                    UserSession selected = table.getSelectionModel().getSelectedItem();
+                    if (selected != null) updateDetails(selected);
+
+                    String currentUser = sessionManager.getUser() == null
                             ? "Utilizador: —"
                             : "Utilizador actual: " + sessionManager.getUser().getEmail();
+
                     status.setText(
-                            current + " · " + sessions.size()
-                                    + " sessão(ões) registada(s)."
+                            currentUser + " · " + filteredSessions.size()
+                                    + " sessão(ões) visível(is)"
                     );
                     updateActionState();
                 });
