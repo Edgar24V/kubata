@@ -11,7 +11,6 @@ import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.service.UserAdministrationService;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -20,14 +19,11 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.CheckBoxListCell;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.util.StringConverter;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -43,7 +39,6 @@ public class GestaoAcessoView extends BorderPane {
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
     private final UtilizadoresView utilizadoresView;
-    private final PerfisView perfisView;
     private final PerfilSegurancaUtilizadorView perfilSegurancaUtilizadorView;
 
     private final ObservableList<User> users = FXCollections.observableArrayList();
@@ -80,14 +75,12 @@ public class GestaoAcessoView extends BorderPane {
             SessionManager sessionManager,
             ModalManager modalManager,
             UtilizadoresView utilizadoresView,
-            PerfisView perfisView,
             PerfilSegurancaUtilizadorView perfilSegurancaUtilizadorView) {
         this.userAdministrationService = userAdministrationService;
         this.perfilRepository = perfilRepository;
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
         this.utilizadoresView = utilizadoresView;
-        this.perfisView = perfisView;
         this.perfilSegurancaUtilizadorView = perfilSegurancaUtilizadorView;
 
         buildUI();
@@ -943,24 +936,6 @@ public class GestaoAcessoView extends BorderPane {
         draft.setMfaRecoveryCodes(source.getMfaRecoveryCodes());
         draft.setPerfis(profiles);
         return draft;
-    }
-
-    private void showUsersPageHint() {
-        modalManager.alert(
-                "Utilizadores",
-                "A página de utilizadores já contém edição de conta, MFA, dispositivos, sessões e perfil individual de segurança.",
-                "info",
-                null
-        );
-    }
-
-    private void showProfilesPageHint() {
-        modalManager.alert(
-                "Perfis",
-                "A página de perfis permite criar, editar e configurar as permissões RBAC por módulo, recurso e operação.",
-                "info",
-                null
-        );
     }
 
     private String profileText(User user) {
