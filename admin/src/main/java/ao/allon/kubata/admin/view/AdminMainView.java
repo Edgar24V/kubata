@@ -25,6 +25,7 @@ public class AdminMainView extends StackPane {
     private final ModalManager modalManager;
     private final NotificationService notificationService;
     private final RibbonProgrammaticService ribbonService;
+    private Runnable onLogout;
 
     private final BorderPane layout = new BorderPane();
     private final Ribbon ribbon = new Ribbon();
@@ -50,7 +51,21 @@ public class AdminMainView extends StackPane {
         }
         buildUI();
         titleBar.setOnHelp(this::openHelpCenter);
+        if (onLogout != null) {
+            titleBar.setOnLogout(onLogout);
+        }
         buildRibbon();
+    }
+
+    /**
+     * Define o fluxo de encerramento seguro da sessão a partir do cabeçalho.
+     */
+    public void setOnLogout(Runnable callback) {
+        this.onLogout = callback;
+        if (titleBar != null) {
+            titleBar.setOnLogout(callback);
+            titleBar.setOnWindowClose(callback);
+        }
     }
 
     // ── Construção da UI ────────────────────────────────────────────────────────
