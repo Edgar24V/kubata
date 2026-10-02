@@ -42,6 +42,7 @@ public class PasswordResetService {
 
     private int resetValidityDays = 1;
 
+    @Autowired
     public PasswordResetService(UserRepository userRepository,
                                 UserSessionRepository userSessionRepository,
                                 PasswordEncoder passwordEncoder,
@@ -54,6 +55,22 @@ public class PasswordResetService {
         this.securityService = securityService;
         this.auditService = auditService;
         this.passwordPolicyService = passwordPolicyService;
+        this.legacyUserSecurityProfileService = null;
+    }
+
+    public PasswordResetService(UserRepository userRepository,
+                                UserSessionRepository userSessionRepository,
+                                PasswordEncoder passwordEncoder,
+                                SecurityService securityService,
+                                AuditService auditService,
+                                UserSecurityProfileService userSecurityProfileService) {
+        this.userRepository = userRepository;
+        this.userSessionRepository = userSessionRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.securityService = securityService;
+        this.auditService = auditService;
+        this.passwordPolicyService = null;
+        this.legacyUserSecurityProfileService = userSecurityProfileService;
     }
 
     @Transactional
