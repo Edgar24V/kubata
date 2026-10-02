@@ -24,8 +24,10 @@ CREATE TABLE IF NOT EXISTS adm_permissao_perfil (
 );
 
 INSERT INTO adm_perfil_acesso (codigo, descricao, sistema, activo)
-VALUES ('ADMIN', 'Administrador do Sistema', TRUE, TRUE)
-ON CONFLICT (codigo) DO NOTHING;
+SELECT 'ADMIN', 'Administrador do Sistema', TRUE, TRUE
+WHERE NOT EXISTS (
+    SELECT 1 FROM adm_perfil_acesso WHERE codigo = 'ADMIN'
+);
 
 
 INSERT INTO adm_permissao_perfil (perfil_id, modulo, recurso, operacao, permitido)
