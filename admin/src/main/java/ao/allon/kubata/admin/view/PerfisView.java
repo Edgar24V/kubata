@@ -62,6 +62,18 @@ public class PerfisView extends VBox {
     private Label detailHighRisk;
     private Label detailUserHint;
 
+    // Edição rápida directamente no painel de detalhes.
+    private TextField inlineCode;
+    private TextField inlineDescription;
+    private ComboBox<Empresa> inlineEmpresa;
+    private TextArea inlineObservacoes;
+    private CheckBox inlineActivo;
+    private Button btnInlineGuardar;
+    private Button btnInlineCancelar;
+    private VBox inlineEditor;
+    private Button btnConfigurarPermissoes;
+    private PerfilAcesso inlineEditingProfile;
+
     private Button btnNovoPerfil;
     private Button btnEditar;
     private Button btnDuplicar;
@@ -409,7 +421,9 @@ public class PerfisView extends VBox {
         tv.getSelectionModel().selectedItemProperty()
                 .addListener((obs, old, selected) -> updateDetails(selected));
 
-        tv.setOnEdit(this::showPerfilDialog);
+        // "Editar" na tabela entra no modo de edição rápida;
+        // o duplo clique/detalhe abre a configuração completa.
+        tv.setOnEdit(this::startInlineEdit);
         tv.setOnViewDetails(this::showPerfilDialog);
         tv.setOnDelete(selected -> removeSelectedPerfil());
         tv.setOnRefresh(this::loadPerfis);
@@ -452,19 +466,267 @@ public class PerfisView extends VBox {
         Label actionTitle = new Label("Operações");
         actionTitle.getStyleClass().add("kubata-profiles-section-title");
 
-        btnEditar = profileAction("Editar perfil", Feather.EDIT_2);
+        btnEditar = profileAction("Editar na tela", Feather.EDIT_2);
+        btnConfigurarPermissoes = profileAction("Configurar permissões", Feather.KEY);
         btnDuplicar = profileAction("Duplicar perfil", Feather.COPY);
         btnRemover = profileAction("Remover perfil", Feather.TRASH_2);
 
-        btnEditar.setOnAction(e -> selectedPerfil().ifPresent(this::showPerfilDialog));
+        btnEditar.setOnAction(e -> selectedPerfil().ifPresent(this::startInlineEdit));
+        btnConfigurarPermissoes.setOnAction(e -> selectedPerfil().ifPresent(this::showPerfilDialog));
         btnDuplicar.setOnAction(e -> selectedPerfil().ifPresent(this::duplicatePerfil));
         btnRemover.setOnAction(e -> removeSelectedPerfil());
 
-        actions.getChildren().addAll(actionTitle, btnEditar, btnDuplicar, btnRemover);
-        details.getChildren().addAll(identity, new Separator(), actions);
+        actions.getChildren().addAll(
+                actionTitle,
+                btnEditar,
+                btnConfigurarPermissoes,
+                btnDuplicar,
+                btnRemover
+        );
+        inlineEditor = buildInlineEditor();
+
+        details.getChildren().addAll(
+                identity,
+                new Separator(),
+                inlineEditor,
+                actions
+        );
 
         updateDetails(null);
         return details;
+    }
+
+    private VBox buildInlineEditor() {
+        VBox card = new VBox(9);
+        card.getStyleClass().add("kubata-profiles-inline-editor");
+        card.setManaged(false);
+        card.setVisible(false);
+
+        Label title = new Label("Edição rápida");
+        title.getStyleClass().add("kubata-profiles-inline-title");
+
+        Label hint = new Label(
+                "Altere os dados básicos sem sair do ecrã. A matriz de permissões é configurada separadamente."
+        );
+        hint.setWrapText(true);
+        hint.getStyleClass().add("kubata-profiles-inline-hint");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(9);
+        grid.setVgap(8);
+
+        inlineCode = new TextField();
+        inlineCode.setPromptText("Código");
+        inlineCode.setMaxWidth(Double.MAX_VALUE);
+
+        inlineDescription = new TextField();
+        inlineDescription.setPromptText("Descrição");
+        inlineDescription.setMaxWidth(Double.MAX_VALUE);
+
+        inlineEmpresa = new ComboBox<>();
+        inlineEmpresa.getItems().add(null);
+        inlineEmpresa.getItems().addAll(empresaRepository.findAll());
+        inlineEmpresa.setPromptText("Global / empresa");
+        inlineEmpresa.setMaxWidth(Double.MAX_VALUE);
+        inlineEmpresa.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(Empresa object) {
+                return object == null
+                        ? "Global — todas as empresas"
+                        : companyName(object);
+            }
+
+            @Override
+            public Empresa fromString(String string) {
+                return null;
+            }
+        });
+
+        inlineObservacoes = new TextArea();
+        inlineObservacoes.setPromptText("Observações");
+        inlineObservacoes.setWrapText(true);
+        inlineObservacoes.setPrefRowCount(3);
+
+        inlineActivo = new CheckBox("Perfil activo");
+        inlineActivo.setSelected(true);
+
+        grid.add(fieldLabel("Código"), 0, 0);
+        grid.add(inlineCode, 1, 0);
+        grid.add(fieldLabel("Descrição"), 0, 1);
+        grid.add(inlineDescription, 1, 1);
+        grid.add(fieldLabel("Empresa"), 0, 2);
+        grid.add(inlineEmpresa, 1, 2);
+        grid.add(fieldLabel("Observações"), 0, 3);
+        grid.add(inlineObservacoes, 1, 3);
+
+        ColumnConstraints labelColumn = new ColumnConstraints(90);
+        ColumnConstraints valueColumn = new ColumnConstraints();
+        valueColumn.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(labelColumn, valueColumn);
+
+        btnInlineGuardar = new Button(
+                "Guardar",
+                IconUtils.icon(Feather.CHECK, 12)
+        );
+        btnInlineGuardar.getStyleClass().add("button-primary");
+        btnInlineGuardar.setOnAction(e -> saveInlineEdit());
+
+        btnInlineCancelar = new Button(
+                "Cancelar",
+                IconUtils.icon(Feather.X, 12)
+        );
+        btnInlineCancelar.getStyleClass().add("button-outlined");
+        btnInlineCancelar.setOnAction(e -> cancelInlineEdit());
+
+        HBox editorActions = new HBox(
+                7,
+                inlineActivo,
+                new Pane(),
+                btnInlineCancelar,
+                btnInlineGuardar
+        );
+        HBox.setHgrow(editorActions.getChildren().get(1), Priority.ALWAYS);
+        editorActions.setAlignment(Pos.CENTER_LEFT);
+
+        card.getChildren().addAll(title, hint, grid, editorActions);
+        return card;
+    }
+
+    private Label fieldLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("kubata-profiles-inline-label");
+        return label;
+    }
+
+    private void startInlineEdit(PerfilAcesso perfil) {
+        if (perfil == null || !can("EDITAR")) {
+            return;
+        }
+
+        if (Boolean.TRUE.equals(perfil.getSistema())) {
+            modalManager.alert(
+                    "Perfil protegido",
+                    "Perfis de sistema não podem ser editados directamente. Pode criar uma cópia para personalização.",
+                    "info",
+                    null
+            );
+            return;
+        }
+
+        inlineEditingProfile = perfil;
+        inlineCode.setText(safe(perfil.getCodigo(), ""));
+        inlineDescription.setText(safe(perfil.getDescricao(), ""));
+        inlineEmpresa.setValue(perfil.getEmpresa());
+        inlineObservacoes.setText(
+                perfil.getObservacoes() == null ? "" : perfil.getObservacoes()
+        );
+        inlineActivo.setSelected(Boolean.TRUE.equals(perfil.getActivo()));
+
+        inlineEditor.setManaged(true);
+        inlineEditor.setVisible(true);
+        inlineCode.requestFocus();
+        inlineCode.selectAll();
+    }
+
+    private void cancelInlineEdit() {
+        inlineEditingProfile = null;
+        if (inlineEditor != null) {
+            inlineEditor.setManaged(false);
+            inlineEditor.setVisible(false);
+        }
+    }
+
+    private void saveInlineEdit() {
+        PerfilAcesso target = inlineEditingProfile;
+        if (target == null || !can("EDITAR")) {
+            return;
+        }
+
+        String code = inlineCode.getText() == null
+                ? ""
+                : inlineCode.getText().trim().toUpperCase(Locale.ROOT);
+        String description = inlineDescription.getText() == null
+                ? ""
+                : inlineDescription.getText().trim();
+        String observations = inlineObservacoes.getText() == null
+                ? ""
+                : inlineObservacoes.getText().trim();
+
+        if (!code.matches("[A-Z0-9_-]{3,20}")) {
+            modalManager.alert(
+                    "Código inválido",
+                    "Use entre 3 e 20 caracteres: A-Z, números, hífen ou underscore.",
+                    "warning",
+                    null
+            );
+            inlineCode.requestFocus();
+            return;
+        }
+
+        if (description.isBlank()) {
+            modalManager.alert(
+                    "Descrição obrigatória",
+                    "Introduza uma descrição clara para o perfil.",
+                    "warning",
+                    null
+            );
+            inlineDescription.requestFocus();
+            return;
+        }
+
+        if (observations.length() > 500) {
+            modalManager.alert(
+                    "Observações demasiado longas",
+                    "As observações não podem ultrapassar 500 caracteres.",
+                    "warning",
+                    null
+            );
+            return;
+        }
+
+        Optional<PerfilAcesso> existing = perfilRepository.findByCodigo(code);
+        if (existing.isPresent()
+                && !Objects.equals(existing.get().getId(), target.getId())) {
+            modalManager.alert(
+                    "Código já utilizado",
+                    "Já existe outro perfil com o código " + code + ".",
+                    "warning",
+                    null
+            );
+            inlineCode.requestFocus();
+            return;
+        }
+
+        try {
+            target.setCodigo(code);
+            target.setDescricao(description);
+            target.setEmpresa(inlineEmpresa.getValue());
+            target.setObservacoes(observations.isBlank() ? null : observations);
+            target.setActivo(inlineActivo.isSelected());
+
+            PerfilAcesso saved = acessoService.salvarPerfil(target);
+            Long selectedId = saved.getId();
+
+            cancelInlineEdit();
+            loadPerfis();
+
+            perfis.stream()
+                    .filter(p -> Objects.equals(p.getId(), selectedId))
+                    .findFirst()
+                    .ifPresent(p -> table.getSelectionModel().select(p));
+
+            modalManager.success(
+                    "Perfil actualizado",
+                    "Os dados básicos do perfil " + saved.getCodigo()
+                            + " foram guardados."
+            );
+        } catch (Exception ex) {
+            modalManager.showErrorModal(
+                    "Erro ao guardar perfil",
+                    "Não foi possível guardar as alterações do perfil.",
+                    ex
+            );
+        }
     }
 
     private Label detailValue(VBox target, String label, String value) {
@@ -590,6 +852,14 @@ public class PerfisView extends VBox {
 
     private void updateDetails(PerfilAcesso selected) {
         if (detailCode == null) return;
+
+        if (inlineEditingProfile != null
+                && !Objects.equals(
+                inlineEditingProfile.getId(),
+                selected == null ? null : selected.getId()
+        )) {
+            cancelInlineEdit();
+        }
 
         boolean has = selected != null;
         if (!has) {
@@ -1205,10 +1475,10 @@ public class PerfisView extends VBox {
                 return false;
             }
 
-            if (!normalizedCode.matches("[A-Z0-9_\\-]{3,30}")) {
+            if (!normalizedCode.matches("[A-Z0-9_\\-]{3,20}")) {
                 modalManager.alert(
                         "Código inválido",
-                        "Use entre 3 e 30 caracteres: A-Z, números, hífen ou underscore.",
+                        "Use entre 3 e 20 caracteres: A-Z, números, hífen ou underscore.",
                         "warning",
                         null
                 );
@@ -1401,8 +1671,25 @@ public class PerfisView extends VBox {
     private void duplicatePerfil(PerfilAcesso original) {
         if (original == null || !can("CRIAR")) return;
 
+        String baseCode = safe(original.getCodigo(), "PERFIL")
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("[^A-Z0-9_-]", "_");
+
+        if (baseCode.length() > 14) {
+            baseCode = baseCode.substring(0, 14);
+        }
+
+        String duplicateCode = baseCode + "_COPY";
+        int suffix = 2;
+        while (perfilRepository.findByCodigo(duplicateCode).isPresent()) {
+            String suffixText = "_" + suffix++;
+            int maxBase = Math.max(3, 20 - suffixText.length());
+            duplicateCode = baseCode.substring(0, Math.min(baseCode.length(), maxBase))
+                    + suffixText;
+        }
+
         PerfilAcesso copy = PerfilAcesso.builder()
-                .codigo(safe(original.getCodigo(), "PERFIL") + "_COPY")
+                .codigo(duplicateCode)
                 .descricao(safe(original.getDescricao(), "Perfil") + " — Cópia")
                 .observacoes(original.getObservacoes())
                 .sistema(false)
@@ -1697,6 +1984,7 @@ public class PerfisView extends VBox {
         boolean system = has && Boolean.TRUE.equals(selected.getSistema());
 
         btnEditar.setDisable(!has || system || !can("EDITAR"));
+        btnConfigurarPermissoes.setDisable(!has || system || !can("EDITAR"));
         btnDuplicar.setDisable(!has || !can("CRIAR"));
         btnRemover.setDisable(!has || system || !can("APAGAR"));
     }
