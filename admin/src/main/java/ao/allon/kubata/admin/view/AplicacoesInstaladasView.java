@@ -166,7 +166,6 @@ public class AplicacoesInstaladasView extends VBox {
         searchField = new TextField();
         searchField.setPromptText("Pesquisar por aplicação ou código...");
         searchField.setPrefWidth(300);
-        searchField.setGraphic(IconUtils.icon(Feather.SEARCH, 13));
 
         Label stateLabel = new Label("Estado");
         stateLabel.getStyleClass().add("kubata-app-filter-label");
