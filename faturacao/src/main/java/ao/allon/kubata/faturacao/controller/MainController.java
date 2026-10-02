@@ -47,6 +47,7 @@ public class MainController {
     private Stage stage;
     private final String applicationTitle = "Kubata - Sistema de Faturação";
     private final LoginController loginController;
+    private final ao.allon.kubata.core.service.AuthService authService;
     
 
     private final ClienteService clienteService;
@@ -140,7 +141,8 @@ public class MainController {
                           ao.allon.kubata.faturacao.service.SaftValidatorService saftValidatorService,
                           FifoService fifoService,
                           RelatorioEstoqueLoteService relatorioEstoqueLoteService,
-                          EmailSettingsService emailSettingsService) {
+                          EmailSettingsService emailSettingsService,
+                          ao.allon.kubata.core.service.AuthService authService) {
         this.clienteService = clienteService;
         this.faturaService = faturaService;
         this.produtoService = produtoService;
@@ -183,6 +185,7 @@ public class MainController {
         this.fifoService = fifoService;
         this.relatorioEstoqueLoteService = relatorioEstoqueLoteService;
         this.emailSettingsService = emailSettingsService;
+        this.authService = authService;
         
     }
 
@@ -717,8 +720,19 @@ public class MainController {
     }
 
     public void performLogoutAndShowLogin() {
-        sessionManager.logout();
-        switchToLogin();
+        ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
+
+        try {
+            if (user != null) {
+                authService.logout(user, "127.0.0.1");
+            }
+        } catch (Exception ignored) {
+            // O contexto local deve ser limpo mesmo quando o registo persistido
+            // da saída não puder ser concluído.
+        } finally {
+            sessionManager.logout();
+            switchToLogin();
+        }
     }
 
     @EventListener
