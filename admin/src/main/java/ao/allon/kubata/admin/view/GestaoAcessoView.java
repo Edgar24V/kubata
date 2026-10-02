@@ -493,34 +493,21 @@ public class GestaoAcessoView extends BorderPane {
                 "button-outlined"
         );
 
-        Button openUsers = detailButton(
-                "Abrir Utilizadores",
-                Feather.USERS,
-                "button-outlined"
-        );
-        openUsers.setOnAction(e -> {
-            table.getSelectionModel().clearSelection();
-            utilizadoresView.requestFocus();
-            showUsersPageHint();
+        btnEditAccess.setOnAction(e -> {
+            User selected = selectedUser();
+            if (selected != null) {
+                openProfileAssignment(selected);
+            }
         });
-
-        Button openProfiles = detailButton(
-                "Abrir Perfis",
-                Feather.LAYERS,
-                "button-outlined"
-        );
-        openProfiles.setOnAction(e -> {
-            perfisView.requestFocus();
-            showProfilesPageHint();
+        btnSecurityProfile.setOnAction(e -> {
+            User selected = selectedUser();
+            if (selected != null) {
+                perfilSegurancaUtilizadorView.open(selected);
+            }
         });
-
-        btnEditAccess.setOnAction(e -> selectedUser().ifPresent(this::openProfileAssignment));
-        btnSecurityProfile.setOnAction(e -> selectedUser().ifPresent(perfilSegurancaUtilizadorView::open));
 
         HBox actions = new HBox(7, btnEditAccess, btnSecurityProfile);
         actions.setAlignment(Pos.CENTER_LEFT);
-
-        VBox navigation = new VBox(7, openUsers, openProfiles);
 
         pane.getChildren().addAll(
                 identity,
@@ -532,8 +519,7 @@ public class GestaoAcessoView extends BorderPane {
                 profilesTitle,
                 profileScroll,
                 hint,
-                actions,
-                navigation
+                actions
         );
 
         updateSelection(null);
@@ -839,19 +825,8 @@ public class GestaoAcessoView extends BorderPane {
             );
             save.getStyleClass().add("button-primary");
 
-            Button openProfiles = new Button(
-                    "Gerir perfis",
-                    IconUtils.icon(Feather.LAYERS, 12)
-            );
-            openProfiles.getStyleClass().add("button-outlined");
-            openProfiles.setOnAction(e -> {
-                modalManager.hideModal();
-                perfisView.requestFocus();
-                showProfilesPageHint();
-            });
-
-            HBox actions = new HBox(7, openProfiles, new Pane(), cancel, save);
-            HBox.setHgrow(actions.getChildren().get(1), Priority.ALWAYS);
+            HBox actions = new HBox(7, new Pane(), cancel, save);
+            HBox.setHgrow(actions.getChildren().get(0), Priority.ALWAYS);
             actions.setAlignment(Pos.CENTER_RIGHT);
 
             cancel.setOnAction(e -> modalManager.hideModal());
@@ -926,17 +901,18 @@ public class GestaoAcessoView extends BorderPane {
             case ADMIN -> "Administrador";
             case USER -> "Utilizador";
             case OPERATOR -> "Operador";
-            case SUPERVISOR -> "Supervisor";
-            case ACCOUNTANT -> "Contabilista";
-            case MANAGER -> "Gestor";
             case SUPORTE_TI -> "Suporte TI";
         };
     }
 
     private String companyName(User user) {
-        return user == null || user.getEmpresa() == null
+        return user == null ? "—" : companyName(user.getEmpresa());
+    }
+
+    private String companyName(Empresa empresa) {
+        return empresa == null
                 ? "—"
-                : safe(user.getEmpresa().getNome(), "Empresa");
+                : safe(empresa.getNome(), "Empresa");
     }
 
     private boolean contains(String value, String query) {
