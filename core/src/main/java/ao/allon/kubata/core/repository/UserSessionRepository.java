@@ -15,5 +15,4 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
 
     long deleteAllByUsername(String username);
 
-    long countByUsernameNot(String username);
 }
