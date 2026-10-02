@@ -147,16 +147,16 @@ class PasswordPolicyServiceIntegrationTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.validateNewPassword(userRepository.findById(targetUserId).orElseThrow(), "SenhaInicial1")
+                () -> service.validateNewPassword(targetFinal, "SenhaInicial1")
         );
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.validateNewPassword(userRepository.findById(targetUserId).orElseThrow(), "senha-fraca")
+                () -> service.validateNewPassword(targetFinal, "senha-fraca")
         );
 
         assertDoesNotThrow(
-                () -> service.validateNewPassword(userRepository.findById(targetUserId).orElseThrow(), "NovaSenhaForte1!")
+                () -> service.validateNewPassword(targetFinal, "NovaSenhaForte1!")
         );
     }
 
