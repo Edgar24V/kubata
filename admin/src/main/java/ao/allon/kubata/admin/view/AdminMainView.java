@@ -3,6 +3,7 @@ package ao.allon.kubata.admin.view;
 import ao.allon.kubata.admin.service.NotificationService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.component.CustomTitleBar;
+import ao.allon.kubata.admin.ui.UnsavedChangesAware;
 import ao.allon.kubata.admin.ui.fxribbon.Ribbon;
 import ao.allon.kubata.admin.ui.fxribbon.RibbonProgrammaticService;
 import ao.allon.kubata.admin.ui.modal.ModalManager;
@@ -64,8 +65,32 @@ public class AdminMainView extends StackPane {
         this.onLogout = callback;
         if (titleBar != null) {
             titleBar.setOnLogout(callback);
+        }
+    }
+
+    /**
+     * Define exclusivamente a acção do X da janela.
+     */
+    public void setOnWindowClose(Runnable callback) {
+        if (titleBar != null) {
             titleBar.setOnWindowClose(callback);
         }
+    }
+
+    /**
+     * Verifica alterações locais e operações de edição ainda pendentes.
+     */
+    public boolean hasUnsavedChanges() {
+        if (modalManager.hasPendingChanges()) {
+            return true;
+        }
+
+        return tabs.getTabs().stream()
+                .map(Tab::getContent)
+                .filter(java.util.Objects::nonNull)
+                .filter(UnsavedChangesAware.class::isInstance)
+                .map(UnsavedChangesAware.class::cast)
+                .anyMatch(UnsavedChangesAware::hasUnsavedChanges);
     }
 
     // ── Construção da UI ────────────────────────────────────────────────────────
