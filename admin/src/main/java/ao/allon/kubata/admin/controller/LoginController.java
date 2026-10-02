@@ -1013,6 +1013,7 @@ public class LoginController {
 
         final Integer finalMfaCode = mfaCode;
         final String finalRecoveryCode = recoveryCode;
+        final String finalPassword = password;
         final String sourceIp = resolveSourceIp();
 
         Task<User> task = new Task<>() {
@@ -1080,6 +1081,8 @@ public class LoginController {
                 );
                 showAuthenticationErrorModal(
                         email,
+                        finalPassword,
+                        sourceIp,
                         authenticationException.getMessage()
                 );
                 shakeNode(loginButton);
@@ -1108,6 +1111,8 @@ public class LoginController {
 
     private void showAuthenticationErrorModal(
             String email,
+            String password,
+            String sourceIp,
             String reason
     ) {
         AuthenticationErrorDetails details = describeAuthenticationError(reason);
@@ -1164,6 +1169,15 @@ public class LoginController {
                 "kubata-auth-modal-resolution"
         );
 
+        VBox sessionAction = null;
+        if (isConcurrentSessionLimitError(reason)) {
+            sessionAction = buildTerminateOldestSessionAction(
+                    email,
+                    password,
+                    sourceIp
+            );
+        }
+
         Label securityNote = new Label(
                 "Por segurança, o Kubata não apresenta senhas, tokens MFA "
                         + "ou outros segredos neste diagnóstico."
@@ -1174,12 +1188,22 @@ public class LoginController {
                         + "-fx-text-fill: #64748b;"
         );
 
-        content.getChildren().addAll(
-                summary,
-                explanation,
-                resolution,
-                securityNote
-        );
+        if (sessionAction != null) {
+            content.getChildren().addAll(
+                    summary,
+                    explanation,
+                    resolution,
+                    sessionAction,
+                    securityNote
+            );
+        } else {
+            content.getChildren().addAll(
+                    summary,
+                    explanation,
+                    resolution,
+                    securityNote
+            );
+        }
 
         Runnable focusAfterClose = () -> Platform.runLater(() -> {
             if (details.focusMfa()) {
@@ -1212,6 +1236,280 @@ public class LoginController {
                         .footerHint("Corrija a causa indicada e tente iniciar a sessão novamente.")
                         .onConfirm(focusAfterClose)
         );
+    }
+
+    private boolean isConcurrentSessionLimitError(String reason) {
+        return reason != null
+                && reason.toLowerCase(Locale.ROOT)
+                .contains("limite de sessões simultâneas");
+    }
+
+    private VBox buildTerminateOldestSessionAction(
+            String email,
+            String password,
+            String sourceIp
+    ) {
+        VBox box = new VBox(9);
+        box.setPadding(new Insets(13));
+        box.setStyle(
+                "-fx-background-color: #f0fdf4;"
+                        + "-fx-background-radius: 12;"
+                        + "-fx-border-color: #bbf7d0;"
+                        + "-fx-border-radius: 12;"
+                        + "-fx-border-width: 1;"
+        );
+
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        FontIcon icon = new FontIcon(Feather.LOG_OUT);
+        icon.setIconSize(15);
+        icon.setIconColor(Color.web("#217346"));
+
+        Label title = new Label("Libertar espaço para este login");
+        title.setStyle(
+                "-fx-font-size: 12px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #166534;"
+        );
+        header.getChildren().addAll(icon, title);
+
+        Label description = new Label(
+                "Pode terminar a sessão mais antiga desta conta sem precisar entrar na aplicação. "
+                        + "A operação exige novamente a palavra-passe da conta e afecta apenas uma sessão."
+        );
+        description.setWrapText(true);
+        description.setStyle(
+                "-fx-font-size: 11px;"
+                        + "-fx-text-fill: #47735a;"
+        );
+
+        Button terminate = new Button(
+                "Terminar sessão mais antiga",
+                new FontIcon(Feather.LOG_OUT)
+        );
+        terminate.getStyleClass().add("button-outlined");
+        terminate.setCursor(Cursor.HAND);
+        terminate.setAccessibleText("Terminar a sessão mais antiga desta conta");
+        terminate.setTooltip(new Tooltip("Terminar apenas a sessão mais antiga"));
+        terminate.setOnAction(event -> showTerminateOldestSessionConfirmation(
+                email,
+                password,
+                sourceIp
+        ));
+
+        HBox actionRow = new HBox(terminate);
+        actionRow.setAlignment(Pos.CENTER_RIGHT);
+        box.getChildren().addAll(header, description, actionRow);
+        return box;
+    }
+
+    private void showTerminateOldestSessionConfirmation(
+            String email,
+            String password,
+            String sourceIp
+    ) {
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(6));
+
+        Label warning = new Label(
+                "A sessão que tiver o login mais antigo será terminada. "
+                        + "As outras sessões permanecem activas. Depois da operação, volte ao ecrã de login e tente novamente."
+        );
+        warning.setWrapText(true);
+        warning.setStyle(
+                "-fx-font-size: 12px;"
+                        + "-fx-text-fill: #475569;"
+        );
+
+        VBox caution = new VBox(6);
+        caution.setPadding(new Insets(11));
+        caution.setStyle(
+                "-fx-background-color: #fff8eb;"
+                        + "-fx-background-radius: 10;"
+                        + "-fx-border-color: #f5ddb0;"
+                        + "-fx-border-radius: 10;"
+                        + "-fx-border-width: 1;"
+        );
+        Label cautionText = new Label(
+                "Esta acção pode interromper o acesso de outro posto de trabalho que esteja a usar esta conta."
+        );
+        cautionText.setWrapText(true);
+        cautionText.setStyle(
+                "-fx-font-size: 11px;"
+                        + "-fx-text-fill: #8a5a00;"
+        );
+        caution.getChildren().add(cautionText);
+
+        content.getChildren().addAll(
+                warning,
+                caution
+        );
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Confirmar término da sessão")
+                        .subtitle("Esta operação irá libertar uma sessão da conta")
+                        .icon(Feather.LOG_OUT)
+                        .tone(ModalManager.ModalTone.WARNING)
+                        .withConfirmButtons("Terminar sessão", "Cancelar")
+                        .confirmStyle("button-primary")
+                        .size(570, 300)
+                        .minSize(500, 270)
+                        .maximizable(false)
+                        .minimizable(false)
+                        .closeOnOverlayClick(false)
+                        .footerHint("Será terminada apenas uma sessão: a mais antiga.")
+                        .onConfirm(() -> terminateOldestSessionFromLogin(
+                                email,
+                                password,
+                                sourceIp
+                        ))
+        );
+    }
+
+    private void terminateOldestSessionFromLogin(
+            String email,
+            String password,
+            String sourceIp
+    ) {
+        modalManager.showLoadingModal(
+                "A terminar sessão antiga",
+                "A validar a conta e a libertar uma sessão segura..."
+        );
+
+        executor.submit(() -> {
+            try {
+                int terminated = authService.terminateOldestSessionForLogin(
+                        email,
+                        password,
+                        sourceIp
+                );
+
+                Platform.runLater(() -> {
+                    modalManager.hideLoadingModal();
+
+                    if (terminated > 0) {
+                        showSessionTerminationSuccess();
+                    } else {
+                        showSessionTerminationResult(
+                                "Nenhuma sessão encontrada",
+                                "Já não existem sessões registadas para esta conta. Pode tentar iniciar a sessão novamente.",
+                                ModalManager.ModalTone.INFO,
+                                Feather.INFO
+                        );
+                    }
+                });
+            } catch (Exception ex) {
+                log.warn(
+                        "Falha ao terminar sessão antiga durante o login para {}: {}",
+                        email,
+                        ex.getMessage()
+                );
+
+                Platform.runLater(() -> {
+                    modalManager.hideLoadingModal();
+                    showSessionTerminationResult(
+                            "Não foi possível terminar a sessão",
+                            ex.getMessage() == null || ex.getMessage().isBlank()
+                                    ? "A operação foi recusada. Verifique a credencial e tente novamente."
+                                    : ex.getMessage(),
+                            ModalManager.ModalTone.DANGER,
+                            Feather.ALERT_OCTAGON
+                    );
+                });
+            }
+        });
+    }
+
+    private void showSessionTerminationSuccess() {
+        modalManager.showModal(
+                createSessionTerminationMessage(
+                        Feather.CHECK_CIRCLE,
+                        "Sessão terminada com sucesso",
+                        "Uma sessão antiga foi terminada. O limite de sessões desta conta foi libertado e pode tentar iniciar a sessão novamente.",
+                        "kubata-auth-modal-resolution"
+                ),
+                new ModalManager.ModalConfig()
+                        .title("Sessão libertada")
+                        .subtitle("Pode voltar a tentar o acesso")
+                        .icon(Feather.CHECK_CIRCLE)
+                        .tone(ModalManager.ModalTone.SUCCESS)
+                        .singleButton("Voltar ao login")
+                        .size(560, 270)
+                        .minSize(500, 250)
+                        .maximizable(false)
+                        .minimizable(false)
+                        .onConfirm(() -> {
+                            emailField.requestFocus();
+                        })
+        );
+    }
+
+    private void showSessionTerminationResult(
+            String title,
+            String message,
+            ModalManager.ModalTone tone,
+            Feather icon
+    ) {
+        modalManager.showModal(
+                createSessionTerminationMessage(
+                        icon,
+                        title,
+                        message,
+                        "kubata-auth-modal-info"
+                ),
+                new ModalManager.ModalConfig()
+                        .title(title)
+                        .icon(icon)
+                        .tone(tone)
+                        .singleButton("Entendido")
+                        .size(560, 270)
+                        .minSize(500, 250)
+                        .maximizable(false)
+                        .minimizable(false)
+        );
+    }
+
+    private VBox createSessionTerminationMessage(
+            Feather icon,
+            String title,
+            String message,
+            String styleClass
+    ) {
+        VBox box = new VBox(9);
+        box.setPadding(new Insets(8));
+
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        FontIcon itemIcon = new FontIcon(icon);
+        itemIcon.setIconSize(20);
+        itemIcon.setIconColor(
+                icon == Feather.CHECK_CIRCLE
+                        ? Color.web("#217346")
+                        : Color.web("#64748b")
+        );
+
+        Label itemTitle = new Label(title);
+        itemTitle.setStyle(
+                "-fx-font-size: 15px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #1e293b;"
+        );
+        header.getChildren().addAll(itemIcon, itemTitle);
+
+        Label text = new Label(message);
+        text.setWrapText(true);
+        text.setStyle(
+                "-fx-font-size: 12px;"
+                        + "-fx-text-fill: #64748b;"
+        );
+
+        box.getStyleClass().add(styleClass);
+        box.getChildren().addAll(header, text);
+        return box;
     }
 
     private VBox createAuthenticationErrorSection(
