@@ -10,6 +10,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -27,11 +28,19 @@ public class AplicacoesInstaladasView extends VBox {
     private final ModuleRegistry registry;
     private final ModuleInstallationService installationService;
     private final ObservableList<ModuloSistema> modules = FXCollections.observableArrayList();
-    private final TableView<ModuloSistema> table = new TableView<>(modules);
+    private final FilteredList<ModuloSistema> filteredModules = new FilteredList<>(modules, m -> true);
+    private final TableView<ModuloSistema> table = new TableView<>(filteredModules);
     private final Label status = new Label("Pronto");
     private final Label totalValue = new Label("0");
     private final Label runtimeValue = new Label("0");
     private final Label activeValue = new Label("0");
+    private final Label pendingValue = new Label("0");
+    private final Label errorValue = new Label("0");
+    private TextField searchField;
+    private ComboBox<String> stateFilter;
+    private Label detailName, detailCode, detailDescription, detailVersion,
+            detailRuntime, detailState, detailViews, detailMandatory,
+            detailInstalled, detailLicense;
 
     public AplicacoesInstaladasView(
             ModuloSistemaRepository repository,
@@ -147,6 +156,187 @@ public class AplicacoesInstaladasView extends VBox {
             HBox.setHgrow(node, Priority.ALWAYS);
         }
         return row;
+    }
+
+    private HBox buildFilters() {
+        HBox bar = new HBox(8);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.getStyleClass().add("kubata-applications-filterbar");
+
+        searchField = new TextField();
+        searchField.setPromptText("Pesquisar por aplicação ou código...");
+        searchField.setPrefWidth(300);
+        searchField.setGraphic(IconUtils.icon(Feather.SEARCH, 13));
+
+        Label stateLabel = new Label("Estado");
+        stateLabel.getStyleClass().add("kubata-app-filter-label");
+
+        stateFilter = new ComboBox<>(FXCollections.observableArrayList(
+                "TODOS", "ACTIVO", "DISPONIVEL", "INACTIVO", "ERRO", "ACTUALIZACAO_PENDENTE"
+        ));
+        stateFilter.setValue("TODOS");
+        stateFilter.setPrefWidth(185);
+
+        Button clear = new Button("Limpar", IconUtils.icon(Feather.X, 12));
+        clear.getStyleClass().add("button-outlined");
+        clear.setOnAction(e -> {
+            searchField.clear();
+            stateFilter.setValue("TODOS");
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label info = new Label(
+                "Fonte de runtime: ModuleRegistry",
+                IconUtils.icon(Feather.CPU, 11)
+        );
+        info.getStyleClass().add("kubata-server-note");
+
+        bar.getChildren().addAll(searchField, stateLabel, stateFilter, clear, spacer, info);
+        return bar;
+    }
+
+    private VBox buildDetailsPane() {
+        VBox pane = new VBox(10);
+        pane.getStyleClass().add("kubata-applications-details");
+        pane.setPadding(new Insets(14));
+
+        HBox titleRow = new HBox(9);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane icon = new StackPane();
+        icon.getStyleClass().add("kubata-app-details-icon");
+        icon.setPrefSize(40, 40);
+        icon.setMinSize(40, 40);
+        icon.setMaxSize(40, 40);
+        icon.getChildren().add(IconUtils.icon(Feather.PACKAGE, 17));
+
+        VBox titleText = new VBox(2);
+        detailName = new Label("Nenhuma aplicação");
+        detailName.getStyleClass().add("kubata-app-details-title");
+        Label caption = new Label("Detalhes e operações");
+        caption.getStyleClass().add("kubata-app-details-caption");
+        titleText.getChildren().addAll(detailName, caption);
+        titleRow.getChildren().addAll(icon, titleText);
+
+        VBox facts = new VBox(4);
+        facts.getStyleClass().add("kubata-app-details-card");
+        detailCode = detailRow(facts, "Código");
+        detailVersion = detailRow(facts, "Versão");
+        detailState = detailRow(facts, "Estado");
+        detailRuntime = detailRow(facts, "Runtime");
+        detailViews = detailRow(facts, "Funcionalidades");
+        detailMandatory = detailRow(facts, "Obrigatório");
+        detailInstalled = detailRow(facts, "Instalado em");
+        detailLicense = detailRow(facts, "Licença");
+
+        Label descTitle = new Label("Descrição");
+        descTitle.getStyleClass().add("kubata-app-details-section");
+        detailDescription = new Label("Seleccione uma aplicação na tabela.");
+        detailDescription.setWrapText(true);
+        detailDescription.getStyleClass().add("kubata-app-details-description");
+
+        Button activate = new Button("Activar / instalar", IconUtils.icon(Feather.PLAY, 12));
+        activate.getStyleClass().add("button-primary");
+        activate.setOnAction(e -> activateSelected());
+
+        Button initialize = new Button("Inicializar", IconUtils.icon(Feather.POWER, 12));
+        initialize.getStyleClass().add("button-outlined");
+        initialize.setOnAction(e -> initializeSelected());
+
+        Button sync = new Button("Sincronizar", IconUtils.icon(Feather.REFRESH_CW, 12));
+        sync.getStyleClass().add("button-outlined");
+        sync.setOnAction(e -> synchronize());
+
+        HBox actions = new HBox(7, activate, initialize, sync);
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        Label info = new Label(
+                "As operações utilizam apenas módulos realmente registados no runtime.",
+                IconUtils.icon(Feather.SHIELD, 11)
+        );
+        info.getStyleClass().add("kubata-app-details-info");
+        info.setWrapText(true);
+
+        pane.getChildren().addAll(titleRow, facts, descTitle, detailDescription,
+                new Separator(), actions, info);
+        return pane;
+    }
+
+    private Label detailRow(VBox parent, String title) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("kubata-app-details-row");
+        Label key = new Label(title.toUpperCase());
+        key.getStyleClass().add("kubata-app-details-key");
+        key.setMinWidth(92);
+        Label value = new Label("—");
+        value.getStyleClass().add("kubata-app-details-value");
+        HBox.setHgrow(value, Priority.ALWAYS);
+        row.getChildren().addAll(key, value);
+        parent.getChildren().add(row);
+        return value;
+    }
+
+    private void updateDetails(ModuloSistema selected) {
+        if (selected == null) {
+            detailName.setText("Nenhuma aplicação");
+            detailCode.setText("—");
+            detailVersion.setText("—");
+            detailState.setText("—");
+            detailRuntime.setText("—");
+            detailViews.setText("—");
+            detailMandatory.setText("—");
+            detailInstalled.setText("—");
+            detailLicense.setText("—");
+            detailDescription.setText("Seleccione uma aplicação na tabela.");
+            return;
+        }
+
+        detailName.setText(value(selected.getNome()));
+        detailCode.setText(value(selected.getCodigo()));
+        detailVersion.setText(value(selected.getVersao()));
+        detailState.setText(selected.getEstado() == null ? "—" : selected.getEstado().toString());
+        detailRuntime.setText(registry.isModuleRegistered(selected.getCodigo()) ? "REGISTADO" : "AUSENTE");
+        detailViews.setText(Integer.toString(
+                registry.getModule(selected.getCodigo())
+                        .map(KubataModule::getModuleViews)
+                        .map(java.util.List::size)
+                        .orElse(0)
+        ));
+        detailMandatory.setText(Boolean.TRUE.equals(selected.getObrigatorio()) ? "SIM" : "NÃO");
+        detailInstalled.setText(selected.getInstaladoEm() == null ? "—" : selected.getInstaladoEm().toString());
+        detailLicense.setText(formatLicense(selected));
+        detailDescription.setText(value(selected.getDescricao()));
+    }
+
+    private String formatLicense(ModuloSistema module) {
+        if (module.getLicencaChave() == null || module.getLicencaChave().isBlank()) return "Não configurada";
+        return module.getLicencaValidade() == null
+                ? "Configurada · sem validade"
+                : "Configurada · válida até " + module.getLicencaValidade();
+    }
+
+    private void applyFilters() {
+        String query = searchField == null ? "" : searchField.getText();
+        String normalized = query == null ? "" : query.trim().toLowerCase();
+        String selectedState = stateFilter == null ? "TODOS" : stateFilter.getValue();
+
+        filteredModules.setPredicate(module -> {
+            if (module == null) return false;
+            boolean textMatch = normalized.isBlank()
+                    || safeLower(module.getNome()).contains(normalized)
+                    || safeLower(module.getCodigo()).contains(normalized);
+            boolean stateMatch = "TODOS".equals(selectedState)
+                    || (module.getEstado() != null && module.getEstado().name().equalsIgnoreCase(selectedState));
+            return textMatch && stateMatch;
+        });
+
+        status.setText(filteredModules.size() + " aplicação(ões) visível(is)");
+    }
+
+    private String safeLower(String text) {
+        return text == null ? "" : text.toLowerCase();
     }
 
     private VBox metricCard(String title, Label value, Feather icon) {
