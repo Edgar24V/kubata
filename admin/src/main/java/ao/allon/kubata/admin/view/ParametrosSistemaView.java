@@ -83,6 +83,9 @@ public class ParametrosSistemaView extends VBox {
     private final Label selectedKeyLabel = new Label("Nenhum parâmetro seleccionado");
     private final Label selectedValueLabel = new Label("Seleccione um parâmetro para ver os detalhes.");
     private final Label selectedMetaLabel = new Label("");
+    private final Label protectedLabel = new Label("0 protegidos");
+    private final Label groupCountLabel = new Label("0 grupos");
+    private final Label scopeCountLabel = new Label("0 âmbitos");
 
     public ParametrosSistemaView(ParametroSistemaRepository parametroRepository,
                                  EmpresaRepository empresaRepository,
@@ -107,35 +110,53 @@ public class ParametrosSistemaView extends VBox {
     }
 
     private void buildUi() {
-        VBox toolbar = new VBox(10);
-        toolbar.setPadding(new Insets(12, 16, 12, 16));
-        toolbar.getStyleClass().add("header-box");
+        setSpacing(0);
+        getStyleClass().addAll("application-view", "kubata-parameters-page");
+
+        VBox hero = new VBox(12);
+        hero.setPadding(new Insets(18, 20, 14, 20));
+        hero.getStyleClass().add("kubata-parameters-hero");
 
         HBox top = new HBox(12);
         top.setAlignment(Pos.CENTER_LEFT);
 
-        Label title = new Label(
-                "Parâmetros do Sistema",
-                IconUtils.icon(Feather.SETTINGS, 18)
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-parameters-hero-icon");
+        iconBox.setPrefSize(48, 48);
+        iconBox.setMinSize(48, 48);
+        iconBox.setMaxSize(48, 48);
+        iconBox.getChildren().add(IconUtils.icon(Feather.SETTINGS, 22));
+
+        VBox titleBox = new VBox(3);
+        Label eyebrow = new Label("INÍCIO · CONFIGURAÇÃO CENTRAL");
+        eyebrow.getStyleClass().add("kubata-parameters-eyebrow");
+
+        Label title = new Label("Parâmetros do Sistema");
+        title.getStyleClass().add("kubata-parameters-title");
+
+        Label subtitle = new Label(
+                "Configure parâmetros globais ou por empresa com validação, controlo de permissões e auditoria."
         );
-        title.getStyleClass().add("h3");
-
-        Label scopeCaption = new Label("Âmbito:");
-        scopeCaption.getStyleClass().add("text-muted");
-
-        scopeCombo.setPrefWidth(250);
-        scopeCombo.setPromptText("Seleccionar âmbito");
-        scopeCombo.setOnAction(e -> reload());
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("kubata-parameters-subtitle");
+        titleBox.getChildren().addAll(eyebrow, title, subtitle);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnNovo = new Button(
-                "Novo",
-                IconUtils.icon(Feather.PLUS, IconUtils.SIZE_SMALL)
+        Button refresh = new Button(
+                "Actualizar",
+                IconUtils.icon(Feather.REFRESH_CW, 13)
         );
-        btnNovo.getStyleClass().add("button-success");
-        btnNovo.setOnAction(e -> {
+        refresh.getStyleClass().add("button-outlined");
+        refresh.setOnAction(e -> reload());
+
+        Button novo = new Button(
+                "Novo parâmetro",
+                IconUtils.icon(Feather.PLUS, 13)
+        );
+        novo.getStyleClass().add("button-primary");
+        novo.setOnAction(e -> {
             if (!can(PermissaoPerfil.Operacao.CRIAR)) {
                 showPermissionDenied("PARAMETROS/CRIAR");
                 return;
@@ -143,150 +164,148 @@ public class ParametrosSistemaView extends VBox {
             editParametro(null);
         });
 
-        Button btnEditar = new Button(
-                "Editar",
-                IconUtils.icon(Feather.EDIT, IconUtils.SIZE_SMALL)
+        top.getChildren().addAll(iconBox, titleBox, spacer, refresh, novo);
+
+        HBox context = new HBox(8);
+        context.setAlignment(Pos.CENTER_LEFT);
+        context.getStyleClass().add("kubata-parameters-contextbar");
+
+        Label contextTitle = new Label(
+                "ÂMBITO ACTUAL",
+                IconUtils.icon(Feather.LAYERS, 11)
         );
-        btnEditar.getStyleClass().add("button-primary");
-        btnEditar.setOnAction(e -> {
-            if (!can(PermissaoPerfil.Operacao.EDITAR)) {
-                showPermissionDenied("PARAMETROS/EDITAR");
-                return;
-            }
+        contextTitle.getStyleClass().add("kubata-parameters-context-title");
 
-            ParametroSistema selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                showWarning("Seleccione um parâmetro para editar.");
-                return;
-            }
-            if (!Boolean.TRUE.equals(selected.getEditavel())) {
-                showWarning("O parâmetro seleccionado está protegido e não pode ser editado.");
-                return;
-            }
+        scopeCombo.setPrefWidth(285);
+        scopeCombo.setPromptText("Seleccionar âmbito");
+        scopeCombo.setOnAction(e -> reload());
 
-            editParametro(selected);
-        });
+        Region contextSpacer = new Region();
+        HBox.setHgrow(contextSpacer, Priority.ALWAYS);
 
-        Button btnApagar = new Button(
-                "Remover",
-                IconUtils.icon(Feather.TRASH_2, IconUtils.SIZE_SMALL)
+        Label audit = new Label(
+                "ALTERAÇÕES AUDITADAS · PARÂMETROS PROTEGIDOS NÃO PODEM SER EDITADOS",
+                IconUtils.icon(Feather.SHIELD, 10)
         );
-        btnApagar.getStyleClass().add("button-danger");
-        btnApagar.setOnAction(e -> {
-            if (!can(PermissaoPerfil.Operacao.APAGAR) && !isElevated()) {
-                showPermissionDenied("PARAMETROS/APAGAR");
-                return;
-            }
-            deleteSelected();
-        });
+        audit.getStyleClass().add("kubata-parameters-audit-note");
 
-        Button btnRefresh = new Button(
-                "Actualizar",
-                IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
+        context.getChildren().addAll(contextTitle, scopeCombo, contextSpacer, audit);
+        hero.getChildren().addAll(top, context);
+
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(14, 20, 20, 20));
+        content.setFillWidth(true);
+
+        content.getChildren().add(buildSummaryCards());
+
+        HBox filters = buildFilters();
+        content.getChildren().add(filters);
+
+        VBox tableSection = new VBox(9);
+        tableSection.getStyleClass().add("kubata-parameters-table-panel");
+        tableSection.setPadding(new Insets(12));
+
+        HBox tableHeader = new HBox(8);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+
+        VBox heading = new VBox(2);
+        Label tableTitle = new Label("Catálogo de parâmetros");
+        tableTitle.getStyleClass().add("kubata-parameters-section-title");
+
+        Label tableSubtitle = new Label(
+                "Pesquise por chave, valor, grupo ou descrição. Duplo clique abre a edição quando permitido."
         );
-        btnRefresh.getStyleClass().add("button-outlined");
-        btnRefresh.setOnAction(e -> reload());
+        tableSubtitle.getStyleClass().add("kubata-parameters-section-note");
+        heading.getChildren().addAll(tableTitle, tableSubtitle);
 
-        top.getChildren().addAll(
-                title,
-                scopeCaption,
-                scopeCombo,
-                spacer,
-                btnNovo,
-                btnEditar,
-                btnApagar,
-                btnRefresh
-        );
+        Region tableSpacer = new Region();
+        HBox.setHgrow(tableSpacer, Priority.ALWAYS);
 
-        HBox filters = new HBox(10);
+        tableHeader.getChildren().addAll(heading, tableSpacer, totalLabel);
+
+        tableSection.getChildren().addAll(tableHeader, table);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        VBox.setVgrow(tableSection, Priority.ALWAYS);
+
+        content.getChildren().add(tableSection);
+        VBox.setVgrow(content, Priority.ALWAYS);
+
+        getChildren().addAll(hero, content);
+    }
+
+    private HBox buildFilters() {
+        HBox filters = new HBox(8);
         filters.setAlignment(Pos.CENTER_LEFT);
+        filters.getStyleClass().add("kubata-parameters-filterbar");
 
-        searchField.setPromptText("Pesquisar por chave, valor, grupo ou descrição...");
-        searchField.setPrefWidth(380);
-        searchField.textProperty().addListener((obs, oldValue, newValue) -> applyFilters());
+        Label searchLabel = new Label("Pesquisa");
+        searchLabel.getStyleClass().add("kubata-parameters-filter-label");
+
+        searchField.setPromptText("Chave, valor, grupo ou descrição...");
+        searchField.setPrefWidth(330);
+        searchField.getStyleClass().add("kubata-parameters-search");
+
+        Label groupLabel = new Label("Grupo");
+        groupLabel.getStyleClass().add("kubata-parameters-filter-label");
 
         groupFilter.setPromptText("Todos os grupos");
-        groupFilter.setPrefWidth(180);
-        groupFilter.setOnAction(e -> applyFilters());
+        groupFilter.setPrefWidth(190);
 
-        filters.getChildren().addAll(
-                new Label("Pesquisar:"),
-                searchField,
-                new Label("Grupo:"),
-                groupFilter
+        Button clear = new Button("Limpar", IconUtils.icon(Feather.X, 12));
+        clear.getStyleClass().add("button-outlined");
+        clear.setOnAction(e -> {
+            searchField.clear();
+            groupFilter.setValue("Todos os grupos");
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        editableLabel.getStyleClass().add("kubata-parameters-counter");
+        protectedLabel.getStyleClass().add("kubata-parameters-counter");
+        scopeCountLabel.getStyleClass().add("kubata-parameters-counter");
+
+        filters.getChildren().addAll(searchLabel, searchField, groupLabel, groupFilter, clear, spacer);
+        return filters;
+    }
+
+    private HBox buildSummaryCards() {
+        HBox row = new HBox(10);
+        row.getChildren().addAll(
+                parameterMetric("PARÂMETROS VISÍVEIS", totalLabel, Feather.LIST),
+                parameterMetric("EDITÁVEIS", editableLabel, Feather.EDIT_3),
+                parameterMetric("PROTEGIDOS", protectedLabel, Feather.LOCK),
+                parameterMetric("GRUPOS", groupCountLabel, Feather.TAG),
+                parameterMetric("ÂMBITOS", scopeCountLabel, Feather.BRIEFCASE)
         );
+        for (javafx.scene.Node node : row.getChildren()) {
+            HBox.setHgrow(node, Priority.ALWAYS);
+        }
+        return row;
+    }
 
-        HBox counters = new HBox(18);
-        counters.setAlignment(Pos.CENTER_LEFT);
-        totalLabel.getStyleClass().add("text-muted");
-        editableLabel.getStyleClass().add("text-muted");
-        counters.getChildren().addAll(totalLabel, editableLabel);
+    private VBox parameterMetric(String caption, Label value, Feather icon) {
+        HBox line = new HBox(9);
+        line.setAlignment(Pos.CENTER_LEFT);
 
-        toolbar.getChildren().addAll(top, filters, counters);
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().add("kubata-parameters-metric-icon");
+        iconBox.setPrefSize(34, 34);
+        iconBox.setMinSize(34, 34);
+        iconBox.setMaxSize(34, 34);
+        iconBox.getChildren().add(IconUtils.icon(icon, 14));
 
-        TableUtils.standardize(table);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        VBox text = new VBox(1);
+        Label label = new Label(caption);
+        label.getStyleClass().add("kubata-parameters-metric-caption");
+        value.getStyleClass().add("kubata-parameters-metric-value");
+        text.getChildren().addAll(label, value);
 
-        TableColumn<ParametroSistema, String> keyCol = TableUtils.createTextColumn(
-                "Chave",
-                c -> new SimpleStringProperty(nullToEmpty(c.getValue().getChave()))
-        );
-        keyCol.setPrefWidth(190);
+        line.getChildren().addAll(iconBox, text);
 
-        TableColumn<ParametroSistema, String> valueCol = TableUtils.createTextColumn(
-                "Valor",
-                c -> {
-                    String value = c.getValue().getValor();
-                    return new SimpleStringProperty(
-                            value == null || value.isBlank() ? "—" : value
-                    );
-                }
-        );
-        valueCol.setPrefWidth(300);
-
-        TableColumn<ParametroSistema, String> typeCol = TableUtils.createTextColumn(
-                "Tipo",
-                c -> new SimpleStringProperty(nullToEmpty(c.getValue().getTipoValor()))
-        );
-        typeCol.setPrefWidth(95);
-
-        TableColumn<ParametroSistema, String> groupCol = TableUtils.createTextColumn(
-                "Grupo",
-                c -> new SimpleStringProperty(nullToEmpty(c.getValue().getGrupo()))
-        );
-        groupCol.setPrefWidth(135);
-
-        TableColumn<ParametroSistema, String> editableCol = TableUtils.createTextColumn(
-                "Editável",
-                c -> new SimpleStringProperty(
-                        Boolean.TRUE.equals(c.getValue().getEditavel()) ? "Sim" : "Não"
-                )
-        );
-        editableCol.setPrefWidth(85);
-
-        TableColumn<ParametroSistema, String> updatedCol = TableUtils.createTextColumn(
-                "Actualizado em",
-                c -> new SimpleStringProperty(formatDateTime(c.getValue().getAtualizadoEm()))
-        );
-        updatedCol.setPrefWidth(145);
-
-        table.getColumns().addAll(
-                keyCol,
-                valueCol,
-                typeCol,
-                groupCol,
-                editableCol,
-                updatedCol
-        );
-
-        table.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldValue, selected) -> updateDetails(selected)
-        );
-
-        VBox details = buildDetailsPane();
-
-        VBox.setVgrow(table, Priority.ALWAYS);
-        getChildren().addAll(toolbar, table, details);
+        VBox card = new VBox(line);
+        card.getStyleClass().add("kubata-parameters-metric");
+        return card;
     }
 
     private VBox buildDetailsPane() {
@@ -474,12 +493,27 @@ public class ParametrosSistemaView extends VBox {
 
     private void updateCounters() {
         int total = table.getItems().size();
+
         long editable = table.getItems().stream()
                 .filter(p -> Boolean.TRUE.equals(p.getEditavel()))
                 .count();
 
+        long protectedCount = total - editable;
+
+        long groups = data.stream()
+                .map(ParametroSistema::getGrupo)
+                .filter(v -> v != null && !v.isBlank())
+                .map(String::trim)
+                .distinct()
+                .count();
+
+        int scopes = scopeCombo.getItems().size();
+
         totalLabel.setText(total + (total == 1 ? " parâmetro" : " parâmetros"));
-        editableLabel.setText(editable + (editable == 1 ? " editável" : " editáveis"));
+        editableLabel.setText(String.valueOf(editable));
+        protectedLabel.setText(String.valueOf(protectedCount));
+        groupCountLabel.setText(String.valueOf(groups));
+        scopeCountLabel.setText(String.valueOf(scopes));
     }
 
     private void updateDetails(ParametroSistema selected) {
