@@ -79,7 +79,12 @@ public class MfaCenterView extends VBox {
         this.modalManager = modalManager;
 
         buildUI();
-        load();
+
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null && sessionManager.getUser() != null) {
+                load();
+            }
+        });
     }
 
     private void buildUI() {
@@ -490,6 +495,12 @@ public class MfaCenterView extends VBox {
     }
 
     private void load() {
+        User actor = sessionManager.getUser();
+        if (actor == null || actor.getId() == null) {
+            statusLabel.setText("Sessão administrativa necessária para carregar o MFA Center.");
+            return;
+        }
+
         try {
             users.setAll(userRepository.findAll());
             updateIndicators();
@@ -507,8 +518,13 @@ public class MfaCenterView extends VBox {
     }
 
     private void updateIndicators() {
+        User actor = sessionManager.getUser();
+        if (actor == null || actor.getId() == null) {
+            return;
+        }
+
         MfaService.MfaIndicators indicators =
-                mfaService.getIndicators(sessionManager.getUser());
+                mfaService.getIndicators(actor);
 
         totalValue.setText(String.valueOf(indicators.totalUsers()));
         activeValue.setText(String.valueOf(indicators.activeUsers()));
