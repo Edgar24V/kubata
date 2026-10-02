@@ -775,5 +775,4 @@ public class UserSecurityProfileService {
         return map;
     }
 
-    }
 }
