@@ -383,7 +383,7 @@ public class SessoesView extends VBox {
 
         Thread worker = new Thread(() -> {
             try {
-                userAdministrationService.terminarSessao(
+                boolean terminated = userAdministrationService.terminarSessao(
                         actor,
                         selected.getId(),
                         SOURCE_IP
@@ -391,10 +391,17 @@ public class SessoesView extends VBox {
 
                 Platform.runLater(() -> {
                     modalManager.hideLoadingModal();
-                    notificationService.showSuccess(
-                            "Sessão terminada",
-                            "A sessão de " + safe(selected.getUsername()) + " foi terminada."
-                    );
+                    if (terminated) {
+                        notificationService.showSuccess(
+                                "Sessão terminada",
+                                "A sessão de " + safe(selected.getUsername()) + " foi terminada."
+                        );
+                    } else {
+                        notificationService.showInfo(
+                                "Sessão já encerrada",
+                                "A sessão seleccionada já não está activa. A lista foi actualizada."
+                        );
+                    }
                     load();
                 });
             } catch (Exception ex) {
