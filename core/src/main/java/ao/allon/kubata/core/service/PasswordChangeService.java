@@ -19,13 +19,16 @@ public class PasswordChangeService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserSecurityProfileService userSecurityProfileService;
+    private final AuditService auditService;
 
     public PasswordChangeService(UserRepository userRepository,
                                  PasswordEncoder passwordEncoder,
-                                 UserSecurityProfileService userSecurityProfileService) {
+                                 UserSecurityProfileService userSecurityProfileService,
+                                 AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userSecurityProfileService = userSecurityProfileService;
+        this.auditService = auditService;
     }
 
     @Transactional
