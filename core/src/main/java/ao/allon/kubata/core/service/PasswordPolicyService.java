@@ -4,6 +4,7 @@ import ao.allon.kubata.core.domain.AuditLog;
 import ao.allon.kubata.core.domain.PerfilAcesso;
 import ao.allon.kubata.core.domain.PasswordHistory;
 import ao.allon.kubata.core.domain.PasswordPolicy;
+import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSecurityProfile;
@@ -83,6 +84,11 @@ public class PasswordPolicyService {
         }
 
         LocalDateTime current = now == null ? LocalDateTime.now() : now;
+
+        if (user.getPasswordResetExpiresAt() != null
+                && !current.isBefore(user.getPasswordResetExpiresAt())) {
+            return true;
+        }
 
         if (user.getDataExpiracaoPassword() != null
                 && user.getDataExpiracaoPassword().isBefore(current.toLocalDate())) {
