@@ -80,9 +80,6 @@ class PasswordPolicyServiceTest {
 
         when(policyRepository.findByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL))
                 .thenReturn(Optional.of(policy));
-        when(userSecurityProfileRepository.findByUserId(10L))
-                .thenReturn(Optional.empty());
-
         assertThrows(IllegalArgumentException.class,
                 () -> service.validateNewPassword(user, "Senha123"));
         assertThrows(IllegalArgumentException.class,
@@ -122,9 +119,6 @@ class PasswordPolicyServiceTest {
         PasswordPolicy policy = policy(PasswordPolicy.ScopeType.GLOBAL, null, 8);
         when(policyRepository.findByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL))
                 .thenReturn(Optional.of(policy));
-        when(userSecurityProfileRepository.findByUserId(10L))
-                .thenReturn(Optional.empty());
-
         assertTrue(service.isPasswordExpired(user, LocalDateTime.now()));
     }
 
