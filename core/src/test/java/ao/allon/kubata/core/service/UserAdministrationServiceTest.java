@@ -266,6 +266,20 @@ class UserAdministrationServiceTest {
     }
 
     @Test
+    void deveTratarSessaoJaRemovidaComoOperacaoIdempotente() {
+        User actor = admin(10L);
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(userSessionRepository.findById(99L)).thenReturn(Optional.empty());
+
+        boolean result = service.terminarSessao(actor, 99L, "127.0.0.1");
+
+        assertFalse(result);
+        verify(userSessionRepository, never()).delete(any(UserSession.class));
+        verifyNoInteractions(auditService);
+    }
+
+    @Test
     void deveImpedirAdministradorDeTerminarASuaPropriaSessaoPelaGestaoAdministrativa() {
         User actor = admin(10L);
 
