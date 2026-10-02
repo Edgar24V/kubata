@@ -1,12 +1,12 @@
 package ao.allon.kubata.core.service;
 
 import ao.allon.kubata.core.domain.AuditLog;
+import ao.allon.kubata.core.domain.PasswordPolicy;
 import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,24 +34,21 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final SecurityService securityService;
     private final AuditService auditService;
-    private final UserSecurityProfileService userSecurityProfileService;
+    private final PasswordPolicyService passwordPolicyService;
     private final SecureRandom secureRandom = new SecureRandom();
-
-    @Value("$" + "{kubata.security.password-reset-validity-days:1}")
-    private int resetValidityDays;
 
     public PasswordResetService(UserRepository userRepository,
                                 UserSessionRepository userSessionRepository,
                                 PasswordEncoder passwordEncoder,
                                 SecurityService securityService,
                                 AuditService auditService,
-                                UserSecurityProfileService userSecurityProfileService) {
+                                PasswordPolicyService passwordPolicyService) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.securityService = securityService;
         this.auditService = auditService;
-        this.userSecurityProfileService = userSecurityProfileService;
+        this.passwordPolicyService = passwordPolicyService;
     }
 
     @Transactional
@@ -107,19 +104,34 @@ public class PasswordResetService {
                 ));
 
         LocalDateTime resetAt = LocalDateTime.now();
-        int validityDays = Math.max(1, resetValidityDays);
-        LocalDate expiresOn = resetAt.toLocalDate().plusDays(validityDays);
-        int minimumPasswordLength = Math.max(
-                16,
-                userSecurityProfileService.getEffectiveProfile(target).getPasswordMinLength()
+        PasswordPolicy policy = passwordPolicyService.getEffectivePolicy(target);
+        LocalDateTime resetExpiresAt = resetAt.plusHours(policy.getResetValidityHours());
+        LocalDate expiresOn = resetExpiresAt.toLocalDate();
+
+        int temporaryPasswordLength = Math.max(
+                policy.getMinLength(),
+                Math.min(16, policy.getMaxLength())
         );
-        String temporaryPassword = generateTemporaryPassword(minimumPasswordLength);
-        userSecurityProfileService.validatePassword(target, temporaryPassword);
+
+        String temporaryPassword = generateTemporaryPassword(temporaryPasswordLength);
+        passwordPolicyService.validateNewPassword(target, temporaryPassword);
+
+        passwordPolicyService.recordPreviousPassword(
+                target,
+                target.getPassword(),
+                managedActor.getEmail(),
+                "RESET_ADMINISTRATIVO"
+        );
 
         target.setPassword(passwordEncoder.encode(temporaryPassword));
         target.setPasswordChangedAt(resetAt);
-        target.setPasswordProvisoria(true);
-        target.setDataExpiracaoPassword(expiresOn);
+        target.setPasswordProvisoria(policy.isForceChangeOnReset());
+        target.setDataExpiracaoPassword(
+                policy.isForceChangeOnReset() ? expiresOn : null
+        );
+        target.setPasswordResetExpiresAt(
+                policy.isForceChangeOnReset() ? resetExpiresAt : null
+        );
         target.setFailedAttempts(0);
         target.setLockoutEnd(null);
 
