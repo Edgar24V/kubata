@@ -13926,3 +13926,221 @@ Text {
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · INÍCIO · Aplicação e subabas
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-application-page {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.kubata-application-hero {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-application-hero-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 12px;
+    -fx-alignment: center;
+}
+
+.kubata-application-hero-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-application-eyebrow {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-letter-spacing: 0.8px;
+}
+
+.kubata-application-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-application-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-application-runtime-badge {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 999px;
+    -fx-padding: 7px 10px;
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-application-metric {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-padding: 9px 10px;
+    -fx-min-height: 58px;
+}
+
+.kubata-application-metric:hover {
+    -fx-border-color: -kubata-green-border;
+}
+
+.kubata-application-metric-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 8px;
+    -fx-alignment: center;
+}
+
+.kubata-application-metric-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-application-metric-caption {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-application-metric-value {
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-application-tabs {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.kubata-application-tabs .tab-header-area {
+    -fx-background-color: white;
+    -fx-padding: 5px 8px 0 8px;
+}
+
+.kubata-application-tabs .tab {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 7px 7px 0 0;
+    -fx-border-color: -color-base-2;
+    -fx-border-width: 1px 1px 0 1px;
+    -fx-border-radius: 7px 7px 0 0;
+    -fx-padding: 7px 10px 7px 10px;
+}
+
+.kubata-application-tabs .tab:hover {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-application-tabs .tab:selected {
+    -fx-background-color: white;
+    -fx-border-color: -color-base-2 -color-base-2 -kubata-green -color-base-2;
+    -fx-border-width: 1px 1px 3px 1px;
+}
+
+.kubata-application-tabs .tab .tab-label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-application-tabs .tab:selected .tab-label {
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-weight: 900;
+}
+
+.kubata-application-tabs .tab .ikonli-font-icon {
+    -fx-icon-color: -color-base-5;
+}
+
+.kubata-application-tabs .tab:selected .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-application-subtab-shell {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.kubata-application-subtab-note {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 8px;
+    -fx-padding: 7px 10px;
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-application-page .card {
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-padding: 12px;
+}
+
+.kubata-application-page .h4 {
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+}
+
+.kubata-application-page .table-view {
+    -fx-background-radius: 9px;
+    -fx-border-radius: 9px;
+    -fx-border-color: -color-base-2;
+    -fx-background-color: white;
+}
+
+.kubata-application-page .table-row-cell:selected {
+    -fx-background-color: rgba(33,115,70,0.10);
+    -fx-text-background-color: -color-base-9;
+}
+
+.kubata-application-page .table-row-cell:hover {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-application-page .table-cell {
+    -fx-font-size: 9px;
+}
+
+.kubata-application-license-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 10px;
+    -fx-alignment: center;
+}
+
+.kubata-application-license-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-application-info-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+}
+
+.kubata-application-info-value {
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-application-info-note {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 8px;
+    -fx-padding: 8px 10px;
+    -fx-font-size: 9px;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-application-page .button-primary,
+.kubata-application-page .button-outlined,
+.kubata-application-page .button-success,
+.kubata-application-page .button-danger {
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
