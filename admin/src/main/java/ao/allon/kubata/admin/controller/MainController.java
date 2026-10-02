@@ -87,6 +87,9 @@ public class MainController {
     private void switchToMain() {
         AdminMainView view = applicationContext.getBean(AdminMainView.class);
         view.init(stage);
+        // O X do cabeçalho usa o mesmo encerramento seguro da janela.
+        // A sessão exacta é removida através do sessionId guardado no utilizador.
+        view.setOnLogout(this::performLogoutAndExit);
         stage.setOnCloseRequest(event -> {
             event.consume();
             performLogoutAndExit();
