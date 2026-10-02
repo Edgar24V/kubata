@@ -3,6 +3,8 @@ package ao.allon.kubata.admin.ui.component;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -33,6 +35,8 @@ public class CustomTitleBar extends HBox {
 
     private Consumer<String> onSearchCallback;
     private Runnable onHelpCallback;
+    private Runnable onLogoutCallback;
+    private final ContextMenu userMenu = new ContextMenu();
 
     public CustomTitleBar(Stage stage, String appTitle) {
         this.stage = stage;
@@ -96,7 +100,14 @@ public class CustomTitleBar extends HBox {
         // ── Info do utilizador ──────────────────────────────
         userAvatar = new Label("U");
         userAvatar.getStyleClass().add("title-bar-user-avatar");
-        userAvatar.setTooltip(new Tooltip("Perfil do utilizador"));
+        userAvatar.setTooltip(new Tooltip("Abrir opções da sessão"));
+        userAvatar.setStyle("-fx-cursor: hand;");
+        userAvatar.setOnMouseClicked(e -> {
+            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                showUserMenu();
+                e.consume();
+            }
+        });
 
         userLabel = new Label("");
         userLabel.getStyleClass().add("title-bar-user-label");
@@ -166,6 +177,10 @@ public class CustomTitleBar extends HBox {
         this.onHelpCallback = callback;
     }
 
+    public void setOnLogout(Runnable callback) {
+        this.onLogoutCallback = callback;
+    }
+
     public void setUserName(String name) {
         userLabel.setText(name);
         userLabel.setVisible(true);
@@ -187,6 +202,33 @@ public class CustomTitleBar extends HBox {
     }
 
     // ── Privado ─────────────────────────────────────────────
+
+    private void showUserMenu() {
+        userMenu.getItems().clear();
+
+        MenuItem sessionInfo = new MenuItem(
+                "Sessão actual",
+                new FontIcon(Feather.CLOCK)
+        );
+        sessionInfo.setDisable(true);
+
+        MenuItem logout = new MenuItem(
+                "Encerrar Sessão",
+                new FontIcon(Feather.LOG_OUT)
+        );
+        logout.setOnAction(e -> {
+            if (onLogoutCallback != null) {
+                onLogoutCallback.run();
+            }
+        });
+
+        userMenu.getItems().addAll(
+                sessionInfo,
+                new javafx.scene.control.SeparatorMenuItem(),
+                logout
+        );
+        userMenu.show(userAvatar, javafx.geometry.Side.BOTTOM, 0, 4);
+    }
 
     private void triggerHelp() {
         if (onHelpCallback != null) {
@@ -226,6 +268,6 @@ public class CustomTitleBar extends HBox {
 
     private boolean isOnControlButton(double x) {
         double w = getWidth();
-        return x > w - 138;
+        return x > w - 260;
     }
 }
