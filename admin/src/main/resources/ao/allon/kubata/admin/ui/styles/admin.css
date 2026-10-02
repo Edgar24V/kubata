@@ -13583,3 +13583,175 @@ Text {
     -fx-font-size: 17px;
     -fx-font-weight: 900;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA · INFRAESTRUTURA · Sessões
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kubata-sessions-eyebrow {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-letter-spacing: 0.8px;
+}
+
+.kubata-sessions-context {
+    -fx-padding: 8px 11px;
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 8px;
+    -fx-border-color: -color-base-1;
+    -fx-border-radius: 8px;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-sessions-filterbar {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-padding: 9px 11px;
+}
+
+.kubata-sessions-filter-label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-sessions-split {
+    -fx-background-color: transparent;
+}
+
+.kubata-sessions-split > .split-pane-divider {
+    -fx-background-color: -color-base-2;
+    -fx-padding: 0 1px;
+}
+
+.kubata-sessions-table {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 11px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 11px;
+}
+
+.kubata-sessions-table .column-header-background {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 11px 11px 0 0;
+}
+
+.kubata-sessions-table .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-padding: 0 8px;
+}
+
+.kubata-sessions-table .column-header .label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-sessions-table .table-row-cell {
+    -fx-cell-size: 40px;
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-sessions-table .table-row-cell:hover {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-sessions-table .table-row-cell:selected {
+    -fx-background-color: rgba(33,115,70,0.10);
+    -fx-text-background-color: -color-base-9;
+}
+
+.kubata-sessions-table .table-cell {
+    -fx-padding: 0 9px;
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-session-status-badge {
+    -fx-background-radius: 9px;
+    -fx-padding: 3px 7px;
+    -fx-font-size: 7px;
+    -fx-font-weight: 900;
+}
+
+.kubata-session-active {
+    -fx-background-color: -kubata-green-pale;
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-session-current {
+    -fx-background-color: rgba(59,130,246,0.12);
+    -fx-text-fill: #1d4ed8;
+}
+
+.kubata-sessions-details {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 11px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 11px;
+}
+
+.kubata-sessions-details-icon {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 10px;
+    -fx-alignment: center;
+}
+
+.kubata-sessions-details-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-sessions-details-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-sessions-details-caption {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-sessions-details-card {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 9px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 9px;
+    -fx-padding: 9px;
+}
+
+.kubata-sessions-details-row {
+    -fx-padding: 6px 0;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.kubata-sessions-details-key {
+    -fx-font-size: 8px;
+    -fx-font-weight: 900;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-sessions-details-value {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-sessions-security-card {
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 8px;
+    -fx-padding: 8px;
+    -fx-font-size: 8px;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-line-spacing: 1px;
+}
