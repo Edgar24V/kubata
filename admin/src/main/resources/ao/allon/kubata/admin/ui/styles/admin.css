@@ -12950,10 +12950,6 @@ Text {
     -fx-border-width: 0 0 1 0;
 }
 
-.console-dashboard-activity-row:last-child {
-    -fx-border-color: transparent;
-}
-
 .console-dashboard-activity-icon {
     -fx-background-radius: 7px;
 }
