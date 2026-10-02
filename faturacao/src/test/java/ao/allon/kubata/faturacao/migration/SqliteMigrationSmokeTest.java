@@ -1,4 +1,3 @@
-@SpringBootTest
 package ao.allon.kubata.faturacao.migration;
 
 import org.flywaydb.core.Flyway;
@@ -12,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ActiveProfiles("sqlite")
+@SpringBootTest
 public class SqliteMigrationSmokeTest {
 
     @Autowired
