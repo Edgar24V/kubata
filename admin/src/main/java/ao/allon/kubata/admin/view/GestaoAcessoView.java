@@ -901,7 +901,20 @@ public class GestaoAcessoView extends BorderPane {
             case ADMIN -> "Administrador";
             case USER -> "Utilizador";
             case OPERATOR -> "Operador";
+            case DIRETOR -> "Director";
+            case GERENTE_FINANCEIRO -> "Gerente Financeiro";
+            case CONTABILISTA -> "Contabilista";
+            case OPERADOR_FATURACAO -> "Operador de Facturação";
+            case CAIXA -> "Caixa";
+            case SUPERVISOR_VENDAS -> "Supervisor de Vendas";
+            case VENDEDOR -> "Vendedor";
+            case ESTOQUE -> "Responsável de Estoque";
+            case COMPRAS -> "Compras";
+            case LOGISTICA -> "Logística";
+            case AUDITOR -> "Auditor";
             case SUPORTE_TI -> "Suporte TI";
+            case RESPONSAVEL_FISCAL_AO -> "Responsável Fiscal AO";
+            case VISITANTE -> "Visitante";
         };
     }
 
