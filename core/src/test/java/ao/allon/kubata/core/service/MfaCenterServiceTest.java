@@ -1,6 +1,7 @@
 package ao.allon.kubata.core.service;
 
 import ao.allon.kubata.core.domain.MfaPolicy;
+import ao.allon.kubata.core.domain.PermissaoPerfil;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.repository.EmpresaRepository;
@@ -130,15 +131,12 @@ class MfaCenterServiceTest {
         User actor = user(1L);
         actor.setRole(Role.OPERATOR);
 
-        User target = user(10L);
-
         when(userRepository.findById(1L)).thenReturn(Optional.of(actor));
-        when(userRepository.findById(10L)).thenReturn(Optional.of(target));
         when(securityService.hasPermission(
                 eq(actor),
                 eq("ADMINISTRATOR"),
                 eq("UTILIZADORES"),
-                any()
+                eq(PermissaoPerfil.Operacao.EDITAR)
         )).thenReturn(false);
 
         assertThrows(
