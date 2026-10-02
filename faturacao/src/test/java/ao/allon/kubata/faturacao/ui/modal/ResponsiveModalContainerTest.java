@@ -20,10 +20,7 @@ class ResponsiveModalContainerTest {
         new JFXPanel();
 
         CountDownLatch latch = new CountDownLatch(1);
-        Platform.runLater(() -> {
-            Platform.setImplicitExit(false);
-            latch.countDown();
-        });
+        Platform.runLater(latch::countDown);
 
         assertTrue(latch.await(10, TimeUnit.SECONDS), "O JavaFX Toolkit não iniciou.");
     }
