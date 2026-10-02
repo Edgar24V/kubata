@@ -60,8 +60,6 @@ class PasswordPolicyServiceTest {
         User user = user(10L, "Edgar Vicente", "edgar@kubata.ao");
 
         PasswordPolicy userPolicy = policy(PasswordPolicy.ScopeType.UTILIZADOR, 10L, 14);
-        PasswordPolicy companyPolicy = policy(PasswordPolicy.ScopeType.EMPRESA, 20L, 12);
-
         when(policyRepository.findByScopeTypeAndScopeIdAndActiveTrue(
                 PasswordPolicy.ScopeType.UTILIZADOR, 10L))
                 .thenReturn(Optional.of(userPolicy));
@@ -69,7 +67,6 @@ class PasswordPolicyServiceTest {
         PasswordPolicy effective = service.getEffectivePolicy(user);
 
         assertEquals(14, effective.getMinLength());
-        verifyNoInteractions(companyPolicy);
         verify(policyRepository, never()).findByScopeTypeAndScopeIdAndActiveTrue(
                 eq(PasswordPolicy.ScopeType.EMPRESA), eq(20L));
     }
