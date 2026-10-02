@@ -348,6 +348,7 @@ public class AuthService {
      * Isto evita seleccionar outra sessão do mesmo utilizador quando existem
      * vários logins simultâneos.
      */
+    @Transactional
     public void logout(User user, Long exactSessionId, String ip) {
         if (user == null) {
             return;
@@ -355,13 +356,19 @@ public class AuthService {
 
         if (exactSessionId != null) {
             userSessionRepository.findById(exactSessionId)
-                    .ifPresent(userSessionRepository::delete);
+                    .ifPresent(session -> {
+                        userSessionRepository.delete(session);
+                        userSessionRepository.flush();
+                    });
         } else {
             // Compatibilidade apenas para sessões antigas sem identificador local.
             userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome())
                     .stream()
                     .findFirst()
-                    .ifPresent(userSessionRepository::delete);
+                    .ifPresent(session -> {
+                        userSessionRepository.delete(session);
+                        userSessionRepository.flush();
+                    });
         }
 
         user.setSessionId(null);
