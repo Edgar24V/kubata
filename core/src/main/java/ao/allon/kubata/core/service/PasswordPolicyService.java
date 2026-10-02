@@ -235,7 +235,16 @@ public class PasswordPolicyService {
             PasswordPolicy requested,
             String sourceIp) {
 
-        User managedActor = requirePolicyAdministrator(actor);
+        if (requested == null) {
+            throw new IllegalArgumentException("Política de palavra-passe inválida.");
+        }
+
+        User managedActor = requirePolicyAdministrator(
+                actor,
+                requested.getId() == null
+                        ? PermissaoPerfil.Operacao.CRIAR
+                        : PermissaoPerfil.Operacao.EDITAR
+        );
         validatePolicyScope(requested);
 
         PasswordPolicy target = requested.getId() == null
@@ -245,7 +254,9 @@ public class PasswordPolicyService {
                                 "Política de palavra-passe não encontrada."
                         ));
 
-        PasswordPolicy before = requested.getId() == null ? null : target;
+        LinkedHashMap<String, Object> beforeSnapshot =
+                requested.getId() == null ? null : snapshot(target);
+
         target.setScopeType(requested.getScopeType());
         target.setScopeId(requested.getScopeId());
         target.setScopeKey(scopeKey(requested.getScopeType(), requested.getScopeId()));
@@ -285,7 +296,7 @@ public class PasswordPolicyService {
                 RESOURCE,
                 String.valueOf(saved.getId()),
                 "Política de palavra-passe guardada para " + saved.getScopeKey(),
-                before == null ? null : snapshot(before),
+                beforeSnapshot,
                 snapshot(saved),
                 MODULE,
                 normalizeIp(sourceIp),
@@ -300,7 +311,10 @@ public class PasswordPolicyService {
 
     @Transactional
     public void deletePolicy(User actor, Long id, String sourceIp) {
-        User managedActor = requirePolicyAdministrator(actor);
+        User managedActor = requirePolicyAdministrator(
+                actor,
+                PermissaoPerfil.Operacao.APAGAR
+        );
         PasswordPolicy policy = policyRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Política de palavra-passe não encontrada."
@@ -479,7 +493,9 @@ public class PasswordPolicyService {
         }
     }
 
-    private User requirePolicyAdministrator(User actor) {
+    private User requirePolicyAdministrator(
+            User actor,
+            PermissaoPerfil.Operacao operation) {
         if (actor == null || actor.getId() == null) {
             throw new SecurityException("Sessão administrativa inválida.");
         }
@@ -499,7 +515,7 @@ public class PasswordPolicyService {
                 managed,
                 MODULE,
                 RESOURCE,
-                ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.EDITAR
+                operation
         );
 
         if (!allowed) {
