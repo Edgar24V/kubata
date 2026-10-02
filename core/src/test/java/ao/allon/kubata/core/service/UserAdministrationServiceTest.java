@@ -5,6 +5,7 @@ import ao.allon.kubata.core.domain.Filial;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.TipoConta;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.domain.PerfilAcesso;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.FilialRepository;
