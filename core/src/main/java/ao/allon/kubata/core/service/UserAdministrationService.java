@@ -14,6 +14,7 @@ import ao.allon.kubata.core.repository.FilialRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,7 @@ public class UserAdministrationService {
     private final UserSecurityProfileService userSecurityProfileService;
     private final PasswordPolicyService passwordPolicyService;
 
+    @Autowired
     public UserAdministrationService(UserRepository userRepository,
                                      EmpresaRepository empresaRepository,
                                      FilialRepository filialRepository,
@@ -65,6 +67,27 @@ public class UserAdministrationService {
         this.auditService = auditService;
         this.userSecurityProfileService = userSecurityProfileService;
         this.passwordPolicyService = passwordPolicyService;
+    }
+
+    public UserAdministrationService(UserRepository userRepository,
+                                     EmpresaRepository empresaRepository,
+                                     FilialRepository filialRepository,
+                                     PerfilAcessoRepository perfilRepository,
+                                     UserSessionRepository userSessionRepository,
+                                     PasswordEncoder passwordEncoder,
+                                     SecurityService securityService,
+                                     AuditService auditService,
+                                     UserSecurityProfileService userSecurityProfileService) {
+        this.userRepository = userRepository;
+        this.empresaRepository = empresaRepository;
+        this.filialRepository = filialRepository;
+        this.perfilRepository = perfilRepository;
+        this.userSessionRepository = userSessionRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.securityService = securityService;
+        this.auditService = auditService;
+        this.userSecurityProfileService = userSecurityProfileService;
+        this.passwordPolicyService = null;
     }
 
     @Transactional(readOnly = true)
@@ -271,17 +294,21 @@ public class UserAdministrationService {
         String previousSessionUsername = isNew ? null : target.getNome();
         String oldPasswordHash = target.getPassword();
         if (rawPassword != null && !rawPassword.isBlank()) {
-            if (!isNew) {
-                passwordPolicyService.validateMinimumPasswordAge(target, LocalDateTime.now());
-            }
-            passwordPolicyService.validateNewPassword(target, rawPassword);
-            if (!isNew) {
-                passwordPolicyService.recordPreviousPassword(
-                        target,
-                        oldPasswordHash,
-                        managedActor.getEmail(),
-                        "ALTERACAO_ADMINISTRATIVA"
-                );
+            if (passwordPolicyService != null) {
+                if (!isNew) {
+                    passwordPolicyService.validateMinimumPasswordAge(target, LocalDateTime.now());
+                }
+                passwordPolicyService.validateNewPassword(target, rawPassword);
+                if (!isNew) {
+                    passwordPolicyService.recordPreviousPassword(
+                            target,
+                            oldPasswordHash,
+                            managedActor.getEmail(),
+                            "ALTERACAO_ADMINISTRATIVA"
+                    );
+                }
+            } else {
+                userSecurityProfileService.validatePassword(target, rawPassword);
             }
             target.setPassword(passwordEncoder.encode(rawPassword));
             target.setPasswordChangedAt(LocalDateTime.now());
