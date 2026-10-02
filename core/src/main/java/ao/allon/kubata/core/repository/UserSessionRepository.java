@@ -9,8 +9,6 @@ import java.util.List;
 
 @Repository
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
-    Optional<UserSession> findByUsername(String username);
-
     List<UserSession> findAllByUsernameOrderByLoginTimeDesc(String username);
 
     long deleteAllByUsername(String username);
