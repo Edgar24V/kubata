@@ -478,9 +478,12 @@ public class UserAdministrationService {
      * Termina exactamente uma sessão seleccionada na consola administrativa.
      * A própria sessão do administrador não pode ser terminada por esta acção;
      * para isso deve ser usado o logout normal no cabeçalho.
+     *
+     * @return true quando a sessão existia e foi terminada; false quando já
+     *         tinha sido removida por outra operação.
      */
     @Transactional
-    public void terminarSessao(User actor, Long sessionId, String sourceIp) {
+    public boolean terminarSessao(User actor, Long sessionId, String sourceIp) {
         require(actor, "EDITAR");
         User managedActor = managedActor(actor);
 
@@ -488,8 +491,15 @@ public class UserAdministrationService {
             throw new IllegalArgumentException("Sessão inválida.");
         }
 
-        UserSession session = userSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("A sessão seleccionada já não existe."));
+        Optional<UserSession> sessionOpt = userSessionRepository.findById(sessionId);
+        if (sessionOpt.isEmpty()) {
+            // A lista da consola pode ficar ligeiramente desactualizada entre
+            // a selecção e a execução. Nesse caso, a sessão já foi encerrada
+            // por outro fluxo e a operação torna-se idempotente.
+            return false;
+        }
+
+        UserSession session = sessionOpt.get();
 
         String sessionUsername = session.getUsername();
         if (sessionUsername != null
@@ -533,6 +543,7 @@ public class UserAdministrationService {
                 false,
                 AuditLog.AGTComplianceLevel.NORMAL
         );
+        return true;
     }
 
     @Transactional
