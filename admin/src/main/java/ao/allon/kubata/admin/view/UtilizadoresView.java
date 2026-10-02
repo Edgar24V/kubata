@@ -55,6 +55,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.Callable;
@@ -1431,39 +1432,111 @@ public class UtilizadoresView extends VBox {
                 if (empty || item == null) {
                     setText(null);
                     setGraphic(null);
+                    setDisable(false);
+                    getStyleClass().removeAll(
+                            "kubata-users-profile-incompatible",
+                            "kubata-users-profile-inactive"
+                    );
                     return;
                 }
 
+                boolean active = Boolean.TRUE.equals(item.getActivo());
+                boolean compatible = isProfileCompatible(item, cbEmpresa.getValue());
+
                 VBox box = new VBox(2);
+
+                HBox title = new HBox(7);
+                title.setAlignment(Pos.CENTER_LEFT);
+
                 Label code = new Label(
                         safe(item.getCodigo(), "PERFIL")
                 );
                 code.getStyleClass().add("kubata-users-profile-code");
+
+                Label scope = new Label(
+                        item.getEmpresa() == null
+                                ? "GLOBAL"
+                                : "EMPRESA · " + companyName(item.getEmpresa())
+                );
+                scope.getStyleClass().add(
+                        item.getEmpresa() == null
+                                ? "kubata-users-profile-scope-global"
+                                : "kubata-users-profile-scope-company"
+                );
+
+                title.getChildren().addAll(code, scope);
 
                 Label description = new Label(
                         safe(item.getDescricao(), "Sem descrição")
                 );
                 description.getStyleClass().add("kubata-users-profile-description");
 
-                box.getChildren().addAll(code, description);
+                Label state = new Label();
+                state.getStyleClass().add("kubata-users-profile-state");
+
+                if (!active) {
+                    state.setText("INACTIVO");
+                    state.getStyleClass().add("kubata-users-profile-state-inactive");
+                } else if (!compatible) {
+                    state.setText(
+                            cbEmpresa.getValue() == null
+                                    ? "SELECCIONE A EMPRESA"
+                                    : "OUTRA EMPRESA"
+                    );
+                    state.getStyleClass().add("kubata-users-profile-state-incompatible");
+                } else {
+                    state.setText("DISPONÍVEL");
+                    state.getStyleClass().add("kubata-users-profile-state-active");
+                }
+
+                title.getChildren().add(state);
+                box.getChildren().addAll(title, description);
+
                 setText(null);
                 setGraphic(box);
+                setDisable(!active || !compatible);
+
+                getStyleClass().removeAll(
+                        "kubata-users-profile-incompatible",
+                        "kubata-users-profile-inactive"
+                );
+                if (!active) {
+                    getStyleClass().add("kubata-users-profile-inactive");
+                } else if (!compatible) {
+                    getStyleClass().add("kubata-users-profile-incompatible");
+                }
             }
         });
 
         final List<PerfilAcesso> availableProfiles = new ArrayList<>();
 
         Runnable refreshProfiles = () -> {
-            availableProfiles.clear();
-            availableProfiles.addAll(
-                    perfilRepository.findByEmpresaIsNull()
+            Set<Long> selectedIds = new HashSet<>(
+                    listPerfis.getSelectionModel().getSelectedItems().stream()
+                            .filter(p -> p != null && p.getId() != null)
+                            .map(PerfilAcesso::getId)
+                            .collect(Collectors.toSet())
             );
 
-            if (cbEmpresa.getValue() != null) {
-                availableProfiles.addAll(
-                        perfilRepository.findByEmpresa(cbEmpresa.getValue())
-                );
+            if (formUser != null && formUser.getPerfis() != null) {
+                formUser.getPerfis().stream()
+                        .filter(p -> p != null && p.getId() != null)
+                        .map(PerfilAcesso::getId)
+                        .forEach(selectedIds::add);
             }
+
+            availableProfiles.clear();
+
+            // Carrega a matriz completa. O filtro de empresa passa a ser de
+            // elegibilidade, não de visibilidade: nenhum perfil fica escondido.
+            availableProfiles.addAll(perfilRepository.findAllWithEmpresa());
+
+            availableProfiles.sort(
+                    Comparator
+                            .comparing((PerfilAcesso p) -> !Boolean.TRUE.equals(p.getActivo()))
+                            .thenComparing((PerfilAcesso p) -> p.getEmpresa() == null ? "" : companyName(p.getEmpresa()))
+                            .thenComparing(p -> safe(p.getCodigo(), ""))
+            );
 
             String query = profileSearch.getText() == null
                     ? ""
@@ -1472,24 +1545,30 @@ public class UtilizadoresView extends VBox {
             List<PerfilAcesso> visible = availableProfiles.stream()
                     .filter(p -> query.isBlank()
                             || contains(p.getCodigo(), query)
-                            || contains(p.getDescricao(), query))
+                            || contains(p.getDescricao(), query)
+                            || (p.getEmpresa() != null
+                            && contains(p.getEmpresa().getNome(), query)))
                     .collect(Collectors.toList());
 
             listPerfis.setItems(
                     FXCollections.observableArrayList(visible)
             );
+            listPerfis.getSelectionModel().clearSelection();
 
-            if (formUser != null && formUser.getPerfis() != null) {
-                for (PerfilAcesso p : formUser.getPerfis()) {
-                    if (visible.contains(p)) {
-                        listPerfis.getSelectionModel().select(p);
-                    }
+            for (PerfilAcesso p : visible) {
+                if (p.getId() != null
+                        && selectedIds.contains(p.getId())
+                        && isProfileCompatible(p, cbEmpresa.getValue())
+                        && Boolean.TRUE.equals(p.getActivo())) {
+                    listPerfis.getSelectionModel().select(p);
                 }
             }
 
             selectedProfiles.setText(
                     listPerfis.getSelectionModel().getSelectedItems().size()
-                            + " seleccionados"
+                            + " seleccionados · "
+                            + visible.size()
+                            + " apresentados"
             );
         };
 
@@ -1505,12 +1584,17 @@ public class UtilizadoresView extends VBox {
                         selectedProfiles.setText(
                                 listPerfis.getSelectionModel()
                                         .getSelectedItems().size()
-                                        + " seleccionados"
+                                        + " seleccionados · "
+                                        + listPerfis.getItems().size()
+                                        + " apresentados"
                         )
         );
 
         selectAllProfiles.setOnAction(e ->
-                listPerfis.getSelectionModel().selectAll()
+                listPerfis.getItems().stream()
+                        .filter(p -> Boolean.TRUE.equals(p.getActivo()))
+                        .filter(p -> isProfileCompatible(p, cbEmpresa.getValue()))
+                        .forEach(p -> listPerfis.getSelectionModel().select(p))
         );
 
         clearProfiles.setOnAction(e ->
@@ -1525,8 +1609,9 @@ public class UtilizadoresView extends VBox {
                 profileTools,
                 listPerfis,
                 hint(
-                        "Os perfis globais ficam disponíveis para todas as empresas. "
-                                + "Os perfis da empresa são apresentados quando uma empresa é seleccionada."
+                        "Todos os perfis activos são apresentados. GLOBAL pode ser atribuído a qualquer empresa; "
+                                + "perfil de EMPRESA só pode ser atribuído à empresa seleccionada. "
+                                + "Perfis incompatíveis ou inactivos ficam visíveis para facilitar a administração."
                 )
         );
         VBox.setVgrow(listPerfis, Priority.ALWAYS);
@@ -3402,6 +3487,21 @@ public class UtilizadoresView extends VBox {
 
     private String companyName(Empresa empresa) {
         return empresa == null ? "Sem empresa" : safe(empresa.getNome(), "Empresa");
+    }
+
+    private boolean isProfileCompatible(PerfilAcesso profile, Empresa selectedEmpresa) {
+        if (profile == null || !Boolean.TRUE.equals(profile.getActivo())) {
+            return false;
+        }
+
+        if (profile.getEmpresa() == null) {
+            return true;
+        }
+
+        return selectedEmpresa != null
+                && profile.getEmpresa().getId() != null
+                && selectedEmpresa.getId() != null
+                && profile.getEmpresa().getId().equals(selectedEmpresa.getId());
     }
 
     private boolean sameId(Empresa a, Empresa b) {
