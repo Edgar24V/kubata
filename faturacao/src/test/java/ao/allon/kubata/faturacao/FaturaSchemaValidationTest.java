@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ImportAutoConfiguration(FlywayAutoConfiguration.class)
 @ActiveProfiles("test")
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class FaturaSchemaValidationTest {
 
     @Autowired
