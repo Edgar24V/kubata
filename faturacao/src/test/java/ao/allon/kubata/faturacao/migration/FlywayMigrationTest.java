@@ -1,4 +1,3 @@
-@SpringBootTest
 package ao.allon.kubata.faturacao.migration;
 
 import org.flywaydb.core.Flyway;
@@ -11,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
+@SpringBootTest
 public class FlywayMigrationTest {
 
     @Autowired
