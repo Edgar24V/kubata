@@ -109,7 +109,7 @@ public class AuthService {
 
             if (!totpValid) {
                 boolean recoveryValid =
-                        securityProfileService.isRecoveryCodeAllowed(user)
+                        userSecurityProfileService.isRecoveryCodeAllowed(user)
                                 && recoveryCode != null
                                 && mfaService.verifyAndConsumeRecoveryCode(
                                 user,
@@ -143,7 +143,7 @@ public class AuthService {
             }
         }
 
-        securityProfileService.validateLoginPolicy(
+        userSecurityProfileService.validateLoginPolicy(
                 user,
                 ip,
                 LocalDateTime.now(),
