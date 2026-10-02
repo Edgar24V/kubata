@@ -1,6 +1,9 @@
 -- V33: motor central de políticas de palavra-passe e histórico de credenciais.
 -- A resolução server-side segue: UTILIZADOR -> PERFIL -> EMPRESA -> GLOBAL.
 -- scope_key evita múltiplas políticas activas no mesmo âmbito, incluindo GLOBAL.
+-- O timestamp de reset permite expiração exacta de credenciais temporárias.
+
+ALTER TABLE users ADD COLUMN password_reset_expires_at TIMESTAMP;
 
 CREATE TABLE IF NOT EXISTS password_policies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
