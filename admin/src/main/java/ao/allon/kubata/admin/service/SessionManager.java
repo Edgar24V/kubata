@@ -10,6 +10,7 @@ public class SessionManager {
     private final AcessoService acessoService;
 
     private User user;
+    private Long sessionId;
 
     public SessionManager(AcessoService acessoService) {
         this.acessoService = acessoService;
@@ -17,10 +18,19 @@ public class SessionManager {
 
     public void login(User user) {
         this.user = user;
+        this.sessionId = user == null ? null : user.getSessionId();
     }
 
     public void logout() {
+        if (this.user != null) {
+            this.user.setSessionId(null);
+        }
         this.user = null;
+        this.sessionId = null;
+    }
+
+    public Long getSessionId() {
+        return sessionId;
     }
 
     public User getUser() {
