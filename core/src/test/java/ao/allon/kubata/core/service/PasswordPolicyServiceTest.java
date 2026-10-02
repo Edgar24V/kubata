@@ -100,7 +100,7 @@ class PasswordPolicyServiceTest {
         history.setPasswordHash("HASH-ANTIGA");
 
         when(policyRepository.findByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL))
-                .thenReturn(List.of(policy));
+                .thenReturn(Optional.of(policy));
         when(userSecurityProfileRepository.findByUserId(10L))
                 .thenReturn(Optional.empty());
         when(historyRepository.findTop100ByUserIdOrderByChangedAtDesc(10L))
@@ -121,7 +121,7 @@ class PasswordPolicyServiceTest {
 
         PasswordPolicy policy = policy(PasswordPolicy.ScopeType.GLOBAL, null, 8);
         when(policyRepository.findByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL))
-                .thenReturn(List.of(policy));
+                .thenReturn(Optional.of(policy));
         when(userSecurityProfileRepository.findByUserId(10L))
                 .thenReturn(Optional.empty());
 
