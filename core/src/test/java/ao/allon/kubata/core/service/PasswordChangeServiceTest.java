@@ -129,6 +129,7 @@ class PasswordChangeServiceTest {
         profile.setPasswordRequireLower(true);
         profile.setPasswordRequireDigit(true);
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(anyString(), eq("HASH-ANTIGA"))).thenReturn(true);
         when(userSecurityProfileService.getEffectiveProfile(user)).thenReturn(profile);
 
         assertThrows(
