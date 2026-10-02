@@ -198,7 +198,7 @@ class UserAdministrationServiceTest {
         assertEquals(2L, terminated);
         verify(userSessionRepository).deleteAll(
                 argThat(iterable -> {
-                    java.util.List<UserSession> list = java.util.stream.StreamSupport
+                    java.util.List<? extends UserSession> list = java.util.stream.StreamSupport
                             .stream(iterable.spliterator(), false)
                             .toList();
                     return list.size() == 2
