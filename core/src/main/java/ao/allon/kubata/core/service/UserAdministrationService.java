@@ -560,11 +560,10 @@ public class UserAdministrationService {
             );
         }
 
-        // Compatibilidade apenas para registos legados em que ambos os IDs
-        // não estejam disponíveis. Nunca usar o nome para bloquear uma sessão
-        // que possui um ID próprio.
+        // Se o ID local não estiver disponível, é mais seguro impedir a
+        // operação sobre qualquer sessão do próprio utilizador do que correr
+        // o risco de encerrar uma sessão concorrente.
         if (currentSessionId == null
-                && session.getId() == null
                 && sessionUsername != null
                 && actor.getNome() != null
                 && actor.getNome().equalsIgnoreCase(sessionUsername)) {
