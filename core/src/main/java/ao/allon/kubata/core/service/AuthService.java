@@ -133,7 +133,7 @@ public class AuthService {
 
             if (!totpValid) {
                 boolean recoveryValid =
-                        userSecurityProfileService.isRecoveryCodeAllowed(user)
+                        mfaService.isRecoveryCodeAllowed(user)
                                 && recoveryCode != null
                                 && mfaService.verifyAndConsumeRecoveryCode(
                                 user,
@@ -165,6 +165,12 @@ public class AuthService {
                         true
                 );
             }
+        }
+
+        if (mfaService.isMfaRequired(user) && !mfaSatisfied) {
+            throw new AuthenticationException(
+                    "Esta conta exige MFA antes de permitir o acesso."
+            );
         }
 
         userSecurityProfileService.validateLoginPolicy(
