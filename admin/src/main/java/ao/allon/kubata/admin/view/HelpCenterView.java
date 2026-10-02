@@ -67,7 +67,6 @@ public class HelpCenterView extends BorderPane {
         searchRow.getStyleClass().add("kubata-help-search-row");
 
         searchField.setPromptText("Pesquisar por utilizadores, sessões, MFA, empresas, auditoria...");
-        searchField.setGraphic(IconUtils.icon(Feather.SEARCH, 15));
         searchField.textProperty().addListener((obs, oldValue, newValue) -> applyFilter(newValue));
 
         resultCount.getStyleClass().add("kubata-help-result-count");
