@@ -14,4 +14,6 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     List<UserSession> findAllByUsernameOrderByLoginTimeDesc(String username);
 
     long deleteAllByUsername(String username);
+
+    long countByUsernameNot(String username);
 }
