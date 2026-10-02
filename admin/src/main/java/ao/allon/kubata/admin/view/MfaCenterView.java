@@ -777,7 +777,7 @@ public class MfaCenterView extends VBox {
         TextField code = new TextField();
         code.setPromptText("Código TOTP actual");
         code.setTextFormatter(new TextFormatter<String>(change ->
-                change.getControlNewText().matches("\d{0,6}")
+                change.getControlNewText().matches("\\d{0,6}")
                         ? change
                         : null
         ));
