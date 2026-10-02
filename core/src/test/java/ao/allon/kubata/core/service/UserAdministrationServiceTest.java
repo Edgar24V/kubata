@@ -197,10 +197,15 @@ class UserAdministrationServiceTest {
 
         assertEquals(2L, terminated);
         verify(userSessionRepository).deleteAll(
-                argThat(list -> list.size() == 2
-                        && list.contains(otherA)
-                        && list.contains(otherB)
-                        && !list.contains(own))
+                argThat(iterable -> {
+                    java.util.List<UserSession> list = java.util.stream.StreamSupport
+                            .stream(iterable.spliterator(), false)
+                            .toList();
+                    return list.size() == 2
+                            && list.contains(otherA)
+                            && list.contains(otherB)
+                            && !list.contains(own);
+                })
         );
         verify(auditService).logAction(
                 eq(actor),
