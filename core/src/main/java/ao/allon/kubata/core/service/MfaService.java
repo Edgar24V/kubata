@@ -232,6 +232,12 @@ public class MfaService {
     @Transactional
     public void disableMfa(User user) {
         requireUser(user);
+        MfaPolicy policy = getEffectivePolicy(user);
+        if (policy.isRequired() || !policy.isAllowUserDisable()) {
+            throw new SecurityException(
+                    "A política MFA desta conta exige autenticação multifactor e não permite a sua desactivação voluntária."
+            );
+        }
         disableMfaInternal(user, user, null, "MFA_DISABLED", false);
     }
 
@@ -288,6 +294,10 @@ public class MfaService {
             );
         }
 
+        if (!getEffectivePolicy(target).isAllowRecoveryCodes()) {
+            throw new SecurityException("A política MFA não permite códigos de recuperação.");
+        }
+
         String normalizedCode = normalizeTotpCode(totpCode);
         if (normalizedCode == null
                 || !googleAuthenticator.authorize(
@@ -341,7 +351,8 @@ public class MfaService {
     ) {
         requireUser(user);
 
-        if (!user.isMfaEnabled()
+        if (!isRecoveryCodeAllowed(user)
+                || !user.isMfaEnabled()
                 || user.getMfaRecoveryCodes() == null
                 || user.getMfaRecoveryCodes().isBlank()) {
             return false;
