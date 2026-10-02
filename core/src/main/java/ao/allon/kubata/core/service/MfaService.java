@@ -5,7 +5,9 @@ import ao.allon.kubata.core.domain.PerfilAcesso;
 import ao.allon.kubata.core.domain.AuditLog;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.MfaPolicyRepository;
+import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
@@ -37,6 +39,8 @@ public class MfaService {
     private final AcessoService acessoService;
     private final SecurityService securityService;
     private final MfaPolicyRepository mfaPolicyRepository;
+    private final EmpresaRepository empresaRepository;
+    private final PerfilAcessoRepository perfilAcessoRepository;
     private final UserSecurityProfileService userSecurityProfileService;
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
@@ -46,12 +50,16 @@ public class MfaService {
                       AcessoService acessoService,
                       SecurityService securityService,
                       MfaPolicyRepository mfaPolicyRepository,
+                      EmpresaRepository empresaRepository,
+                      PerfilAcessoRepository perfilAcessoRepository,
                       UserSecurityProfileService userSecurityProfileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.acessoService = acessoService;
         this.securityService = securityService;
         this.mfaPolicyRepository = mfaPolicyRepository;
+        this.empresaRepository = empresaRepository;
+        this.perfilAcessoRepository = perfilAcessoRepository;
         this.userSecurityProfileService = userSecurityProfileService;
     }
 
@@ -64,6 +72,8 @@ public class MfaService {
         this.acessoService = acessoService;
         this.securityService = securityService;
         this.mfaPolicyRepository = null;
+        this.empresaRepository = null;
+        this.perfilAcessoRepository = null;
         this.userSecurityProfileService = null;
     }
 
@@ -545,7 +555,7 @@ public class MfaService {
                 .count();
         long lowRecovery = users.stream()
                 .filter(User::isMfaEnabled)
-                .filter(u -> countRecoveryCodes(u) > 0 && countRecoveryCodes(u) <= 2)
+                .filter(u -> countRecoveryCodes(u) <= 2)
                 .count();
 
         return new MfaIndicators(
@@ -827,18 +837,15 @@ public class MfaService {
 
         switch (policy.getScopeType()) {
             case EMPRESA -> {
-                if (!userRepository.findAll().stream()
-                        .map(User::getEmpresa)
-                        .filter(java.util.Objects::nonNull)
-                        .anyMatch(e -> policy.getScopeId().equals(e.getId()))) {
+                if (empresaRepository == null
+                        || !empresaRepository.existsById(policy.getScopeId())) {
                     throw new IllegalArgumentException("A empresa do âmbito MFA não existe.");
                 }
             }
             case PERFIL, UTILIZADOR -> {
                 if (policy.getScopeType() == MfaPolicy.ScopeType.PERFIL
-                        && !userRepository.findAll().stream()
-                        .flatMap(u -> u.getPerfis() == null ? java.util.stream.Stream.empty() : u.getPerfis().stream())
-                        .anyMatch(p -> p != null && policy.getScopeId().equals(p.getId()))) {
+                        && (perfilAcessoRepository == null
+                        || !perfilAcessoRepository.existsById(policy.getScopeId()))) {
                     throw new IllegalArgumentException("O perfil do âmbito MFA não existe.");
                 }
                 if (policy.getScopeType() == MfaPolicy.ScopeType.UTILIZADOR
