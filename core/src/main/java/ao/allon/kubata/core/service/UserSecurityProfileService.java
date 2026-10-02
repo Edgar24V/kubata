@@ -37,6 +37,8 @@ public class UserSecurityProfileService {
 
     public static final String MODULE = "ADMINISTRATOR";
     public static final String RESOURCE = "PERFIL_SEGURANCA";
+    /** O perfil individual é uma camada de restrição apenas para contas comuns. */
+    public static final String ADMINISTRATOR_MODULE = "ADMINISTRATOR";
 
     private final UserSecurityProfileRepository profileRepository;
     private final UserSecurityFinancialUsageRepository financialUsageRepository;
@@ -68,6 +70,13 @@ public class UserSecurityProfileService {
         if (user == null || user.getId() == null) {
             return defaultProfile(null);
         }
+
+        // A conta ADMIN/Superadmin mantém o seu comportamento administrativo
+        // independente do Perfil de Segurança destinado aos utilizadores comuns.
+        if (isAdministratorAccount(user)) {
+            return defaultProfile(user);
+        }
+
         return profileRepository.findByUserId(user.getId())
                 .orElseGet(() -> defaultProfile(user));
     }
@@ -75,6 +84,7 @@ public class UserSecurityProfileService {
     @Transactional
     public UserSecurityProfile getOrCreateProfile(User actor, Long targetUserId) {
         User target = managedTarget(actor, targetUserId);
+        requireCommonUserTarget(target);
         return profileRepository.findByUserId(target.getId())
                 .orElseGet(() -> {
                     UserSecurityProfile profile = defaultProfile(target);
@@ -85,6 +95,7 @@ public class UserSecurityProfileService {
     @Transactional(readOnly = true)
     public UserSecurityProfile loadForAdministration(User actor, Long targetUserId) {
         User target = managedTarget(actor, targetUserId);
+        requireCommonUserTarget(target);
         return profileRepository.findByUserId(target.getId())
                 .orElseGet(() -> defaultProfile(target));
     }
@@ -98,6 +109,7 @@ public class UserSecurityProfileService {
 
         User managedActor = managedActor(actor);
         User target = managedTarget(managedActor, targetUserId);
+        requireCommonUserTarget(target);
 
         if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
             throw new SecurityException(
@@ -472,6 +484,31 @@ public class UserSecurityProfileService {
         return target;
     }
 
+    /**
+     * Conta comum = qualquer utilizador que não seja ADMIN nem Superadmin.
+     * O Perfil de Segurança não substitui o RBAC: ele apenas restringe uma
+     * conta comum que já tenha recebido permissões por Acesso/Perfis.
+     */
+    public boolean isCommonUser(User user) {
+        return user != null
+                && !user.isSuperadmin()
+                && user.getRole() != Role.ADMIN;
+    }
+
+    public boolean isAdministratorAccount(User user) {
+        return user != null
+                && (user.isSuperadmin() || user.getRole() == Role.ADMIN);
+    }
+
+    private void requireCommonUserTarget(User target) {
+        if (!isCommonUser(target)) {
+            throw new SecurityException(
+                    "O Perfil de Segurança Individual aplica-se apenas a utilizadores comuns. "
+                            + "Contas Administrador e Superadministrador mantêm o fluxo administrativo."
+            );
+        }
+    }
+
     private User managedActor(User actor) {
         if (actor == null || actor.getId() == null) {
             throw new SecurityException("Sessão administrativa inválida.");
@@ -649,6 +686,12 @@ public class UserSecurityProfileService {
 
         profile.setFinancialCurrency(normalizeCurrency(profile.getFinancialCurrency()));
         normalizeSet(profile.getAllowedModules(), 80, "módulos");
+        if (profile.getAllowedModules().stream()
+                .anyMatch(module -> ADMINISTRATOR_MODULE.equalsIgnoreCase(module))) {
+            throw new SecurityException(
+                    "O módulo ADMINISTRATOR não pode ser atribuído pelo Perfil de Segurança Individual."
+            );
+        }
         normalizeSet(profile.getAllowedIpRanges(), 64, "regras IP");
         normalizeSet(profile.getAllowedCriticalOperations(), 100, "operações críticas");
 
