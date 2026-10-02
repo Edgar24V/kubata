@@ -75,7 +75,7 @@ class PasswordPolicyServiceIntegrationTest {
         target.setEmpresa(empresa);
         target = userRepository.saveAndFlush(target);
         final Long targetUserId = target.getId();
-        final User targetFinal = target;
+        final User effectiveTarget = target;
 
         PasswordPolicy global = policy(
                 PasswordPolicy.ScopeType.GLOBAL,
