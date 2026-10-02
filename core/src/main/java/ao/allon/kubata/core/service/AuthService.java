@@ -202,7 +202,7 @@ public class AuthService {
 
         // Criar sessão real na BD
         UserSession session = new UserSession(user.getNome(), workstation, ip, "KUBATA ERP");
-        UserSession savedSession = userSessionRepository.save(session);
+        UserSession savedSession = userSessionRepository.saveAndFlush(session);
         // Guarda apenas em memória qual é o registo desta instância do cliente.
         // Assim, o fecho pelo X não remove por engano uma sessão de outro posto.
         if (savedSession != null) {
