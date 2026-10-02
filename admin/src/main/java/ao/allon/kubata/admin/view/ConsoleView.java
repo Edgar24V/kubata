@@ -101,6 +101,14 @@ public class ConsoleView extends VBox {
     private Label lblRunningJobsCount;
     private Label lblLastRefresh;
     private VBox recentActivityBox;
+
+    // Resumos das subáreas da Consola
+    private Label lblSessionsTabCount;
+    private Label lblLocksTabCount;
+    private Label lblLogsTabCount;
+    private Label lblModulesTabCount;
+    private Label lblModulesOnlineTabCount;
+    private Label lblRunningProcessesTabCount;
     
     // Performance Chart Data
     private XYChart.Series<Number, Number> cpuSeries = new XYChart.Series<>();
@@ -928,52 +936,222 @@ public class ConsoleView extends VBox {
     }
 
     private Node buildSessionsTab() {
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(16));
+        content.getStyleClass().add("console-subtab");
+
+        HBox header = buildConsoleSubtabHeader(
+                "SEGURANÇA · SESSÕES",
+                "Utilizadores ligados",
+                "Monitorize as ligações activas, a origem e o contexto de cada sessão.",
+                Feather.USERS,
+                lblSessionsTabCount = new Label("0"),
+                "SESSÕES"
+        );
+
+        HBox actions = new HBox(8);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        actions.getStyleClass().add("console-subtab-toolbar");
+
+        Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 12));
+        refresh.getStyleClass().add("button-outlined");
+        refresh.setOnAction(e -> refreshAll());
+
+        Label security = new Label(
+                "Sessões são encerradas individualmente para preservar o controlo administrativo.",
+                IconUtils.icon(Feather.SHIELD, 11)
+        );
+        security.getStyleClass().add("console-subtab-hint");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        actions.getChildren().addAll(refresh, spacer, security);
+
         AdvancedTableView<ActiveSession> table = new AdvancedTableView<>(activeSessions);
         TableUtils.standardize(table);
+        table.getStyleClass().add("console-professional-table");
 
-        table.getColumns().add(TableUtils.createTextColumn("Utilizador", s -> new SimpleStringProperty(s.getValue().getUserName())));
-        table.getColumns().add(TableUtils.createTextColumn("Login", s -> new SimpleStringProperty(s.getValue().getLoginTime())));
-        table.getColumns().add(TableUtils.createTextColumn("Máquina", s -> new SimpleStringProperty(s.getValue().getWorkstation())));
-        table.getColumns().add(TableUtils.createTextColumn("IP", s -> new SimpleStringProperty(s.getValue().getIp())));
-        table.getColumns().add(TableUtils.createTextColumn("Módulo/Empresa", s -> new SimpleStringProperty(s.getValue().getContext())));
-        table.getColumns().add(TableUtils.createTextColumn("Memória", s -> new SimpleStringProperty(s.getValue().getMemory())));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Utilizador",
+                s -> new SimpleStringProperty(s.getValue().getUserName())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Entrada",
+                s -> new SimpleStringProperty(s.getValue().getLoginTime())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Estação",
+                s -> new SimpleStringProperty(s.getValue().getWorkstation())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "IP",
+                s -> new SimpleStringProperty(s.getValue().getIp())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Módulo / Contexto",
+                s -> new SimpleStringProperty(s.getValue().getContext())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Memória",
+                s -> new SimpleStringProperty(s.getValue().getMemory())
+        ));
 
-        TableColumn<ActiveSession, Void> colActions = new TableColumn<>("Ações");
+        TableColumn<ActiveSession, String> colState = new TableColumn<>("Estado");
+        colState.setCellValueFactory(s -> new SimpleStringProperty(
+                s.getValue().getId() != null
+                        && s.getValue().getId().equals(sessionManager.getSessionId())
+                        ? "SESSÃO ACTUAL"
+                        : "ACTIVA"
+        ));
+        colState.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                Label badge = new Label(item);
+                badge.getStyleClass().add("console-status-badge");
+                badge.getStyleClass().add(
+                        "SESSÃO ACTUAL".equals(item)
+                                ? "console-status-current"
+                                : "console-status-online"
+                );
+                setText(null);
+                setGraphic(badge);
+                setAlignment(Pos.CENTER);
+            }
+        });
+        table.getColumns().add(colState);
+
+        TableColumn<ActiveSession, Void> colActions = new TableColumn<>("Acções");
         colActions.setCellFactory(col -> new TableCell<>() {
             private final Button btnKick = new Button("", IconUtils.icon(Feather.USER_X, 12));
             {
                 btnKick.getStyleClass().add("button-icon-danger");
-                btnKick.setTooltip(new Tooltip("Forçar Saída"));
-                btnKick.setOnAction(e -> kickUser(getTableView().getItems().get(getIndex())));
+                btnKick.setTooltip(new Tooltip("Encerrar esta sessão"));
+                btnKick.setOnAction(e ->
+                        kickUser(getTableView().getItems().get(getIndex())));
             }
+
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : btnKick);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+                ActiveSession session = getTableView().getItems().get(getIndex());
+                boolean own = session.getId() != null
+                        && session.getId().equals(sessionManager.getSessionId());
+                btnKick.setDisable(own);
+                btnKick.setTooltip(new Tooltip(
+                        own ? "A sessão actual não pode ser encerrada desta lista"
+                                : "Encerrar esta sessão"
+                ));
+                setGraphic(btnKick);
                 setAlignment(Pos.CENTER);
             }
         });
         table.getColumns().add(colActions);
 
-        return table.withSearchBar();
+        VBox.setVgrow(table, Priority.ALWAYS);
+        content.getChildren().addAll(header, actions, table.withSearchBar());
+        return content;
     }
 
     private Node buildLocksTab() {
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(16));
+        content.getStyleClass().add("console-subtab");
+
+        HBox header = buildConsoleSubtabHeader(
+                "CONCORRÊNCIA · DADOS",
+                "Registos bloqueados",
+                "Visualize os registos actualmente reservados por outros utilizadores e liberte bloqueios quando necessário.",
+                Feather.LOCK,
+                lblLocksTabCount = new Label("0"),
+                "BLOQUEIOS"
+        );
+
+        HBox alert = new HBox(10);
+        alert.setAlignment(Pos.CENTER_LEFT);
+        alert.getStyleClass().add("console-subtab-alert");
+
+        Label warning = new Label(
+                "Atenção operacional",
+                IconUtils.icon(Feather.ALERT_TRIANGLE, 13)
+        );
+        warning.getStyleClass().add("console-subtab-alert-title");
+
+        Label detail = new Label(
+                "Libertar um bloqueio pode interromper uma edição ainda em curso."
+        );
+        detail.getStyleClass().add("console-subtab-hint");
+        alert.getChildren().addAll(warning, detail);
+
+        HBox actions = new HBox(8);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        Button refresh = new Button("Verificar novamente", IconUtils.icon(Feather.REFRESH_CW, 12));
+        refresh.getStyleClass().add("button-outlined");
+        refresh.setOnAction(e -> refreshAll());
+        actions.getChildren().add(refresh);
+
         AdvancedTableView<LockedRecord> table = new AdvancedTableView<>(lockedRecords);
         TableUtils.standardize(table);
+        table.getStyleClass().add("console-professional-table");
 
-        table.getColumns().add(TableUtils.createTextColumn("Tipo de Registo", l -> new SimpleStringProperty(l.getValue().getEntityType())));
-        table.getColumns().add(TableUtils.createTextColumn("ID Registo", l -> new SimpleStringProperty(l.getValue().getEntityId())));
-        table.getColumns().add(TableUtils.createTextColumn("Bloqueado Por", l -> new SimpleStringProperty(l.getValue().getUserName())));
-        table.getColumns().add(TableUtils.createTextColumn("Desde", l -> new SimpleStringProperty(l.getValue().getLockedSince())));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Tipo de registo",
+                l -> new SimpleStringProperty(l.getValue().getEntityType())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Identificador",
+                l -> new SimpleStringProperty(l.getValue().getEntityId())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Bloqueado por",
+                l -> new SimpleStringProperty(l.getValue().getUserName())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Desde",
+                l -> new SimpleStringProperty(l.getValue().getLockedSince())
+        ));
 
-        TableColumn<LockedRecord, Void> colActions = new TableColumn<>("Ações");
+        TableColumn<LockedRecord, String> colDuration = new TableColumn<>("Situação");
+        colDuration.setCellValueFactory(l -> new SimpleStringProperty("EM EDIÇÃO"));
+        colDuration.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                Label badge = new Label(item);
+                badge.getStyleClass().addAll("console-status-badge", "console-status-warning");
+                setText(null);
+                setGraphic(badge);
+                setAlignment(Pos.CENTER);
+            }
+        });
+        table.getColumns().add(colDuration);
+
+        TableColumn<LockedRecord, Void> colActions = new TableColumn<>("Acções");
         colActions.setCellFactory(col -> new TableCell<>() {
-            private final Button btnUnlock = new Button("Libertar", IconUtils.icon(Feather.UNLOCK, 12));
+            private final Button btnUnlock =
+                    new Button("Libertar", IconUtils.icon(Feather.UNLOCK, 12));
+
             {
                 btnUnlock.getStyleClass().add("button-success");
-                btnUnlock.setOnAction(e -> unlockRecord(getTableView().getItems().get(getIndex())));
+                btnUnlock.setTooltip(new Tooltip("Libertar o bloqueio"));
+                btnUnlock.setOnAction(e ->
+                        unlockRecord(getTableView().getItems().get(getIndex())));
             }
+
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -983,27 +1161,51 @@ public class ConsoleView extends VBox {
         });
         table.getColumns().add(colActions);
 
-        return table.withSearchBar();
+        VBox.setVgrow(table, Priority.ALWAYS);
+        content.getChildren().addAll(header, alert, actions, table.withSearchBar());
+        return content;
     }
 
     private Node buildLogsTab() {
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(15));
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(16));
+        content.getStyleClass().add("console-subtab");
 
-        // Filtros de Log
-        HBox filters = new HBox(15);
+        HBox header = buildConsoleSubtabHeader(
+                "AUDITORIA · MONITORIZAÇÃO",
+                "Eventos do sistema",
+                "Pesquise, filtre e inspeccione os acontecimentos registados pelo Kubata.",
+                Feather.ACTIVITY,
+                lblLogsTabCount = new Label("0"),
+                "EVENTOS"
+        );
+
+        HBox filters = new HBox(8);
         filters.setAlignment(Pos.CENTER_LEFT);
-        filters.getStyleClass().add("card");
-        filters.setPadding(new Insets(10, 15, 10, 15));
+        filters.getStyleClass().add("console-subtab-filterbar");
 
-        ComboBox<String> cmbLevel = new ComboBox<>(FXCollections.observableArrayList("TODOS", "INFO", "WARN", "ERROR", "FATAL"));
+        ComboBox<String> cmbLevel = new ComboBox<>(
+                FXCollections.observableArrayList("TODOS", "INFO", "WARN", "ERROR", "FATAL")
+        );
         cmbLevel.setValue("TODOS");
-        
-        ComboBox<String> cmbCategory = new ComboBox<>(FXCollections.observableArrayList("TODOS", "AUTH", "DATABASE", "SYSTEM", "UI"));
-        cmbCategory.setValue("TODOS");
+        cmbLevel.setPromptText("Nível");
 
-        Button btnFilter = new Button("Filtrar", IconUtils.icon(Feather.FILTER, 12));
+        ComboBox<String> cmbCategory = new ComboBox<>(
+                FXCollections.observableArrayList("TODOS", "AUTH", "DATABASE", "SYSTEM", "UI")
+        );
+        cmbCategory.setValue("TODOS");
+        cmbCategory.setPromptText("Categoria");
+
+        Button btnFilter = new Button("Aplicar filtros", IconUtils.icon(Feather.FILTER, 12));
         btnFilter.getStyleClass().add("button-primary");
+
+        Button btnReset = new Button("Limpar", IconUtils.icon(Feather.X, 12));
+        btnReset.getStyleClass().add("button-outlined");
+
+        Button btnExport = new Button("Exportar CSV", IconUtils.icon(Feather.DOWNLOAD, 12));
+        btnExport.getStyleClass().add("button-outlined");
+        btnExport.setOnAction(e -> exportLogs());
+
         btnFilter.setOnAction(e -> {
             String level = cmbLevel.getValue();
             String category = cmbCategory.getValue();
@@ -1021,40 +1223,52 @@ public class ConsoleView extends VBox {
             filteredLogs.setAll(filtered);
         });
 
-        Button btnExport = new Button("Exportar", IconUtils.icon(Feather.DOWNLOAD, 12));
-        btnExport.getStyleClass().add("button-outlined");
-        btnExport.setOnAction(e -> exportLogs());
-        
+        btnReset.setOnAction(e -> {
+            cmbLevel.setValue("TODOS");
+            cmbCategory.setValue("TODOS");
+            filteredLogs.setAll(systemLogs);
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
         filters.getChildren().addAll(
-            new Label("Nível:"), cmbLevel,
-            new Label("Categoria:"), cmbCategory,
-            btnFilter, btnExport
+                new Label("Nível"),
+                cmbLevel,
+                new Label("Categoria"),
+                cmbCategory,
+                btnFilter,
+                btnReset,
+                spacer,
+                btnExport
         );
 
         AdvancedTableView<SystemLog> table = new AdvancedTableView<>(filteredLogs);
         TableUtils.standardize(table);
-        
+        table.getStyleClass().add("console-professional-table");
+
         table.setRowFactory(tv -> {
             TableRow<SystemLog> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
-                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
                     showLogDetails(row.getItem());
                 }
             });
             return row;
         });
 
-        TableColumn<SystemLog, LocalDateTime> colTime = new TableColumn<>("Data/Hora");
-        colTime.setCellValueFactory(l -> new SimpleObjectProperty<>(l.getValue().getTimestamp()));
+        TableColumn<SystemLog, LocalDateTime> colTime = new TableColumn<>("Data / Hora");
+        colTime.setCellValueFactory(l ->
+                new SimpleObjectProperty<>(l.getValue().getTimestamp()));
         colTime.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(LocalDateTime item, boolean empty) {
-                if (empty || item == null) setText(null);
-                else setText(item.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+                super.updateItem(item, empty);
+                setText(empty || item == null
+                        ? "—"
+                        : item.format(DateTimeFormatter.ofPattern("dd/MM HH:mm:ss")));
             }
         });
 
-        table.getColumns().add(colTime);
         TableColumn<SystemLog, String> colLevel = new TableColumn<>("Nível");
         colLevel.setCellValueFactory(l -> new SimpleStringProperty(
                 l.getValue().getLogLevel() != null
@@ -1065,7 +1279,6 @@ public class ConsoleView extends VBox {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-
                 if (empty || item == null) {
                     setText(null);
                     setGraphic(null);
@@ -1074,13 +1287,11 @@ public class ConsoleView extends VBox {
 
                 Label badge = new Label(item);
                 badge.getStyleClass().add("console-log-badge");
-
                 switch (item) {
                     case "ERROR", "FATAL" -> badge.getStyleClass().add("console-log-error");
                     case "WARN" -> badge.getStyleClass().add("console-log-warning");
                     default -> badge.getStyleClass().add("console-log-info");
                 }
-
                 setText(null);
                 setGraphic(badge);
                 setAlignment(Pos.CENTER);
@@ -1091,27 +1302,88 @@ public class ConsoleView extends VBox {
         colCategory.setCellValueFactory(l ->
                 new SimpleStringProperty(l.getValue().getCategory()));
 
+        TableColumn<SystemLog, String> colSource = new TableColumn<>("Origem");
+        colSource.setCellValueFactory(l ->
+                new SimpleStringProperty(l.getValue().getSource()));
+
         TableColumn<SystemLog, String> colMessage = new TableColumn<>("Mensagem");
         colMessage.setCellValueFactory(l ->
                 new SimpleStringProperty(l.getValue().getMessage()));
 
-        table.getColumns().addAll(colLevel, colCategory, colMessage);
+        TableColumn<SystemLog, Void> colDetails = new TableColumn<>("Acções");
+        colDetails.setCellFactory(col -> new TableCell<>() {
+            private final Button view = new Button(
+                    "", IconUtils.icon(Feather.EYE, 12)
+            );
+            {
+                view.getStyleClass().add("button-icon");
+                view.setTooltip(new Tooltip("Abrir detalhes"));
+                view.setOnAction(e ->
+                        showLogDetails(getTableView().getItems().get(getIndex())));
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : view);
+                setAlignment(Pos.CENTER);
+            }
+        });
+
+        table.getColumns().addAll(colTime, colLevel, colCategory, colSource, colMessage, colDetails);
 
         VBox.setVgrow(table, Priority.ALWAYS);
-        content.getChildren().addAll(filters, table.withSearchBar());
-
+        content.getChildren().addAll(header, filters, table.withSearchBar());
         return content;
     }
 
     private Node buildModulesTab() {
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(16));
+        content.getStyleClass().add("console-subtab");
+
+        HBox header = buildConsoleSubtabHeader(
+                "INFRAESTRUTURA · MÓDULOS",
+                "Estado dos módulos",
+                "Acompanhe disponibilidade, versões e última verificação de cada componente do Kubata.",
+                Feather.GRID,
+                lblModulesTabCount = new Label("0"),
+                "MÓDULOS"
+        );
+
+        HBox summary = new HBox(10);
+        summary.setAlignment(Pos.CENTER_LEFT);
+        summary.getChildren().add(
+                createConsoleMiniStat(
+                        "ONLINE",
+                        Feather.CHECK_CIRCLE,
+                        lblModulesOnlineTabCount = new Label("0")
+                )
+        );
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button refresh = new Button("Verificar módulos", IconUtils.icon(Feather.REFRESH_CW, 12));
+        refresh.getStyleClass().add("button-outlined");
+        refresh.setOnAction(e -> refreshAll());
+        summary.getChildren().addAll(spacer, refresh);
+
         AdvancedTableView<ModuleStatus> table = new AdvancedTableView<>(moduleStatuses);
         TableUtils.standardize(table);
+        table.getStyleClass().add("console-professional-table");
 
-        table.getColumns().add(TableUtils.createTextColumn("Módulo", m -> new SimpleStringProperty(m.getValue().getName())));
-        table.getColumns().add(TableUtils.createTextColumn("Versão", m -> new SimpleStringProperty(m.getValue().getVersion())));
-        
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Módulo",
+                m -> new SimpleStringProperty(m.getValue().getName())
+        ));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Versão",
+                m -> new SimpleStringProperty(m.getValue().getVersion())
+        ));
+
         TableColumn<ModuleStatus, String> colStatus = new TableColumn<>("Estado");
-        colStatus.setCellValueFactory(m -> new SimpleStringProperty(m.getValue().getStatus()));
+        colStatus.setCellValueFactory(m ->
+                new SimpleStringProperty(m.getValue().getStatus()));
         colStatus.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -1119,71 +1391,188 @@ public class ConsoleView extends VBox {
                 if (empty || item == null) {
                     setText(null);
                     setGraphic(null);
-                } else {
-                    Label lbl = new Label(item.toUpperCase());
-                    lbl.getStyleClass().add("badge");
-                    if (item.equalsIgnoreCase("ONLINE")) lbl.getStyleClass().add("badge-success");
-                    else if (item.equalsIgnoreCase("OFFLINE")) lbl.getStyleClass().add("badge-danger");
-                    else lbl.getStyleClass().add("badge-warning");
-                    setGraphic(lbl);
+                    return;
                 }
+                Label badge = new Label(item.toUpperCase());
+                badge.getStyleClass().add("console-status-badge");
+                if (item.equalsIgnoreCase("ONLINE")) {
+                    badge.getStyleClass().add("console-status-online");
+                } else if (item.equalsIgnoreCase("OFFLINE")) {
+                    badge.getStyleClass().add("console-status-offline");
+                } else {
+                    badge.getStyleClass().add("console-status-warning");
+                }
+                setText(null);
+                setGraphic(badge);
+                setAlignment(Pos.CENTER);
             }
         });
         table.getColumns().add(colStatus);
-        
-        table.getColumns().add(TableUtils.createTextColumn("Último Check", m -> new SimpleStringProperty(m.getValue().getLastCheck())));
 
-        return table.withSearchBar();
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Última verificação",
+                m -> new SimpleStringProperty(m.getValue().getLastCheck())
+        ));
+
+        TableColumn<ModuleStatus, String> colSignal = new TableColumn<>("Sinal");
+        colSignal.setCellValueFactory(m -> new SimpleStringProperty(
+                "ONLINE".equalsIgnoreCase(m.getValue().getStatus())
+                        ? "Disponível"
+                        : "Requer atenção"
+        ));
+        colSignal.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                Label label = new Label(item);
+                label.getStyleClass().add(
+                        "Disponível".equals(item)
+                                ? "console-module-signal-ok"
+                                : "console-module-signal-warning"
+                );
+                setText(null);
+                setGraphic(label);
+            }
+        });
+        table.getColumns().add(colSignal);
+
+        VBox.setVgrow(table, Priority.ALWAYS);
+        content.getChildren().addAll(header, summary, table.withSearchBar());
+        return content;
     }
 
     private Node buildProcessesTab() {
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(16));
+        content.getStyleClass().add("console-subtab");
+
+        HBox header = buildConsoleSubtabHeader(
+                "AUTOMAÇÃO · JOBS",
+                "Processos em background",
+                "Acompanhe tarefas assíncronas, progresso e estados dos trabalhos administrativos.",
+                Feather.CPU,
+                lblRunningProcessesTabCount = new Label("0"),
+                "EM EXECUÇÃO"
+        );
+
+        HBox summary = new HBox(10);
+        summary.setAlignment(Pos.CENTER_LEFT);
+
+        Label hint = new Label(
+                "Os processos são geridos pelo JobManager e podem ser cancelados enquanto estiverem em execução.",
+                IconUtils.icon(Feather.INFO, 11)
+        );
+        hint.getStyleClass().add("console-subtab-hint");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button refresh = new Button("Actualizar", IconUtils.icon(Feather.REFRESH_CW, 12));
+        refresh.getStyleClass().add("button-outlined");
+        refresh.setOnAction(e -> refreshAll());
+
+        summary.getChildren().addAll(hint, spacer, refresh);
+
         AdvancedTableView<AdminJob> table = new AdvancedTableView<>(backgroundProcesses);
         TableUtils.standardize(table);
+        table.getStyleClass().add("console-professional-table");
 
-        table.getColumns().add(TableUtils.createTextColumn("Processo", p -> p.getValue().titleProperty()));
+        table.getColumns().add(TableUtils.createTextColumn(
+                "Processo",
+                p -> p.getValue().titleProperty()
+        ));
 
         TableColumn<AdminJob, Number> colProgress = new TableColumn<>("Progresso");
         colProgress.setCellValueFactory(p -> p.getValue().progressProperty());
         colProgress.setCellFactory(col -> new TableCell<>() {
             private final ProgressBar pb = new ProgressBar();
-            { pb.setMaxWidth(Double.MAX_VALUE); }
+
+            {
+                pb.setMaxWidth(Double.MAX_VALUE);
+                pb.getStyleClass().add("console-job-progress");
+            }
+
             @Override
             protected void updateItem(Number item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) setGraphic(null);
-                else {
-                    double v = item.doubleValue();
-                    pb.setProgress(v);
-                    setGraphic(pb);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
                 }
+                pb.setProgress(Math.max(0.0, Math.min(1.0, item.doubleValue())));
+                setGraphic(pb);
             }
         });
         table.getColumns().add(colProgress);
-        
-        table.getColumns().add(TableUtils.createTextColumn("Estado", p -> p.getValue().statusTextProperty()));
 
-        TableColumn<AdminJob, Void> colActions = new TableColumn<>("Ações");
+        TableColumn<AdminJob, String> colState = new TableColumn<>("Estado");
+        colState.setCellValueFactory(p -> p.getValue().statusTextProperty());
+        colState.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                Label badge = new Label(item.toUpperCase());
+                badge.getStyleClass().add("console-status-badge");
+                String state = item.toUpperCase();
+                if (state.contains("RUN")) {
+                    badge.getStyleClass().add("console-status-online");
+                } else if (state.contains("CANCEL") || state.contains("ERRO") || state.contains("FAIL")) {
+                    badge.getStyleClass().add("console-status-offline");
+                } else {
+                    badge.getStyleClass().add("console-status-warning");
+                }
+                setText(null);
+                setGraphic(badge);
+                setAlignment(Pos.CENTER);
+            }
+        });
+        table.getColumns().add(colState);
+
+        TableColumn<AdminJob, Void> colActions = new TableColumn<>("Acções");
         colActions.setCellFactory(col -> new TableCell<>() {
-            private final Button btnCancel = new Button("", IconUtils.icon(Feather.X_CIRCLE, 12));
+            private final Button btnCancel =
+                    new Button("", IconUtils.icon(Feather.X_CIRCLE, 12));
+
             {
                 btnCancel.getStyleClass().add("button-icon-danger");
-                btnCancel.setTooltip(new Tooltip("Cancelar Processo"));
-                btnCancel.setOnAction(e -> cancelProcess(getTableView().getItems().get(getIndex())));
+                btnCancel.setTooltip(new Tooltip("Cancelar processo"));
+                btnCancel.setOnAction(e ->
+                        cancelProcess(getTableView().getItems().get(getIndex())));
             }
+
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) setGraphic(null);
-                else {
-                    AdminJob p = getTableView().getItems().get(getIndex());
-                    setGraphic(p.getStatus() == AdminJob.Status.RUNNING ? btnCancel : null);
+                if (empty) {
+                    setGraphic(null);
+                    return;
                 }
+                AdminJob process = getTableView().getItems().get(getIndex());
+                btnCancel.setDisable(process.getStatus() != AdminJob.Status.RUNNING);
+                btnCancel.setTooltip(new Tooltip(
+                        process.getStatus() == AdminJob.Status.RUNNING
+                                ? "Cancelar processo"
+                                : "Só processos em execução podem ser cancelados"
+                ));
+                setGraphic(btnCancel);
                 setAlignment(Pos.CENTER);
             }
         });
         table.getColumns().add(colActions);
 
-        return table;
+        VBox.setVgrow(table, Priority.ALWAYS);
+        content.getChildren().addAll(header, summary, table.withSearchBar());
+        return content;
     }
 
     private void refreshAll() {
@@ -1265,6 +1654,25 @@ public class ConsoleView extends VBox {
                     lblLastRefresh.setText(LocalDateTime.now().format(
                             DateTimeFormatter.ofPattern("HH:mm:ss")
                     ));
+                }
+
+                if (lblSessionsTabCount != null) {
+                    lblSessionsTabCount.setText(String.valueOf(activeSessions.size()));
+                }
+                if (lblLocksTabCount != null) {
+                    lblLocksTabCount.setText(String.valueOf(lockedRecords.size()));
+                }
+                if (lblLogsTabCount != null) {
+                    lblLogsTabCount.setText(String.valueOf(filteredLogs.size()));
+                }
+                if (lblModulesTabCount != null) {
+                    lblModulesTabCount.setText(String.valueOf(moduleStatuses.size()));
+                }
+                if (lblModulesOnlineTabCount != null) {
+                    lblModulesOnlineTabCount.setText(String.valueOf(onlineModules));
+                }
+                if (lblRunningProcessesTabCount != null) {
+                    lblRunningProcessesTabCount.setText(String.valueOf(runningJobs));
                 }
                 
                 LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
