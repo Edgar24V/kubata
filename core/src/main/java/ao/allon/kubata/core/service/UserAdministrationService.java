@@ -715,6 +715,18 @@ public class UserAdministrationService {
         return map;
     }
 
+    private String profileSnapshot(Set<PerfilAcesso> profiles) {
+        if (profiles == null || profiles.isEmpty()) {
+            return "SEM_PERFIL";
+        }
+        return profiles.stream()
+                .filter(java.util.Objects::nonNull)
+                .map(PerfilAcesso::getCodigo)
+                .filter(java.util.Objects::nonNull)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(java.util.stream.Collectors.joining(", "));
+    }
+
     private LinkedHashMap<String, Object> snapshotState(boolean active) {
         LinkedHashMap<String, Object> map = new LinkedHashMap<>();
         map.put("activo", active);
