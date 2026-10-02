@@ -349,26 +349,26 @@ public class AuthService {
      * vários logins simultâneos.
      */
     @Transactional
-    public void logout(User user, Long exactSessionId, String ip) {
+    public boolean logout(User user, Long exactSessionId, String ip) {
         if (user == null) {
-            return;
+            return true;
         }
 
+        boolean removed = false;
+
         if (exactSessionId != null) {
-            userSessionRepository.findById(exactSessionId)
-                    .ifPresent(session -> {
-                        userSessionRepository.delete(session);
-                        userSessionRepository.flush();
-                    });
+            removed = userSessionRepository.deleteExactById(exactSessionId) > 0;
+            userSessionRepository.flush();
         } else {
-            // Compatibilidade apenas para sessões antigas sem identificador local.
-            userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome())
+            removed = userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome())
                     .stream()
                     .findFirst()
-                    .ifPresent(session -> {
+                    .map(session -> {
                         userSessionRepository.delete(session);
                         userSessionRepository.flush();
-                    });
+                        return true;
+                    })
+                    .orElse(false);
         }
 
         user.setSessionId(null);
@@ -378,11 +378,14 @@ public class AuthService {
                 "LOGOUT",
                 "AUTH",
                 ip,
-                "Saída do sistema",
+                removed
+                        ? "Saída do sistema"
+                        : "Saída do sistema · sessão já encerrada",
                 true
         );
-    }
 
+        return true;
+    }
     private boolean isLocked(User user) {
         if (user.getLockoutEnd() != null) {
             if (LocalDateTime.now().isAfter(user.getLockoutEnd())) {
