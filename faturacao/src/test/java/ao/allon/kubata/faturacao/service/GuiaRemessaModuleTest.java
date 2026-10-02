@@ -37,6 +37,8 @@ class GuiaRemessaModuleTest {
     @Mock
     private AGTService agtService;
     @Mock
+    private ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService signatureService;
+    @Mock
     private AGTElectronicInvoiceService agtElectronicInvoiceService;
     @Mock
     private ContabilidadeService contabilidadeService;
