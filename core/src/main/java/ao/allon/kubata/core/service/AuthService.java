@@ -30,6 +30,7 @@ public class AuthService {
     private final MfaService mfaService;
     private final UserDeviceService userDeviceService;
     private final UserSecurityProfileService userSecurityProfileService;
+    private final PasswordPolicyService passwordPolicyService;
 
     @Value("${kubata.security.max-login-attempts:5}")
     private int maxAttempts;
@@ -46,7 +47,8 @@ public class AuthService {
                        AcessoService acessoService,
                        MfaService mfaService,
                        UserDeviceService userDeviceService,
-                       UserSecurityProfileService userSecurityProfileService) {
+                       UserSecurityProfileService userSecurityProfileService,
+                       PasswordPolicyService passwordPolicyService) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
@@ -54,6 +56,7 @@ public class AuthService {
         this.mfaService = mfaService;
         this.userDeviceService = userDeviceService;
         this.userSecurityProfileService = userSecurityProfileService;
+        this.passwordPolicyService = passwordPolicyService;
     }
 
     @Transactional
@@ -355,26 +358,7 @@ public class AuthService {
     }
 
     private boolean isPasswordExpired(User user) {
-        LocalDateTime now = LocalDateTime.now();
-
-        if (user.getDataExpiracaoPassword() != null
-                && user.getDataExpiracaoPassword().isBefore(now.toLocalDate())) {
-            return true;
-        }
-
-        if (user.getPasswordChangedAt() == null) {
-            // Se nunca mudou, não consideramos expirada no primeiro acesso em ambiente dev.
-            return false;
-        }
-
-        int policyExpiryDays = userSecurityProfileService.passwordExpiryDays(user);
-        if (policyExpiryDays <= 0) {
-            return false;
-        }
-
-        return now.isAfter(
-                user.getPasswordChangedAt().plusDays(policyExpiryDays)
-        );
+        return passwordPolicyService.isPasswordExpired(user, LocalDateTime.now());
     }
 
     private void recordFailure(User user) {
