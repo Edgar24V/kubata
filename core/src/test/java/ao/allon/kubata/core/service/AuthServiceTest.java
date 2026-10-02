@@ -46,6 +46,9 @@ class AuthServiceTest {
     @Mock
     private UserDeviceService userDeviceService;
 
+    @Mock
+    private PasswordPolicyService passwordPolicyService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -71,7 +74,7 @@ class AuthServiceTest {
         UserSession createdSession = new UserSession();
         createdSession.setId(42L);
         createdSession.setUsername(user.getNome());
-        when(userSessionRepository.save(any(UserSession.class))).thenReturn(createdSession);
+        when(userSessionRepository.saveAndFlush(any(UserSession.class))).thenReturn(createdSession);
 
         User result = authService.authenticate("test@example.com", "password", null, "127.0.0.1");
 
@@ -184,12 +187,12 @@ class AuthServiceTest {
         older.setLoginTime(LocalDateTime.of(2026, 10, 2, 10, 0));
 
         user.setSessionId(20L);
-        when(userSessionRepository.findById(20L))
-                .thenReturn(Optional.of(newer));
+        when(userSessionRepository.deleteExactById(20L))
+                .thenReturn(1);
 
         authService.logout(user, "127.0.0.1");
 
-        verify(userSessionRepository).delete(newer);
+        verify(userSessionRepository).deleteExactById(20L);
         verify(userSessionRepository, never()).delete(older);
         verify(userSessionRepository, never())
                 .findAllByUsernameOrderByLoginTimeDesc(user.getNome());
