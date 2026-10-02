@@ -98,8 +98,6 @@ class PasswordPolicyServiceTest {
 
         when(policyRepository.findByScopeTypeAndActiveTrue(PasswordPolicy.ScopeType.GLOBAL))
                 .thenReturn(Optional.of(policy));
-        when(userSecurityProfileRepository.findByUserId(10L))
-                .thenReturn(Optional.empty());
         when(historyRepository.findTop100ByUserIdOrderByChangedAtDesc(10L))
                 .thenReturn(List.of(history));
         when(passwordEncoder.matches("SenhaNova1", "HASH-ANTIGA")).thenReturn(true);
