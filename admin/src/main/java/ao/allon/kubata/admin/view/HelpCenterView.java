@@ -297,7 +297,7 @@ public class HelpCenterView extends BorderPane {
                 sectionCard(
                         Feather.SEARCH,
                         "Nenhum tema encontrado",
-                        "Não encontrei um tópico correspondente a "" + q + "".",
+                        "Não encontrei um tópico correspondente a \"" + q + "\".",
                         paragraphs(
                                 "Experimente procurar por termos como sessão, utilizador, MFA, perfil, permissões, auditoria, backup ou empresas."
                         )
@@ -456,14 +456,14 @@ public class HelpCenterView extends BorderPane {
                 "O que pode ser validado no login",
                 "Dependendo da configuração da conta, o Kubata pode verificar:",
                 paragraphs(
-                        "• Conta activa e elegível para login.
-• Palavra-passe correcta e política de expiração.
-• Número máximo de tentativas e período de bloqueio.
-• MFA/TOTP ou código de recuperação, quando activo.
-• Horário e dias autorizados.
-• Endereço IP e restrições definidas para a conta.
-• Limite de sessões simultâneas.
-• Empresa e módulos permitidos para o contexto do utilizador."
+                        "• Conta activa e elegível para login.\n" +
+                        "• Palavra-passe correcta e política de expiração.\n" +
+                        "• Número máximo de tentativas e período de bloqueio.\n" +
+                        "• MFA/TOTP ou código de recuperação, quando activo.\n" +
+                        "• Horário e dias autorizados.\n" +
+                        "• Endereço IP e restrições definidas para a conta.\n" +
+                        "• Limite de sessões simultâneas.\n" +
+                        "• Empresa e módulos permitidos para o contexto do utilizador."
                 )
         ));
 
