@@ -11,6 +11,7 @@ import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,7 @@ public class MfaService {
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
     private final SecureRandom secureRandom = new SecureRandom();
 
+    @Autowired
     public MfaService(UserRepository userRepository,
                       PasswordEncoder passwordEncoder,
                       AcessoService acessoService,
