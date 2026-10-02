@@ -12500,3 +12500,272 @@ Text {
 .kubata-server-properties-table .table-row-cell:hover {
     -fx-background-color: -kubata-green-pale;
 }
+
+
+/* ── Gestão de Acesso ─────────────────────────────────────────────── */
+.kubata-access-page {
+    -fx-background-color: -color-light;
+}
+
+.kubata-access-header {
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-access-title-icon {
+    -fx-min-width: 46px;
+    -fx-min-height: 46px;
+    -fx-max-width: 46px;
+    -fx-max-height: 46px;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 12px;
+    -fx-alignment: center;
+}
+
+.kubata-access-title-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green;
+}
+
+.kubata-access-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-access-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-6;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-access-kpi {
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+}
+
+.kubata-access-kpi:hover {
+    -fx-border-color: -kubata-green-border;
+}
+
+.kubata-access-kpi-icon {
+    -fx-text-fill: -kubata-green-dark;
+}
+
+.kubata-access-kpi-title {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-access-kpi-value {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-access-filter-bar {
+    -fx-background-color: -color-base-0;
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-access-result-count {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-access-split {
+    -fx-background-color: transparent;
+}
+
+.kubata-access-split > .split-pane-divider {
+    -fx-padding: 0 1;
+    -fx-background-color: -color-base-2;
+}
+
+.kubata-access-table-shell {
+    -fx-padding: 12px 12px 12px 14px;
+}
+
+.kubata-access-table {
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-color: -color-base-2;
+}
+
+.kubata-access-table .column-header-background,
+.kubata-access-table .column-header {
+    -fx-background-color: -color-base-0;
+}
+
+.kubata-access-table .column-header {
+    -fx-border-color: transparent transparent -color-base-2 transparent;
+    -fx-padding: 0 8px;
+}
+
+.kubata-access-table .column-header .label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-access-table .table-row-cell {
+    -fx-background-color: -color-light;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-access-table .table-row-cell:hover {
+    -fx-background-color: -kubata-green-pale;
+}
+
+.kubata-access-table .table-row-cell:selected {
+    -fx-background-color: rgba(33,115,70,0.10);
+}
+
+.kubata-access-table .table-cell {
+    -fx-font-size: 10px;
+    -fx-padding: 0 8px;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-access-detail {
+    -fx-background-color: -color-base-0;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 16px;
+    -fx-margin: 12px 14px 12px 0;
+}
+
+.kubata-access-detail-icon {
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-max-width: 40px;
+    -fx-max-height: 40px;
+    -fx-background-color: -kubata-green-pale;
+    -fx-background-radius: 10px;
+    -fx-alignment: center;
+}
+
+.kubata-access-detail-icon .ikonli-font-icon {
+    -fx-icon-color: -kubata-green-dark;
+}
+
+.kubata-access-detail-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-9;
+}
+
+.kubata-access-detail-email {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-access-detail-row {
+    -fx-padding: 5px 0;
+    -fx-border-color: transparent transparent -color-base-1 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.kubata-access-detail-label {
+    -fx-font-size: 8px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-access-detail-value {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-access-section-title {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-access-profile-list {
+    -fx-background-color: -color-light;
+    -fx-background-radius: 8px;
+    -fx-padding: 7px;
+    -fx-border-color: -color-base-2;
+    -fx-border-radius: 8px;
+}
+
+.kubata-access-profile-item {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-base-7;
+    -fx-padding: 6px 7px;
+    -fx-background-color: -color-base-0;
+    -fx-background-radius: 6px;
+}
+
+.kubata-access-profile-empty,
+.kubata-access-hint {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+    -fx-line-spacing: 1px;
+}
+
+.kubata-access-badge-success {
+    -fx-background-color: -kubata-green-pale;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-background-radius: 9px;
+    -fx-padding: 3px 7px;
+    -fx-font-size: 8px;
+    -fx-font-weight: 800;
+}
+
+.kubata-access-badge-warning {
+    -fx-background-color: rgba(245,158,11,0.14);
+    -fx-text-fill: #92400e;
+    -fx-background-radius: 9px;
+    -fx-padding: 3px 7px;
+    -fx-font-size: 8px;
+    -fx-font-weight: 800;
+}
+
+.kubata-access-badge-muted {
+    -fx-background-color: -color-base-1;
+    -fx-text-fill: -color-base-5;
+    -fx-background-radius: 9px;
+    -fx-padding: 3px 7px;
+    -fx-font-size: 8px;
+    -fx-font-weight: 800;
+}
+
+.kubata-access-modal-heading {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-base-8;
+}
+
+.kubata-access-statusbar {
+    -fx-background-color: -color-base-0;
+    -fx-border-color: -color-base-2 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.kubata-access-status-text {
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-base-6;
+}
+
+.kubata-access-status-hint {
+    -fx-font-size: 9px;
+    -fx-text-fill: -color-base-5;
+}
+
+.kubata-access-scroll,
+.kubata-access-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
