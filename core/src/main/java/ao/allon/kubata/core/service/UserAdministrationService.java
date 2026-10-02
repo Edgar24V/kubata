@@ -491,6 +491,12 @@ public class UserAdministrationService {
         User managedActor = managedActor(actor);
         User target = target(targetUserId);
 
+        if (isSelf(managedActor, target)) {
+            throw new SecurityException(
+                    "Para terminar a própria sessão, utilize o comando “Encerrar Sessão” do cabeçalho."
+            );
+        }
+
         if (target.isSuperadmin() && !managedActor.isSuperadmin()) {
             throw new SecurityException("Só um Superadministrador pode terminar sessões de outro Superadministrador.");
         }
