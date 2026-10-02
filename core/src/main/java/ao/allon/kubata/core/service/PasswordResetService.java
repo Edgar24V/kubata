@@ -126,8 +126,27 @@ public class PasswordResetService {
                 ));
 
         LocalDateTime resetAt = LocalDateTime.now();
-        PasswordPolicy policy = passwordPolicyService.getEffectivePolicy(target);
-        LocalDateTime resetExpiresAt = resetAt.plusHours(policy.getResetValidityHours());
+        PasswordPolicy policy;
+        LocalDateTime resetExpiresAt;
+        if (passwordPolicyService != null) {
+            policy = passwordPolicyService.getEffectivePolicy(target);
+            resetExpiresAt = resetAt.plusHours(policy.getResetValidityHours());
+        } else {
+            UserSecurityProfile legacy = legacyUserSecurityProfileService.getEffectiveProfile(target);
+            policy = new PasswordPolicy();
+            policy.setMinLength(legacy.getPasswordMinLength());
+            policy.setMaxLength(Math.max(128, legacy.getPasswordMinLength()));
+            policy.setRequireUpper(legacy.isPasswordRequireUpper());
+            policy.setRequireLower(legacy.isPasswordRequireLower());
+            policy.setRequireDigit(legacy.isPasswordRequireDigit());
+            policy.setRequireSymbol(legacy.isPasswordRequireSymbol());
+            policy.setHistoryCount(5);
+            policy.setExpiryDays(legacy.getPasswordExpiryDays());
+            policy.setResetValidityHours(Math.max(1, resetValidityDays * 24));
+            policy.setForceChangeOnReset(true);
+            policy.setProhibitIdentityFragments(true);
+            resetExpiresAt = resetAt.plusDays(Math.max(1, resetValidityDays));
+        }
         LocalDate expiresOn = resetExpiresAt.toLocalDate();
 
         int temporaryPasswordLength = Math.max(
@@ -136,14 +155,17 @@ public class PasswordResetService {
         );
 
         String temporaryPassword = generateTemporaryPassword(temporaryPasswordLength);
-        passwordPolicyService.validateNewPassword(target, temporaryPassword);
-
-        passwordPolicyService.recordPreviousPassword(
-                target,
-                target.getPassword(),
-                managedActor.getEmail(),
-                "RESET_ADMINISTRATIVO"
-        );
+        if (passwordPolicyService != null) {
+            passwordPolicyService.validateNewPassword(target, temporaryPassword);
+            passwordPolicyService.recordPreviousPassword(
+                    target,
+                    target.getPassword(),
+                    managedActor.getEmail(),
+                    "RESET_ADMINISTRATIVO"
+            );
+        } else {
+            legacyUserSecurityProfileService.validatePassword(target, temporaryPassword);
+        }
 
         target.setPassword(passwordEncoder.encode(temporaryPassword));
         target.setPasswordChangedAt(resetAt);
@@ -162,7 +184,7 @@ public class PasswordResetService {
         long revokedSessions = userSessionRepository.deleteAllByUsername(target.getNome());
 
         Map<String, Object> newValues = new LinkedHashMap<>();
-        newValues.put("passwordProvisoria", true);
+        newValues.put("passwordProvisoria", target.isPasswordProvisoria());
         newValues.put("dataExpiracaoPassword", expiresOn.toString());
         newValues.put("sessoesRevogadas", revokedSessions);
 
