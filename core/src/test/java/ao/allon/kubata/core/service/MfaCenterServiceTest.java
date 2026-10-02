@@ -3,7 +3,9 @@ package ao.allon.kubata.core.service;
 import ao.allon.kubata.core.domain.MfaPolicy;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.MfaPolicyRepository;
+import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,8 @@ class MfaCenterServiceTest {
     @Mock AcessoService acessoService;
     @Mock SecurityService securityService;
     @Mock MfaPolicyRepository mfaPolicyRepository;
+    @Mock EmpresaRepository empresaRepository;
+    @Mock PerfilAcessoRepository perfilAcessoRepository;
     @Mock UserSecurityProfileService userSecurityProfileService;
 
     private MfaService service;
@@ -38,6 +42,8 @@ class MfaCenterServiceTest {
                 acessoService,
                 securityService,
                 mfaPolicyRepository,
+                empresaRepository,
+                perfilAcessoRepository,
                 userSecurityProfileService
         );
     }
