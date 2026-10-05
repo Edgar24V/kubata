@@ -130,7 +130,14 @@ public final class CentralLoginController {
         root = new StackPane();
         root.setPrefSize(1120, 720);
         root.setMinSize(900, 560);
-        root.setStyle("-fx-background-color: transparent;");
+        root.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-font-family: 'Segoe UI', 'Calibri', 'Arial', sans-serif;"
+                        + "-fx-font-size: 13px;"
+                        + "-fx-accent: #217346;"
+                        + "-fx-focus-color: #66BB6A;"
+                        + "-fx-faint-focus-color: rgba(33,115,70,0.12);"
+        );
 
         clip = new Rectangle();
         clip.widthProperty().bind(root.widthProperty());
@@ -431,6 +438,18 @@ public final class CentralLoginController {
                 new Tooltip("Mostrar ou ocultar a palavra-passe")
         );
         showPasswordButton.setCursor(Cursor.HAND);
+        showPasswordButton.setPrefHeight(40);
+        showPasswordButton.setStyle(
+                "-fx-background-color: #FFFFFF;"
+                        + "-fx-border-color: #D0D7DE;"
+                        + "-fx-border-width: 1;"
+                        + "-fx-border-radius: 4;"
+                        + "-fx-background-radius: 4;"
+                        + "-fx-text-fill: #57606A;"
+                        + "-fx-font-size: 11px;"
+                        + "-fx-font-weight: 700;"
+                        + "-fx-padding: 0 10;"
+        );
         showPasswordButton.getStyleClass().add("kubata-login-small-button");
         showPasswordButton.selectedProperty().addListener((obs, oldValue, selected) -> {
             showPasswordButton.setText(selected ? "Ocultar" : "Mostrar");
@@ -589,6 +608,28 @@ public final class CentralLoginController {
                 "Fechar",
                 () -> stage.close()
         );
+        close.setOnMouseEntered(e -> close.setStyle(
+                "-fx-background-color: #C42B1C;"
+                        + "-fx-text-fill: #FFFFFF;"
+                        + "-fx-min-width: 46px;"
+                        + "-fx-pref-width: 46px;"
+                        + "-fx-min-height: 40px;"
+                        + "-fx-pref-height: 40px;"
+                        + "-fx-background-radius: 0;"
+                        + "-fx-border-color: transparent;"
+                        + "-fx-padding: 0;"
+        ));
+        close.setOnMouseExited(e -> close.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-text-fill: rgba(255,255,255,0.82);"
+                        + "-fx-min-width: 46px;"
+                        + "-fx-pref-width: 46px;"
+                        + "-fx-min-height: 40px;"
+                        + "-fx-pref-height: 40px;"
+                        + "-fx-background-radius: 0;"
+                        + "-fx-border-color: transparent;"
+                        + "-fx-padding: 0;"
+        ));
 
         bar.getChildren().addAll(minimize, maximize, close);
         return bar;
