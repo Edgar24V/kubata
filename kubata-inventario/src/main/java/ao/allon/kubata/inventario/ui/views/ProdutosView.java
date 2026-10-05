@@ -32,7 +32,7 @@ public class ProdutosView extends BorderPane {
         this.categoriaRepository = categoriaRepository;
         this.modalManager = modalManager;
         build();
-        refresh();
+        refreshData();
     }
 
     private void build() {
@@ -44,16 +44,12 @@ public class ProdutosView extends BorderPane {
         Label subtitle = new Label("Cadastro central de produtos e serviços");
         subtitle.getStyleClass().add("page-subtitle");
 
-        HBox head = new HBox(12, title, subtitle);
-        head.setAlignment(javafx.geometry.Pos.BASELINE_LEFT);
-        head.setPadding(new Insets(0, 0, 14, 0));
-
         Button novo = new Button("Novo artigo");
         novo.getStyleClass().add("primary-action");
         novo.setOnAction(e -> novo());
 
         Button refresh = new Button("Atualizar");
-        refresh.setOnAction(e -> refresh());
+        refresh.setOnAction(e -> refreshData());
 
         search.setPromptText("Pesquisar por código ou descrição...");
         search.setPrefWidth(320);
@@ -86,25 +82,27 @@ public class ProdutosView extends BorderPane {
             @Override protected void updateItem(Integer value, boolean empty) {
                 super.updateItem(value, empty);
                 setText(empty || value == null ? null : String.valueOf(value));
+                getStyleClass().removeAll("stock-low", "stock-ok");
                 if (!empty && value != null) {
-                    getStyleClass().removeAll("stock-low", "stock-ok");
                     getStyleClass().add(value <= 0 ? "stock-low" : "stock-ok");
                 }
             }
         });
 
         table.getColumns().addAll(codigo, nome, categoria, preco, stock, unidade);
-        VBox content = new VBox(14, head, actions, table);
-        VBox.setVgrow(table, Priority.ALWAYS);
 
-        Label bar = new Label();
-        bar.getStyleClass().add("status-line");
-        content.getChildren().add(bar);
+        Label status = new Label("0 artigo(s) ativo(s)");
+        status.getStyleClass().add("status-line");
         data.addListener((javafx.collections.ListChangeListener<Produto>) c ->
-                bar.setText(data.size() + " artigo(s) ativo(s)"));
+                status.setText(data.size() + " artigo(s) ativo(s)"));
 
+        VBox content = new VBox(14, new VBox(2, title, subtitle), actions, table, status);
+        VBox.setVgrow(table, Priority.ALWAYS);
         setCenter(content);
-        setMargin(content, new Insets(0));
+    }
+
+    public void refreshData() {
+        filter(search.getText());
     }
 
     private void filter(String query) {
@@ -120,10 +118,6 @@ public class ProdutosView extends BorderPane {
                 .toList());
     }
 
-    private void refresh() {
-        filter(search.getText());
-    }
-
     private void novo() {
         GridPane grid = new GridPane();
         grid.setHgap(10); grid.setVgap(10); grid.setPadding(new Insets(8));
@@ -135,7 +129,6 @@ public class ProdutosView extends BorderPane {
         ComboBox<UnidadeMedida> unidade = new ComboBox<>(FXCollections.observableArrayList(UnidadeMedida.values()));
         unidade.setValue(UnidadeMedida.UNIDADE);
         ComboBox<Categoria> categoria = new ComboBox<>(FXCollections.observableArrayList(categoriaRepository.findAll()));
-        if (!categoria.getItems().isEmpty()) categoria.setValue(categoria.getItems().get(0));
 
         grid.addRow(0, new Label("Descrição:*"), nome);
         grid.addRow(1, new Label("Código:*"), codigo);
@@ -145,8 +138,6 @@ public class ProdutosView extends BorderPane {
         grid.addRow(5, new Label("Categoria:"), categoria);
 
         Dialog<ButtonType> dialog = modalManager.form(this, "Novo artigo", grid);
-        dialog.setOnShown(e -> nome.requestFocus());
-
         if (dialog.showAndWait().filter(ButtonType.OK::equals).isEmpty()) return;
 
         try {
@@ -158,7 +149,7 @@ public class ProdutosView extends BorderPane {
             p.setUnidadeMedida(unidade.getValue());
             p.setCategoria(categoria.getValue());
             service.save(p);
-            refresh();
+            refreshData();
         } catch (Exception ex) {
             modalManager.error(this, "Artigo", "Não foi possível gravar: " + ex.getMessage());
         }
