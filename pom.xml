@@ -17,6 +17,7 @@
     <description>Sistema de Faturação Modular para Angola</description>
 
     <modules>
+        <module>platform-ui</module>
         <module>core</module>
         <module>admin</module>
         <module>faturacao</module>

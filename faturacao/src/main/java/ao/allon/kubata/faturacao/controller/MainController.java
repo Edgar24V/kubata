@@ -672,11 +672,19 @@ public class MainController {
             ThemeManager.applyTheme();
             switchToLogin();
             this.stage.setTitle(applicationTitle);
-            try {
-                this.stage.setOnCloseRequest(ev -> {
-                    try { customerDisplayService.stop(); } catch (Exception ignored) {}
-                });
-            } catch (Exception ignored) {}
+            this.stage.setOnCloseRequest(ev -> {
+                try {
+                    customerDisplayService.stop();
+                } catch (Exception ignored) {
+                }
+                ev.consume();
+                if (sessionManager.getUserObject() == null) {
+                    this.stage.setOnCloseRequest(null);
+                    this.stage.close();
+                    return;
+                }
+                performLogoutAndExit();
+            });
             this.stage.show();
         } catch (Exception e) {
             e.printStackTrace();
@@ -699,7 +707,7 @@ public class MainController {
     }
 
     private void switchToLogin() {
-        Parent parent = loginController.createView();
+        Parent parent = loginController.createView(stage);
         Scene scene = new Scene(parent, 400, 500);
         stage.setScene(scene);
         stage.centerOnScreen();
@@ -719,12 +727,32 @@ public class MainController {
         stage.setMaximized(true);
     }
 
+    public void performLogoutAndExit() {
+        ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
+
+        try {
+            if (user != null) {
+                authService.logout(user, user.getSessionId(), "127.0.0.1");
+            }
+        } catch (Exception ignored) {
+            // O fecho do processo não deve ficar bloqueado por falha de persistência.
+        } finally {
+            sessionManager.logout();
+            stage.setOnCloseRequest(null);
+            try {
+                customerDisplayService.stop();
+            } catch (Exception ignored) {
+            }
+            stage.close();
+        }
+    }
+
     public void performLogoutAndShowLogin() {
         ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
 
         try {
             if (user != null) {
-                authService.logout(user, "127.0.0.1");
+                authService.logout(user, user.getSessionId(), "127.0.0.1");
             }
         } catch (Exception ignored) {
             // O contexto local deve ser limpo mesmo quando o registo persistido

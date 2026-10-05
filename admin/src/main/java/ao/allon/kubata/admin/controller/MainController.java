@@ -252,7 +252,7 @@ public class MainController {
 
         try {
             if (user != null) {
-                authService.logout(user, "127.0.0.1");
+                authService.logout(user, sessionManager.getSessionId(), "127.0.0.1");
             }
         } catch (Exception ignored) {
             // O encerramento local não deve ficar bloqueado por uma falha de persistência.

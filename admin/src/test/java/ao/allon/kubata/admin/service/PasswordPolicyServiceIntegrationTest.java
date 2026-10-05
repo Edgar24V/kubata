@@ -75,7 +75,6 @@ class PasswordPolicyServiceIntegrationTest {
         target.setEmpresa(empresa);
         target = userRepository.saveAndFlush(target);
         final Long targetUserId = target.getId();
-        final User effectiveTarget = target;
 
         PasswordPolicy global = policy(
                 PasswordPolicy.ScopeType.GLOBAL,
@@ -131,6 +130,8 @@ class PasswordPolicyServiceIntegrationTest {
         target.setPassword(initialHash);
         target.setPasswordChangedAt(LocalDateTime.now().minusDays(1));
         userRepository.saveAndFlush(target);
+
+        final User targetFinal = target;
 
         PasswordHistory history = service.recordPreviousPassword(
                 target,

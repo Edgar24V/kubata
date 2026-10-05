@@ -84,6 +84,94 @@ class AuthServiceTest {
     }
 
     @Test
+    void authenticateForApplication_ShouldSetApplicationContext_WhenModuleIsAllowed() {
+        user.setRole(ao.allon.kubata.core.domain.Role.USER);
+        user.setNome("Utilizador RH");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
+        doNothing().when(userSecurityProfileService)
+                .validateLoginPolicy(any(User.class), anyString(), any(LocalDateTime.class), eq(true));
+        doNothing().when(userSecurityProfileService)
+                .enforceConcurrentSessionLimit(any(User.class), any(LocalDateTime.class));
+        when(acessoService.temAcessoAoModulo(user, "RH")).thenReturn(true);
+
+        UserSession session = new UserSession();
+        session.setId(88L);
+        when(userSessionRepository.saveAndFlush(any(UserSession.class))).thenReturn(session);
+        when(userSessionRepository.findById(88L)).thenReturn(Optional.of(session));
+
+        User authenticated = authService.authenticateForApplication(
+                "test@example.com",
+                "password",
+                null,
+                null,
+                "127.0.0.1",
+                "RH"
+        );
+
+        assertSame(user, authenticated);
+        assertEquals(88L, authenticated.getSessionId());
+        assertEquals("KUBATA RH", session.getContext());
+        verify(userSessionRepository).save(session);
+    }
+
+    @Test
+    void authenticateForApplication_ShouldRejectModuleWithoutAccessAndCloseSession() {
+        user.setRole(ao.allon.kubata.core.domain.Role.USER);
+        user.setNome("Utilizador RH");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
+        doNothing().when(userSecurityProfileService)
+                .validateLoginPolicy(any(User.class), anyString(), any(LocalDateTime.class), eq(true));
+        doNothing().when(userSecurityProfileService)
+                .enforceConcurrentSessionLimit(any(User.class), any(LocalDateTime.class));
+        when(acessoService.temAcessoAoModulo(user, "RH")).thenReturn(false);
+
+        UserSession session = new UserSession();
+        session.setId(89L);
+        when(userSessionRepository.saveAndFlush(any(UserSession.class))).thenReturn(session);
+
+        AuthenticationException exception = assertThrows(
+                AuthenticationException.class,
+                () -> authService.authenticateForApplication(
+                        "test@example.com",
+                        "password",
+                        null,
+                        null,
+                        "127.0.0.1",
+                        "RH"
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("não possui acesso à aplicação RH"));
+        verify(userSessionRepository).deleteExactById(89L);
+    }
+
+    @Test
+    void authenticate_ShouldRequireSecondFactorWithoutCountingBlankMfaAsFailure() {
+        user.setMfaEnabled(true);
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
+
+        AuthenticationException exception = assertThrows(
+                AuthenticationException.class,
+                () -> authService.authenticate(
+                        "test@example.com",
+                        "password",
+                        null,
+                        null,
+                        "127.0.0.1"
+                )
+        );
+
+        assertEquals(
+                "Esta conta exige um código MFA ou código de recuperação.",
+                exception.getMessage()
+        );
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
     void authenticate_ShouldThrowException_WhenUserNotFound() {
         when(userRepository.findByEmail("wrong@example.com")).thenReturn(Optional.empty());
 

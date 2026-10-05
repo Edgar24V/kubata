@@ -1,16 +1,16 @@
-package ao.allon.kubata.faturacao.controller;
+package ao.allon.kubata.rh.controller;
 
 import ao.allon.kubata.core.service.AuthService;
 import ao.allon.kubata.core.service.PasswordChangeService;
-import ao.allon.kubata.faturacao.ui.event.LoginSuccessEvent;
 import ao.allon.kubata.platform.login.CentralLoginController;
+import ao.allon.kubata.rh.ui.event.LoginSuccessEvent;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
- * Adaptador do login de Faturação para a autenticação central do Kubata.
+ * Login central da plataforma para o módulo RH.
  */
 @Component
 public class LoginController {
@@ -25,8 +25,8 @@ public class LoginController {
         this.delegate = new CentralLoginController(
                 authService,
                 passwordChangeService,
-                "FATURACAO",
-                "Kubata Faturação",
+                "RH",
+                "Kubata Recursos Humanos",
                 user -> eventPublisher.publishEvent(
                         new LoginSuccessEvent(this, user)
                 )

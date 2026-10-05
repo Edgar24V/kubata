@@ -29,7 +29,6 @@ import java.util.Set;
 public class PerfilSegurancaUtilizadorView {
 
     private static final List<String> MODULES = List.of(
-            "ADMINISTRATOR",
             "FATURACAO",
             "VENDAS",
             "COMPRAS",
@@ -68,6 +67,16 @@ public class PerfilSegurancaUtilizadorView {
 
     public void open(User user) {
         if (user == null || user.getId() == null) {
+            return;
+        }
+
+        if (!service.isCommonUser(user)) {
+            modalManager.showErrorModal(
+                    "Perfil de segurança",
+                    "Esta funcionalidade destina-se apenas a utilizadores comuns. "
+                            + "Contas Administrador e Superadministrador mantêm o fluxo de segurança administrativo.",
+                    null
+            );
             return;
         }
 
@@ -165,7 +174,7 @@ public class PerfilSegurancaUtilizadorView {
             modulesGrid.add(check, i % 3, i / 3);
         }
 
-        Label moduleHint = hint("Nenhum módulo seleccionado = RBAC normal, sem restrição adicional.");
+        Label moduleHint = hint("Os módulos seleccionados são uma restrição adicional. As funções (Ver, Criar, Editar, Apagar, Imprimir, Exportar, etc.) continuam a ser concedidas pelos Perfis de Acesso/RBAC.");
 
         TextArea ipRules = textArea(profile.getAllowedIpRanges(), "Uma regra por linha. Ex.: 192.168.1.0/24");
         TextArea criticalOps = textArea(
@@ -219,7 +228,7 @@ public class PerfilSegurancaUtilizadorView {
         );
 
         VBox modules = section(
-                "Módulos autorizados",
+                "Módulos permitidos como restrição adicional",
                 modulesGrid,
                 moduleHint
         );
@@ -349,7 +358,7 @@ public class PerfilSegurancaUtilizadorView {
     private Label header(User user) {
         Label label = new Label(
                 "Política individual · " + user.getEmail()
-                        + "\nA política é aplicada no servidor como restrição adicional ao RBAC."
+                        + "\nAplicável apenas a utilizadores comuns. Não concede funções; restringe o acesso já definido pelos Perfis de Acesso/RBAC."
         );
         label.setWrapText(true);
         label.getStyleClass().add("kubata-users-modal-row");
