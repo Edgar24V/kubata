@@ -727,6 +727,26 @@ public class MainController {
         stage.setMaximized(true);
     }
 
+    public void performLogoutAndExit() {
+        ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
+
+        try {
+            if (user != null) {
+                authService.logout(user, user.getSessionId(), "127.0.0.1");
+            }
+        } catch (Exception ignored) {
+            // O fecho do processo não deve ficar bloqueado por falha de persistência.
+        } finally {
+            sessionManager.logout();
+            stage.setOnCloseRequest(null);
+            try {
+                customerDisplayService.stop();
+            } catch (Exception ignored) {
+            }
+            stage.close();
+        }
+    }
+
     public void performLogoutAndShowLogin() {
         ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
 
