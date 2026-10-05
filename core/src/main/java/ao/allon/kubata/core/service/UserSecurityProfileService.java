@@ -31,6 +31,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import ao.allon.kubata.core.exception.AuthenticationException;
+import ao.allon.kubata.core.exception.SessionLimitExceededException;
 
 @Service
 public class UserSecurityProfileService {
@@ -209,8 +210,9 @@ public class UserSecurityProfileService {
 
         int maxSessions = profile.getMaxConcurrentSessions();
         if (maxSessions > 0 && sessions.size() >= maxSessions) {
-            throw new AuthenticationException(
-                    "O limite de sessões simultâneas desta conta foi atingido."
+            throw new SessionLimitExceededException(
+                    maxSessions,
+                    sessions.size()
             );
         }
     }
