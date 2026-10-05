@@ -22,13 +22,12 @@ public class CategoriasView extends BorderPane {
         this.service = service;
         this.modalManager = modalManager;
         build();
-        refresh();
+        refreshData();
     }
 
     private void build() {
         getStyleClass().add("inventario-page");
         setPadding(new Insets(22));
-
         Label title = new Label("Categorias");
         title.getStyleClass().add("page-title");
         Label subtitle = new Label("Estrutura de classificação de artigos");
@@ -37,9 +36,8 @@ public class CategoriasView extends BorderPane {
         Button novo = new Button("Nova categoria");
         novo.getStyleClass().add("primary-action");
         novo.setOnAction(e -> novo());
-
         Button refresh = new Button("Atualizar");
-        refresh.setOnAction(e -> refresh());
+        refresh.setOnAction(e -> refreshData());
 
         HBox actions = new HBox(10, novo, refresh);
         VBox header = new VBox(4, title, subtitle, actions);
@@ -57,7 +55,7 @@ public class CategoriasView extends BorderPane {
         VBox.setVgrow(table, Priority.ALWAYS);
     }
 
-    private void refresh() {
+    public void refreshData() {
         data.setAll(service.findAll());
     }
 
@@ -78,7 +76,7 @@ public class CategoriasView extends BorderPane {
             c.setNome(nome.getText().trim());
             c.setDescricao(desc.getText().trim());
             service.save(c);
-            refresh();
+            refreshData();
         } catch (Exception ex) {
             modalManager.error(this, "Categoria", "Não foi possível gravar: " + ex.getMessage());
         }
