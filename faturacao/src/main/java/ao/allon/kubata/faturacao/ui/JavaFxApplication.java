@@ -7,6 +7,7 @@ import ao.allon.kubata.faturacao.ui.util.ThemeManager;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -47,6 +48,10 @@ public class JavaFxApplication extends Application {
 
     @Override
     public void start(Stage stage) {
+        // O Login Central usa uma janela transparente sem decoração nativa.
+        // O estilo é definido antes de qualquer Scene ser atribuída.
+        stage.initStyle(StageStyle.TRANSPARENT);
+
         // Aguardar splash screen terminar antes de mostrar main stage
         if (splashScreen != null && splashScreen.isShowing()) {
             splashScreen.setOnComplete(v -> {
