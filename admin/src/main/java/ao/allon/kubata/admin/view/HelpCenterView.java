@@ -91,13 +91,14 @@ public class HelpCenterView extends BorderPane {
         searchRow.getStyleClass().add("kubata-help-search-row");
 
         HBox searchWrap = new HBox(10);
-        searchWrap.getStyleClass().add("kubata-help-search-wrap");\n        searchWrap.setAlignment(Pos.CENTER_LEFT);\n        searchWrap.setPadding(new Insets(0, 12, 0, 14));
+        searchWrap.getStyleClass().add("kubata-help-search-wrap");
+        searchWrap.setAlignment(Pos.CENTER_LEFT);
+        searchWrap.setPadding(new Insets(0, 12, 0, 14));
         TextField field = searchField;
         field.setPromptText("Pesquisar ajuda: MFA, utilizadores, sessões, empresas, permissões, backup...");
         field.textProperty().addListener((obs, oldValue, newValue) -> applyFilter(newValue));
         searchWrap.getChildren().addAll(IconUtils.icon(Feather.SEARCH, 18), field);
-        StackPane.setAlignment(field, Pos.CENTER_LEFT);
-        field.setPadding(new Insets(0, 14, 0, 40));
+        field.setPadding(new Insets(0, 4, 0, 4));
 
         Button clear = new Button();
         clear.setGraphic(IconUtils.icon(Feather.X, 15));
