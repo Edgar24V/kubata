@@ -882,7 +882,7 @@ public final class CentralLoginController {
         );
         Label activeCaption = new Label("SESSÕES ACTIVAS");
         activeCaption.setStyle(
-                "-fx-font-size: 9px;"
+                "-fx-font-size: 10px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #7b8794;"
         );
@@ -924,7 +924,7 @@ public final class CentralLoginController {
         VBox explanation = new VBox(8);
         Label why = new Label("Porque aconteceu?");
         why.setStyle(
-                "-fx-font-size: 11px;"
+                "-fx-font-size: 12px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #1f2937;"
         );
@@ -943,12 +943,12 @@ public final class CentralLoginController {
         );
         whyText.setWrapText(true);
         whyText.setStyle(
-                "-fx-font-size: 12px;"
+                "-fx-font-size: 11px;"
                         + "-fx-text-fill: #475569;"
         );
         explanation.getChildren().addAll(why, whyText);
 
-        VBox resolution = new VBox(6);
+        VBox resolution = new VBox(8);
         Label resolve = new Label("Como resolver");
         resolve.setStyle(
                 "-fx-font-size: 12px;"
@@ -964,7 +964,7 @@ public final class CentralLoginController {
         );
         steps.setWrapText(true);
         steps.setStyle(
-                "-fx-font-size: 12px;"
+                "-fx-font-size: 11px;"
                         + "-fx-text-fill: #475569;"
                         + "-fx-line-spacing: 2px;"
         );
@@ -990,11 +990,11 @@ public final class CentralLoginController {
         retry.setCursor(Cursor.HAND);
         retry.setStyle(
                 "-fx-background-color: #217346;"
-                        + "-fx-background-radius: 9;"
+                        + "-fx-background-radius: 8;"
                         + "-fx-text-fill: white;"
                         + "-fx-font-size: 10px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-padding: 0 14px;"
+                        + "-fx-padding: 0 12px;"
         );
         retry.setOnAction(event -> {
             hideSessionLimitModal();
@@ -1008,7 +1008,7 @@ public final class CentralLoginController {
                 "-fx-background-color: white;"
                         + "-fx-background-radius: 9;"
                         + "-fx-border-color: #cfdad4;"
-                        + "-fx-border-radius: 9;"
+                        + "-fx-border-radius: 8;"
                         + "-fx-text-fill: #395347;"
                         + "-fx-font-size: 10px;"
                         + "-fx-font-weight: 800;"
