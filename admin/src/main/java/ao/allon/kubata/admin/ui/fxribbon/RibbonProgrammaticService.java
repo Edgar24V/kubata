@@ -2,6 +2,7 @@ package ao.allon.kubata.admin.ui.fxribbon;
 
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.admin.view.*;
+import ao.allon.kubata.inventario.ui.*;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import javafx.scene.Node;
@@ -46,6 +47,9 @@ public class RibbonProgrammaticService {
 
         ribbon.addTab(buildInicio(opener, beanLookup));
         ribbon.addTab(buildGestao(opener, beanLookup));
+        if (canUseInventario(user)) {
+            ribbon.addTab(buildInventario(opener, beanLookup));
+        }
         ribbon.addTab(buildSeguranca(opener, beanLookup));
         ribbon.addTab(buildFiscal(opener, beanLookup));
         ribbon.addTab(buildSistema(opener, beanLookup));
@@ -96,6 +100,51 @@ public class RibbonProgrammaticService {
         dados.addLargeButton(largeBtn("exercicios", "Exercícios", Feather.CALENDAR, "Gerir exercícios fiscais",
                 () -> opener.open("exercicios", "Exercícios", () -> bl.apply(ExerciciosFiscaisView.class), true)));
         tab.addGroup(dados);
+
+        return tab;
+    }
+
+    private RibbonTab buildInventario(TabOpener opener, Function<Class<? extends Node>, Node> bl) {
+        RibbonTab tab = new RibbonTab("Inventário");
+
+        RibbonGroup centro = new RibbonGroup("Centro de Stock");
+        centro.addLargeButton(largeBtn("inventario_dashboard", "Dashboard", Feather.BAR_CHART_2,
+                "Visão operacional de Inventário e Gestão de Stocks",
+                () -> opener.open("inventario_dashboard", "Inventário", () -> bl.apply(InventarioDashboardView.class), true)));
+        centro.addLargeButton(largeBtn("inventario_produtos", "Artigos", Feather.PACKAGE,
+                "Catálogo de artigos e produtos",
+                () -> opener.open("inventario_produtos", "Artigos / Produtos", () -> bl.apply(ProdutosView.class), true)));
+        centro.addLargeButton(largeBtn("inventario_armazens", "Armazéns", Feather.LAYERS,
+                "Gestão de armazéns",
+                () -> opener.open("inventario_armazens", "Armazéns", () -> bl.apply(ArmazensView.class), true)));
+        centro.addLargeButton(largeBtn("inventario_stock", "Stock", Feather.DATABASE,
+                "Consulta de existências",
+                () -> opener.open("inventario_stock", "Consulta de Stock", () -> bl.apply(StockConsultaView.class), true)));
+        tab.addGroup(centro);
+
+        RibbonGroup operacoes = new RibbonGroup("Operações");
+        operacoes.addSmallButtons(List.of(
+                smallBtn("inventario_movimentos", "Movimentos", Feather.ACTIVITY, "Livro de movimentos",
+                        () -> opener.open("inventario_movimentos", "Movimentos de Stock", () -> bl.apply(MovimentosStockView.class), true)),
+                smallBtn("inventario_reservas", "Reservas", Feather.LOCK, "Reservas de stock",
+                        () -> opener.open("inventario_reservas", "Reservas de Stock", () -> bl.apply(ReservasStockView.class), true)),
+                smallBtn("inventario_transferencias", "Transferências", Feather.REPEAT, "Transferências entre armazéns",
+                        () -> opener.open("inventario_transferencias", "Transferências", () -> bl.apply(TransferenciasStockView.class), true)),
+                smallBtn("inventario_inventarios", "Inventários", Feather.CHECK_SQUARE, "Inventários físicos",
+                        () -> opener.open("inventario_inventarios", "Inventários Físicos", () -> bl.apply(InventariosFisicosView.class), true))
+        ));
+        tab.addGroup(operacoes);
+
+        RibbonGroup controlo = new RibbonGroup("Controlo & Rastreabilidade");
+        controlo.addSmallButtons(List.of(
+                smallBtn("inventario_lotes", "Lotes & Séries", Feather.TAG, "Rastreabilidade por lote e número de série",
+                        () -> opener.open("inventario_lotes", "Lotes & Números de Série", () -> bl.apply(LotesSeriesView.class), true)),
+                smallBtn("inventario_valorizacao", "Valorização", Feather.DOLLAR_SIGN, "Valorização económica do stock",
+                        () -> opener.open("inventario_valorizacao", "Valorização de Stock", () -> bl.apply(ValorizacaoStockView.class), true)),
+                smallBtn("inventario_categorias", "Categorias", Feather.FOLDER, "Categorias de artigos",
+                        () -> opener.open("inventario_categorias", "Categorias", () -> bl.apply(CategoriasView.class), true))
+        ));
+        tab.addGroup(controlo);
 
         return tab;
     }
@@ -244,6 +293,16 @@ public class RibbonProgrammaticService {
     }
 
     // ── Verificação de acesso ──────────────────────────────────────────────────
+
+    private boolean canUseInventario(User user) {
+        if (user == null) return false;
+        return user.isSuperadmin()
+                || user.getRole() == Role.ADMIN
+                || user.getRole() == Role.SUPORTE_TI
+                || user.getRole() == Role.ESTOQUE
+                || user.getRole() == Role.LOGISTICA
+                || user.getRole() == Role.COMPRAS;
+    }
 
     private boolean isAdmin(User user) {
         if (user == null) return false;

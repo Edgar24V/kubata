@@ -15,6 +15,9 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long> {
 
     List<Estoque> findByArmazemId(Long armazemId);
 
+    @Query("SELECT SUM(e.quantidade) FROM Estoque e WHERE e.produto.id = :produtoId AND e.armazem.id = :armazemId AND e.active = true")
+    Integer getStockTotalByProdutoIdAndArmazemId(Long produtoId, Long armazemId);
+
     Optional<Estoque> findByProdutoIdAndArmazemIdAndLote(Long produtoId, Long armazemId, String lote);
 
     @Query("SELECT SUM(e.quantidade) FROM Estoque e WHERE e.produto.id = :produtoId AND e.active = true")

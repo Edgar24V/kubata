@@ -1,0 +1,122 @@
+.inventario-page {
+    -fx-background-color: #F5F5F5;
+    -fx-padding: 20;
+    -fx-font-family: "Segoe UI";
+}
+
+.inventario-page-header {
+    -fx-padding: 0 0 4 0;
+}
+
+.inventario-page-title {
+    -fx-font-size: 25px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #1A5C35;
+}
+
+.inventario-page-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #66746B;
+}
+
+.inventario-toolbar {
+    -fx-background-color: white;
+    -fx-padding: 10;
+    -fx-background-radius: 10;
+    -fx-border-color: #D8E0DA;
+    -fx-border-radius: 10;
+}
+
+.inventario-card, .inventario-metric {
+    -fx-background-color: white;
+    -fx-padding: 16;
+    -fx-background-radius: 12;
+    -fx-border-color: #D8E0DA;
+    -fx-border-radius: 12;
+}
+
+.inventario-card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #1A5C35;
+}
+
+.inventario-metric {
+    -fx-min-height: 112px;
+}
+
+.inventario-metric-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #718079;
+}
+
+.inventario-metric-value {
+    -fx-font-size: 26px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #1A5C35;
+}
+
+.inventario-metric-detail {
+    -fx-font-size: 11px;
+    -fx-text-fill: #718079;
+}
+
+.button-primary {
+    -fx-background-color: #217346;
+    -fx-text-fill: white;
+    -fx-font-weight: 700;
+    -fx-background-radius: 8;
+    -fx-padding: 9 15;
+}
+
+.button-primary:hover {
+    -fx-background-color: #1A5C35;
+}
+
+.button-outlined {
+    -fx-background-color: white;
+    -fx-text-fill: #1A5C35;
+    -fx-border-color: #A5D6A7;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 14;
+}
+
+.inventario-field {
+    -fx-min-height: 36px;
+    -fx-background-radius: 7;
+    -fx-border-radius: 7;
+    -fx-border-color: #CDD6D0;
+}
+
+.inventario-table {
+    -fx-background-color: white;
+    -fx-border-color: #D8E0DA;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.inventario-table .column-header-background {
+    -fx-background-color: #E8F5E9;
+}
+
+.inventario-table .column-header,
+.inventario-table .filler {
+    -fx-background-color: transparent;
+    -fx-text-fill: #1A5C35;
+}
+
+.inventario-table .table-row-cell:selected {
+    -fx-background-color: #D7EBD9;
+    -fx-text-fill: #111111;
+}
+
+.inventario-dialog {
+    -fx-font-family: "Segoe UI";
+    -fx-background-color: #F5F5F5;
+}
+
+.inventario-dialog-subtitle {
+    -fx-text-fill: #66746B;
+    -fx-font-size: 12px;
+}
