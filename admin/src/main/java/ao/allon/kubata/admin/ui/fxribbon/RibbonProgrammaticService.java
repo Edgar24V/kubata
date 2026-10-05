@@ -4,6 +4,10 @@ import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.admin.view.*;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.inventario.ui.views.ArmazensView;
+import ao.allon.kubata.inventario.ui.views.CategoriasView;
+import ao.allon.kubata.inventario.ui.views.EstoqueView;
+import ao.allon.kubata.inventario.ui.views.ProdutosView;
 import javafx.scene.Node;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Service;
@@ -12,33 +16,14 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/**
- * Serviço Spring que constrói programaticamente o {@link Ribbon} do Kubata Administrator.
- *
- * Abas criadas: Plataforma · Organização · Segurança · Documentos &amp; Fiscal ·
- * Manutenção · Infraestrutura (só para ADMIN / superadmin).
- */
 @Service
 public class RibbonProgrammaticService {
 
-    /**
-     * Callback para abrir ou focar uma tab de trabalho no TabPane principal.
-     */
     @FunctionalInterface
     public interface TabOpener {
         void open(String id, String title, Supplier<Node> content, boolean closable);
     }
 
-    // ── API pública ────────────────────────────────────────────────────────────
-
-    /**
-     * Constrói e popula o {@link Ribbon}.
-     *
-     * @param ribbon     instância do Ribbon a preencher
-     * @param user       utilizador autenticado (pode ser null)
-     * @param opener     callback que abre views no TabPane central
-     * @param beanLookup resolve um bean Spring por classe (applicationContext::getBean)
-     */
     public void buildRibbon(Ribbon ribbon,
                             User user,
                             TabOpener opener,
@@ -46,6 +31,7 @@ public class RibbonProgrammaticService {
 
         ribbon.addTab(buildInicio(opener, beanLookup));
         ribbon.addTab(buildGestao(opener, beanLookup));
+        ribbon.addTab(buildInventario(opener, beanLookup));
         ribbon.addTab(buildSeguranca(opener, beanLookup));
         ribbon.addTab(buildFiscal(opener, beanLookup));
         ribbon.addTab(buildSistema(opener, beanLookup));
@@ -54,8 +40,6 @@ public class RibbonProgrammaticService {
             ribbon.addTab(buildInfraestrutura(opener, beanLookup));
         }
     }
-
-    // ── Construção de Tabs ─────────────────────────────────────────────────────
 
     private RibbonTab buildInicio(TabOpener opener, Function<Class<? extends Node>, Node> bl) {
         RibbonTab tab = new RibbonTab("Início");
@@ -76,9 +60,7 @@ public class RibbonProgrammaticService {
                 smallBtn("nova_empresa",    "Nova Empresa",    Feather.PLUS_SQUARE, "Criar nova empresa",
                         () -> openNovaEmpresa(bl)),
                 smallBtn("novo_exercicio",  "Novo Exercício",  Feather.CALENDAR,   "Criar novo exercício",
-                        () -> openNovoExercicio(bl))
-        ));
-        ops.addSmallButtons(List.of(
+                        () -> openNovoExercicio(bl)),
                 smallBtn("nova_serie", "Nova Série", Feather.LAYERS, "Criar nova série de documentos",
                         () -> openNovaSerie(bl))
         ));
@@ -96,6 +78,36 @@ public class RibbonProgrammaticService {
         dados.addLargeButton(largeBtn("exercicios", "Exercícios", Feather.CALENDAR, "Gerir exercícios fiscais",
                 () -> opener.open("exercicios", "Exercícios", () -> bl.apply(ExerciciosFiscaisView.class), true)));
         tab.addGroup(dados);
+
+        return tab;
+    }
+
+    private RibbonTab buildInventario(TabOpener opener, Function<Class<? extends Node>, Node> bl) {
+        RibbonTab tab = new RibbonTab("Inventário");
+
+        RibbonGroup artigos = new RibbonGroup("Artigos");
+        artigos.addLargeButton(largeBtn(
+                "inventario_artigos", "Artigos", Feather.BOX, "Cadastro e consulta de artigos",
+                () -> opener.open("inventario.produtos", "Artigos",
+                        () -> bl.apply(ProdutosView.class), true)));
+        artigos.addLargeButton(largeBtn(
+                "inventario_categorias", "Categorias", Feather.TAG, "Classificação de artigos",
+                () -> opener.open("inventario.categorias", "Categorias",
+                        () -> bl.apply(CategoriasView.class), true)));
+        tab.addGroup(artigos);
+
+        RibbonGroup stock = new RibbonGroup("Stock & Logística");
+        stock.addLargeButton(largeBtn(
+                "inventario_stock", "Gestão de Stock", Feather.DATABASE,
+                "Existências, lotes e validades",
+                () -> opener.open("inventario.estoque", "Gestão de Stock",
+                        () -> bl.apply(EstoqueView.class), true)));
+        stock.addLargeButton(largeBtn(
+                "inventario_armazens", "Armazéns", Feather.HOME,
+                "Gestão de armazéns",
+                () -> opener.open("inventario.armazens", "Armazéns",
+                        () -> bl.apply(ArmazensView.class), true)));
+        tab.addGroup(stock);
 
         return tab;
     }
@@ -171,67 +183,39 @@ public class RibbonProgrammaticService {
         tab.addGroup(plataforma);
 
         RibbonGroup avancado = new RibbonGroup("Plataforma Avançada");
-        avancado.addLargeButton(largeBtn(
-                "plataforma_centro",
-                "Centro",
-                Feather.CPU,
+        avancado.addLargeButton(largeBtn("plataforma_centro", "Centro", Feather.CPU,
                 "Centro completo da plataforma",
-                () -> opener.open(
-                        "plataforma_centro",
-                        "Centro da Plataforma",
-                        () -> bl.apply(PlataformaCentroCompletoView.class),
-                        true
-                )));
+                () -> opener.open("plataforma_centro", "Centro da Plataforma",
+                        () -> bl.apply(PlataformaCentroCompletoView.class), true)));
         avancado.addSmallButtons(List.of(
-                smallBtn(
-                        "aplicacoes_instaladas",
-                        "Aplicações",
-                        Feather.PACKAGE,
+                smallBtn("aplicacoes_instaladas", "Aplicações", Feather.PACKAGE,
                         "Aplicações instaladas",
-                        () -> opener.open(
-                                "aplicacoes_instaladas",
-                                "Aplicações Instaladas",
-                                () -> bl.apply(AplicacoesInstaladasView.class),
-                                true
-                        )),
-                smallBtn(
-                        "moedas_cambios",
-                        "Moedas",
-                        Feather.DOLLAR_SIGN,
+                        () -> opener.open("aplicacoes_instaladas", "Aplicações Instaladas",
+                                () -> bl.apply(AplicacoesInstaladasView.class), true)),
+                smallBtn("moedas_cambios", "Moedas", Feather.DOLLAR_SIGN,
                         "Moedas e câmbios",
-                        () -> opener.open(
-                                "moedas_cambios",
-                                "Moedas e Câmbios",
-                                () -> bl.apply(MoedasCambiosView.class),
-                                true
-                        )),
-                smallBtn(
-                        "sessoes",
-                        "Sessões",
-                        Feather.USERS,
+                        () -> opener.open("moedas_cambios", "Moedas e Câmbios",
+                                () -> bl.apply(MoedasCambiosView.class), true)),
+                smallBtn("sessoes", "Sessões", Feather.USERS,
                         "Sessões do sistema",
-                        () -> opener.open(
-                                "sessoes",
-                                "Sessões do Sistema",
-                                () -> bl.apply(SessoesView.class),
-                                true
-                        ))
+                        () -> opener.open("sessoes", "Sessões do Sistema",
+                                () -> bl.apply(SessoesView.class), true))
         ));
         tab.addGroup(avancado);
 
         RibbonGroup monitor = new RibbonGroup("Monitorização");
         monitor.addSmallButtons(List.of(
                 smallBtn("system_monitor", "Monitor", Feather.ACTIVITY, "Monitor do sistema",
-                        () -> opener.open("system_monitor", "Monitor do Sistema", () -> bl.apply(SystemMonitorView.class), true)),
+                        () -> opener.open("system_monitor", "Monitor do Sistema",
+                                () -> bl.apply(SystemMonitorView.class), true)),
                 smallBtn("planos_manut", "Planos", Feather.CALENDAR, "Planos de manutenção",
-                        () -> opener.open("planos_manut", "Planos de Manutenção", () -> bl.apply(ManutencaoPlanosView.class), true))
+                        () -> opener.open("planos_manut", "Planos de Manutenção",
+                                () -> bl.apply(ManutencaoPlanosView.class), true))
         ));
         tab.addGroup(monitor);
 
         return tab;
     }
-
-    // ── Factories de botões ────────────────────────────────────────────────────
 
     private RibbonButton largeBtn(String id, String label, Feather icon, String tooltip, Runnable action) {
         return new RibbonButton(id, label, IconUtils.icon(icon, IconUtils.SIZE_XLARGE),
@@ -243,16 +227,12 @@ public class RibbonProgrammaticService {
                 RibbonButtonSize.SMALL, tooltip, action);
     }
 
-    // ── Verificação de acesso ──────────────────────────────────────────────────
-
     private boolean isAdmin(User user) {
         if (user == null) return false;
         return user.isSuperadmin()
                 || user.getRole() == Role.ADMIN
                 || user.getRole() == Role.SUPORTE_TI;
     }
-
-    // ── Operações Rápidas ──────────────────────────────────────────────────────
 
     private void openNovoUtilizador(Function<Class<? extends Node>, Node> beanLookup) {
         UtilizadoresView view = (UtilizadoresView) beanLookup.apply(UtilizadoresView.class);
