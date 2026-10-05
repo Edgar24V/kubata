@@ -803,41 +803,41 @@ public final class CentralLoginController {
     }
 
     private void showSessionLimitModal(SessionLimitExceededException exception) {
-        VBox card = new VBox(11);
-        card.setMaxWidth(470);
-        card.setPrefWidth(470);
-        card.setPadding(new Insets(18));
+        VBox card = new VBox(12);
+        card.setMaxWidth(480);
+        card.setPrefWidth(480);
+        card.setPadding(new Insets(20));
         card.setStyle(
                 "-fx-background-color: white;"
-                        + "-fx-background-radius: 18;"
+                        + "-fx-background-radius: 16;"
                         + "-fx-border-color: #dbe4df;"
-                        + "-fx-border-radius: 18;"
+                        + "-fx-border-radius: 16;"
                         + "-fx-border-width: 1;"
         );
         card.setEffect(new DropShadow(30, Color.rgb(15, 23, 42, 0.28)));
 
-        HBox header = new HBox(8);
+        HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
 
         StackPane iconBox = new StackPane();
-        iconBox.setMinSize(38, 38);
-        iconBox.setPrefSize(38, 38);
+        iconBox.setMinSize(42, 42);
+        iconBox.setPrefSize(42, 42);
         iconBox.setStyle(
                 "-fx-background-color: #fff4e5;"
-                        + "-fx-background-radius: 10;"
+                        + "-fx-background-radius: 12;"
                         + "-fx-border-color: #f6c98b;"
-                        + "-fx-border-radius: 10;"
+                        + "-fx-border-radius: 12;"
         );
 
         FontIcon icon = new FontIcon(Feather.LOCK);
-        icon.setIconSize(18);
+        icon.setIconSize(20);
         icon.setIconColor(Color.web("#b45309"));
         iconBox.getChildren().add(icon);
 
-        VBox heading = new VBox(3);
+        VBox heading = new VBox(4);
         Label title = new Label("Limite de sessões atingido");
         title.setStyle(
-                "-fx-font-size: 17px;"
+                "-fx-font-size: 18px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #163725;"
         );
@@ -862,13 +862,13 @@ public final class CentralLoginController {
                 "-fx-background-color: transparent;"
                         + "-fx-text-fill: #64748b;"
                         + "-fx-background-radius: 8;"
-                        + "-fx-padding: 8;"
+                        + "-fx-padding: 10;"
         );
         close.setOnAction(event -> hideSessionLimitModal());
 
         header.getChildren().addAll(iconBox, heading, headerSpacer, close);
 
-        HBox status = new HBox(8);
+        HBox status = new HBox(10);
         status.setAlignment(Pos.CENTER_LEFT);
 
         VBox activeBox = new VBox(3);
@@ -878,7 +878,7 @@ public final class CentralLoginController {
                         + "-fx-background-radius: 12;"
                         + "-fx-border-color: #e2ebe5;"
                         + "-fx-border-radius: 12;"
-                        + "-fx-padding: 8;"
+                        + "-fx-padding: 10;"
         );
         Label activeCaption = new Label("SESSÕES ACTIVAS");
         activeCaption.setStyle(
@@ -888,7 +888,7 @@ public final class CentralLoginController {
         );
         Label activeValue = new Label(String.valueOf(exception.getActiveSessions()));
         activeValue.setStyle(
-                "-fx-font-size: 19px;"
+                "-fx-font-size: 20px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #163725;"
         );
@@ -901,7 +901,7 @@ public final class CentralLoginController {
                         + "-fx-background-radius: 12;"
                         + "-fx-border-color: #cfe5d5;"
                         + "-fx-border-radius: 12;"
-                        + "-fx-padding: 12;"
+                        + "-fx-padding: 10;"
         );
         Label limitCaption = new Label("LIMITE DA CONTA");
         limitCaption.setStyle(
@@ -911,7 +911,7 @@ public final class CentralLoginController {
         );
         Label limitValue = new Label(String.valueOf(exception.getMaxSessions()));
         limitValue.setStyle(
-                "-fx-font-size: 24px;"
+                "-fx-font-size: 20px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #217346;"
         );
@@ -921,7 +921,7 @@ public final class CentralLoginController {
         HBox.setHgrow(limitBox, Priority.ALWAYS);
         status.getChildren().addAll(activeBox, limitBox);
 
-        VBox explanation = new VBox(6);
+        VBox explanation = new VBox(8);
         Label why = new Label("Porque aconteceu?");
         why.setStyle(
                 "-fx-font-size: 12px;"
@@ -943,15 +943,15 @@ public final class CentralLoginController {
         );
         whyText.setWrapText(true);
         whyText.setStyle(
-                "-fx-font-size: 12px;"
+                "-fx-font-size: 11px;"
                         + "-fx-text-fill: #475569;"
         );
         explanation.getChildren().addAll(why, whyText);
 
-        VBox resolution = new VBox(6);
+        VBox resolution = new VBox(8);
         Label resolve = new Label("Como resolver");
         resolve.setStyle(
-                "-fx-font-size: 13px;"
+                "-fx-font-size: 12px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #1f2937;"
         );
@@ -964,7 +964,7 @@ public final class CentralLoginController {
         );
         steps.setWrapText(true);
         steps.setStyle(
-                "-fx-font-size: 12px;"
+                "-fx-font-size: 11px;"
                         + "-fx-text-fill: #475569;"
                         + "-fx-line-spacing: 2px;"
         );
@@ -979,22 +979,22 @@ public final class CentralLoginController {
                         + "-fx-text-fill: #9a3412;"
         );
 
-        HBox actions = new HBox(7);
+        HBox actions = new HBox(8);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
         Button retry = new Button(
                 "TENTAR NOVAMENTE",
                 new FontIcon(Feather.REFRESH_CW)
         );
-        retry.setPrefHeight(36);
+        retry.setPrefHeight(38);
         retry.setCursor(Cursor.HAND);
         retry.setStyle(
                 "-fx-background-color: #217346;"
-                        + "-fx-background-radius: 9;"
+                        + "-fx-background-radius: 8;"
                         + "-fx-text-fill: white;"
                         + "-fx-font-size: 10px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-padding: 0 14px;"
+                        + "-fx-padding: 0 12px;"
         );
         retry.setOnAction(event -> {
             hideSessionLimitModal();
@@ -1002,17 +1002,17 @@ public final class CentralLoginController {
         });
 
         Button back = new Button("FECHAR");
-        back.setPrefHeight(36);
+        back.setPrefHeight(38);
         back.setCursor(Cursor.HAND);
         back.setStyle(
                 "-fx-background-color: white;"
-                        + "-fx-background-radius: 9;"
+                        + "-fx-background-radius: 8;"
                         + "-fx-border-color: #cfdad4;"
-                        + "-fx-border-radius: 9;"
+                        + "-fx-border-radius: 8;"
                         + "-fx-text-fill: #395347;"
                         + "-fx-font-size: 10px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-padding: 0 14px;"
+                        + "-fx-padding: 0 12px;"
         );
         back.setOnAction(event -> hideSessionLimitModal());
 
@@ -1021,13 +1021,13 @@ public final class CentralLoginController {
                     "LIBERTAR SESSÃO MAIS ANTIGA",
                     new FontIcon(Feather.UNLOCK)
             );
-            release.setPrefHeight(36);
+            release.setPrefHeight(38);
             release.setCursor(Cursor.HAND);
             release.setStyle(
                     "-fx-background-color: #fff7ed;"
-                            + "-fx-background-radius: 9;"
+                            + "-fx-background-radius: 8;"
                             + "-fx-border-color: #fed7aa;"
-                            + "-fx-border-radius: 9;"
+                            + "-fx-border-radius: 8;"
                             + "-fx-text-fill: #9a3412;"
                             + "-fx-font-size: 10px;"
                             + "-fx-font-weight: 800;"
