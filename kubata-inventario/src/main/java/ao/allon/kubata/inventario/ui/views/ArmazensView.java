@@ -23,7 +23,7 @@ public class ArmazensView extends BorderPane {
         this.service = service;
         this.modalManager = modalManager;
         build();
-        refresh();
+        refreshData();
     }
 
     private void build() {
@@ -39,7 +39,7 @@ public class ArmazensView extends BorderPane {
         novo.getStyleClass().add("primary-action");
         novo.setOnAction(e -> novo());
         Button refresh = new Button("Atualizar");
-        refresh.setOnAction(e -> refresh());
+        refresh.setOnAction(e -> refreshData());
 
         HBox actions = new HBox(10, novo, refresh);
         VBox header = new VBox(4, title, subtitle, actions);
@@ -63,7 +63,9 @@ public class ArmazensView extends BorderPane {
         VBox.setVgrow(table, Priority.ALWAYS);
     }
 
-    private void refresh() { data.setAll(service.findAll()); }
+    public void refreshData() {
+        data.setAll(service.findAll());
+    }
 
     private void novo() {
         GridPane grid = new GridPane();
@@ -91,7 +93,7 @@ public class ArmazensView extends BorderPane {
             a.setEndereco(endereco.getText().trim());
             a.setIsPrincipal(principal.isSelected());
             service.save(a);
-            refresh();
+            refreshData();
         } catch (Exception ex) {
             modalManager.error(this, "Armazém", "Não foi possível gravar: " + ex.getMessage());
         }
