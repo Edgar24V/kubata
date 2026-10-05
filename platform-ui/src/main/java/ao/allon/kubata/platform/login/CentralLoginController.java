@@ -135,7 +135,7 @@ public final class CentralLoginController {
         root.setStyle(
                 "-fx-background-color: transparent;"
                         + "-fx-font-family: 'Segoe UI', 'Calibri', 'Arial', sans-serif;"
-                        + "-fx-font-size: 13px;"
+                        + "-fx-font-size: 12px;"
                         + "-fx-accent: #217346;"
                         + "-fx-focus-color: #66BB6A;"
                         + "-fx-faint-focus-color: rgba(33,115,70,0.12);"
@@ -286,7 +286,7 @@ public final class CentralLoginController {
 
         Label platformLabel = new Label(applicationName);
         platformLabel.setStyle(
-                "-fx-font-size: 12px;"
+                "-fx-font-size: 11px;"
                         + "-fx-font-weight: 700;"
                         + "-fx-text-fill: rgba(255,255,255,0.88);"
                         + "-fx-padding: 6px 12px;"
@@ -316,7 +316,7 @@ public final class CentralLoginController {
         Label versionLabel = new Label("Kubata Platform • Autenticação Central");
         versionLabel.setStyle(
                 "-fx-text-fill: rgba(255,255,255,0.50);"
-                        + "-fx-font-size: 10px;"
+                        + "-fx-font-size: 9px;"
         );
 
         leftSide.getChildren().addAll(
@@ -379,7 +379,7 @@ public final class CentralLoginController {
     }
 
     private VBox createFormFields() {
-        VBox formFields = new VBox(18);
+        VBox formFields = new VBox(12);
 
         VBox emailBox = new VBox(8);
         Label lblEmail = new Label("Utilizador ou Email");
@@ -804,9 +804,9 @@ public final class CentralLoginController {
 
     private void showSessionLimitModal(SessionLimitExceededException exception) {
         VBox card = new VBox(18);
-        card.setMaxWidth(620);
-        card.setPrefWidth(620);
-        card.setPadding(new Insets(28));
+        card.setMaxWidth(500);
+        card.setPrefWidth(500);
+        card.setPadding(new Insets(20));
         card.setStyle(
                 "-fx-background-color: white;"
                         + "-fx-background-radius: 18;"
@@ -816,28 +816,28 @@ public final class CentralLoginController {
         );
         card.setEffect(new DropShadow(30, Color.rgb(15, 23, 42, 0.28)));
 
-        HBox header = new HBox(12);
+        HBox header = new HBox(9);
         header.setAlignment(Pos.CENTER_LEFT);
 
         StackPane iconBox = new StackPane();
-        iconBox.setMinSize(48, 48);
-        iconBox.setPrefSize(48, 48);
+        iconBox.setMinSize(40, 40);
+        iconBox.setPrefSize(40, 40);
         iconBox.setStyle(
                 "-fx-background-color: #fff4e5;"
-                        + "-fx-background-radius: 14;"
+                        + "-fx-background-radius: 11;"
                         + "-fx-border-color: #f6c98b;"
-                        + "-fx-border-radius: 14;"
+                        + "-fx-border-radius: 11;"
         );
 
         FontIcon icon = new FontIcon(Feather.LOCK);
-        icon.setIconSize(23);
+        icon.setIconSize(19);
         icon.setIconColor(Color.web("#b45309"));
         iconBox.getChildren().add(icon);
 
         VBox heading = new VBox(3);
         Label title = new Label("Limite de sessões atingido");
         title.setStyle(
-                "-fx-font-size: 21px;"
+                "-fx-font-size: 18px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #163725;"
         );
@@ -868,7 +868,7 @@ public final class CentralLoginController {
 
         header.getChildren().addAll(iconBox, heading, headerSpacer, close);
 
-        HBox status = new HBox(12);
+        HBox status = new HBox(8);
         status.setAlignment(Pos.CENTER_LEFT);
 
         VBox activeBox = new VBox(3);
@@ -878,7 +878,7 @@ public final class CentralLoginController {
                         + "-fx-background-radius: 12;"
                         + "-fx-border-color: #e2ebe5;"
                         + "-fx-border-radius: 12;"
-                        + "-fx-padding: 12;"
+                        + "-fx-padding: 9;"
         );
         Label activeCaption = new Label("SESSÕES ACTIVAS");
         activeCaption.setStyle(
@@ -888,7 +888,7 @@ public final class CentralLoginController {
         );
         Label activeValue = new Label(String.valueOf(exception.getActiveSessions()));
         activeValue.setStyle(
-                "-fx-font-size: 24px;"
+                "-fx-font-size: 20px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #163725;"
         );
@@ -921,7 +921,7 @@ public final class CentralLoginController {
         HBox.setHgrow(limitBox, Priority.ALWAYS);
         status.getChildren().addAll(activeBox, limitBox);
 
-        VBox explanation = new VBox(9);
+        VBox explanation = new VBox(7);
         Label why = new Label("Porque aconteceu?");
         why.setStyle(
                 "-fx-font-size: 13px;"
@@ -948,7 +948,7 @@ public final class CentralLoginController {
         );
         explanation.getChildren().addAll(why, whyText);
 
-        VBox resolution = new VBox(9);
+        VBox resolution = new VBox(7);
         Label resolve = new Label("Como resolver");
         resolve.setStyle(
                 "-fx-font-size: 13px;"
@@ -970,14 +970,14 @@ public final class CentralLoginController {
         );
         resolution.getChildren().addAll(resolve, steps);
 
-        HBox actions = new HBox(10);
+        HBox actions = new HBox(8);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
         Button retry = new Button(
                 "TENTAR NOVAMENTE",
                 new FontIcon(Feather.REFRESH_CW)
         );
-        retry.setPrefHeight(44);
+        retry.setPrefHeight(38);
         retry.setCursor(Cursor.HAND);
         retry.setStyle(
                 "-fx-background-color: #217346;"
@@ -993,7 +993,7 @@ public final class CentralLoginController {
         });
 
         Button back = new Button("FECHAR");
-        back.setPrefHeight(44);
+        back.setPrefHeight(38);
         back.setCursor(Cursor.HAND);
         back.setStyle(
                 "-fx-background-color: white;"
