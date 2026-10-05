@@ -1,11 +1,16 @@
 package ao.allon.kubata.inventario.ui;
 
-import ao.allon.kubata.inventario.domain.Produto;
 import ao.allon.kubata.inventario.service.InventarioDashboardService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;\nimport javafx.scene.control.Label;
-import javafx.scene.layout.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -27,56 +32,89 @@ public class InventarioDashboardView extends BorderPane {
         VBox header = new VBox(4);
         Label title = new Label("Inventário & Gestão de Stocks");
         title.getStyleClass().add("inventario-page-title");
-        Label subtitle = new Label("Centro operacional de artigos, armazéns, movimentos, reservas e inventários físicos.");
+        Label subtitle = new Label(
+                "Centro operacional de artigos, armazéns, movimentos, reservas e inventários físicos.");
         subtitle.getStyleClass().add("inventario-page-subtitle");
+
         header.getChildren().addAll(title, subtitle);
 
         Button refresh = InventarioUI.primaryButton("Atualizar");
         refresh.setOnAction(e -> refresh());
-        HBox top = new HBox(12, header, new Region(), refresh);
-        HBox.setHgrow(top.getChildren().get(1), Priority.ALWAYS);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox top = new HBox(12, header, spacer, refresh);
         top.setAlignment(Pos.CENTER_LEFT);
         setTop(top);
 
         metrics.setHgap(12);
         metrics.setVgap(12);
         metrics.setPadding(new Insets(18, 0, 0, 0));
-        setCenter(new VBox(12, metrics, alerts));
+
+        VBox center = new VBox(12, metrics, alerts);
+        setCenter(center);
+
         refresh();
     }
 
     public void refresh() {
-        var r = service.resumo();
+        var resumo = service.resumo();
+
         metrics.getChildren().clear();
-        metrics.add(InventarioUI.metric("ARTIGOS", InventarioUI.integer(r.produtos()), "Artigos ativos no catálogo"), 0, 0);
-        metrics.add(InventarioUI.metric("ARMAZÉNS", InventarioUI.integer(r.armazens()), "Locais operacionais ativos"), 1, 0);
-        metrics.add(InventarioUI.metric("UNIDADES EM STOCK", InventarioUI.integer(r.unidades()), "Existência física consolidada"), 2, 0);
-        metrics.add(InventarioUI.metric("UNIDADES RESERVADAS", r.reservado().stripTrailingZeros().toPlainString(), "Stock comprometido por reservas"), 3, 0);
-        metrics.add(InventarioUI.metric("VALOR DO STOCK", InventarioUI.money(r.valorStock()), "Valorização ao custo registado"), 0, 1);
-        metrics.add(InventarioUI.metric("STOCK BAIXO", InventarioUI.integer(r.stockBaixo()), "Artigos no mínimo ou abaixo"), 1, 1);
+        metrics.add(
+                InventarioUI.metric(
+                        "ARTIGOS",
+                        InventarioUI.integer(resumo.produtos()),
+                        "Artigos ativos no catálogo"),
+                0, 0);
+        metrics.add(
+                InventarioUI.metric(
+                        "ARMAZÉNS",
+                        InventarioUI.integer(resumo.armazens()),
+                        "Locais operacionais ativos"),
+                1, 0);
+        metrics.add(
+                InventarioUI.metric(
+                        "UNIDADES EM STOCK",
+                        InventarioUI.integer(resumo.unidades()),
+                        "Existência física consolidada"),
+                2, 0);
+        metrics.add(
+                InventarioUI.metric(
+                        "UNIDADES RESERVADAS",
+                        resumo.reservado().stripTrailingZeros().toPlainString(),
+                        "Stock comprometido por reservas"),
+                3, 0);
+        metrics.add(
+                InventarioUI.metric(
+                        "VALOR DO STOCK",
+                        InventarioUI.money(resumo.valorStock()),
+                        "Valorização ao custo registado"),
+                0, 1);
+        metrics.add(
+                InventarioUI.metric(
+                        "STOCK BAIXO",
+                        InventarioUI.integer(resumo.stockBaixo()),
+                        "Artigos no mínimo ou abaixo"),
+                1, 1);
 
         alerts.getChildren().clear();
+
         Label section = new Label("Alertas operacionais");
         section.getStyleClass().add("inventario-card-title");
         alerts.getChildren().add(section);
-        ProdutoAlert.alerts(r.stockBaixo()).forEach(a -> {
-            Label l = new Label(a);
-            l.setWrapText(true);
-            l.getStyleClass().add("inventario-card");
-            alerts.getChildren().add(l);
-        });
-        if (r.stockBaixo() == 0) {
+
+        if (resumo.stockBaixo() > 0) {
+            Label warning = new Label(
+                    resumo.stockBaixo() + " artigo(s) requer(em) reposição.");
+            warning.setWrapText(true);
+            warning.getStyleClass().add("inventario-card");
+            alerts.getChildren().add(warning);
+        } else {
             Label ok = new Label("✓ Não existem artigos abaixo do stock mínimo.");
             ok.getStyleClass().add("inventario-metric-detail");
             alerts.getChildren().add(ok);
-        }
-    }
-
-    private record ProdutoAlert() {
-        static java.util.List<String> alerts(long stockBaixo) {
-            return stockBaixo > 0
-                    ? java.util.List.of(stockBaixo + " artigo(s) requer(em) reposição.")
-                    : java.util.List.of();
         }
     }
 }
