@@ -752,7 +752,7 @@ public class MainController {
 
         try {
             if (user != null) {
-                authService.logout(user, "127.0.0.1");
+                authService.logout(user, user.getSessionId(), "127.0.0.1");
             }
         } catch (Exception ignored) {
             // O contexto local deve ser limpo mesmo quando o registo persistido
