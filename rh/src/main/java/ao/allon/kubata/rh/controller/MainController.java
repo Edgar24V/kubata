@@ -92,7 +92,7 @@ public class MainController extends StackPane {
         User user = event.getUser();
 
         if (user == null || user.getRole() == null) {
-            modalManager.error("Acesso negado", "Utilizador autenticado inválido.");
+            modalManager.showErrorModal("Acesso negado", "Utilizador autenticado inválido.");
             switchToLogin();
             return;
         }
