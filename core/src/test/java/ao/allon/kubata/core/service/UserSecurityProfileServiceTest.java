@@ -6,6 +6,7 @@ import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSecurityFinancialUsage;
 import ao.allon.kubata.core.domain.UserSecurityProfile;
 import ao.allon.kubata.core.domain.UserSession;
+import ao.allon.kubata.core.exception.SessionLimitExceededException;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserAccessPermissionRepository;
@@ -202,12 +203,19 @@ class UserSecurityProfileServiceTest {
         when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc("Utilizador"))
                 .thenReturn(List.of(activeSession));
 
-        assertThrows(
-                ao.allon.kubata.core.exception.AuthenticationException.class,
+        SessionLimitExceededException exception = assertThrows(
+                SessionLimitExceededException.class,
                 () -> service.enforceConcurrentSessionLimit(
                         user,
                         LocalDateTime.of(2026, 10, 2, 10, 0)
                 )
+        );
+
+        assertEquals(1, exception.getMaxSessions());
+        assertEquals(1, exception.getActiveSessions());
+        assertEquals(
+                "O limite de sessões simultâneas desta conta foi atingido.",
+                exception.getMessage()
         );
     }
 
