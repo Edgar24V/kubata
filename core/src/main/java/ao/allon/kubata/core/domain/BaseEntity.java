@@ -6,6 +6,7 @@ import org.hibernate.annotations.ColumnDefault;
 import java.time.LocalDateTime;
 
 @MappedSuperclass
+@Access(AccessType.FIELD)
 public abstract class BaseEntity {
 
     @Id
