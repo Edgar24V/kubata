@@ -129,8 +129,15 @@ public final class CentralLoginController {
 
         root = new StackPane();
         root.setPrefSize(1120, 720);
-        root.setMinSize(920, 600);
-        root.setStyle("-fx-background-color: transparent;");
+        root.setMinSize(900, 560);
+        root.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-font-family: 'Segoe UI', 'Calibri', 'Arial', sans-serif;"
+                        + "-fx-font-size: 13px;"
+                        + "-fx-accent: #217346;"
+                        + "-fx-focus-color: #66BB6A;"
+                        + "-fx-faint-focus-color: rgba(33,115,70,0.12);"
+        );
 
         clip = new Rectangle();
         clip.widthProperty().bind(root.widthProperty());
@@ -140,16 +147,13 @@ public final class CentralLoginController {
         root.setClip(clip);
 
         Region background = new Region();
-        background.setStyle(
-                "-fx-background-color: linear-gradient(to bottom right, "
-                        + "#edf5f0, #f8fafc);"
-        );
+        background.setStyle("-fx-background-color: #F5F5F5;");
 
         root.getChildren().add(background);
 
         installDragging();
         contentHost = new StackPane();
-        contentHost.setPadding(new Insets(32));
+        contentHost.setPadding(new Insets(28));
         root.getChildren().add(contentHost);
 
         buildLoginPage();
@@ -184,23 +188,30 @@ public final class CentralLoginController {
     }
 
     private void buildLoginPage() {
-        HBox shell = new HBox();
-        shell.setMaxSize(1000, 600);
-        shell.setMinSize(850, 520);
+        VBox shell = new VBox();
+        shell.setMaxSize(980, 610);
+        shell.setMinSize(860, 520);
         shell.setStyle(
-                "-fx-background-color: white;"
-                        + "-fx-background-radius: 22;"
-                        + "-fx-border-color: rgba(33,115,70,0.14);"
+                "-fx-background-color: #FFFFFF;"
+                        + "-fx-background-radius: 6;"
+                        + "-fx-border-color: #D0D7DE;"
                         + "-fx-border-width: 1;"
-                        + "-fx-border-radius: 22;"
+                        + "-fx-border-radius: 6;"
         );
-        shell.setEffect(new DropShadow(32, Color.rgb(15, 23, 42, 0.22)));
+        shell.setEffect(new DropShadow(22, Color.rgb(36, 41, 47, 0.18)));
+
+        HBox titleBar = buildLoginTitleBar();
+        HBox body = new HBox();
+        body.setFillHeight(true);
 
         VBox branding = buildBranding();
         VBox form = buildAuthentication();
         HBox.setHgrow(form, Priority.ALWAYS);
 
-        shell.getChildren().addAll(branding, form);
+        body.getChildren().addAll(branding, form);
+        VBox.setVgrow(body, Priority.ALWAYS);
+
+        shell.getChildren().addAll(titleBar, body);
         contentHost.getChildren().setAll(shell);
 
         shell.setOpacity(0);
@@ -215,138 +226,187 @@ public final class CentralLoginController {
         new ParallelTransition(fade, slide).play();
     }
 
+    private HBox buildLoginTitleBar() {
+        HBox bar = new HBox();
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setSpacing(0);
+        bar.setPrefHeight(40);
+        bar.setMinHeight(40);
+        bar.setMaxHeight(40);
+        bar.setPadding(new Insets(0, 8, 0, 0));
+        bar.setStyle(
+                "-fx-background-color: #1E6B3C;"
+                        + "-fx-background-radius: 5 5 0 0;"
+        );
+
+        FontIcon appIcon = new FontIcon(Feather.FILE_TEXT);
+        appIcon.setIconSize(18);
+        appIcon.setIconColor(Color.WHITE);
+
+        StackPane iconBox = new StackPane(appIcon);
+        iconBox.setPadding(new Insets(0, 6, 0, 12));
+
+        Label appName = new Label(applicationName);
+        appName.setStyle(
+                "-fx-text-fill: rgba(255,255,255,0.90);"
+                        + "-fx-font-size: 13px;"
+                        + "-fx-font-family: 'Segoe UI Semibold', 'Segoe UI', 'Calibri', sans-serif;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-padding: 0 16 0 4;"
+        );
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        bar.getChildren().addAll(
+                iconBox,
+                appName,
+                spacer,
+                buildWindowButtons()
+        );
+        return bar;
+    }
+
     private VBox buildBranding() {
-        VBox box = new VBox(18);
-        box.setPrefWidth(400);
-        box.setMinWidth(360);
-        box.setPadding(new Insets(42));
-        box.setAlignment(Pos.CENTER_LEFT);
+        VBox box = new VBox(14);
+        box.setPrefWidth(345);
+        box.setMinWidth(320);
+        box.setPadding(new Insets(34, 36, 32, 36));
+        box.setAlignment(Pos.TOP_LEFT);
         box.setStyle(
-                "-fx-background-color: linear-gradient(to bottom right, #124d2f, #217346);"
-                        + "-fx-background-radius: 20 0 0 20;"
+                "-fx-background-color: #E8F5E9;"
+                        + "-fx-background-radius: 0 0 0 5;"
+                        + "-fx-border-color: transparent #A5D6A7 transparent transparent;"
+                        + "-fx-border-width: 0 1 0 0;"
         );
 
         StackPane emblem = new StackPane();
-        emblem.setPrefSize(82, 82);
-        emblem.setMaxSize(82, 82);
+        emblem.setPrefSize(62, 62);
+        emblem.setMaxSize(62, 62);
         emblem.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.13);"
-                        + "-fx-background-radius: 24;"
-                        + "-fx-border-color: rgba(255,255,255,0.22);"
-                        + "-fx-border-radius: 24;"
+                "-fx-background-color: #FFFFFF;"
+                        + "-fx-background-radius: 6;"
+                        + "-fx-border-color: #A5D6A7;"
+                        + "-fx-border-radius: 6;"
                         + "-fx-border-width: 1;"
         );
 
         FontIcon shield = new FontIcon(Feather.SHIELD);
-        shield.setIconSize(46);
-        shield.setIconColor(Color.WHITE);
+        shield.setIconSize(32);
+        shield.setIconColor(Color.web("#217346"));
         emblem.getChildren().add(shield);
 
         Label kubata = new Label("KUBATA");
         kubata.setStyle(
-                "-fx-font-size: 38px;"
-                        + "-fx-font-weight: 900;"
-                        + "-fx-text-fill: white;"
-                        + "-fx-letter-spacing: 3px;"
+                "-fx-font-family: 'Segoe UI Semibold', 'Segoe UI', 'Calibri', sans-serif;"
+                        + "-fx-font-size: 30px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #1E6B3C;"
+                        + "-fx-letter-spacing: 2px;"
         );
 
         Label platform = new Label("Plataforma Empresarial");
         platform.setStyle(
-                "-fx-font-size: 18px;"
+                "-fx-font-size: 15px;"
                         + "-fx-font-weight: 700;"
-                        + "-fx-text-fill: rgba(255,255,255,0.94);"
+                        + "-fx-text-fill: #1A5C35;"
         );
+
+        Region divider = new Region();
+        divider.setPrefHeight(1);
+        divider.setMaxWidth(Double.MAX_VALUE);
+        divider.setStyle("-fx-background-color: #A5D6A7;");
 
         Label description = new Label(
-                "Uma única identidade para todas as aplicações Kubata."
+                "Autenticação central para todas as aplicações Kubata, "
+                        + "com controlo de identidade, sessão, MFA e permissões."
         );
         description.setWrapText(true);
-        description.setMaxWidth(300);
+        description.setMaxWidth(270);
         description.setStyle(
-                "-fx-font-size: 13px;"
-                        + "-fx-line-spacing: 3;"
-                        + "-fx-text-fill: rgba(255,255,255,0.72);"
+                "-fx-font-size: 12px;"
+                        + "-fx-line-spacing: 2;"
+                        + "-fx-text-fill: #57606A;"
         );
 
-        VBox card = new VBox(8);
-        card.setPadding(new Insets(15));
-        card.setMaxWidth(310);
-        card.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.10);"
-                        + "-fx-background-radius: 14;"
-                        + "-fx-border-color: rgba(255,255,255,0.16);"
-                        + "-fx-border-radius: 14;"
+        VBox contextCard = new VBox(5);
+        contextCard.setPadding(new Insets(12));
+        contextCard.setMaxWidth(275);
+        contextCard.setStyle(
+                "-fx-background-color: #FFFFFF;"
+                        + "-fx-background-radius: 4;"
+                        + "-fx-border-color: #D0D7DE;"
+                        + "-fx-border-radius: 4;"
                         + "-fx-border-width: 1;"
         );
 
-        Label title = new Label("Contexto de acesso");
-        title.setStyle(
-                "-fx-font-size: 11px;"
+        Label contextTitle = new Label("APLICAÇÃO");
+        contextTitle.setStyle(
+                "-fx-font-size: 9px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-text-fill: rgba(255,255,255,0.68);"
+                        + "-fx-text-fill: #6E7781;"
         );
 
         contextLabel = new Label(applicationName);
         contextLabel.setStyle(
-                "-fx-font-size: 17px;"
+                "-fx-font-size: 14px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-text-fill: white;"
+                        + "-fx-text-fill: #24292F;"
         );
+        contextLabel.setWrapText(true);
 
-        card.getChildren().addAll(title, contextLabel);
+        contextCard.getChildren().addAll(contextTitle, contextLabel);
 
         Label footer = new Label(
-                "Autenticação central • sessão segura • controlo por empresa e perfil"
+                "Kubata Platform • sessão segura"
         );
-        footer.setWrapText(true);
-        footer.setMaxWidth(310);
         footer.setStyle(
                 "-fx-font-size: 10px;"
-                        + "-fx-text-fill: rgba(255,255,255,0.52);"
+                        + "-fx-text-fill: #6E7781;"
         );
 
         box.getChildren().addAll(
                 emblem,
                 kubata,
                 platform,
+                divider,
                 description,
-                card,
+                contextCard,
                 footer
         );
         return box;
     }
 
     private VBox buildAuthentication() {
-        VBox box = new VBox(14);
-        box.setPadding(new Insets(42, 48, 40, 48));
+        VBox box = new VBox(12);
+        box.setPadding(new Insets(30, 42, 28, 42));
         box.setAlignment(Pos.TOP_LEFT);
         box.setStyle(
-                "-fx-background-color: white;"
-                        + "-fx-background-radius: 0 20 20 0;"
+                "-fx-background-color: #FFFFFF;"
+                        + "-fx-background-radius: 0 0 5 0;"
         );
-
-        HBox titleLine = new HBox();
-        titleLine.setAlignment(Pos.CENTER_LEFT);
 
         Label title = new Label("Iniciar sessão");
         title.setStyle(
-                "-fx-font-size: 29px;"
+                "-fx-font-family: 'Segoe UI Semibold', 'Segoe UI', 'Calibri', sans-serif;"
+                        + "-fx-font-size: 24px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-text-fill: #163725;"
+                        + "-fx-text-fill: #24292F;"
         );
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        HBox windowButtons = buildWindowButtons();
-        titleLine.getChildren().addAll(title, spacer, windowButtons);
+        Label section = new Label(applicationName);
+        section.setStyle(
+                "-fx-font-size: 11px;"
+                        + "-fx-font-weight: 700;"
+                        + "-fx-text-fill: #217346;"
+        );
 
         Label subtitle = new Label(
                 "Use a sua conta Kubata para entrar na aplicação seleccionada."
         );
         subtitle.setStyle(
-                "-fx-font-size: 13px;"
-                        + "-fx-text-fill: #64748b;"
+                "-fx-font-size: 12px;"
+                        + "-fx-text-fill: #57606A;"
         );
         subtitle.setWrapText(true);
 
@@ -378,6 +438,18 @@ public final class CentralLoginController {
                 new Tooltip("Mostrar ou ocultar a palavra-passe")
         );
         showPasswordButton.setCursor(Cursor.HAND);
+        showPasswordButton.setPrefHeight(40);
+        showPasswordButton.setStyle(
+                "-fx-background-color: #FFFFFF;"
+                        + "-fx-border-color: #D0D7DE;"
+                        + "-fx-border-width: 1;"
+                        + "-fx-border-radius: 4;"
+                        + "-fx-background-radius: 4;"
+                        + "-fx-text-fill: #57606A;"
+                        + "-fx-font-size: 11px;"
+                        + "-fx-font-weight: 700;"
+                        + "-fx-padding: 0 10;"
+        );
         showPasswordButton.getStyleClass().add("kubata-login-small-button");
         showPasswordButton.selectedProperty().addListener((obs, oldValue, selected) -> {
             showPasswordButton.setText(selected ? "Ocultar" : "Mostrar");
@@ -422,7 +494,7 @@ public final class CentralLoginController {
         rememberEmail = new CheckBox("Lembrar email neste computador");
         rememberEmail.setStyle(
                 "-fx-font-size: 11px;"
-                        + "-fx-text-fill: #64748b;"
+                        + "-fx-text-fill: #57606A;"
         );
 
         String remembered = preferences.get(PREF_EMAIL, "");
@@ -446,17 +518,19 @@ public final class CentralLoginController {
                 "ENTRAR NO KUBATA",
                 new FontIcon(Feather.LOG_IN)
         );
-        submitButton.setPrefHeight(52);
+        submitButton.setPrefHeight(42);
         submitButton.setMaxWidth(Double.MAX_VALUE);
         submitButton.setCursor(Cursor.HAND);
         submitButton.setDefaultButton(true);
         submitButton.setStyle(
                 "-fx-background-color: #217346;"
-                        + "-fx-background-radius: 12;"
+                        + "-fx-background-radius: 4;"
+                        + "-fx-border-color: #217346;"
+                        + "-fx-border-radius: 4;"
                         + "-fx-text-fill: white;"
-                        + "-fx-font-size: 13px;"
+                        + "-fx-font-size: 12px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-padding: 0 18;"
+                        + "-fx-padding: 0 16;"
         );
         submitButton.setOnAction(e -> submit());
 
@@ -479,7 +553,8 @@ public final class CentralLoginController {
         VBox.setVgrow(security, Priority.NEVER);
 
         box.getChildren().addAll(
-                titleLine,
+                section,
+                title,
                 subtitle,
                 emailBox,
                 passwordBox,
@@ -497,23 +572,24 @@ public final class CentralLoginController {
         VBox box = new VBox(6);
         Label label = new Label(title);
         label.setStyle(
-                "-fx-font-size: 12px;"
+                "-fx-font-size: 11px;"
                         + "-fx-font-weight: 700;"
-                        + "-fx-text-fill: #334155;"
+                        + "-fx-text-fill: #424A53;"
         );
         box.getChildren().add(label);
         return box;
     }
 
     private void styleField(TextField field) {
-        field.setPrefHeight(45);
+        field.setPrefHeight(40);
         field.setStyle(
-                "-fx-background-color: #f8fafc;"
-                        + "-fx-border-color: #dbe4df;"
+                "-fx-background-color: #FFFFFF;"
+                        + "-fx-border-color: #D0D7DE;"
                         + "-fx-border-width: 1;"
-                        + "-fx-border-radius: 10;"
-                        + "-fx-background-radius: 10;"
-                        + "-fx-padding: 0 12;"
+                        + "-fx-border-radius: 4;"
+                        + "-fx-background-radius: 4;"
+                        + "-fx-padding: 0 11;"
+                        + "-fx-font-size: 12px;"
         );
     }
 
@@ -532,16 +608,75 @@ public final class CentralLoginController {
                 "Fechar",
                 () -> stage.close()
         );
+        close.setOnMouseEntered(e -> close.setStyle(
+                "-fx-background-color: #C42B1C;"
+                        + "-fx-text-fill: #FFFFFF;"
+                        + "-fx-min-width: 46px;"
+                        + "-fx-pref-width: 46px;"
+                        + "-fx-min-height: 40px;"
+                        + "-fx-pref-height: 40px;"
+                        + "-fx-background-radius: 0;"
+                        + "-fx-border-color: transparent;"
+                        + "-fx-padding: 0;"
+        ));
+        close.setOnMouseExited(e -> close.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-text-fill: rgba(255,255,255,0.82);"
+                        + "-fx-min-width: 46px;"
+                        + "-fx-pref-width: 46px;"
+                        + "-fx-min-height: 40px;"
+                        + "-fx-pref-height: 40px;"
+                        + "-fx-background-radius: 0;"
+                        + "-fx-border-color: transparent;"
+                        + "-fx-padding: 0;"
+        ));
 
         bar.getChildren().addAll(minimize, maximize, close);
         return bar;
     }
 
     private Button windowButton(Feather icon, String text, Runnable action) {
-        Button button = new Button("", new FontIcon(icon));
+        FontIcon glyph = new FontIcon(icon);
+        glyph.setIconSize(13);
+        glyph.setIconColor(Color.WHITE);
+
+        Button button = new Button("", glyph);
         button.setAccessibleText(text);
         button.setCursor(Cursor.HAND);
-        button.getStyleClass().add("kubata-login-window-button");
+        button.setFocusTraversable(false);
+        button.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-text-fill: rgba(255,255,255,0.82);"
+                        + "-fx-min-width: 46px;"
+                        + "-fx-pref-width: 46px;"
+                        + "-fx-min-height: 40px;"
+                        + "-fx-pref-height: 40px;"
+                        + "-fx-background-radius: 0;"
+                        + "-fx-border-color: transparent;"
+                        + "-fx-padding: 0;"
+        );
+        button.setOnMouseEntered(e -> button.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.15);"
+                        + "-fx-text-fill: #FFFFFF;"
+                        + "-fx-min-width: 46px;"
+                        + "-fx-pref-width: 46px;"
+                        + "-fx-min-height: 40px;"
+                        + "-fx-pref-height: 40px;"
+                        + "-fx-background-radius: 0;"
+                        + "-fx-border-color: transparent;"
+                        + "-fx-padding: 0;"
+        ));
+        button.setOnMouseExited(e -> button.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-text-fill: rgba(255,255,255,0.82);"
+                        + "-fx-min-width: 46px;"
+                        + "-fx-pref-width: 46px;"
+                        + "-fx-min-height: 40px;"
+                        + "-fx-pref-height: 40px;"
+                        + "-fx-background-radius: 0;"
+                        + "-fx-border-color: transparent;"
+                        + "-fx-padding: 0;"
+        ));
         button.setOnAction(e -> action.run());
         return button;
     }
