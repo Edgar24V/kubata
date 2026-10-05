@@ -20,7 +20,7 @@ public class EstoqueView extends BorderPane {
     public EstoqueView(EstoqueService service) {
         this.service = service;
         build();
-        refresh();
+        refreshData();
     }
 
     private void build() {
@@ -33,7 +33,7 @@ public class EstoqueView extends BorderPane {
         subtitle.getStyleClass().add("page-subtitle");
 
         Button refresh = new Button("Atualizar");
-        refresh.setOnAction(e -> refresh());
+        refresh.setOnAction(e -> refreshData());
 
         Button vencidos = new Button("Ver vencidos");
         vencidos.setOnAction(e -> data.setAll(service.findVencidos()));
@@ -63,7 +63,7 @@ public class EstoqueView extends BorderPane {
         VBox.setVgrow(table, Priority.ALWAYS);
     }
 
-    private void refresh() {
+    public void refreshData() {
         data.setAll(service.findAll());
     }
 }
