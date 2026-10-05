@@ -212,7 +212,8 @@ public class UserSecurityProfileService {
         if (maxSessions > 0 && sessions.size() >= maxSessions) {
             throw new SessionLimitExceededException(
                     maxSessions,
-                    sessions.size()
+                    sessions.size(),
+                    isAdministratorAccount(user)
             );
         }
     }
