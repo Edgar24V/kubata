@@ -177,6 +177,51 @@ public class AcessoService {
         permissaoRepository.saveAll(permissoes);
     }
 
+    /**
+     * Verifica se a conta pode iniciar a aplicação de um determinado módulo.
+     * A verificação respeita o Perfil de Segurança Individual e o RBAC.
+     */
+    @Transactional(readOnly = true)
+    public boolean temAcessoAoModulo(User user, String modulo) {
+        if (user == null || modulo == null || modulo.isBlank()) {
+            return false;
+        }
+
+        String normalizedModule = modulo.trim();
+
+        if (!userSecurityProfileService.isModuleAllowed(user, normalizedModule)
+                || !userSecurityProfileService.isCompanyContextAllowed(user)) {
+            return false;
+        }
+
+        if (user.isSuperadmin() || user.getRole() == Role.ADMIN) {
+            return true;
+        }
+
+        boolean directPermission = userAccessRepository.findByUser(user).stream()
+                .anyMatch(permission ->
+                        permission != null
+                                && permission.getModulo() != null
+                                && normalizedModule.equalsIgnoreCase(permission.getModulo()));
+
+        if (directPermission) {
+            return true;
+        }
+
+        if (user.getPerfis() == null) {
+            return false;
+        }
+
+        return user.getPerfis().stream()
+                .filter(perfil -> perfil != null && Boolean.TRUE.equals(perfil.getActivo()))
+                .flatMap(perfil -> perfil.getPermissoes().stream())
+                .anyMatch(permission ->
+                        permission != null
+                                && Boolean.TRUE.equals(permission.getPermitido())
+                                && permission.getModulo() != null
+                                && normalizedModule.equalsIgnoreCase(permission.getModulo()));
+    }
+
     @Transactional(readOnly = true)
     public boolean temAcesso(User user, String modulo, String recurso, ao.allon.kubata.core.domain.PermissaoPerfil.Operacao operacao) {
         if (user == null) return false;
