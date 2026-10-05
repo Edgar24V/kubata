@@ -109,6 +109,18 @@
                     <includeSystemScope>true</includeSystemScope>
                     <skip>false</skip>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Mantém o JAR principal como biblioteca para o Administrator.
+                                 A versão executável fica como artefacto separado. -->
+                            <classifier>exec</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
