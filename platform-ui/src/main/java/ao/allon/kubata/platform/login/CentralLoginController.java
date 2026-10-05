@@ -1174,6 +1174,12 @@ public final class CentralLoginController {
                 reauth.setOnFailed(doneAgain -> {
                     Throwable failure = reauth.getException();
                     buildLoginPage();
+
+                    if (failure instanceof SessionLimitExceededException sessionLimit) {
+                        showSessionLimitModal(sessionLimit);
+                        return;
+                    }
+
                     showMessage(
                             failure == null ? "Não foi possível concluir a sessão." : failure.getMessage(),
                             true
