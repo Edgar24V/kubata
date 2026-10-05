@@ -9,10 +9,16 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication(
-        scanBasePackages = {"ao.allon.kubata.inventario", "ao.allon.kubata.core", "ao.allon.kubata.platform"},
-        exclude = {SecurityAutoConfiguration.class, SecurityFilterAutoConfiguration.class})
+        scanBasePackages = {
+                "ao.allon.kubata.inventario",
+                "ao.allon.kubata.core",
+                "ao.allon.kubata.platform"
+        },
+        exclude = {
+                SecurityAutoConfiguration.class,
+                SecurityFilterAutoConfiguration.class
+        })
 @EnableJpaRepositories(basePackages = {
-        "ao.allon.kubata.inventario.repository",
         "ao.allon.kubata.core.repository"
 })
 @EntityScan(basePackages = {
