@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
@@ -34,8 +36,14 @@ public class InventarioDashboardService {
         List<Produto> produtos = produtoRepository.findAll();
         List<Estoque> stocks = estoqueRepository.findAll();
 
-        long quantidadeProdutos = produtos.stream().filter(p -> Boolean.TRUE.equals(p.getActive())).count();
-        long quantidadeArmazens = armazemRepository.findAll().stream().filter(a -> Boolean.TRUE.equals(a.getActive())).count();
+        long quantidadeProdutos = produtos.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getActive()))
+                .count();
+
+        long quantidadeArmazens = armazemRepository.findAll().stream()
+                .filter(a -> Boolean.TRUE.equals(a.getActive()))
+                .count();
+
         BigDecimal valorStock = stocks.stream()
                 .filter(s -> Boolean.TRUE.equals(s.getActive()))
                 .map(s -> BigDecimal.valueOf(s.getQuantidade() == null ? 0 : s.getQuantidade())
@@ -47,16 +55,28 @@ public class InventarioDashboardService {
                 .filter(p -> p.getStock() != null && p.getStockMinimo() != null && p.getStock() <= p.getStockMinimo())
                 .count();
 
-        BigDecimal reservado = stocks.stream()
+        BigDecimal reservado = BigDecimal.ZERO;
+        Set<String> pares = new HashSet<>();
+        for (Estoque stock : stocks) {
+            if (!Boolean.TRUE.equals(stock.getActive())
+                    || stock.getProduto() == null
+                    || stock.getArmazem() == null) {
+                continue;
+            }
+            String key = stock.getProduto().getId() + ":" + stock.getArmazem().getId();
+            if (pares.add(key)) {
+                BigDecimal r = reservaRepository.sumAtivas(stock.getProduto().getId(), stock.getArmazem().getId());
+                reservado = reservado.add(r == null ? BigDecimal.ZERO : r);
+            }
+        }
+
+        int unidades = stocks.stream()
                 .filter(s -> Boolean.TRUE.equals(s.getActive()))
-                .map(s -> reservaRepository.sumAtivas(s.getProduto().getId(), s.getArmazem().getId()))
-                .map(x -> x == null ? BigDecimal.ZERO : x)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .mapToInt(s -> s.getQuantidade() == null ? 0 : s.getQuantidade())
+                .sum();
 
         return new DashboardResumo(quantidadeProdutos, quantidadeArmazens,
-                stocks.stream().filter(s -> Boolean.TRUE.equals(s.getActive()))
-                        .mapToInt(s -> s.getQuantidade() == null ? 0 : s.getQuantidade()).sum(),
-                reservado, valorStock, itensStockBaixo);
+                unidades, reservado, valorStock, itensStockBaixo);
     }
 
     public record DashboardResumo(long produtos, long armazens, int unidades,
