@@ -1,77 +1,141 @@
 .kubata-help-root {
-    -fx-background-color: -kubata-gray-50;
+    -fx-background-color: #F4F7F5;
 }
 
-.kubata-help-top {
-    -fx-padding: 20 24 18 24;
-    -fx-background-color: white;
-    -fx-border-color: transparent transparent -color-border-default transparent;
-}
-
-.kubata-help-header {
-    -fx-padding: 0;
-}
-
-.kubata-help-subtitle {
-    -fx-text-fill: -color-fg-muted;
-    -fx-font-size: 13px;
-}
-
-.kubata-help-title {
-    -fx-font-size: 23px;
-    -fx-font-weight: 800;
-    -fx-text-fill: -color-fg-default;
-}
-
-.kubata-help-context {
-    -fx-font-size: 12px;
-    -fx-font-weight: 600;
-    -fx-text-fill: -kubata-green;
-}
-
-.kubata-help-eyebrow {
-    -fx-font-size: 10px;
-    -fx-font-weight: 800;
-    -fx-text-fill: -kubata-green;
-    -fx-letter-spacing: 0.08em;
+.kubata-help-hero {
+    -fx-padding: 18 22 16 22;
+    -fx-background-color: linear-gradient(to bottom right, #173F2A 0%, #1A5C35 45%, #217346 100%);
+    -fx-background-radius: 0 0 18 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 16, 0.18, 0, 4);
 }
 
 .kubata-help-hero-icon {
-    -fx-min-width: 52px;
-    -fx-min-height: 52px;
-    -fx-pref-width: 52px;
-    -fx-pref-height: 52px;
-    -fx-background-color: -kubata-green-pale;
-    -fx-background-radius: 15px;
-    -fx-border-color: -kubata-green-border;
-    -fx-border-radius: 15px;
+    -fx-min-width: 58px;
+    -fx-min-height: 58px;
+    -fx-pref-width: 58px;
+    -fx-pref-height: 58px;
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-background-radius: 17px;
+    -fx-border-color: rgba(255,255,255,0.24);
+    -fx-border-radius: 17px;
 }
 
-.kubata-help-hero-icon .ikonli-font-icon,
-.kubata-help-section-icon .ikonli-font-icon,
-.kubata-help-card .ikonli-font-icon {
-    -fx-icon-color: -kubata-green;
+.kubata-help-hero-icon .ikonli-font-icon {
+    -fx-icon-color: white;
 }
 
-.kubata-help-user-badge {
-    -fx-padding: 7 11;
-    -fx-background-color: -kubata-green-pale;
-    -fx-background-radius: 14px;
-    -fx-text-fill: -kubata-green-dark;
-    -fx-font-weight: 700;
+.kubata-help-hero-kicker {
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #BDE8CB;
+    -fx-letter-spacing: 0.14em;
 }
 
-.kubata-help-search-row .text-field {
-    -fx-pref-height: 38px;
+.kubata-help-hero-title {
+    -fx-font-size: 27px;
+    -fx-font-weight: 900;
+    -fx-text-fill: white;
+}
+
+.kubata-help-hero-subtitle {
     -fx-font-size: 13px;
+    -fx-text-fill: rgba(255,255,255,0.84);
+    -fx-max-width: 780px;
+}
+
+.kubata-help-status {
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #D7F7E1;
+}
+
+.kubata-help-status-detail {
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(255,255,255,0.70);
+}
+
+.kubata-help-search-row {
+    -fx-padding: 2 0 0 0;
+}
+
+.kubata-help-search-wrap {
+    -fx-min-height: 44px;
+    -fx-pref-height: 44px;
     -fx-background-color: white;
-    -fx-border-color: -color-border-default;
+    -fx-background-radius: 11px;
+    -fx-border-color: rgba(255,255,255,0.24);
+    -fx-border-radius: 11px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 9, 0.14, 0, 2);
+}
+
+.kubata-help-search-wrap .ikonli-font-icon {
+    -fx-icon-color: #61766A;
+}
+
+.kubata-help-search-wrap .text-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+    -fx-font-size: 13px;
+    -fx-text-fill: #15251D;
+    -fx-prompt-text-fill: #7A8A82;
+}
+
+.kubata-help-search-clear {
+    -fx-min-width: 36px;
+    -fx-pref-width: 36px;
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-background-radius: 9px;
+    -fx-border-color: rgba(255,255,255,0.20);
+    -fx-border-radius: 9px;
+}
+
+.kubata-help-search-clear .ikonli-font-icon {
+    -fx-icon-color: white;
+}
+
+.kubata-help-search-clear:hover {
+    -fx-background-color: rgba(255,255,255,0.20);
 }
 
 .kubata-help-result-count {
-    -fx-text-fill: -color-fg-muted;
-    -fx-font-size: 12px;
-    -fx-font-weight: 700;
+    -fx-min-width: 62px;
+    -fx-alignment: CENTER_RIGHT;
+    -fx-text-fill: rgba(255,255,255,0.78);
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.kubata-help-search-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: rgba(255,255,255,0.68);
+    -fx-padding: 0 2 0 2;
+}
+
+.kubata-help-quick-row {
+    -fx-padding: 1 0 0 0;
+}
+
+.kubata-help-quick-button {
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-background-radius: 9px;
+    -fx-border-color: rgba(255,255,255,0.18);
+    -fx-border-radius: 9px;
+    -fx-padding: 7 11;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.kubata-help-quick-button:hover {
+    -fx-background-color: rgba(255,255,255,0.19);
+}
+
+.kubata-help-quick-button .ikonli-font-icon {
+    -fx-icon-color: white;
 }
 
 .kubata-help-body {
@@ -81,16 +145,23 @@
 .kubata-help-nav {
     -fx-padding: 14px;
     -fx-background-color: white;
-    -fx-background-radius: 12px;
-    -fx-border-color: -color-border-default;
-    -fx-border-radius: 12px;
+    -fx-background-radius: 13px;
+    -fx-border-color: #D9E2DC;
+    -fx-border-radius: 13px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0.08, 0, 2);
 }
 
 .kubata-help-nav-title {
-    -fx-font-size: 11px;
-    -fx-font-weight: 800;
-    -fx-text-fill: -color-fg-muted;
-    -fx-padding: 2 6 5 6;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #1A5C35;
+    -fx-padding: 1 6 0 6;
+}
+
+.kubata-help-nav-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: #7A8A82;
+    -fx-padding: 0 6 6 6;
 }
 
 .kubata-help-nav-scroll,
@@ -106,114 +177,161 @@
 }
 
 .kubata-help-topic-button {
-    -fx-padding: 10 10;
+    -fx-padding: 10 11;
     -fx-background-color: transparent;
-    -fx-text-fill: -color-fg-default;
-    -fx-font-size: 12.5px;
+    -fx-text-fill: #26372E;
+    -fx-font-size: 12px;
     -fx-font-weight: 600;
     -fx-alignment: CENTER_LEFT;
-    -fx-background-radius: 9px;
+    -fx-background-radius: 10px;
+}
+
+.kubata-help-topic-button .ikonli-font-icon {
+    -fx-icon-color: #557166;
 }
 
 .kubata-help-topic-button:hover {
-    -fx-background-color: -kubata-gray-50;
+    -fx-background-color: #F1F5F2;
 }
 
 .kubata-help-topic-button-active {
-    -fx-background-color: -kubata-green-pale;
-    -fx-text-fill: -kubata-green-dark;
-    -fx-font-weight: 800;
+    -fx-background-color: #E8F5E9;
+    -fx-text-fill: #1A5C35;
+    -fx-font-weight: 900;
+    -fx-border-color: #C4E2C9;
+    -fx-border-radius: 10px;
 }
 
-.kubata-help-topic-button-active:hover {
-    -fx-background-color: -kubata-green-pale;
+.kubata-help-topic-button-active .ikonli-font-icon {
+    -fx-icon-color: #217346;
 }
 
 .kubata-help-section-icon {
-    -fx-min-width: 44px;
-    -fx-min-height: 44px;
-    -fx-pref-width: 44px;
-    -fx-pref-height: 44px;
+    -fx-min-width: 46px;
+    -fx-min-height: 46px;
+    -fx-pref-width: 46px;
+    -fx-pref-height: 46px;
     -fx-background-color: white;
-    -fx-background-radius: 12px;
-    -fx-border-color: -color-border-default;
-    -fx-border-radius: 12px;
+    -fx-background-radius: 13px;
+    -fx-border-color: #D9E2DC;
+    -fx-border-radius: 13px;
+}
+
+.kubata-help-section-icon .ikonli-font-icon {
+    -fx-icon-color: #217346;
+}
+
+.kubata-help-eyebrow {
+    -fx-font-size: 9px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #217346;
+    -fx-letter-spacing: 0.14em;
 }
 
 .kubata-help-section-title {
-    -fx-font-size: 20px;
-    -fx-font-weight: 800;
-    -fx-text-fill: -color-fg-default;
+    -fx-font-size: 21px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #16241D;
 }
 
 .kubata-help-section-subtitle {
     -fx-font-size: 13px;
-    -fx-text-fill: -color-fg-muted;
-    -fx-max-width: 760px;
+    -fx-text-fill: #687970;
+    -fx-max-width: 820px;
 }
 
 .kubata-help-card {
-    -fx-padding: 16px;
+    -fx-padding: 17px;
     -fx-background-color: white;
-    -fx-background-radius: 12px;
-    -fx-border-color: -color-border-default;
-    -fx-border-radius: 12px;
+    -fx-background-radius: 13px;
+    -fx-border-color: #D9E2DC;
+    -fx-border-radius: 13px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.035), 8, 0.08, 0, 2);
 }
 
 .kubata-help-card-title {
     -fx-font-size: 14px;
-    -fx-font-weight: 800;
-    -fx-text-fill: -color-fg-default;
+    -fx-font-weight: 900;
+    -fx-text-fill: #21352A;
 }
 
 .kubata-help-card-subtitle {
-    -fx-font-size: 12.5px;
-    -fx-text-fill: -color-fg-muted;
+    -fx-font-size: 12px;
+    -fx-text-fill: #718079;
     -fx-padding: 0 0 4px 0;
 }
 
 .kubata-help-paragraph {
     -fx-font-size: 12.5px;
-    -fx-text-fill: -color-fg-default;
-    -fx-line-spacing: 1.8px;
+    -fx-text-fill: #26372E;
+    -fx-line-spacing: 2px;
 }
 
 .kubata-help-step-number {
-    -fx-min-width: 27px;
-    -fx-min-height: 27px;
-    -fx-pref-width: 27px;
-    -fx-pref-height: 27px;
+    -fx-min-width: 28px;
+    -fx-min-height: 28px;
+    -fx-pref-width: 28px;
+    -fx-pref-height: 28px;
     -fx-alignment: CENTER;
-    -fx-background-color: -kubata-green;
+    -fx-background-color: #217346;
     -fx-background-radius: 50%;
     -fx-text-fill: white;
-    -fx-font-weight: 800;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
 }
 
 .kubata-help-step-title {
     -fx-font-size: 12.5px;
-    -fx-font-weight: 800;
-    -fx-text-fill: -color-fg-default;
+    -fx-font-weight: 900;
+    -fx-text-fill: #20342A;
 }
 
 .kubata-help-fact {
     -fx-padding: 10 11;
-    -fx-background-color: -kubata-gray-50;
+    -fx-background-color: #F4F7F5;
     -fx-background-radius: 9px;
+    -fx-border-color: #E5ECE7;
+    -fx-border-radius: 9px;
+}
+
+.kubata-help-fact .ikonli-font-icon {
+    -fx-icon-color: #217346;
 }
 
 .kubata-help-fact-label {
-    -fx-min-width: 88px;
-    -fx-font-size: 11px;
-    -fx-font-weight: 800;
-    -fx-text-fill: -color-fg-muted;
+    -fx-min-width: 95px;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #718079;
 }
 
 .kubata-help-fact-value {
     -fx-font-size: 12px;
-    -fx-text-fill: -color-fg-default;
+    -fx-text-fill: #26372E;
 }
 
-.kubata-help-card .separator {
+.kubata-help-user-badge {
+    -fx-padding: 7 11;
+    -fx-background-color: #E8F5E9;
+    -fx-background-radius: 14px;
+    -fx-text-fill: #1A5C35;
+    -fx-font-weight: 800;
+}
+
+.kubata-help-header,
+.kubata-help-subtitle,
+.kubata-help-title,
+.kubata-help-context {
+    -fx-text-fill: #16241D;
+}
+
+.kubata-help-nav-scroll .scroll-bar:vertical,
+.kubata-help-content-scroll .scroll-bar:vertical {
     -fx-background-color: transparent;
+}
+
+.kubata-help-nav-scroll .scroll-bar:vertical .thumb,
+.kubata-help-content-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: #C5D2CA;
+    -fx-background-radius: 8px;
 }
