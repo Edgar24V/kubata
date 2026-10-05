@@ -803,10 +803,10 @@ public final class CentralLoginController {
     }
 
     private void showSessionLimitModal(SessionLimitExceededException exception) {
-        VBox card = new VBox(18);
-        card.setMaxWidth(620);
-        card.setPrefWidth(620);
-        card.setPadding(new Insets(28));
+        VBox card = new VBox(11);
+        card.setMaxWidth(470);
+        card.setPrefWidth(470);
+        card.setPadding(new Insets(18));
         card.setStyle(
                 "-fx-background-color: white;"
                         + "-fx-background-radius: 18;"
@@ -816,28 +816,28 @@ public final class CentralLoginController {
         );
         card.setEffect(new DropShadow(30, Color.rgb(15, 23, 42, 0.28)));
 
-        HBox header = new HBox(12);
+        HBox header = new HBox(8);
         header.setAlignment(Pos.CENTER_LEFT);
 
         StackPane iconBox = new StackPane();
-        iconBox.setMinSize(48, 48);
-        iconBox.setPrefSize(48, 48);
+        iconBox.setMinSize(38, 38);
+        iconBox.setPrefSize(38, 38);
         iconBox.setStyle(
                 "-fx-background-color: #fff4e5;"
-                        + "-fx-background-radius: 14;"
+                        + "-fx-background-radius: 10;"
                         + "-fx-border-color: #f6c98b;"
-                        + "-fx-border-radius: 14;"
+                        + "-fx-border-radius: 10;"
         );
 
         FontIcon icon = new FontIcon(Feather.LOCK);
-        icon.setIconSize(23);
+        icon.setIconSize(18);
         icon.setIconColor(Color.web("#b45309"));
         iconBox.getChildren().add(icon);
 
         VBox heading = new VBox(3);
         Label title = new Label("Limite de sessões atingido");
         title.setStyle(
-                "-fx-font-size: 21px;"
+                "-fx-font-size: 17px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #163725;"
         );
@@ -847,7 +847,7 @@ public final class CentralLoginController {
         );
         subtitle.setWrapText(true);
         subtitle.setStyle(
-                "-fx-font-size: 12px;"
+                "-fx-font-size: 11px;"
                         + "-fx-text-fill: #64748b;"
         );
         heading.getChildren().addAll(title, subtitle);
@@ -868,7 +868,7 @@ public final class CentralLoginController {
 
         header.getChildren().addAll(iconBox, heading, headerSpacer, close);
 
-        HBox status = new HBox(12);
+        HBox status = new HBox(8);
         status.setAlignment(Pos.CENTER_LEFT);
 
         VBox activeBox = new VBox(3);
@@ -878,7 +878,7 @@ public final class CentralLoginController {
                         + "-fx-background-radius: 12;"
                         + "-fx-border-color: #e2ebe5;"
                         + "-fx-border-radius: 12;"
-                        + "-fx-padding: 12;"
+                        + "-fx-padding: 8;"
         );
         Label activeCaption = new Label("SESSÕES ACTIVAS");
         activeCaption.setStyle(
@@ -888,7 +888,7 @@ public final class CentralLoginController {
         );
         Label activeValue = new Label(String.valueOf(exception.getActiveSessions()));
         activeValue.setStyle(
-                "-fx-font-size: 24px;"
+                "-fx-font-size: 19px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #163725;"
         );
@@ -921,10 +921,10 @@ public final class CentralLoginController {
         HBox.setHgrow(limitBox, Priority.ALWAYS);
         status.getChildren().addAll(activeBox, limitBox);
 
-        VBox explanation = new VBox(9);
+        VBox explanation = new VBox(6);
         Label why = new Label("Porque aconteceu?");
         why.setStyle(
-                "-fx-font-size: 13px;"
+                "-fx-font-size: 12px;"
                         + "-fx-font-weight: 800;"
                         + "-fx-text-fill: #1f2937;"
         );
@@ -948,7 +948,7 @@ public final class CentralLoginController {
         );
         explanation.getChildren().addAll(why, whyText);
 
-        VBox resolution = new VBox(9);
+        VBox resolution = new VBox(6);
         Label resolve = new Label("Como resolver");
         resolve.setStyle(
                 "-fx-font-size: 13px;"
@@ -966,18 +966,18 @@ public final class CentralLoginController {
         steps.setStyle(
                 "-fx-font-size: 12px;"
                         + "-fx-text-fill: #475569;"
-                        + "-fx-line-spacing: 4px;"
+                        + "-fx-line-spacing: 2px;"
         );
         resolution.getChildren().addAll(resolve, steps);
 
-        HBox actions = new HBox(10);
+        HBox actions = new HBox(7);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
         Button retry = new Button(
                 "TENTAR NOVAMENTE",
                 new FontIcon(Feather.REFRESH_CW)
         );
-        retry.setPrefHeight(44);
+        retry.setPrefHeight(36);
         retry.setCursor(Cursor.HAND);
         retry.setStyle(
                 "-fx-background-color: #217346;"
@@ -993,7 +993,7 @@ public final class CentralLoginController {
         });
 
         Button back = new Button("FECHAR");
-        back.setPrefHeight(44);
+        back.setPrefHeight(36);
         back.setCursor(Cursor.HAND);
         back.setStyle(
                 "-fx-background-color: white;"
