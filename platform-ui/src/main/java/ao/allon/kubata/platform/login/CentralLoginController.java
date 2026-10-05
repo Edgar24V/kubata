@@ -14,7 +14,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
@@ -155,9 +154,10 @@ public final class CentralLoginController {
 
         buildLoginPage();
 
-        Scene scene = new Scene(root, 1120, 720);
-        scene.setFill(Color.TRANSPARENT);
-        stage.setScene(scene);
+        // O controlador central constrói apenas o conteúdo. A aplicação
+        // consumidora é responsável por criar/atribuir a Scene ao Stage.
+        // Isto permite trocar Login ↔ Main sem tentar reutilizar o mesmo
+        // root em duas Scene diferentes.
         stage.setWidth(1120);
         stage.setHeight(720);
         stage.setMinWidth(920);
