@@ -54,28 +54,69 @@ public class HelpCenterView extends BorderPane {
     }
 
     private void buildUI() {
-        VBox header = new VBox(4);
-        header.getStyleClass().add("kubata-help-header");
-        header.getChildren().addAll(
-                titleRow(),
-                new Label("Documentação integrada para aprender, administrar e trabalhar com segurança no Kubata Administrator.")
-        );
-        ((Label) header.getChildren().get(1)).getStyleClass().add("kubata-help-subtitle");
+        VBox hero = new VBox(16);
+        hero.getStyleClass().add("kubata-help-hero");
+
+        HBox heroTop = new HBox(16);
+        heroTop.setAlignment(Pos.CENTER_LEFT);
+        StackPane heroIcon = new StackPane(IconUtils.icon(Feather.LIFE_BUOY, 30));
+        heroIcon.getStyleClass().add("kubata-help-hero-icon");
+
+        VBox heroText = new VBox(3);
+        Label kicker = new Label("KUBATA SUPPORT DESK");
+        kicker.getStyleClass().add("kubata-help-hero-kicker");
+        Label title = new Label("Como podemos ajudar?");
+        title.getStyleClass().add("kubata-help-hero-title");
+        Label subtitle = new Label(
+                "Encontre rapidamente procedimentos, segurança, administração e respostas para trabalhar melhor no Kubata.");
+        subtitle.setWrapText(true);
+        subtitle.getStyleClass().add("kubata-help-hero-subtitle");
+        heroText.getChildren().addAll(kicker, title, subtitle);
+
+        Region grow = new Region();
+        HBox.setHgrow(grow, Priority.ALWAYS);
+
+        VBox status = new VBox(2);
+        status.setAlignment(Pos.CENTER_RIGHT);
+        Label statusLabel = new Label("● DOCUMENTAÇÃO LOCAL");
+        statusLabel.getStyleClass().add("kubata-help-status");
+        Label statusDetail = new Label("Disponível sem Internet");
+        statusDetail.getStyleClass().add("kubata-help-status-detail");
+        status.getChildren().addAll(statusLabel, statusDetail);
+
+        heroTop.getChildren().addAll(heroIcon, heroText, grow, status);
 
         HBox searchRow = new HBox(10);
         searchRow.setAlignment(Pos.CENTER_LEFT);
         searchRow.getStyleClass().add("kubata-help-search-row");
 
-        searchField.setPromptText("Pesquisar por utilizadores, sessões, MFA, empresas, auditoria...");
-        searchField.textProperty().addListener((obs, oldValue, newValue) -> applyFilter(newValue));
+        HBox searchWrap = new HBox(10);
+        searchWrap.getStyleClass().add("kubata-help-search-wrap");
+        searchWrap.setAlignment(Pos.CENTER_LEFT);
+        searchWrap.setPadding(new Insets(0, 12, 0, 14));
+        TextField field = searchField;
+        field.setPromptText("Pesquisar ajuda: MFA, utilizadores, sessões, empresas, permissões, backup...");
+        field.textProperty().addListener((obs, oldValue, newValue) -> applyFilter(newValue));
+        searchWrap.getChildren().addAll(IconUtils.icon(Feather.SEARCH, 18), field);
+        field.setPadding(new Insets(0, 4, 0, 4));
+
+        Button clear = new Button();
+        clear.setGraphic(IconUtils.icon(Feather.X, 15));
+        clear.setTooltip(new Tooltip("Limpar pesquisa"));
+        clear.getStyleClass().add("kubata-help-search-clear");
+        clear.setOnAction(e -> searchField.clear());
 
         resultCount.getStyleClass().add("kubata-help-result-count");
-        searchRow.getChildren().addAll(searchField, resultCount);
-        HBox.setHgrow(searchField, Priority.ALWAYS);
+        searchRow.getChildren().addAll(searchWrap, clear, resultCount);
+        HBox.setHgrow(searchWrap, Priority.ALWAYS);
 
-        VBox top = new VBox(14, header, searchRow);
-        top.getStyleClass().add("kubata-help-top");
-        setTop(top);
+        Label hint = new Label("Sugestões: segurança  •  sessões  •  MFA  •  empresas  •  auditoria  •  backup");
+        hint.getStyleClass().add("kubata-help-search-hint");
+
+        HBox quick = buildQuickTopics();
+
+        hero.getChildren().addAll(heroTop, searchRow, hint, quick);
+        setTop(hero);
 
         topicList.getStyleClass().add("kubata-help-topic-list");
 
@@ -84,29 +125,58 @@ public class HelpCenterView extends BorderPane {
         navScroll.setFitToHeight(true);
         navScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         navScroll.getStyleClass().add("kubata-help-nav-scroll");
-        navScroll.setPrefWidth(285);
+        navScroll.setPrefWidth(292);
 
-        VBox nav = new VBox(10);
+        VBox nav = new VBox(8);
         nav.getStyleClass().add("kubata-help-nav");
-        Label navTitle = new Label("Navegação");
+        Label navTitle = new Label("Explorar por tema");
         navTitle.getStyleClass().add("kubata-help-nav-title");
-        nav.getChildren().addAll(navTitle, navScroll);
+        Label navSubtitle = new Label("Guias organizados para o trabalho diário");
+        navSubtitle.getStyleClass().add("kubata-help-nav-subtitle");
+        nav.getChildren().addAll(navTitle, navSubtitle, navScroll);
         VBox.setVgrow(navScroll, Priority.ALWAYS);
 
         ScrollPane contentScroll = new ScrollPane(contentBox);
         contentScroll.setFitToWidth(true);
         contentScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         contentScroll.getStyleClass().add("kubata-help-content-scroll");
-        contentScroll.setPadding(new Insets(0));
-        contentBox.setPadding(new Insets(0, 4, 24, 4));
+        contentBox.setPadding(new Insets(2, 6, 28, 6));
 
         BorderPane body = new BorderPane();
         body.setLeft(nav);
         body.setCenter(contentScroll);
         body.getStyleClass().add("kubata-help-body");
-        BorderPane.setMargin(nav, new Insets(18, 12, 18, 18));
-        BorderPane.setMargin(contentScroll, new Insets(18, 18, 18, 12));
+        BorderPane.setMargin(nav, new Insets(16, 10, 16, 18));
+        BorderPane.setMargin(contentScroll, new Insets(16, 18, 16, 10));
         setCenter(body);
+
+        applyFilter("");
+    }
+
+    private HBox buildQuickTopics() {
+        HBox row = new HBox(8);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("kubata-help-quick-row");
+
+        row.getChildren().addAll(
+                quickTopic("Começar", "overview", Feather.PLAY),
+                quickTopic("Segurança", "profiles", Feather.SHIELD),
+                quickTopic("Sessões", "sessions", Feather.USERS),
+                quickTopic("MFA", "login", Feather.SMARTPHONE),
+                quickTopic("Problemas", "troubleshooting", Feather.TOOL)
+        );
+        return row;
+    }
+
+    private Button quickTopic(String label, String topicId, Feather icon) {
+        Button button = new Button(label, IconUtils.icon(icon, 14));
+        button.getStyleClass().add("kubata-help-quick-button");
+        button.setTooltip(new Tooltip("Abrir: " + label));
+        button.setOnAction(e -> {
+            searchField.clear();
+            selectTopic(topicId);
+        });
+        return button;
     }
 
     private Node titleRow() {
