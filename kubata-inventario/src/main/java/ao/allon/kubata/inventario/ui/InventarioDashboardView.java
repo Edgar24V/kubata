@@ -51,7 +51,7 @@ public class InventarioDashboardView extends BorderPane {
         metrics.add(InventarioUI.metric("ARTIGOS", InventarioUI.integer(r.produtos()), "Artigos ativos no catálogo"), 0, 0);
         metrics.add(InventarioUI.metric("ARMAZÉNS", InventarioUI.integer(r.armazens()), "Locais operacionais ativos"), 1, 0);
         metrics.add(InventarioUI.metric("UNIDADES EM STOCK", InventarioUI.integer(r.unidades()), "Existência física consolidada"), 2, 0);
-        metrics.add(InventarioUI.metric("RESERVADO", InventarioUI.money(r.reservado()), "Stock comprometido por reservas"), 3, 0);
+        metrics.add(InventarioUI.metric("UNIDADES RESERVADAS", r.reservado().stripTrailingZeros().toPlainString(), "Stock comprometido por reservas"), 3, 0);
         metrics.add(InventarioUI.metric("VALOR DO STOCK", InventarioUI.money(r.valorStock()), "Valorização ao custo registado"), 0, 1);
         metrics.add(InventarioUI.metric("STOCK BAIXO", InventarioUI.integer(r.stockBaixo()), "Artigos no mínimo ou abaixo"), 1, 1);
 
