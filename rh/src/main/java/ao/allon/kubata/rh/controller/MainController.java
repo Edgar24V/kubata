@@ -2,7 +2,9 @@ package ao.allon.kubata.rh.controller;
 
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.core.service.AuthService;
 import ao.allon.kubata.rh.ui.StageReadyEvent;
+import ao.allon.kubata.rh.ui.event.LoginSuccessEvent;
 import ao.allon.kubata.rh.ui.modal.ModalManager;
 import ao.allon.kubata.rh.ui.util.IconUtils;
 import ao.allon.kubata.rh.ui.util.ThemeManager;
@@ -57,6 +59,12 @@ public class MainController extends StackPane {
     @Autowired
     private ModalManager modalManager;
 
+    @Autowired
+    private LoginController loginController;
+
+    @Autowired
+    private AuthService authService;
+
     private BorderPane mainLayout;
     private Ribbon ribbon;
     private TabPane mainTabPane;
@@ -73,15 +81,107 @@ public class MainController extends StackPane {
     public void onStageReady(StageReadyEvent event) {
         this.stage = event.getStage();
 
+        switchToLogin();
+
+        stage.setTitle("Kubata");
+        stage.show();
+    }
+
+    @EventListener
+    public void onLoginSuccess(LoginSuccessEvent event) {
+        User user = event.getUser();
+
+        if (user == null || user.getRole() == null) {
+            modalManager.error("Acesso negado", "Utilizador autenticado inválido.");
+            switchToLogin();
+            return;
+        }
+
+        currentUser = user;
+        switchToMain();
+        updateSessionStatus();
+        startUI();
+    }
+
+    private void switchToLogin() {
+        currentUser = null;
+
+        StackPane login = loginController.createView(stage);
+        Scene scene = new Scene(login, 1120, 720);
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+
+        stage.setScene(scene);
+        stage.setTitle("Kubata");
+        stage.setMinWidth(920);
+        stage.setMinHeight(600);
+        stage.setResizable(true);
+        stage.centerOnScreen();
+
+        stage.setOnCloseRequest(event -> {
+            stage.setOnCloseRequest(null);
+            loginController.shutdown();
+            stage.close();
+        });
+    }
+
+    private void switchToMain() {
         Scene scene = new Scene(this);
         ThemeManager.applyTheme(scene);
 
         stage.setScene(scene);
         stage.setTitle("Kubata RH - Sistema de Recursos Humanos");
+        stage.setMinWidth(1100);
+        stage.setMinHeight(700);
+        stage.setResizable(true);
         stage.setMaximized(true);
-        stage.show();
 
-        startUI();
+        stage.setOnCloseRequest(event -> {
+            event.consume();
+            performLogoutAndExit();
+        });
+    }
+
+    public void performLogoutAndShowLogin() {
+        User user = currentUser;
+
+        try {
+            if (user != null) {
+                authService.logout(
+                        user,
+                        user.getSessionId(),
+                        "127.0.0.1"
+                );
+            }
+        } catch (Exception ignored) {
+            // Limpeza local continua mesmo em caso de falha de persistência.
+        } finally {
+            currentUser = null;
+            while (mainTabPane != null && mainTabPane.getTabs().size() > 0) {
+                mainTabPane.getTabs().remove(0);
+            }
+            switchToLogin();
+        }
+    }
+
+    public void performLogoutAndExit() {
+        User user = currentUser;
+
+        try {
+            if (user != null) {
+                authService.logout(
+                        user,
+                        user.getSessionId(),
+                        "127.0.0.1"
+                );
+            }
+        } catch (Exception ignored) {
+            // Não impedir o fecho da aplicação por uma falha de persistência.
+        } finally {
+            currentUser = null;
+            loginController.shutdown();
+            stage.setOnCloseRequest(null);
+            stage.close();
+        }
     }
 
     @PostConstruct
@@ -114,7 +214,7 @@ public class MainController extends StackPane {
         statusBar.setPadding(new Insets(5, 12, 5, 12));
         statusBar.setAlignment(Pos.CENTER_LEFT);
 
-        statusLabel = new Label("Sistema RH pronto");
+        statusLabel = new Label("Sessão não iniciada");
         statusLabel.getStyleClass().add("rh-status-label");
 
         Pane statusSpacer = new Pane();
@@ -244,7 +344,7 @@ public class MainController extends StackPane {
         RibbonGroup acoesGroup = new RibbonGroup();
         acoesGroup.setTitle("Ações");
         Button btnSair = createRibbonButton(
-                "Sair", Feather.LOG_OUT, e -> Platform.exit());
+                "Sair", Feather.LOG_OUT, e -> performLogoutAndShowLogin());
         acoesGroup.getNodes().add(btnSair);
 
         sistemaTab.getRibbonGroups().add(configGroup);
@@ -279,7 +379,27 @@ public class MainController extends StackPane {
     }
 
     private void setupStatusBar() {
-        statusLabel.setText("Sistema RH pronto");
+        updateSessionStatus();
+    }
+
+    private void updateSessionStatus() {
+        if (statusLabel == null) {
+            return;
+        }
+
+        if (currentUser == null) {
+            statusLabel.setText("Sessão não iniciada");
+            return;
+        }
+
+        String empresa = currentUser.getEmpresa() == null
+                ? "Empresa não seleccionada"
+                : currentUser.getEmpresa().getNome();
+
+        statusLabel.setText(
+                "Utilizador: " + currentUser.getNome()
+                        + "  •  Empresa: " + empresa
+        );
     }
 
     private void loadInitialView() {
