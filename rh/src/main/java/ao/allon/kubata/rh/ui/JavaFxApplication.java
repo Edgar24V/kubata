@@ -5,6 +5,7 @@ import ao.allon.kubata.rh.ui.util.GlobalExceptionHandler;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -22,7 +23,16 @@ public class JavaFxApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        applicationContext.publishEvent(new StageReadyEvent(stage));
+        try {
+            // O estilo transparente deve ser definido antes de o Stage receber
+            // a primeira Scene ou ser apresentado. O Login Central apenas usa
+            // o Stage já configurado.
+            stage.initStyle(StageStyle.TRANSPARENT);
+            applicationContext.publishEvent(new StageReadyEvent(stage));
+        } catch (Throwable error) {
+            error.printStackTrace(System.err);
+            throw error;
+        }
     }
 
     @Override

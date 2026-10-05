@@ -36,7 +36,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import org.kordamp.ikonli.feather.Feather;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -125,12 +124,8 @@ public final class CentralLoginController {
     public StackPane createView(Stage stage) {
         this.stage = stage;
 
-        if (stage.getStyle() != StageStyle.TRANSPARENT) {
-            try {
-                stage.initStyle(StageStyle.TRANSPARENT);
-            } catch (IllegalStateException ignored) {
-                // O cliente pode já ter configurado o StageStyle.
-            }
+        if (stage == null) {
+            throw new IllegalArgumentException("O Stage do Login Central não pode ser nulo.");
         }
 
         root = new StackPane();
