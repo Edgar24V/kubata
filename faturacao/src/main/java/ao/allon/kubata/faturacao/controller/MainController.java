@@ -672,11 +672,19 @@ public class MainController {
             ThemeManager.applyTheme();
             switchToLogin();
             this.stage.setTitle(applicationTitle);
-            try {
-                this.stage.setOnCloseRequest(ev -> {
-                    try { customerDisplayService.stop(); } catch (Exception ignored) {}
-                });
-            } catch (Exception ignored) {}
+            this.stage.setOnCloseRequest(ev -> {
+                try {
+                    customerDisplayService.stop();
+                } catch (Exception ignored) {
+                }
+                ev.consume();
+                if (sessionManager.getUserObject() == null) {
+                    this.stage.setOnCloseRequest(null);
+                    this.stage.close();
+                    return;
+                }
+                performLogoutAndExit();
+            });
             this.stage.show();
         } catch (Exception e) {
             e.printStackTrace();
@@ -699,7 +707,7 @@ public class MainController {
     }
 
     private void switchToLogin() {
-        Parent parent = loginController.createView();
+        Parent parent = loginController.createView(stage);
         Scene scene = new Scene(parent, 400, 500);
         stage.setScene(scene);
         stage.centerOnScreen();
