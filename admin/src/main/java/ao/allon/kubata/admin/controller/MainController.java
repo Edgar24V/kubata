@@ -53,7 +53,7 @@ public class MainController {
     public void onStageReady(StageReadyEvent event) {
         this.stage = event.getStage();
         ThemeManager.setupCustomTitleBar(stage);
-        stage.setTitle("Kubata");
+        stage.setTitle("Kubata Administrator");
         switchToLogin();
         stage.show();
     }
