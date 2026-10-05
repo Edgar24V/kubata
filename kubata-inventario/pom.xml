@@ -111,12 +111,14 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <!-- Sobrescreve o execution herdado pelo spring-boot-starter-parent.
+                             O JAR principal permanece uma biblioteca Maven normal; o
+                             executável standalone é anexado como -exec.jar. -->
+                        <id>repackage</id>
                         <goals>
                             <goal>repackage</goal>
                         </goals>
                         <configuration>
-                            <!-- Mantém o JAR principal como biblioteca para o Administrator.
-                                 A versão executável fica como artefacto separado. -->
                             <classifier>exec</classifier>
                         </configuration>
                     </execution>
