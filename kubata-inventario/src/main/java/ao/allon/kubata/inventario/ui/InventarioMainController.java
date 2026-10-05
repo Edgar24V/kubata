@@ -1,6 +1,5 @@
 package ao.allon.kubata.inventario.ui;
 
-import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.service.AuthService;
 import ao.allon.kubata.inventario.ui.event.LoginSuccessEvent;
@@ -18,14 +17,13 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.feather.Feather;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InventarioMainController extends StackPane {
-    private final javafx.application.Application application;
-    private final javafx.application.HostServices hostServices = null;
-    private final org.springframework.context.ApplicationContext context;
+    private final ApplicationContext context;
     private final LoginController loginController;
     private final AuthService authService;
     private final ModalManager modalManager;
@@ -35,7 +33,7 @@ public class InventarioMainController extends StackPane {
     private TabPane tabs;
     private Label status;
 
-    public InventarioMainController(org.springframework.context.ApplicationContext context,
+    public InventarioMainController(ApplicationContext context,
                                     LoginController loginController,
                                     AuthService authService,
                                     ModalManager modalManager) {
@@ -77,12 +75,14 @@ public class InventarioMainController extends StackPane {
     private void showMain() {
         buildMain();
         Scene scene = new Scene(this, 1280, 820);
-        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
-        scene.getStylesheets().add(getClass().getResource("/ao/allon/kubata/inventario/ui/inventario.css").toExternalForm());
+        scene.getStylesheets().add(getClass()
+                .getResource("/ao/allon/kubata/inventario/ui/inventario.css")
+                .toExternalForm());
         stage.setScene(scene);
         stage.setTitle("Kubata • Gestão de Inventário");
         stage.setMinWidth(1080);
         stage.setMinHeight(680);
+        stage.setResizable(true);
         stage.setMaximized(true);
         stage.setOnCloseRequest(e -> {
             e.consume();
@@ -95,7 +95,6 @@ public class InventarioMainController extends StackPane {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("inventario-shell");
 
-        VBox top = new VBox();
         HBox titlebar = new HBox(12);
         titlebar.getStyleClass().add("module-titlebar");
         titlebar.setAlignment(Pos.CENTER_LEFT);
@@ -114,9 +113,7 @@ public class InventarioMainController extends StackPane {
         sair.setOnAction(e -> logoutAndExit());
         titlebar.getChildren().addAll(icon, title, user, spacer, sair);
 
-        Ribbon ribbon = createRibbon();
-        top.getChildren().addAll(titlebar, ribbon);
-        root.setTop(top);
+        root.setTop(new VBox(titlebar, createRibbon()));
 
         tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
@@ -143,21 +140,25 @@ public class InventarioMainController extends StackPane {
         RibbonTab artigos = new RibbonTab("Artigos");
         RibbonGroup cadastro = new RibbonGroup();
         cadastro.setTitle("Cadastro");
-        cadastro.getNodes().add(button("Artigos", Feather.BOX, () -> open("produtos", "Artigos", ProdutosView.class, true)));
-        cadastro.getNodes().add(button("Categorias", Feather.TAG, () -> open("categorias", "Categorias", CategoriasView.class, true)));
+        cadastro.getNodes().add(button("Artigos", Feather.BOX,
+                () -> open("produtos", "Artigos", ProdutosView.class, true)));
+        cadastro.getNodes().add(button("Categorias", Feather.TAG,
+                () -> open("categorias", "Categorias", CategoriasView.class, true)));
         artigos.getRibbonGroups().add(cadastro);
 
         RibbonTab stockTab = new RibbonTab("Stocks");
         RibbonGroup stock = new RibbonGroup();
         stock.setTitle("Gestão de Stock");
-        stock.getNodes().add(button("Existências", Feather.DATABASE, () -> open("estoque", "Gestão de Stock", EstoqueView.class, true)));
-        stock.getNodes().add(button("Armazéns", Feather.HOME, () -> open("armazens", "Armazéns", ArmazensView.class, true)));
+        stock.getNodes().add(button("Existências", Feather.DATABASE,
+                () -> open("estoque", "Gestão de Stock", EstoqueView.class, true)));
+        stock.getNodes().add(button("Armazéns", Feather.HOME,
+                () -> open("armazens", "Armazéns", ArmazensView.class, true)));
         stockTab.getRibbonGroups().add(stock);
 
         RibbonTab sistema = new RibbonTab("Sistema");
         RibbonGroup actions = new RibbonGroup();
         actions.setTitle("Sessão");
-        actions.getNodes().add(button("Atualizar", Feather.REFRESH_CW, () -> refreshCurrent()));
+        actions.getNodes().add(button("Atualizar", Feather.REFRESH_CW, this::refreshCurrent));
         actions.getNodes().add(button("Sair", Feather.LOG_OUT, this::logoutAndExit));
         sistema.getRibbonGroups().add(actions);
 
@@ -175,11 +176,14 @@ public class InventarioMainController extends StackPane {
     }
 
     private void open(String id, String title, Class<? extends Node> type, boolean closable) {
-        Tab existing = tabs.getTabs().stream().filter(t -> id.equals(t.getId())).findFirst().orElse(null);
+        Tab existing = tabs.getTabs().stream()
+                .filter(t -> id.equals(t.getId()))
+                .findFirst().orElse(null);
         if (existing != null) {
             tabs.getSelectionModel().select(existing);
             return;
         }
+
         try {
             Node view = context.getBean(type);
             Tab tab = new Tab(title, view);
@@ -188,7 +192,8 @@ public class InventarioMainController extends StackPane {
             tabs.getTabs().add(tab);
             tabs.getSelectionModel().select(tab);
         } catch (Exception ex) {
-            modalManager.error(this, "Inventário", "Não foi possível abrir " + title + ": " + ex.getMessage());
+            modalManager.error(this, "Inventário",
+                    "Não foi possível abrir " + title + ": " + ex.getMessage());
         }
     }
 
@@ -196,15 +201,10 @@ public class InventarioMainController extends StackPane {
         Tab selected = tabs == null ? null : tabs.getSelectionModel().getSelectedItem();
         if (selected == null) return;
         Node content = selected.getContent();
-        if (content instanceof ProdutosView v) {
-            v.refreshData();
-        } else if (content instanceof CategoriasView v) {
-            v.refreshData();
-        } else if (content instanceof ArmazensView v) {
-            v.refreshData();
-        } else if (content instanceof EstoqueView v) {
-            v.refreshData();
-        }
+        if (content instanceof ProdutosView v) v.refreshData();
+        else if (content instanceof CategoriasView v) v.refreshData();
+        else if (content instanceof ArmazensView v) v.refreshData();
+        else if (content instanceof EstoqueView v) v.refreshData();
     }
 
     private void logoutAndExit() {
