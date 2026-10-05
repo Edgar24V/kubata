@@ -5,6 +5,7 @@ import ao.allon.kubata.core.service.PasswordChangeService;
 import ao.allon.kubata.faturacao.ui.event.LoginSuccessEvent;
 import ao.allon.kubata.platform.login.CentralLoginController;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -32,8 +33,8 @@ public class LoginController {
         );
     }
 
-    public StackPane createView() {
-        return delegate.createViewHolder();
+    public StackPane createView(Stage stage) {
+        return delegate.createView(stage);
     }
 
     public void shutdown() {
