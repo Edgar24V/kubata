@@ -4,7 +4,7 @@ import ao.allon.kubata.inventario.domain.Produto;
 import ao.allon.kubata.inventario.service.InventarioDashboardService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Label;
+import javafx.scene.control.Button;\nimport javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import org.springframework.stereotype.Component;
 
