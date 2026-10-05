@@ -34,6 +34,7 @@ class AlertaServiceIntegrationTest {
         actor.setNome("Alerta Integration");
         actor.setEmail("alerta.integration." + System.nanoTime() + "@test.local");
         actor.setPassword("integration");
+        actor.setCodigo("IT-ALERTA-" + System.nanoTime());
         actor.setRole(Role.ADMIN);
         actor.setActive(true);
         actor = userRepository.saveAndFlush(actor);
