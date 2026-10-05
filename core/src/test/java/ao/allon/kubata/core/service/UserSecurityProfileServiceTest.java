@@ -195,7 +195,7 @@ class UserSecurityProfileServiceTest {
         profile.setMaxConcurrentSessions(1);
 
         UserSession activeSession = new UserSession();
-        activeSession.setUsername("Administrador");
+        activeSession.setUsername("Utilizador");
         activeSession.setLoginTime(LocalDateTime.of(2026, 10, 2, 9, 0));
 
         when(profileRepository.findByUserId(10L)).thenReturn(Optional.of(profile));
@@ -309,7 +309,7 @@ class UserSecurityProfileServiceTest {
 
     @Test
     void deveIgnorarPerfilIndividualNoAdministrador() {
-        User user = commonUser(10L);
+        User user = admin(10L);
         UserSecurityProfile stored = new UserSecurityProfile();
         stored.setUser(user);
         stored.setLoginEnabled(false);
