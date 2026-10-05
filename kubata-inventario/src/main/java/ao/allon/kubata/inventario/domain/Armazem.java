@@ -8,6 +8,7 @@ import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "armazens")
+@Access(AccessType.FIELD)
 @SQLDelete(sql = "UPDATE armazens SET active = false WHERE id = ?")
 @SQLRestriction("active = true")
 public class Armazem extends BaseEntity {
