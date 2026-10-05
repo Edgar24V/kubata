@@ -125,6 +125,15 @@ public class AuthService {
 
         boolean mfaSatisfied = !user.isMfaEnabled();
         if (user.isMfaEnabled()) {
+            boolean hasSecondFactor = mfaCode != null
+                    || (recoveryCode != null && !recoveryCode.isBlank());
+
+            if (!hasSecondFactor) {
+                throw new AuthenticationException(
+                        "Esta conta exige um código MFA ou código de recuperação."
+                );
+            }
+
             boolean totpValid =
                     mfaCode != null
                             && gAuth.authorize(user.getMfaSecret(), mfaCode);
@@ -228,6 +237,70 @@ public class AuthService {
         }
 
         acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Sucesso", true);
+        return user;
+    }
+
+    /**
+     * Autentica o utilizador para um contexto de aplicação concreto.
+     *
+     * <p>A identidade, password, MFA, políticas e criação da sessão continuam
+     * centralizadas neste serviço. Depois da autenticação, o Core valida que
+     * a conta pode realmente abrir o módulo solicitado e regista esse contexto
+     * na sessão exacta criada para esta instância.</p>
+     */
+    @Transactional
+    public User authenticateForApplication(
+            String email,
+            String password,
+            Integer mfaCode,
+            String recoveryCode,
+            String ip,
+            String applicationKey) {
+
+        String application = applicationKey == null || applicationKey.isBlank()
+                ? "KUBATA"
+                : applicationKey.trim().toUpperCase(java.util.Locale.ROOT);
+
+        User user = authenticate(email, password, mfaCode, recoveryCode, ip);
+
+        boolean allowed;
+        if ("ADMINISTRATOR".equals(application)) {
+            allowed = user.isSuperadmin() || user.getRole() == ao.allon.kubata.core.domain.Role.ADMIN;
+        } else {
+            allowed = acessoService.temAcessoAoModulo(user, application);
+        }
+
+        if (!allowed) {
+            Long exactSessionId = user.getSessionId();
+            logout(
+                    user,
+                    exactSessionId,
+                    ip == null || ip.isBlank() ? "127.0.0.1" : ip
+            );
+
+            acessoService.registrarAuditoria(
+                    user,
+                    "LOGIN",
+                    "AUTH",
+                    ip,
+                    "Aplicação recusada: " + application,
+                    false
+            );
+
+            throw new AuthenticationException(
+                    "A sua conta está autenticada, mas não possui acesso à aplicação "
+                            + application + "."
+            );
+        }
+
+        Long exactSessionId = user.getSessionId();
+        if (exactSessionId != null) {
+            userSessionRepository.findById(exactSessionId).ifPresent(session -> {
+                session.setContext("KUBATA " + application);
+                userSessionRepository.save(session);
+            });
+        }
+
         return user;
     }
 
