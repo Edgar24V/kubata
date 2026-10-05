@@ -2,6 +2,7 @@ package ao.allon.kubata.platform.login;
 
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
+import ao.allon.kubata.core.exception.SessionLimitExceededException;
 import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
 import ao.allon.kubata.core.service.AuthService;
 import ao.allon.kubata.core.service.PasswordChangeService;
@@ -78,6 +79,7 @@ public final class CentralLoginController {
     private Stage stage;
     private StackPane root;
     private StackPane contentHost;
+    private StackPane modalLayer;
     private TextField emailField;
     private PasswordField passwordField;
     private TextField visiblePasswordField;
@@ -164,6 +166,16 @@ public final class CentralLoginController {
         installDragging();
         contentHost = new StackPane();
         root.getChildren().add(contentHost);
+
+        modalLayer = new StackPane();
+        modalLayer.setVisible(false);
+        modalLayer.setManaged(false);
+        modalLayer.setAlignment(Pos.CENTER);
+        modalLayer.setStyle(
+                "-fx-background-color: rgba(15, 23, 42, 0.46);"
+        );
+        modalLayer.setOnMouseClicked(event -> event.consume());
+        root.getChildren().add(modalLayer);
 
         buildLoginPage();
 
@@ -770,6 +782,11 @@ public final class CentralLoginController {
                 return;
             }
 
+            if (error instanceof SessionLimitExceededException sessionLimit) {
+                showSessionLimitModal(sessionLimit);
+                return;
+            }
+
             String reason =
                     error == null || error.getMessage() == null
                             ? "Não foi possível iniciar a sessão."
@@ -783,6 +800,246 @@ public final class CentralLoginController {
         });
 
         executor.submit(task);
+    }
+
+    private void showSessionLimitModal(SessionLimitExceededException exception) {
+        VBox card = new VBox(18);
+        card.setMaxWidth(620);
+        card.setPrefWidth(620);
+        card.setPadding(new Insets(28));
+        card.setStyle(
+                "-fx-background-color: white;"
+                        + "-fx-background-radius: 18;"
+                        + "-fx-border-color: #dbe4df;"
+                        + "-fx-border-radius: 18;"
+                        + "-fx-border-width: 1;"
+        );
+        card.setEffect(new DropShadow(30, Color.rgb(15, 23, 42, 0.28)));
+
+        HBox header = new HBox(12);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        StackPane iconBox = new StackPane();
+        iconBox.setMinSize(48, 48);
+        iconBox.setPrefSize(48, 48);
+        iconBox.setStyle(
+                "-fx-background-color: #fff4e5;"
+                        + "-fx-background-radius: 14;"
+                        + "-fx-border-color: #f6c98b;"
+                        + "-fx-border-radius: 14;"
+        );
+
+        FontIcon icon = new FontIcon(Feather.LOCK);
+        icon.setIconSize(23);
+        icon.setIconColor(Color.web("#b45309"));
+        iconBox.getChildren().add(icon);
+
+        VBox heading = new VBox(3);
+        Label title = new Label("Limite de sessões atingido");
+        title.setStyle(
+                "-fx-font-size: 21px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #163725;"
+        );
+
+        Label subtitle = new Label(
+                "A autenticação está correcta, mas esta conta já tem o número máximo de sessões simultâneas permitido."
+        );
+        subtitle.setWrapText(true);
+        subtitle.setStyle(
+                "-fx-font-size: 12px;"
+                        + "-fx-text-fill: #64748b;"
+        );
+        heading.getChildren().addAll(title, subtitle);
+
+        Region headerSpacer = new Region();
+        HBox.setHgrow(headerSpacer, Priority.ALWAYS);
+
+        Button close = new Button("", new FontIcon(Feather.X));
+        close.setAccessibleText("Fechar explicação");
+        close.setTooltip(new Tooltip("Fechar"));
+        close.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-text-fill: #64748b;"
+                        + "-fx-background-radius: 8;"
+                        + "-fx-padding: 8;"
+        );
+        close.setOnAction(event -> hideSessionLimitModal());
+
+        header.getChildren().addAll(iconBox, heading, headerSpacer, close);
+
+        HBox status = new HBox(12);
+        status.setAlignment(Pos.CENTER_LEFT);
+
+        VBox activeBox = new VBox(3);
+        activeBox.setMaxWidth(Double.MAX_VALUE);
+        activeBox.setStyle(
+                "-fx-background-color: #f8faf9;"
+                        + "-fx-background-radius: 12;"
+                        + "-fx-border-color: #e2ebe5;"
+                        + "-fx-border-radius: 12;"
+                        + "-fx-padding: 12;"
+        );
+        Label activeCaption = new Label("SESSÕES ACTIVAS");
+        activeCaption.setStyle(
+                "-fx-font-size: 10px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #7b8794;"
+        );
+        Label activeValue = new Label(String.valueOf(exception.getActiveSessions()));
+        activeValue.setStyle(
+                "-fx-font-size: 24px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #163725;"
+        );
+        activeBox.getChildren().addAll(activeCaption, activeValue);
+
+        VBox limitBox = new VBox(3);
+        limitBox.setMaxWidth(Double.MAX_VALUE);
+        limitBox.setStyle(
+                "-fx-background-color: #edf7f0;"
+                        + "-fx-background-radius: 12;"
+                        + "-fx-border-color: #cfe5d5;"
+                        + "-fx-border-radius: 12;"
+                        + "-fx-padding: 12;"
+        );
+        Label limitCaption = new Label("LIMITE DA CONTA");
+        limitCaption.setStyle(
+                "-fx-font-size: 10px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #53705d;"
+        );
+        Label limitValue = new Label(String.valueOf(exception.getMaxSessions()));
+        limitValue.setStyle(
+                "-fx-font-size: 24px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #217346;"
+        );
+        limitBox.getChildren().addAll(limitCaption, limitValue);
+
+        HBox.setHgrow(activeBox, Priority.ALWAYS);
+        HBox.setHgrow(limitBox, Priority.ALWAYS);
+        status.getChildren().addAll(activeBox, limitBox);
+
+        VBox explanation = new VBox(9);
+        Label why = new Label("Porque aconteceu?");
+        why.setStyle(
+                "-fx-font-size: 13px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #1f2937;"
+        );
+        Label whyText = new Label(
+                "A política de segurança desta conta permite no máximo "
+                        + exception.getMaxSessions()
+                        + " sessão"
+                        + (exception.getMaxSessions() == 1 ? "" : "ões")
+                        + " ao mesmo tempo. O Kubata encontrou "
+                        + exception.getActiveSessions()
+                        + " sessão"
+                        + (exception.getActiveSessions() == 1 ? "" : "ões")
+                        + " activa"
+                        + (exception.getActiveSessions() == 1 ? "" : "s")
+                        + " e, por segurança, não criou uma nova sessão."
+        );
+        whyText.setWrapText(true);
+        whyText.setStyle(
+                "-fx-font-size: 12px;"
+                        + "-fx-text-fill: #475569;"
+        );
+        explanation.getChildren().addAll(why, whyText);
+
+        VBox resolution = new VBox(9);
+        Label resolve = new Label("Como resolver");
+        resolve.setStyle(
+                "-fx-font-size: 13px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #1f2937;"
+        );
+
+        Label steps = new Label(
+                "1. Termine a sessão antiga num dos dispositivos onde a conta ainda está aberta.\n"
+                        + "2. Caso não tenha acesso a esse dispositivo, peça a um Administrador autorizado para encerrar a sessão.\n"
+                        + "3. Regresse a este ecrã e tente autenticar novamente.\n"
+                        + "4. O limite é individual da conta e pode ser ajustado no Perfil de Segurança do utilizador."
+        );
+        steps.setWrapText(true);
+        steps.setStyle(
+                "-fx-font-size: 12px;"
+                        + "-fx-text-fill: #475569;"
+                        + "-fx-line-spacing: 4px;"
+        );
+        resolution.getChildren().addAll(resolve, steps);
+
+        HBox actions = new HBox(10);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        Button retry = new Button(
+                "TENTAR NOVAMENTE",
+                new FontIcon(Feather.REFRESH_CW)
+        );
+        retry.setPrefHeight(44);
+        retry.setCursor(Cursor.HAND);
+        retry.setStyle(
+                "-fx-background-color: #217346;"
+                        + "-fx-background-radius: 9;"
+                        + "-fx-text-fill: white;"
+                        + "-fx-font-size: 11px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-padding: 0 16px;"
+        );
+        retry.setOnAction(event -> {
+            hideSessionLimitModal();
+            submit();
+        });
+
+        Button back = new Button("FECHAR");
+        back.setPrefHeight(44);
+        back.setCursor(Cursor.HAND);
+        back.setStyle(
+                "-fx-background-color: white;"
+                        + "-fx-background-radius: 9;"
+                        + "-fx-border-color: #cfdad4;"
+                        + "-fx-border-radius: 9;"
+                        + "-fx-text-fill: #395347;"
+                        + "-fx-font-size: 11px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-padding: 0 16px;"
+        );
+        back.setOnAction(event -> hideSessionLimitModal());
+
+        actions.getChildren().addAll(back, retry);
+        card.getChildren().addAll(header, status, explanation, resolution, actions);
+
+        modalLayer.getChildren().setAll(card);
+        modalLayer.setManaged(true);
+        modalLayer.setVisible(true);
+        card.setOpacity(0);
+        card.setScaleX(0.97);
+        card.setScaleY(0.97);
+
+        FadeTransition fade = new FadeTransition(Duration.millis(160), card);
+        fade.setFromValue(0);
+        fade.setToValue(1);
+
+        javafx.animation.ScaleTransition scale =
+                new javafx.animation.ScaleTransition(Duration.millis(160), card);
+        scale.setFromX(0.97);
+        scale.setFromY(0.97);
+        scale.setToX(1);
+        scale.setToY(1);
+
+        new ParallelTransition(fade, scale).play();
+        Platform.runLater(retry::requestFocus);
+    }
+
+    private void hideSessionLimitModal() {
+        if (modalLayer == null) {
+            return;
+        }
+        modalLayer.getChildren().clear();
+        modalLayer.setVisible(false);
+        modalLayer.setManaged(false);
+        submitButton.requestFocus();
     }
 
     private void showPasswordChangePage() {
