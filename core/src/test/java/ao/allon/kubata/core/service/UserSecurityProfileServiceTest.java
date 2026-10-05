@@ -199,7 +199,7 @@ class UserSecurityProfileServiceTest {
         activeSession.setLoginTime(LocalDateTime.of(2026, 10, 2, 9, 0));
 
         when(profileRepository.findByUserId(10L)).thenReturn(Optional.of(profile));
-        when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc("Administrador"))
+        when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc("Utilizador"))
                 .thenReturn(List.of(activeSession));
 
         assertThrows(
@@ -314,8 +314,6 @@ class UserSecurityProfileServiceTest {
         stored.setUser(user);
         stored.setLoginEnabled(false);
         stored.setAllowedModules(Set.of("FINANCEIRO"));
-        when(profileRepository.findByUserId(10L)).thenReturn(Optional.of(stored));
-
         UserSecurityProfile effective = service.getEffectiveProfile(user);
 
         assertTrue(effective.isLoginEnabled());
