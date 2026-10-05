@@ -1006,13 +1006,13 @@ public final class CentralLoginController {
         back.setCursor(Cursor.HAND);
         back.setStyle(
                 "-fx-background-color: white;"
-                        + "-fx-background-radius: 9;"
+                        + "-fx-background-radius: 8;"
                         + "-fx-border-color: #cfdad4;"
                         + "-fx-border-radius: 8;"
                         + "-fx-text-fill: #395347;"
                         + "-fx-font-size: 10px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-padding: 0 14px;"
+                        + "-fx-padding: 0 12px;"
         );
         back.setOnAction(event -> hideSessionLimitModal());
 
@@ -1021,13 +1021,13 @@ public final class CentralLoginController {
                     "LIBERTAR SESSÃO MAIS ANTIGA",
                     new FontIcon(Feather.UNLOCK)
             );
-            release.setPrefHeight(36);
+            release.setPrefHeight(38);
             release.setCursor(Cursor.HAND);
             release.setStyle(
                     "-fx-background-color: #fff7ed;"
-                            + "-fx-background-radius: 9;"
+                            + "-fx-background-radius: 8;"
                             + "-fx-border-color: #fed7aa;"
-                            + "-fx-border-radius: 9;"
+                            + "-fx-border-radius: 8;"
                             + "-fx-text-fill: #9a3412;"
                             + "-fx-font-size: 10px;"
                             + "-fx-font-weight: 800;"
