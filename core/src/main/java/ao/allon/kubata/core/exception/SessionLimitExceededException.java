@@ -11,11 +11,20 @@ public class SessionLimitExceededException extends AuthenticationException {
 
     private final int maxSessions;
     private final int activeSessions;
+    private final boolean administrator;
 
-    public SessionLimitExceededException(int maxSessions, int activeSessions) {
+    public SessionLimitExceededException(
+            int maxSessions,
+            int activeSessions,
+            boolean administrator) {
         super("O limite de sessões simultâneas desta conta foi atingido.");
         this.maxSessions = maxSessions;
         this.activeSessions = activeSessions;
+        this.administrator = administrator;
+    }
+
+    public SessionLimitExceededException(int maxSessions, int activeSessions) {
+        this(maxSessions, activeSessions, false);
     }
 
     public int getMaxSessions() {
@@ -24,5 +33,9 @@ public class SessionLimitExceededException extends AuthenticationException {
 
     public int getActiveSessions() {
         return activeSessions;
+    }
+
+    public boolean isAdministrator() {
+        return administrator;
     }
 }

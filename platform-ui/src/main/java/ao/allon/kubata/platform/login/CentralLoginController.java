@@ -970,6 +970,15 @@ public final class CentralLoginController {
         );
         resolution.getChildren().addAll(resolve, steps);
 
+        Label operationStatus = new Label();
+        operationStatus.setWrapText(true);
+        operationStatus.setVisible(false);
+        operationStatus.setManaged(false);
+        operationStatus.setStyle(
+                "-fx-font-size: 10px;"
+                        + "-fx-text-fill: #9a3412;"
+        );
+
         HBox actions = new HBox(7);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
@@ -983,9 +992,9 @@ public final class CentralLoginController {
                 "-fx-background-color: #217346;"
                         + "-fx-background-radius: 9;"
                         + "-fx-text-fill: white;"
-                        + "-fx-font-size: 11px;"
+                        + "-fx-font-size: 10px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-padding: 0 16px;"
+                        + "-fx-padding: 0 14px;"
         );
         retry.setOnAction(event -> {
             hideSessionLimitModal();
@@ -1001,14 +1010,47 @@ public final class CentralLoginController {
                         + "-fx-border-color: #cfdad4;"
                         + "-fx-border-radius: 9;"
                         + "-fx-text-fill: #395347;"
-                        + "-fx-font-size: 11px;"
+                        + "-fx-font-size: 10px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-padding: 0 16px;"
+                        + "-fx-padding: 0 14px;"
         );
         back.setOnAction(event -> hideSessionLimitModal());
 
+        if (exception.isAdministrator()) {
+            Button release = new Button(
+                    "LIBERTAR SESSÃO MAIS ANTIGA",
+                    new FontIcon(Feather.UNLOCK)
+            );
+            release.setPrefHeight(36);
+            release.setCursor(Cursor.HAND);
+            release.setStyle(
+                    "-fx-background-color: #fff7ed;"
+                            + "-fx-background-radius: 9;"
+                            + "-fx-border-color: #fed7aa;"
+                            + "-fx-border-radius: 9;"
+                            + "-fx-text-fill: #9a3412;"
+                            + "-fx-font-size: 10px;"
+                            + "-fx-font-weight: 800;"
+                            + "-fx-padding: 0 12px;"
+            );
+            release.setTooltip(
+                    new Tooltip("Encerra apenas a sessão mais antiga desta conta e tenta novamente.")
+            );
+            release.setOnAction(event ->
+                    releaseOldestSessionAndRetry(release, operationStatus)
+            );
+            actions.getChildren().add(release);
+        }
+
         actions.getChildren().addAll(back, retry);
-        card.getChildren().addAll(header, status, explanation, resolution, actions);
+        card.getChildren().addAll(
+                header,
+                status,
+                explanation,
+                resolution,
+                operationStatus,
+                actions
+        );
 
         modalLayer.getChildren().setAll(card);
         modalLayer.setManaged(true);
@@ -1030,6 +1072,70 @@ public final class CentralLoginController {
 
         new ParallelTransition(fade, scale).play();
         Platform.runLater(retry::requestFocus);
+    }
+
+    private void releaseOldestSessionAndRetry(
+            Button releaseButton,
+            Label operationStatus) {
+
+        String email = emailField == null ? "" : emailField.getText().trim();
+        String password = passwordField == null ? "" : passwordField.getText();
+
+        if (email.isBlank() || password.isBlank()) {
+            operationStatus.setText(
+                    "A palavra-passe da conta é necessária para executar esta operação."
+            );
+            operationStatus.setVisible(true);
+            operationStatus.setManaged(true);
+            return;
+        }
+
+        releaseButton.setDisable(true);
+        operationStatus.setText("A libertar a sessão mais antiga…");
+        operationStatus.setVisible(true);
+        operationStatus.setManaged(true);
+
+        final String ip = resolveSourceIp();
+
+        Task<Integer> task = new Task<>() {
+            @Override
+            protected Integer call() {
+                return authService.terminateOldestSessionForLogin(
+                        email,
+                        password,
+                        ip
+                );
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            int released = task.getValue() == null ? 0 : task.getValue();
+
+            if (released > 0) {
+                hideSessionLimitModal();
+                submit();
+                return;
+            }
+
+            releaseButton.setDisable(false);
+            operationStatus.setText(
+                    "Não foi encontrada uma sessão activa para libertar. Tente novamente."
+            );
+        });
+
+        task.setOnFailed(event -> {
+            releaseButton.setDisable(false);
+            Throwable error = task.getException();
+            operationStatus.setText(
+                    error == null || error.getMessage() == null
+                            ? "Não foi possível libertar a sessão."
+                            : error.getMessage()
+            );
+            operationStatus.setVisible(true);
+            operationStatus.setManaged(true);
+        });
+
+        executor.submit(task);
     }
 
     private void hideSessionLimitModal() {
