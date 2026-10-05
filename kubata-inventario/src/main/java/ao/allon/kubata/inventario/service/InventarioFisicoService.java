@@ -49,16 +49,20 @@ public class InventarioFisicoService {
         }
         inv = inventarioRepository.save(inv);
 
-        List<Produto> produtos = produtoRepository.findAll();
-        for (Produto produto : produtos) {
-            if (armazemId == null) {
-                int total = stockService.stockTotalProduto(produto.getId());
-                if (total > 0) criarLinha(inv, produto, null, total, null, produto.getPrecoCompra());
-            } else {
-                int total = stockService.stockTotal(produto.getId(), armazemId);
-                if (total > 0) criarLinha(inv, produto, inv.getArmazem(), total, null, produto.getPrecoCompra());
+        for (Estoque stock : estoqueRepository.findAll()) {
+            if (!Boolean.TRUE.equals(stock.getActive())
+                    || stock.getProduto() == null
+                    || stock.getArmazem() == null
+                    || nvl(stock.getQuantidade()) <= 0) {
+                continue;
             }
+            if (armazemId != null && !armazemId.equals(stock.getArmazem().getId())) {
+                continue;
+            }
+            criarLinha(inv, stock.getProduto(), stock.getArmazem(),
+                    nvl(stock.getQuantidade()), stock.getLote(), stock.getPrecoCompra());
         }
+
         return inventarioRepository.save(inv);
     }
 
@@ -125,4 +129,5 @@ public class InventarioFisicoService {
         inv.addLinha(linha);
         linhaRepository.save(linha);
     }
+    private int nvl(Integer value) { return value == null ? 0 : value; }
 }
