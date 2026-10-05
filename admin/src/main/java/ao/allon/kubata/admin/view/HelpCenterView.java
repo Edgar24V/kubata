@@ -159,7 +159,7 @@ public class HelpCenterView extends BorderPane {
         row.getStyleClass().add("kubata-help-quick-row");
 
         row.getChildren().addAll(
-                quickTopic("Começar", "overview", Feather.ROCKET),
+                quickTopic("Começar", "overview", Feather.PLAY),
                 quickTopic("Segurança", "profiles", Feather.SHIELD),
                 quickTopic("Sessões", "sessions", Feather.USERS),
                 quickTopic("MFA", "login", Feather.SMARTPHONE),
