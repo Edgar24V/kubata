@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Component
+@Component("inventarioModalManager")
 public class ModalManager {
 
     private Window owner(Node node) {
