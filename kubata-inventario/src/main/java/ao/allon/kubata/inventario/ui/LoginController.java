@@ -8,7 +8,7 @@ import javafx.stage.Stage;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("inventarioLoginController")
 public class LoginController {
     private final CentralLoginController delegate;
 
