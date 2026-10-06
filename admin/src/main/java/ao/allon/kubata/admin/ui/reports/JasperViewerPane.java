@@ -1,5 +1,6 @@
 package ao.allon.kubata.admin.ui.reports;
 
+import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -124,8 +125,10 @@ public class JasperViewerPane extends BorderPane {
         try {
             JasperPrintManager.printReport(jasperPrint, true);
         } catch (JRException ex) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Erro ao imprimir: " + ex.getMessage());
-            alert.show();
+            ModalManager modalManager = ModalManager.current();
+            if (modalManager != null) {
+                modalManager.alert("Impressão", "Erro ao imprimir: " + ex.getMessage(), "error", null);
+            }
         }
     }
 }

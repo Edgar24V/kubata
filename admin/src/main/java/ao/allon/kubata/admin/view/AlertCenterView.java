@@ -322,30 +322,29 @@ public class AlertCenterView extends BorderPane {
         field(grid, 5, "Referência", referencia);
         field(grid, 6, "Responsável", responsavel);
 
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Novo alerta");
-        dialog.setHeaderText("Registar ocorrência no Alert Center");
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().getButtonTypes().addAll(
-                ButtonType.CANCEL, ButtonType.OK);
-
-        dialog.showAndWait().ifPresent(result -> {
-            if (result != ButtonType.OK) return;
-            try {
-                alertaService.criar(actor,
-                        codigo.getText(),
-                        titulo.getText(),
-                        descricao.getText(),
-                        severidade.getValue(),
-                        origem.getText(),
-                        referencia.getText(),
-                        responsavel.getValue());
-                show("Alert Center", "Alerta criado com sucesso.");
-                refresh();
-            } catch (Exception ex) {
-                showError("Novo alerta", ex);
-            }
-        });
+        modalManager.showModal(grid, new ModalManager.ModalConfig()
+                .title("Novo alerta")
+                .subtitle("Registar ocorrência no Alert Center")
+                .icon(Feather.ALERT_TRIANGLE)
+                .scrollable(true)
+                .maximizable(false)
+                .withConfirmButtons("Criar", "Cancelar")
+                .onConfirm(() -> {
+                    try {
+                        alertaService.criar(actor,
+                                codigo.getText(),
+                                titulo.getText(),
+                                descricao.getText(),
+                                severidade.getValue(),
+                                origem.getText(),
+                                referencia.getText(),
+                                responsavel.getValue());
+                        show("Alert Center", "Alerta criado com sucesso.");
+                        refresh();
+                    } catch (Exception ex) {
+                        showError("Novo alerta", ex);
+                    }
+                }));
     }
 
     private void transition(String title, Alerta alert, Action action) {
@@ -357,25 +356,34 @@ public class AlertCenterView extends BorderPane {
             return;
         }
 
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle(title);
-        dialog.setHeaderText(title + " · " + alert.getCodigo());
-        dialog.setContentText("Observação (opcional):");
+        TextArea noteField = new TextArea();
+        noteField.setPromptText("Observação (opcional)");
+        noteField.setPrefRowCount(3);
+        noteField.setWrapText(true);
 
-        dialog.showAndWait().ifPresent(note -> {
-            try {
-                switch (action) {
-                    case ACKNOWLEDGE -> alertaService.reconhecer(actor, alert.getId(), note);
-                    case RESOLVE -> alertaService.resolver(actor, alert.getId(), note);
-                    case IGNORE -> alertaService.ignorar(actor, alert.getId(), note);
-                    case REOPEN -> alertaService.reabrir(actor, alert.getId(), note);
-                }
-                show("Alert Center", title + " concluída.");
-                refresh();
-            } catch (Exception ex) {
-                showError(title, ex);
-            }
-        });
+        VBox box = new VBox(9, new Label("Observação (opcional):"), noteField);
+
+        modalManager.showModal(box, new ModalManager.ModalConfig()
+                .title(title)
+                .subtitle(alert.getCodigo())
+                .icon(Feather.EDIT_3)
+                .maximizable(false)
+                .withConfirmButtons("Confirmar", "Cancelar")
+                .onConfirm(() -> {
+                    String note = noteField.getText();
+                    try {
+                        switch (action) {
+                            case ACKNOWLEDGE -> alertaService.reconhecer(actor, alert.getId(), note);
+                            case RESOLVE -> alertaService.resolver(actor, alert.getId(), note);
+                            case IGNORE -> alertaService.ignorar(actor, alert.getId(), note);
+                            case REOPEN -> alertaService.reabrir(actor, alert.getId(), note);
+                        }
+                        show("Alert Center", title + " concluída.");
+                        refresh();
+                    } catch (Exception ex) {
+                        showError(title, ex);
+                    }
+                }));
     }
 
     private void assignResponsible() {
@@ -417,23 +425,21 @@ public class AlertCenterView extends BorderPane {
                 new Label("Observação"), note);
         box.setPadding(new Insets(6));
 
-        ButtonType assign = new ButtonType("Atribuir", ButtonBar.ButtonData.OK_DONE);
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Atribuir responsável");
-        dialog.setHeaderText(alert.getCodigo());
-        dialog.getDialogPane().setContent(box);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, assign);
-
-        dialog.showAndWait().ifPresent(result -> {
-            if (result != assign) return;
-            try {
-                alertaService.atribuirResponsavel(actor, alert.getId(), combo.getValue(), note.getText());
-                show("Alert Center", "Responsável actualizado.");
-                refresh();
-            } catch (Exception ex) {
-                showError("Responsável", ex);
-            }
-        });
+        modalManager.showModal(box, new ModalManager.ModalConfig()
+                .title("Atribuir responsável")
+                .subtitle(alert.getCodigo())
+                .icon(Feather.USER_CHECK)
+                .maximizable(false)
+                .withConfirmButtons("Atribuir", "Cancelar")
+                .onConfirm(() -> {
+                    try {
+                        alertaService.atribuirResponsavel(actor, alert.getId(), combo.getValue(), note.getText());
+                        show("Alert Center", "Responsável actualizado.");
+                        refresh();
+                    } catch (Exception ex) {
+                        showError("Responsável", ex);
+                    }
+                }));
     }
 
     private void showHistory() {

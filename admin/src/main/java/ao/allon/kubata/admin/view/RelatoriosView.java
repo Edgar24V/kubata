@@ -18,7 +18,6 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
@@ -27,7 +26,6 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.kordamp.ikonli.feather.Feather;
@@ -623,19 +621,11 @@ public class RelatoriosView extends VBox {
                         btnGerar.setDisable(false);
                         
                         JasperViewerPane viewer = new JasperViewerPane(jp);
-                        Stage stage = new Stage();
-                        stage.setTitle("Kubata Admin - Visualizador: " + reportTitle);
-                        stage.setScene(new Scene(viewer, 1000, 750));
-                        
-                        // Tenta carregar o ícone de forma segura
-                        try {
-                            InputStream iconStream = getClass().getResourceAsStream("/images/logo.png");
-                            if (iconStream != null) {
-                                stage.getIcons().add(new javafx.scene.image.Image(iconStream));
-                            }
-                        } catch (Exception ignore) {}
-                        
-                        stage.show();
+                        modalManager.showModal(viewer, new ModalManager.ModalConfig()
+                                .title("Visualizador")
+                                .subtitle(reportTitle)
+                                .icon(Feather.FILE_TEXT)
+                                .large());
                     });
                 }
 
@@ -918,10 +908,11 @@ public class RelatoriosView extends VBox {
 
                 Platform.runLater(() -> {
                     JasperViewerPane viewer = new JasperViewerPane(print);
-                    Stage stage = new Stage();
-                    stage.setTitle("Kubata Admin - Auditoria");
-                    stage.setScene(new Scene(viewer, 1100, 780));
-                    stage.show();
+                    modalManager.showModal(viewer, new ModalManager.ModalConfig()
+                            .title("Auditoria")
+                            .subtitle("Histórico de auditoria")
+                            .icon(Feather.FILE_TEXT)
+                            .large());
                 });
             } catch (Exception ex) {
                 Platform.runLater(() -> modalManager.alert(

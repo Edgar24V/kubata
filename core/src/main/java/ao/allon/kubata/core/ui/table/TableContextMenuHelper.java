@@ -261,14 +261,10 @@ public class TableContextMenuHelper<S> {
     }
 
     private void confirmAndDelete(S item) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmar Exclusão");
-        confirm.setHeaderText("Excluir " + entityName);
-        confirm.setContentText("Tem certeza que deseja excluir este " + entityName.toLowerCase() + "?");
-
-        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-            onDelete.accept(item);
-        }
+        ao.allon.kubata.core.ui.dialog.DialogBridge.confirm(
+                "Confirmar Exclusão",
+                "Tem certeza que deseja excluir este " + entityName.toLowerCase() + "?",
+                () -> onDelete.accept(item));
     }
 
     private void copySelectionToClipboard() {
@@ -393,19 +389,11 @@ public class TableContextMenuHelper<S> {
     }
 
     private void showInfo(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        ao.allon.kubata.core.ui.dialog.DialogBridge.info(title, content);
     }
 
     private void showError(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        ao.allon.kubata.core.ui.dialog.DialogBridge.error(title, content);
     }
 
     /**

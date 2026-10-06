@@ -1,5 +1,6 @@
 package ao.allon.kubata.admin.ui.util;
 
+import ao.allon.kubata.admin.ui.modal.ModalManager;
 import javafx.application.Platform;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,11 +40,27 @@ public class GlobalExceptionHandler {
 
     private static void showErrorDialog(Throwable throwable) {
         try {
-            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
-            alert.setTitle("Erro Inesperado");
-            alert.setHeaderText("Ocorreu um erro inesperado");
-            alert.setContentText("Detalhes: " + throwable.getMessage());
-            alert.showAndWait();
+            ModalManager modalManager = ModalManager.current();
+            String message = throwable.getMessage() == null
+                    ? throwable.getClass().getSimpleName()
+                    : throwable.getMessage();
+
+            if (modalManager != null && modalManager.isAttached()) {
+                modalManager.showErrorModal(
+                        "Erro Inesperado",
+                        "Ocorreu um erro inesperado: " + message,
+                        throwable);
+            } else {
+                // Ainda não existe janela principal onde desenhar o modal
+                // (falha durante o arranque/login): fica registado no log e,
+                // como último recurso, mostra-se um alerta nativo.
+                javafx.scene.control.Alert alert =
+                        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                alert.setTitle("Erro Inesperado");
+                alert.setHeaderText("Ocorreu um erro inesperado");
+                alert.setContentText("Detalhes: " + message);
+                alert.show();
+            }
         } finally {
             showingDialog.set(false);
         }

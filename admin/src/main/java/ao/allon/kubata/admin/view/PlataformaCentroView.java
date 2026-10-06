@@ -1,5 +1,6 @@
 package ao.allon.kubata.admin.view;
 
+import ao.allon.kubata.admin.ui.modal.ModalManager;
 import ao.allon.kubata.admin.service.ModuleInstallationService;
 import ao.allon.kubata.admin.service.NotificationService;
 import ao.allon.kubata.admin.ui.util.IconUtils;
@@ -88,6 +89,7 @@ public class PlataformaCentroView extends BorderPane {
     private TextField smtpUser;
     private PasswordField smtpPassword;
     private TextField documentsDirectory;
+    private final ModalManager modalManager;
     private ComboBox<String> globalLanguage;
     private ComboBox<String> globalTheme;
     private ComboBox<String> globalDensity;
@@ -102,8 +104,10 @@ public class PlataformaCentroView extends BorderPane {
             ModuleRegistry moduleRegistry,
             ModuleInstallationService moduleInstallationService,
             NotificationService notificationService,
-            ObjectProvider<Flyway> flywayProvider) {
+            ObjectProvider<Flyway> flywayProvider,
+            ModalManager modalManager) {
 
+        this.modalManager = modalManager;
         this.parametroRepository = parametroRepository;
         this.moduloRepository = moduloRepository;
         this.moduleRegistry = moduleRegistry;
@@ -372,10 +376,6 @@ public class PlataformaCentroView extends BorderPane {
     }
 
     private void addJobDialog() {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Nova tarefa agendada");
-        dialog.setHeaderText("Criar uma operação administrativa");
-
         ComboBox<String> type = new ComboBox<>(FXCollections.observableArrayList(
                 "VERIFICAR_ALERTAS",
                 "DIAGNOSTICO_JVM",
@@ -383,8 +383,11 @@ public class PlataformaCentroView extends BorderPane {
                 "VERIFICAR_MIGRACOES"
         ));
         type.getSelectionModel().selectFirst();
+        type.setMaxWidth(Double.MAX_VALUE);
 
         Spinner<Integer> seconds = new Spinner<>(10, 86400, 300, 10);
+        seconds.setEditable(true);
+        seconds.setMaxWidth(Double.MAX_VALUE);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -393,36 +396,34 @@ public class PlataformaCentroView extends BorderPane {
         grid.add(type, 1, 0);
         grid.add(new Label("Intervalo (seg.)"), 0, 1);
         grid.add(seconds, 1, 1);
+        GridPane.setHgrow(type, Priority.ALWAYS);
+        GridPane.setHgrow(seconds, Priority.ALWAYS);
 
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+        modalManager.showModal(grid, new ModalManager.ModalConfig()
+                .title("Nova tarefa agendada")
+                .subtitle("Criar uma operação administrativa")
+                .icon(Feather.CLOCK)
+                .maximizable(false)
+                .withConfirmButtons("Criar", "Cancelar")
+                .onConfirm(() -> {
+                    String id = type.getValue();
+                    JobRow row = jobs.stream()
+                            .filter(j -> j.getId().equals(id))
+                            .findFirst()
+                            .orElse(null);
 
-        dialog.setResultConverter(button -> {
-            if (button != ButtonType.OK) {
-                return null;
-            }
+                    if (row == null) {
+                        row = new JobRow(id, id.replace('_', ' '), seconds.getValue(), true);
+                        jobs.add(row);
+                    } else {
+                        row.setIntervalSeconds(seconds.getValue());
+                        row.setActive(true);
+                    }
 
-            String id = type.getValue();
-            JobRow row = jobs.stream()
-                    .filter(j -> j.getId().equals(id))
-                    .findFirst()
-                    .orElse(null);
-
-            if (row == null) {
-                row = new JobRow(id, id.replace('_', ' '), seconds.getValue(), true);
-                jobs.add(row);
-            } else {
-                row.setIntervalSeconds(seconds.getValue());
-                row.setActive(true);
-            }
-
-            persistJobs();
-            scheduleJob(row);
-            jobsTable.refresh();
-            return null;
-        });
-
-        dialog.showAndWait();
+                    persistJobs();
+                    scheduleJob(row);
+                    jobsTable.refresh();
+                }));
     }
 
     private void runSelectedJob() {

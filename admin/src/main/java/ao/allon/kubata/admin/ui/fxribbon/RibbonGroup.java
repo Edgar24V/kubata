@@ -19,6 +19,8 @@ import java.util.List;
  *   título da categoria
  */
 public class RibbonGroup extends VBox {
+    private static final int MAX_SMALL_PER_COLUMN = 3;
+
 
     private final String groupTitle;
     private final HBox contentBox;
@@ -109,16 +111,24 @@ public class RibbonGroup extends VBox {
         addColumn(List.of(button));
     }
 
+    /**
+     * Adiciona botões pequenos ao grupo. Cada coluna aceita no máximo
+     * {@value #MAX_SMALL_PER_COLUMN} botões; se forem passados mais, são
+     * distribuídos de forma equilibrada por várias colunas (ex.: 4 -> 2 + 2).
+     */
     public void addSmallButtons(List<RibbonButton> buttons) {
         if (buttons == null || buttons.isEmpty()) {
             return;
         }
 
-        if (buttons.size() > 3) {
-            throw new IllegalArgumentException("Máximo de 3 botões SMALL por coluna.");
-        }
+        int total = buttons.size();
+        int columnCount = (int) Math.ceil(total / (double) MAX_SMALL_PER_COLUMN);
+        int perColumn = (int) Math.ceil(total / (double) columnCount);
 
-        addColumn(buttons);
+        for (int start = 0; start < total; start += perColumn) {
+            addColumn(new java.util.ArrayList<>(
+                    buttons.subList(start, Math.min(start + perColumn, total))));
+        }
     }
 
     public String getGroupTitle() {

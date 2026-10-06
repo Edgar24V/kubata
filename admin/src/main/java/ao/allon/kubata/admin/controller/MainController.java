@@ -11,8 +11,8 @@ import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.service.AuthService;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -62,14 +62,14 @@ public class MainController {
     public void onLoginSuccess(LoginSuccessEvent event) {
         User user = event.getUser();
         if (user == null || user.getRole() == null) {
-            showAlert("Acesso negado", "Utilizador inválido.");
             switchToLogin();
+            showAlert("Acesso negado", "Utilizador inválido.");
             return;
         }
 
         if (user.getRole() != Role.ADMIN) {
-            showAlert("Acesso negado", "Apenas administradores podem aceder ao Kubata.");
             switchToLogin();
+            showAlert("Acesso negado", "Apenas administradores podem aceder ao Kubata.");
             return;
         }
 
@@ -79,6 +79,12 @@ public class MainController {
 
     private void switchToLogin() {
         Parent root = loginController.createView(stage);
+
+        // O ecrã de login também apresenta os seus avisos através do ModalManager.
+        if (root instanceof StackPane loginRoot) {
+            modalManager.hideAllModals();
+            modalManager.setRoot(loginRoot);
+        }
 
         // Janela de login sem moldura nativa, com controles personalizados
         // e suporte a maximizar/restaurar.
@@ -226,21 +232,12 @@ public class MainController {
     private void confirmLogout() {
         User user = sessionManager.getUser();
 
-        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmation.setTitle("Encerrar Sessão");
-        confirmation.setHeaderText("Pretende encerrar a sessão actual?");
-        confirmation.setContentText(
-                user == null || user.getNome() == null
-                        ? "Será devolvido ao ecrã de login."
-                        : "A sessão de \"" + user.getNome()
-                                + "\" será encerrada e voltará ao ecrã de login."
-        );
+        String message = user == null || user.getNome() == null
+                ? "Pretende encerrar a sessão actual? Será devolvido ao ecrã de login."
+                : "Pretende encerrar a sessão de \"" + user.getNome()
+                        + "\"? Voltará ao ecrã de login.";
 
-        confirmation.showAndWait().ifPresent(result -> {
-            if (result == javafx.scene.control.ButtonType.OK) {
-                performLogoutAndShowLogin();
-            }
-        });
+        modalManager.showConfirm("Encerrar Sessão", message, this::performLogoutAndShowLogin);
     }
 
     /**
@@ -263,10 +260,6 @@ public class MainController {
     }
 
     private void showAlert(String title, String content) {
-        Alert a = new Alert(Alert.AlertType.WARNING);
-        a.setTitle(title);
-        a.setHeaderText(title);
-        a.setContentText(content);
-        a.showAndWait();
+        modalManager.alert(title, content, "warning", null);
     }
 }

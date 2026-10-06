@@ -835,29 +835,21 @@ public class AdvancedTableView<S> extends TableView<S> {
                 return;
             }
 
-            Alert confirm = new Alert(
-                    Alert.AlertType.CONFIRMATION,
+            ao.allon.kubata.core.ui.dialog.DialogBridge.confirm(
+                    "Eliminar registos",
                     "Eliminar " + selected.size() + " registo(s)?",
-                    ButtonType.YES,
-                    ButtonType.NO
-            );
+                    () -> {
+                        List<S> copy = List.copyOf(selected);
 
-            confirm.showAndWait().ifPresent(button -> {
-                if (button != ButtonType.YES) {
-                    return;
-                }
+                        if (onBatchDeleteCallback != null) {
+                            onBatchDeleteCallback.accept(copy);
+                        } else if (filteredData != null) {
+                            filteredData.getSource().removeAll(copy);
+                        }
 
-                List<S> copy = List.copyOf(selected);
-
-                if (onBatchDeleteCallback != null) {
-                    onBatchDeleteCallback.accept(copy);
-                } else if (filteredData != null) {
-                    filteredData.getSource().removeAll(copy);
-                }
-
-                selectedItems.clear();
-                refresh();
-            });
+                        selectedItems.clear();
+                        refresh();
+                    });
         });
 
         MenuItem exportSelected = new MenuItem("Exportar seleccionados para CSV");

@@ -1,6 +1,7 @@
 package ao.allon.kubata.admin.ui.modal;
 
 import ao.allon.kubata.admin.ui.util.IconUtils;
+import ao.allon.kubata.core.ui.dialog.DialogBridge;
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.application.Platform;
@@ -41,6 +42,21 @@ public class ModalManager {
     private static final String TITLE_CLASS = "label-title";
     private static final Insets DEFAULT_MARGIN = new Insets(20);
     private static final Insets DEFAULT_PADDING = new Insets(20);
+
+    /**
+     * Dimensões uniformes dos modais. A altura é sempre derivada da largura
+     * ({@link #ASPECT_RATIO}), por isso todos os modais partilham a mesma
+     * proporção, independentemente do tamanho pedido pela vista.
+     */
+    private static final double ASPECT_RATIO = 0.75;       // altura = 75% da largura (4:3)
+    private static final double DEFAULT_MODAL_WIDTH = 440;  // modal sem tamanho explícito
+    private static final double MIN_MODAL_WIDTH = 400;
+    private static final double MAX_MODAL_WIDTH = 640;
+    private static final double REQUESTED_SIZE_SCALE = 0.72; // reduz o tamanho pedido pelas vistas
+    private static final double LARGE_MODAL_WIDTH = 880;     // pré-visualizadores (relatórios)
+    private static final double ROOT_MARGIN = 48;
+
+    private static volatile ModalManager instance;
 
     /**
      * Pilha de modais activos. Cada modal recebe o seu próprio overlay,
@@ -100,6 +116,7 @@ public class ModalManager {
         private boolean showWindowControls = true;
         private boolean minimizable = true;
         private boolean maximizable = true;
+        private boolean large = false;
 
         public ModalConfig title(String title) {
             this.title = title == null ? "" : title;
@@ -128,6 +145,15 @@ public class ModalManager {
 
         public ModalConfig closeOnEscape(boolean enabled) {
             this.closeOnEscape = enabled;
+            return this;
+        }
+
+        /**
+         * Modal de pré-visualização (relatórios, documentos): maior que o
+         * normal, mas com a mesma proporção uniforme.
+         */
+        public ModalConfig large() {
+            this.large = true;
             return this;
         }
 
@@ -242,6 +268,40 @@ public class ModalManager {
 
     public ModalManager() {
         // Os overlays são criados sob demanda para suportar nesting ilimitado.
+        instance = this;
+        DialogBridge.register(new DialogBridge.Handler() {
+            @Override
+            public void message(String title, String message, String type) {
+                runOnFx(() -> alert(title, message == null ? "" : message, type, null));
+            }
+
+            @Override
+            public void confirm(String title, String message, Runnable onConfirm) {
+                runOnFx(() -> showConfirm(title, message, onConfirm));
+            }
+        });
+    }
+
+    /**
+     * Instância única do gestor (é um singleton Spring). Permite que código que
+     * não é um bean — como o handler global de excepções — abra modais.
+     * Pode devolver {@code null} antes de o contexto Spring arrancar.
+     */
+    public static ModalManager current() {
+        return instance;
+    }
+
+    /** Indica se já existe uma raiz onde os modais podem ser desenhados. */
+    public boolean isAttached() {
+        return attachedRoot != null && attachedRoot.getScene() != null;
+    }
+
+    private static void runOnFx(Runnable action) {
+        if (Platform.isFxApplicationThread()) {
+            action.run();
+        } else {
+            Platform.runLater(action);
+        }
     }
 
     /**
@@ -300,7 +360,10 @@ public class ModalManager {
         VBox loadingContent = createLoadingContent(title, message, task);
         targetPane.setCloseAction(() -> closeModalPane(targetPane));
         InternalModalBox loadingModal = new InternalModalBox(targetPane, true, true);
-        loadingModal.setPrefSize(410, 230);
+        double loadingWidth = MIN_MODAL_WIDTH;
+        loadingModal.setPrefSize(loadingWidth, Math.round(loadingWidth * ASPECT_RATIO));
+        loadingModal.setMinSize(loadingWidth, Math.round(loadingWidth * ASPECT_RATIO));
+        loadingModal.setMaxSize(loadingWidth, Math.round(loadingWidth * ASPECT_RATIO));
         loadingModal.addContent(loadingContent);
 
         currentLoadingModal = loadingModal;
@@ -757,34 +820,46 @@ public class ModalManager {
         }
     }
 
+    /**
+     * Calcula a largura/altura uniformes do modal. A largura vem do tamanho
+     * pedido pela vista (reduzido e limitado) e a altura é sempre derivada dela.
+     */
+    private double[] uniformSize(ModalConfig config) {
+        double width;
+        if (config.large) {
+            width = LARGE_MODAL_WIDTH;
+        } else if (config.width > 0) {
+            width = Math.max(MIN_MODAL_WIDTH,
+                    Math.min(MAX_MODAL_WIDTH, config.width * REQUESTED_SIZE_SCALE));
+        } else {
+            width = DEFAULT_MODAL_WIDTH;
+        }
+
+        double height = width * ASPECT_RATIO;
+
+        // Nunca ultrapassar a janela: reduz mantendo a proporção.
+        if (attachedRoot != null) {
+            double rootWidth = attachedRoot.getLayoutBounds().getWidth() - ROOT_MARGIN * 2;
+            double rootHeight = attachedRoot.getLayoutBounds().getHeight() - ROOT_MARGIN * 2;
+            if (rootWidth > 0 && rootHeight > 0) {
+                double factor = Math.min(1.0, Math.min(rootWidth / width, rootHeight / height));
+                width *= factor;
+                height *= factor;
+            }
+        }
+
+        return new double[]{Math.round(width), Math.round(height)};
+    }
+
     private void configureInternalDialogSize(InternalModalBox dialog,
                                              ModalConfig config) {
-        if (config.width > 0 && config.height > 0) {
-            dialog.setPrefSize(config.width, config.height);
-        }
+        double[] size = uniformSize(config);
 
-        if (config.minWidth > 0) {
-            dialog.setMinWidth(config.minWidth);
-        }
-        if (config.minHeight > 0) {
-            dialog.setMinHeight(config.minHeight);
-        }
-
-        if (config.maxWidth > 0) {
-            dialog.setMaxWidth(config.maxWidth);
-        } else if (!config.resizable) {
-            dialog.setMaxWidth(config.width > 0 ? config.width : Region.USE_PREF_SIZE);
-        } else {
-            dialog.setMaxWidth(Region.USE_PREF_SIZE);
-        }
-
-        if (config.maxHeight > 0) {
-            dialog.setMaxHeight(config.maxHeight);
-        } else if (!config.resizable) {
-            dialog.setMaxHeight(config.height > 0 ? config.height : Region.USE_PREF_SIZE);
-        } else {
-            dialog.setMaxHeight(Region.USE_PREF_SIZE);
-        }
+        // Caixa de tamanho fixo e proporcional; o conteúdo excedente rola
+        // dentro do modal e o botão de maximizar continua disponível.
+        dialog.setMinSize(size[0], size[1]);
+        dialog.setPrefSize(size[0], size[1]);
+        dialog.setMaxSize(size[0], size[1]);
     }
 
     private Label createTitleLabel(String title) {
