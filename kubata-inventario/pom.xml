@@ -107,7 +107,9 @@
                 <configuration>
                     <mainClass>ao.allon.kubata.inventario.MainLauncher</mainClass>
                     <includeSystemScope>true</includeSystemScope>
-                    <skip>false</skip>
+                    <!-- Não arrancar o Inventário quando o reactor executa spring-boot:run
+                         para uma aplicação dependente, como o Administrator. -->
+                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
