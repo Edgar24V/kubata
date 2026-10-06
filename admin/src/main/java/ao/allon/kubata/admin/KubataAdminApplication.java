@@ -1,13 +1,20 @@
 package ao.allon.kubata.admin;
 
+import ao.allon.kubata.inventario.KubataInventarioApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootApplication(
-        scanBasePackages = {
+@SpringBootApplication(exclude = {
+        SecurityAutoConfiguration.class,
+        SecurityFilterAutoConfiguration.class
+})
+@ComponentScan(
+        basePackages = {
                 "ao.allon.kubata.admin",
                 "ao.allon.kubata.core",
                 "ao.allon.kubata.inventario",
@@ -17,7 +24,11 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
                 "ao.allon.kubata.contabilidade",
                 "ao.allon.kubata.fiscal"
         },
-        exclude = {SecurityAutoConfiguration.class, SecurityFilterAutoConfiguration.class})
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = KubataInventarioApplication.class
+        )
+)
 @EntityScan(basePackages = {
         "ao.allon.kubata.core.domain",
         "ao.allon.kubata.inventario.domain",
