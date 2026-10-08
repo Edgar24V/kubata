@@ -130,41 +130,28 @@ public final class CentralLoginController {
         }
 
         root = new StackPane();
-        root.setPrefSize(960, 680);
-        root.setMinSize(900, 620);
-        root.setStyle(
-                "-fx-background-color: transparent;"
-                        + "-fx-font-family: 'Segoe UI', 'Calibri', 'Arial', sans-serif;"
-                        + "-fx-font-size: 13px;"
-                        + "-fx-accent: #217346;"
-                        + "-fx-focus-color: #66BB6A;"
-                        + "-fx-faint-focus-color: rgba(33,115,70,0.12);"
-        );
+        root.setPrefSize(1120, 720);
+        root.setMinSize(920, 600);
+        root.setStyle("-fx-background-color: transparent;");
 
         clip = new Rectangle();
         clip.widthProperty().bind(root.widthProperty());
         clip.heightProperty().bind(root.heightProperty());
-        clip.setArcWidth(20);
-        clip.setArcHeight(20);
+        clip.setArcWidth(28);
+        clip.setArcHeight(28);
         root.setClip(clip);
 
         Region background = new Region();
         background.setStyle(
-                "-fx-background-color: #f4f7f6;"
-                        + "-fx-background-radius: 20px;"
+                "-fx-background-color: linear-gradient(to bottom right, "
+                        + "#edf5f0, #f8fafc);"
         );
 
-        Region gradientOverlay = new Region();
-        gradientOverlay.setStyle(
-                "-fx-background-color: linear-gradient("
-                        + "to bottom right, #1A5C35, #217346, #2ecc71);"
-                        + "-fx-background-radius: 20px;"
-        );
-
-        root.getChildren().addAll(background, gradientOverlay);
+        root.getChildren().add(background);
 
         installDragging();
         contentHost = new StackPane();
+        contentHost.setPadding(new Insets(32));
         root.getChildren().add(contentHost);
 
         modalLayer = new StackPane();
@@ -179,12 +166,10 @@ public final class CentralLoginController {
 
         buildLoginPage();
 
-        // O controlador central constrói apenas o conteúdo. A aplicação
-        // consumidora continua responsável por criar/atribuir a Scene.
-        stage.setWidth(960);
-        stage.setHeight(680);
-        stage.setMinWidth(900);
-        stage.setMinHeight(620);
+        stage.setWidth(1120);
+        stage.setHeight(720);
+        stage.setMinWidth(920);
+        stage.setMinHeight(600);
         stage.centerOnScreen();
 
         root.setOnKeyPressed(event -> {
@@ -207,206 +192,252 @@ public final class CentralLoginController {
     }
 
     private void buildLoginPage() {
-        HBox contentWrapper = createContentWrapper();
-        contentHost.getChildren().setAll(contentWrapper);
+        HBox shell = new HBox();
+        shell.setMaxSize(1000, 600);
+        shell.setMinSize(850, 520);
+        shell.setStyle(
+                "-fx-background-color: white;"
+                        + "-fx-background-radius: 22;"
+                        + "-fx-border-color: rgba(33,115,70,0.14);"
+                        + "-fx-border-width: 1;"
+                        + "-fx-border-radius: 22;"
+        );
+        shell.setEffect(new DropShadow(32, Color.rgb(15, 23, 42, 0.22)));
 
-        Button closeBtn = createFloatingCloseButton();
-        contentHost.getChildren().add(closeBtn);
-        StackPane.setAlignment(closeBtn, Pos.TOP_RIGHT);
-        StackPane.setMargin(closeBtn, new Insets(15));
+        VBox branding = buildBranding();
+        VBox form = buildAuthentication();
+        HBox.setHgrow(form, Priority.ALWAYS);
 
-        contentWrapper.setOpacity(0);
-        contentWrapper.setScaleX(0.96);
-        contentWrapper.setScaleY(0.96);
+        shell.getChildren().addAll(branding, form);
+        contentHost.getChildren().setAll(shell);
 
-        FadeTransition fade = new FadeTransition(Duration.millis(550), contentWrapper);
+        shell.setOpacity(0);
+        shell.setTranslateY(22);
+
+        FadeTransition fade = new FadeTransition(Duration.millis(450), shell);
         fade.setFromValue(0);
         fade.setToValue(1);
-
-        javafx.animation.ScaleTransition scale =
-                new javafx.animation.ScaleTransition(Duration.millis(550), contentWrapper);
-        scale.setFromX(0.96);
-        scale.setFromY(0.96);
-        scale.setToX(1);
-        scale.setToY(1);
-
-        new ParallelTransition(fade, scale).play();
+        TranslateTransition slide = new TranslateTransition(Duration.millis(450), shell);
+        slide.setFromY(22);
+        slide.setToY(0);
+        new ParallelTransition(fade, slide).play();
     }
 
-    private HBox createContentWrapper() {
-        HBox wrapper = new HBox();
-        wrapper.setMaxSize(960, 680);
-        wrapper.setMinSize(860, 600);
-        wrapper.setStyle(
-                "-fx-background-color: white;"
-                        + "-fx-background-radius: 20px;"
-        );
-        wrapper.setEffect(new DropShadow(30, Color.rgb(0, 0, 0, 0.20)));
-
-        VBox leftSide = createBrandingSide();
-        VBox rightSide = createFormSide();
-
-        HBox.setHgrow(rightSide, Priority.ALWAYS);
-        wrapper.getChildren().addAll(leftSide, rightSide);
-        return wrapper;
-    }
-
-    private VBox createBrandingSide() {
-        VBox leftSide = new VBox(25);
-        leftSide.setPrefWidth(480);
-        leftSide.setMinWidth(420);
-        leftSide.getStyleClass().add("login-visual-side");
-        leftSide.setAlignment(Pos.CENTER);
-        leftSide.setPadding(new Insets(40));
-        leftSide.setStyle(
-                "-fx-background-color: linear-gradient("
-                        + "to bottom right, rgba(26,92,53,0.92), rgba(33,115,70,0.82));"
-                        + "-fx-background-radius: 20px 0 0 20px;"
+    private VBox buildBranding() {
+        VBox box = new VBox(18);
+        box.setPrefWidth(400);
+        box.setMinWidth(360);
+        box.setPadding(new Insets(42));
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.setStyle(
+                "-fx-background-color: linear-gradient(to bottom right, #124d2f, #217346);"
+                        + "-fx-background-radius: 20 0 0 20;"
         );
 
-        FontIcon logoIcon = new FontIcon(Feather.SHIELD);
-        logoIcon.setIconSize(110);
-        logoIcon.setIconColor(Color.WHITE);
-        logoIcon.setEffect(new DropShadow(15, Color.rgb(255, 255, 255, 0.30)));
+        StackPane emblem = new StackPane();
+        emblem.setPrefSize(82, 82);
+        emblem.setMaxSize(82, 82);
+        emblem.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.13);"
+                        + "-fx-background-radius: 24;"
+                        + "-fx-border-color: rgba(255,255,255,0.22);"
+                        + "-fx-border-radius: 24;"
+                        + "-fx-border-width: 1;"
+        );
 
-        Label brandTitle = new Label("KUBATA");
-        brandTitle.setStyle(
-                "-fx-font-size: 42px;"
-                        + "-fx-font-weight: bold;"
+        FontIcon shield = new FontIcon(Feather.SHIELD);
+        shield.setIconSize(46);
+        shield.setIconColor(Color.WHITE);
+        emblem.getChildren().add(shield);
+
+        Label kubata = new Label("KUBATA");
+        kubata.setStyle(
+                "-fx-font-size: 38px;"
+                        + "-fx-font-weight: 900;"
                         + "-fx-text-fill: white;"
                         + "-fx-letter-spacing: 3px;"
         );
 
-        Label brandSlogan = new Label("Enterprise Resource Planning");
-        brandSlogan.setStyle(
-                "-fx-font-size: 16px;"
-                        + "-fx-text-fill: rgba(255,255,255,0.80);"
-                        + "-fx-font-style: italic;"
-        );
-
-        Label platformLabel = new Label(applicationName);
-        platformLabel.setStyle(
-                "-fx-font-size: 12px;"
+        Label platform = new Label("Plataforma Empresarial");
+        platform.setStyle(
+                "-fx-font-size: 18px;"
                         + "-fx-font-weight: 700;"
-                        + "-fx-text-fill: rgba(255,255,255,0.88);"
-                        + "-fx-padding: 6px 12px;"
-                        + "-fx-background-color: rgba(255,255,255,0.12);"
-                        + "-fx-background-radius: 20px;"
-                        + "-fx-border-color: rgba(255,255,255,0.20);"
-                        + "-fx-border-radius: 20px;"
+                        + "-fx-text-fill: rgba(255,255,255,0.94);"
         );
 
-        Label security = new Label(
-                "Identidade centralizada • MFA • Sessão segura • Perfis e permissões"
+        Label description = new Label(
+                "Uma única identidade para todas as aplicações Kubata."
         );
-        security.setWrapText(true);
-        security.setMaxWidth(330);
-        security.setAlignment(Pos.CENTER);
-        security.setStyle(
+        description.setWrapText(true);
+        description.setMaxWidth(300);
+        description.setStyle(
+                "-fx-font-size: 13px;"
+                        + "-fx-line-spacing: 3;"
+                        + "-fx-text-fill: rgba(255,255,255,0.72);"
+        );
+
+        VBox card = new VBox(8);
+        card.setPadding(new Insets(15));
+        card.setMaxWidth(310);
+        card.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.10);"
+                        + "-fx-background-radius: 14;"
+                        + "-fx-border-color: rgba(255,255,255,0.16);"
+                        + "-fx-border-radius: 14;"
+                        + "-fx-border-width: 1;"
+        );
+
+        Label title = new Label("Contexto de acesso");
+        title.setStyle(
                 "-fx-font-size: 11px;"
-                        + "-fx-text-fill: rgba(255,255,255,0.64);"
-                        + "-fx-text-alignment: center;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: rgba(255,255,255,0.68);"
         );
 
-        Region line = new Region();
-        line.setPrefHeight(1);
-        line.setMaxWidth(240);
-        line.setStyle("-fx-background-color: rgba(255,255,255,0.18);");
-
-        Label versionLabel = new Label("Kubata Platform • Autenticação Central");
-        versionLabel.setStyle(
-                "-fx-text-fill: rgba(255,255,255,0.50);"
-                        + "-fx-font-size: 10px;"
+        contextLabel = new Label(applicationName);
+        contextLabel.setStyle(
+                "-fx-font-size: 17px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: white;"
         );
 
-        leftSide.getChildren().addAll(
-                logoIcon,
-                brandTitle,
-                brandSlogan,
-                platformLabel,
-                security,
-                line,
-                versionLabel
+        card.getChildren().addAll(title, contextLabel);
+
+        Label footer = new Label(
+                "Autenticação central • sessão segura • controlo por empresa e perfil"
         );
-        return leftSide;
+        footer.setWrapText(true);
+        footer.setMaxWidth(310);
+        footer.setStyle(
+                "-fx-font-size: 10px;"
+                        + "-fx-text-fill: rgba(255,255,255,0.52);"
+        );
+
+        box.getChildren().addAll(
+                emblem,
+                kubata,
+                platform,
+                description,
+                card,
+                footer
+        );
+        return box;
     }
 
-    private VBox createFormSide() {
-        VBox rightSide = new VBox(22);
-        rightSide.setPrefWidth(480);
-        rightSide.setMinWidth(420);
-        rightSide.getStyleClass().add("login-form-side");
-        rightSide.setPadding(new Insets(56, 60, 50, 60));
-        rightSide.setStyle(
+    private VBox buildAuthentication() {
+        VBox box = new VBox(14);
+        box.setPadding(new Insets(42, 48, 40, 48));
+        box.setAlignment(Pos.TOP_LEFT);
+        box.setStyle(
                 "-fx-background-color: white;"
-                        + "-fx-background-radius: 0 20px 20px 0;"
-        );
-        rightSide.setAlignment(Pos.CENTER_LEFT);
-
-        VBox headerBox = new VBox(7);
-
-        Label welcomeLabel = new Label("KUBATA");
-        welcomeLabel.setStyle(
-                "-fx-font-weight: bold;"
-                        + "-fx-text-fill: #1A5C35;"
-                        + "-fx-font-size: 32px;"
+                        + "-fx-background-radius: 0 20 20 0;"
         );
 
-        Label instructionLabel = new Label("Aceda à gestão centralizada do sistema");
-        instructionLabel.setStyle(
-                "-fx-text-fill: #95a5a6;"
-                        + "-fx-font-size: 15px;"
+        HBox titleLine = new HBox();
+        titleLine.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label("Iniciar sessão");
+        title.setStyle(
+                "-fx-font-size: 29px;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-text-fill: #163725;"
         );
 
-        Label context = new Label(applicationName);
-        context.setStyle(
-                "-fx-text-fill: #217346;"
-                        + "-fx-font-size: 11px;"
-                        + "-fx-font-weight: 700;"
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox windowButtons = buildWindowButtons();
+        titleLine.getChildren().addAll(title, spacer, windowButtons);
+
+        Label subtitle = new Label(
+                "Use a sua conta Kubata para entrar na aplicação seleccionada."
         );
-
-        headerBox.getChildren().addAll(
-                welcomeLabel,
-                instructionLabel,
-                context
+        subtitle.setStyle(
+                "-fx-font-size: 13px;"
+                        + "-fx-text-fill: #64748b;"
         );
+        subtitle.setWrapText(true);
 
-        VBox formFields = createFormFields();
-        VBox.setVgrow(formFields, Priority.NEVER);
-
-        rightSide.getChildren().addAll(headerBox, formFields);
-        return rightSide;
-    }
-
-    private VBox createFormFields() {
-        VBox formFields = new VBox(18);
-
-        VBox emailBox = new VBox(8);
-        Label lblEmail = new Label("Utilizador ou Email");
-        lblEmail.setStyle(
-                "-fx-font-weight: 600;"
-                        + "-fx-font-size: 14px;"
-                        + "-fx-text-fill: #34495e;"
-        );
-
+        VBox emailBox = fieldBox("Email");
         emailField = new TextField();
-        emailField.setPromptText("exemplo@allon.ao");
-        emailField.setPrefHeight(50);
-        emailField.setStyle(
-                "-fx-background-color: #FFFFFF;"
-                        + "-fx-background-radius: 8px;"
-                        + "-fx-border-color: #d9e2dd;"
-                        + "-fx-border-width: 1px;"
-                        + "-fx-border-radius: 8px;"
-                        + "-fx-padding: 0 14px;"
-                        + "-fx-font-size: 13px;"
+        emailField.setPromptText("nome@empresa.ao");
+        styleField(emailField);
+        emailBox.getChildren().add(emailField);
+
+        VBox passwordBox = fieldBox("Palavra-passe");
+        HBox passwordLine = new HBox(8);
+
+        passwordField = new PasswordField();
+        passwordField.setPromptText("Introduza a sua palavra-passe");
+        styleField(passwordField);
+        HBox.setHgrow(passwordField, Priority.ALWAYS);
+
+        visiblePasswordField = new TextField();
+        visiblePasswordField.setPromptText("Introduza a sua palavra-passe");
+        styleField(visiblePasswordField);
+        visiblePasswordField.setVisible(false);
+        visiblePasswordField.setManaged(false);
+        visiblePasswordField.textProperty()
+                .bindBidirectional(passwordField.textProperty());
+        HBox.setHgrow(visiblePasswordField, Priority.ALWAYS);
+
+        showPasswordButton = new ToggleButton("Mostrar", new FontIcon(Feather.EYE));
+        showPasswordButton.setTooltip(
+                new Tooltip("Mostrar ou ocultar a palavra-passe")
+        );
+        showPasswordButton.setCursor(Cursor.HAND);
+        showPasswordButton.getStyleClass().add("kubata-login-small-button");
+        showPasswordButton.selectedProperty().addListener((obs, oldValue, selected) -> {
+            showPasswordButton.setText(selected ? "Ocultar" : "Mostrar");
+            showPasswordButton.setGraphic(
+                    new FontIcon(selected ? Feather.EYE_OFF : Feather.EYE)
+            );
+            passwordField.setVisible(!selected);
+            passwordField.setManaged(!selected);
+            visiblePasswordField.setVisible(selected);
+            visiblePasswordField.setManaged(selected);
+            (selected ? visiblePasswordField : passwordField).requestFocus();
+        });
+
+        passwordLine.getChildren().addAll(passwordField, visiblePasswordField, showPasswordButton);
+        passwordBox.getChildren().add(passwordLine);
+
+        VBox mfaBox = fieldBox("MFA");
+        HBox mfaHeader = new HBox(8);
+        mfaHeader.setAlignment(Pos.CENTER_LEFT);
+
+        mfaHintLabel = new Label("Preencha apenas quando a conta exigir MFA.");
+        mfaHintLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8;");
+        Region mfaSpacer = new Region();
+        HBox.setHgrow(mfaSpacer, Priority.ALWAYS);
+
+        recoveryModeLink = new Hyperlink("Usar recuperação");
+        recoveryModeLink.setStyle(
+                "-fx-font-size: 10px;"
+                        + "-fx-font-weight: 700;"
+                        + "-fx-text-fill: #217346;"
+        );
+        recoveryModeLink.setOnAction(e -> setRecoveryMode(!recoveryMode));
+
+        mfaHeader.getChildren().addAll(mfaHintLabel, mfaSpacer, recoveryModeLink);
+
+        mfaField = new TextField();
+        styleField(mfaField);
+        setRecoveryMode(false);
+
+        mfaBox.getChildren().addAll(mfaHeader, mfaField);
+
+        rememberEmail = new CheckBox("Lembrar email neste computador");
+        rememberEmail.setStyle(
+                "-fx-font-size: 11px;"
+                        + "-fx-text-fill: #64748b;"
         );
 
-        emailBox.getChildren().addAll(lblEmail, emailField);
-
-        VBox passwordBox = createPasswordBox();
-        HBox extraActions = createExtraActions();
-        VBox mfaBox = createMfaBox();
+        String remembered = preferences.get(PREF_EMAIL, "");
+        if (!remembered.isBlank()) {
+            emailField.setText(remembered);
+            rememberEmail.setSelected(true);
+        }
 
         messageLabel = new Label();
         messageLabel.setWrapText(true);
@@ -414,240 +445,113 @@ public final class CentralLoginController {
         messageLabel.setManaged(false);
         messageLabel.setVisible(false);
         messageLabel.setStyle(
-                "-fx-font-size: 12px;"
-                        + "-fx-padding: 10px 12px;"
-                        + "-fx-background-radius: 6px;"
+                "-fx-font-size: 11px;"
+                        + "-fx-font-weight: 700;"
+                        + "-fx-text-fill: #b91c1c;"
         );
 
         submitButton = new Button(
-                "AUTENTICAR NO SISTEMA",
+                "ENTRAR NO KUBATA",
                 new FontIcon(Feather.LOG_IN)
         );
-        submitButton.getStyleClass().add("button-primary");
+        submitButton.setPrefHeight(52);
         submitButton.setMaxWidth(Double.MAX_VALUE);
-        submitButton.setPrefHeight(60);
         submitButton.setCursor(Cursor.HAND);
         submitButton.setDefaultButton(true);
         submitButton.setStyle(
                 "-fx-background-color: #217346;"
-                        + "-fx-background-radius: 6px;"
+                        + "-fx-background-radius: 12;"
                         + "-fx-text-fill: white;"
                         + "-fx-font-size: 13px;"
                         + "-fx-font-weight: 800;"
-                        + "-fx-padding: 0 18px;"
+                        + "-fx-padding: 0 18;"
         );
         submitButton.setOnAction(e -> submit());
 
         loading = new ProgressIndicator();
-        loading.setMaxSize(28, 28);
+        loading.setMaxSize(24, 24);
         loading.setVisible(false);
         loading.setManaged(false);
 
-        StackPane buttonStack = new StackPane(submitButton, loading);
+        StackPane action = new StackPane(submitButton, loading);
 
-        formFields.getChildren().addAll(
+        Label security = new Label(
+                "Protegido pelo Core: password, MFA, bloqueio, sessão, empresa e permissões."
+        );
+        security.setWrapText(true);
+        security.setStyle(
+                "-fx-font-size: 10px;"
+                        + "-fx-text-fill: #94a3b8;"
+        );
+
+        VBox.setVgrow(security, Priority.NEVER);
+
+        box.getChildren().addAll(
+                titleLine,
+                subtitle,
                 emailBox,
                 passwordBox,
                 mfaBox,
-                extraActions,
-                messageLabel,
-                buttonStack
-        );
-
-        return formFields;
-    }
-
-    private VBox createPasswordBox() {
-        VBox passwordBox = new VBox(8);
-
-        Label lblPass = new Label("Palavra-passe");
-        lblPass.setStyle(
-                "-fx-font-weight: 600;"
-                        + "-fx-font-size: 14px;"
-                        + "-fx-text-fill: #34495e;"
-        );
-
-        passwordField = new PasswordField();
-        passwordField.setPromptText("••••••••");
-        passwordField.setPrefHeight(50);
-        styleField(passwordField);
-
-        visiblePasswordField = new TextField();
-        visiblePasswordField.setManaged(false);
-        visiblePasswordField.setVisible(false);
-        visiblePasswordField.setPrefHeight(50);
-        styleField(visiblePasswordField);
-        visiblePasswordField.textProperty().bindBidirectional(passwordField.textProperty());
-
-        showPasswordButton = new ToggleButton();
-        showPasswordButton.setGraphic(new FontIcon(Feather.EYE));
-        showPasswordButton.setTooltip(
-                new Tooltip("Mostrar ou ocultar a palavra-passe")
-        );
-        showPasswordButton.getStyleClass().add("button-icon-small");
-        showPasswordButton.setCursor(Cursor.HAND);
-        showPasswordButton.setStyle(
-                "-fx-background-color: transparent;"
-                        + "-fx-text-fill: #95a5a6;"
-                        + "-fx-min-width: 42px;"
-                        + "-fx-min-height: 42px;"
-        );
-
-        showPasswordButton.selectedProperty().addListener((obs, oldValue, selected) -> {
-            showPasswordButton.setGraphic(
-                    new FontIcon(selected ? Feather.EYE_OFF : Feather.EYE)
-            );
-            passwordField.setManaged(!selected);
-            passwordField.setVisible(!selected);
-            visiblePasswordField.setManaged(selected);
-            visiblePasswordField.setVisible(selected);
-            (selected ? visiblePasswordField : passwordField).requestFocus();
-        });
-
-        StackPane passStack = new StackPane(passwordField, visiblePasswordField);
-        HBox passContainer = new HBox(passStack, showPasswordButton);
-        HBox.setHgrow(passStack, Priority.ALWAYS);
-        passContainer.setAlignment(Pos.CENTER_LEFT);
-        passContainer.setSpacing(5);
-
-        passwordBox.getChildren().addAll(
-                lblPass,
-                passContainer
-        );
-        return passwordBox;
-    }
-
-    private HBox createExtraActions() {
-        HBox extraActions = new HBox();
-        extraActions.setAlignment(Pos.CENTER_LEFT);
-
-        rememberEmail = new CheckBox("Manter sessão iniciada");
-        rememberEmail.setStyle(
-                "-fx-font-size: 13px;"
-                        + "-fx-text-fill: #7f8c8d;"
-                        + "-fx-cursor: hand;"
-        );
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        recoveryModeLink = new Hyperlink("Recuperar palavra-passe");
-        recoveryModeLink.setStyle(
-                "-fx-font-size: 13px;"
-                        + "-fx-text-fill: #217346;"
-                        + "-fx-font-weight: 600;"
-        );
-        recoveryModeLink.setOnAction(e -> {
-            // Mantém o padrão visual do Administrator, usando a área MFA
-            // como caixa de recuperação centralizada.
-            if (recoveryMode) {
-                setRecoveryMode(false);
-            } else {
-                setRecoveryMode(true);
-            }
-        });
-
-        extraActions.getChildren().addAll(
                 rememberEmail,
-                spacer,
-                recoveryModeLink
-        );
-        return extraActions;
-    }
-
-    private VBox createMfaBox() {
-        VBox mfaBox = new VBox(8);
-
-        Label lblMfa = new Label("MFA / Recuperação");
-        lblMfa.setStyle(
-                "-fx-font-weight: 600;"
-                        + "-fx-font-size: 14px;"
-                        + "-fx-text-fill: #34495e;"
+                messageLabel,
+                action,
+                security
         );
 
-        HBox line = new HBox(8);
-        mfaField = new TextField();
-        mfaField.setPromptText("Código MFA de 6 dígitos");
-        styleField(mfaField);
-        HBox.setHgrow(mfaField, Priority.ALWAYS);
-
-        mfaHintLabel = new Label("Preencha apenas quando a conta exigir MFA.");
-        mfaHintLabel.setWrapText(true);
-        mfaHintLabel.setStyle(
-                "-fx-font-size: 10px;"
-                        + "-fx-text-fill: #95a5a6;"
-        );
-
-        line.getChildren().add(mfaField);
-        mfaBox.getChildren().addAll(line, mfaHintLabel);
-        return mfaBox;
-    }
-
-    private Button createFloatingCloseButton() {
-        Button closeBtn = new Button();
-        FontIcon icon = new FontIcon(Feather.X);
-        icon.setIconSize(15);
-        icon.setIconColor(Color.WHITE);
-        closeBtn.setGraphic(icon);
-        closeBtn.setAccessibleText("Fechar");
-        closeBtn.setCursor(Cursor.HAND);
-        closeBtn.setStyle(
-                "-fx-background-color: transparent;"
-                        + "-fx-text-fill: rgba(255,255,255,0.92);"
-                        + "-fx-background-radius: 50%;"
-                        + "-fx-min-width: 34px;"
-                        + "-fx-pref-width: 34px;"
-                        + "-fx-min-height: 34px;"
-                        + "-fx-pref-height: 34px;"
-                        + "-fx-padding: 0;"
-        );
-        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.18);"
-                        + "-fx-text-fill: white;"
-                        + "-fx-background-radius: 50%;"
-                        + "-fx-min-width: 34px;"
-                        + "-fx-pref-width: 34px;"
-                        + "-fx-min-height: 34px;"
-                        + "-fx-pref-height: 34px;"
-                        + "-fx-padding: 0;"
-        ));
-        closeBtn.setOnMouseExited(e -> closeBtn.setStyle(
-                "-fx-background-color: transparent;"
-                        + "-fx-text-fill: rgba(255,255,255,0.92);"
-                        + "-fx-background-radius: 50%;"
-                        + "-fx-min-width: 34px;"
-                        + "-fx-pref-width: 34px;"
-                        + "-fx-min-height: 34px;"
-                        + "-fx-pref-height: 34px;"
-                        + "-fx-padding: 0;"
-        ));
-        closeBtn.setOnAction(e -> stage.close());
-        return closeBtn;
+        return box;
     }
 
     private VBox fieldBox(String title) {
         VBox box = new VBox(6);
         Label label = new Label(title);
         label.setStyle(
-                "-fx-font-size: 11px;"
+                "-fx-font-size: 12px;"
                         + "-fx-font-weight: 700;"
-                        + "-fx-text-fill: #424A53;"
+                        + "-fx-text-fill: #334155;"
         );
         box.getChildren().add(label);
         return box;
     }
 
     private void styleField(TextField field) {
-        field.setPrefHeight(50);
+        field.setPrefHeight(45);
         field.setStyle(
-                "-fx-background-color: #FFFFFF;"
-                        + "-fx-background-radius: 8px;"
-                        + "-fx-border-color: #d9e2dd;"
-                        + "-fx-border-width: 1px;"
-                        + "-fx-border-radius: 8px;"
-                        + "-fx-padding: 0 14px;"
-                        + "-fx-font-size: 13px;"
+                "-fx-background-color: #f8fafc;"
+                        + "-fx-border-color: #dbe4df;"
+                        + "-fx-border-width: 1;"
+                        + "-fx-border-radius: 10;"
+                        + "-fx-background-radius: 10;"
+                        + "-fx-padding: 0 12;"
         );
+    }
+
+    private HBox buildWindowButtons() {
+        HBox bar = new HBox(2);
+        bar.setAlignment(Pos.CENTER_RIGHT);
+
+        Button minimize = windowButton(Feather.MINUS, "Minimizar", () -> stage.setIconified(true));
+        Button maximize = windowButton(
+                Feather.MAXIMIZE_2,
+                "Maximizar",
+                () -> toggleMaximize()
+        );
+        Button close = windowButton(
+                Feather.X,
+                "Fechar",
+                () -> stage.close()
+        );
+
+        bar.getChildren().addAll(minimize, maximize, close);
+        return bar;
+    }
+
+    private Button windowButton(Feather icon, String text, Runnable action) {
+        Button button = new Button("", new FontIcon(icon));
+        button.setAccessibleText(text);
+        button.setCursor(Cursor.HAND);
+        button.getStyleClass().add("kubata-login-window-button");
+        button.setOnAction(e -> action.run());
+        return button;
     }
 
     private void installDragging() {
@@ -666,6 +570,43 @@ public final class CentralLoginController {
             stage.setX(e.getScreenX() - dragX);
             stage.setY(e.getScreenY() - dragY);
         });
+    }
+
+    private void toggleMaximize() {
+        if (maximized) {
+            stage.setX(restoreX);
+            stage.setY(restoreY);
+            stage.setWidth(restoreWidth);
+            stage.setHeight(restoreHeight);
+            maximized = false;
+            clip.setArcWidth(28);
+            clip.setArcHeight(28);
+            return;
+        }
+
+        restoreX = stage.getX();
+        restoreY = stage.getY();
+        restoreWidth = stage.getWidth();
+        restoreHeight = stage.getHeight();
+
+        javafx.geometry.Rectangle2D bounds =
+                Screen.getScreensForRectangle(
+                        stage.getX(),
+                        stage.getY(),
+                        Math.max(stage.getWidth(), 1),
+                        Math.max(stage.getHeight(), 1)
+                ).stream()
+                        .findFirst()
+                        .orElse(Screen.getPrimary())
+                        .getVisualBounds();
+
+        stage.setX(bounds.getMinX());
+        stage.setY(bounds.getMinY());
+        stage.setWidth(bounds.getWidth());
+        stage.setHeight(bounds.getHeight());
+        maximized = true;
+        clip.setArcWidth(0);
+        clip.setArcHeight(0);
     }
 
     private void setRecoveryMode(boolean enabled) {
