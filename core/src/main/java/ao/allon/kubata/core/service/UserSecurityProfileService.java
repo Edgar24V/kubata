@@ -399,11 +399,6 @@ public class UserSecurityProfileService {
         }
     }
 
-    private UserSecurityProfile managedTarget(User actor, Long targetUserId) {
-        User managedActor = managedActor(actor);
-        return managedTarget(managedActor, targetUserId);
-    }
-
     private User managedTarget(User managedActor, Long targetUserId) {
         if (targetUserId == null) {
             throw new IllegalArgumentException("Utilizador de destino inválido.");
@@ -459,6 +454,18 @@ public class UserSecurityProfileService {
         }
 
         return managed;
+    }
+
+    private String normalizeIp(String ip) {
+        if (ip == null || ip.isBlank()) {
+            return null;
+        }
+        String value = ip.trim();
+        try {
+            return InetAddress.getByName(value).getHostAddress();
+        } catch (Exception ignored) {
+            return value;
+        }
     }
 
     private boolean isIpAllowed(UserSecurityProfile profile, String sourceIp) {
