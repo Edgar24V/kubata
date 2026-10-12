@@ -89,15 +89,13 @@ public class AuthService {
             throw new AuthenticationException("Credenciais inválidas.");
         }
 
-        if (isPasswordExpired(user)) {
-            acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Senha expirada", false);
-            throw new AuthenticationException("Sua senha expirou e deve ser alterada.");
-        }
-
         if (!user.isEnabled()) {
             acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Conta inativa", false);
             throw new AuthenticationException("Conta inativa. Contate o administrador.");
         }
+
+        // A palavra-passe expirada permite provar a identidade, mas obriga à sua alteração.
+        boolean passwordExpired = isPasswordExpired(user);
 
         boolean mfaSatisfied = !user.isMfaEnabled();
         if (user.isMfaEnabled()) {
@@ -156,6 +154,12 @@ public class AuthService {
             throw new PasswordChangeRequiredException(user);
         }
 
+        if (passwordExpired) {
+            acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip,
+                    "Palavra-passe expirada - alteração obrigatória", false);
+            throw PasswordChangeRequiredException.expired(user);
+        }
+
         userSecurityProfileService.enforceConcurrentSessionLimit(user, LocalDateTime.now());
 
         user.setUltimoAcesso(LocalDateTime.now());
@@ -199,8 +203,11 @@ public class AuthService {
     @Transactional
     public void logout(User user, String ip) {
         if (user != null) {
-            userSessionRepository.findByUsername(user.getNome())
-                .ifPresent(userSessionRepository::delete);
+            // Podem existir várias sessões com o mesmo nome. Encerrar apenas a mais recente.
+            userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome())
+                    .stream()
+                    .findFirst()
+                    .ifPresent(userSessionRepository::delete);
             acessoService.registrarAuditoria(user, "LOGOUT", "AUTH", ip, "Saída do sistema", true);
         }
     }
