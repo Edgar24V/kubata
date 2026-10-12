@@ -7,6 +7,8 @@ import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.core.domain.ExercicioFiscal;
 import ao.allon.kubata.core.domain.ExercicioFiscal.EstadoExercicio;
+import ao.allon.kubata.core.domain.SerieDocumento;
+import ao.allon.kubata.core.service.SerieDocumentoService;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.ExercicioFiscalRepository;
 import ao.allon.kubata.core.service.AcessoService;
@@ -15,6 +17,7 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.ui.table.TextTableCell;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -29,9 +32,14 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Component
 public class ExerciciosFiscaisView extends VBox {
@@ -40,6 +48,7 @@ public class ExerciciosFiscaisView extends VBox {
             DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final ExercicioFiscalService exercicioService;
+    private final SerieDocumentoService serieDocumentoService;
     private final ExercicioFiscalRepository exercicioRepository;
     private final EmpresaRepository empresaRepository;
     private final AcessoService acessoService;
@@ -82,6 +91,7 @@ public class ExerciciosFiscaisView extends VBox {
     private boolean dataLoaded = false;
 
     public ExerciciosFiscaisView(ExercicioFiscalService exercicioService,
+                                SerieDocumentoService serieDocumentoService,
                                 ExercicioFiscalRepository exercicioRepository,
                                 EmpresaRepository empresaRepository,
                                 AcessoService acessoService,
@@ -89,6 +99,7 @@ public class ExerciciosFiscaisView extends VBox {
                                 ModalManager modalManager,
                                 PersistenceService persistenceService) {
         this.exercicioService = exercicioService;
+        this.serieDocumentoService = serieDocumentoService;
         this.exercicioRepository = exercicioRepository;
         this.empresaRepository = empresaRepository;
         this.acessoService = acessoService;
@@ -717,115 +728,592 @@ public class ExerciciosFiscaisView extends VBox {
 
 
 
+    /**
+     * Assistente guiado para a preparação segura de um exercício fiscal.
+     * Etapas: empresa/base, módulos de séries, revisão e finalização.
+     */
     public void showNovoExercicioDialog() {
-        if (empresas.isEmpty()) {
+        List<Empresa> empresasActivas = empresas.stream()
+                .filter(Empresa::getAtiva)
+                .toList();
+
+        if (empresasActivas.isEmpty()) {
             loadData();
             modalManager.alert(
-                    "Sem empresas",
-                    "Não existem empresas carregadas. Crie ou active uma empresa antes de criar um exercício.",
+                    "Empresa activa necessária",
+                    "Crie ou active uma empresa antes de abrir um exercício fiscal.",
                     "warning",
                     null
             );
             return;
         }
 
-        VBox root = new VBox(12);
-        root.setPadding(new Insets(6));
-        root.setPrefWidth(620);
+        VBox root = new VBox(14);
+        root.getStyleClass().add("exercicio-wizard");
+        root.setPadding(new Insets(4));
+        root.setPrefWidth(790);
+        root.setMinWidth(680);
+
+        Label stepTitle = new Label("Etapa 1 de 3 · Empresa e exercício-base");
+        stepTitle.getStyleClass().add("exercicio-wizard-step-title");
+
+        ProgressBar progress = new ProgressBar(1.0 / 3.0);
+        progress.setMaxWidth(Double.MAX_VALUE);
+        progress.getStyleClass().add("exercicio-wizard-progress");
+
+        StackPane pageHost = new StackPane();
+        pageHost.setMinHeight(300);
+        VBox.setVgrow(pageHost, Priority.ALWAYS);
+
+        // Etapa 1 — identificação do período e validação da base.
+        VBox page1 = new VBox(14);
+        page1.getStyleClass().add("exercicio-wizard-page");
 
         Label intro = new Label(
-                "Crie um novo exercício fiscal para uma empresa. "
-                        + "O período é criado automaticamente de 1 de Janeiro a 31 de Dezembro."
+                "Escolha a empresa e o ano destino. O Kubata exige que a base seja "
+                        + "o ano imediatamente anterior; não permite usar um exercício futuro como origem."
         );
         intro.setWrapText(true);
         intro.getStyleClass().add("exercicios-modal-intro");
 
-        GridPane grid = new GridPane();
-        grid.setHgap(12);
-        grid.setVgap(10);
-
-        ComboBox<Empresa> empresaField = new ComboBox<>(FXCollections.observableArrayList(empresas));
-        empresaField.setPrefWidth(360);
+        ComboBox<Empresa> empresaField =
+                new ComboBox<>(FXCollections.observableArrayList(empresasActivas));
         empresaField.setPromptText("Seleccione a empresa");
+        empresaField.setMaxWidth(Double.MAX_VALUE);
+        empresaField.setPrefWidth(400);
 
-        if (empresaCombo.getValue() != null) {
-            empresaField.setValue(empresaCombo.getValue());
+        Spinner<Integer> anoDestinoField = new Spinner<>();
+        anoDestinoField.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
+                2001, 2100, LocalDate.now().getYear()
+        ));
+        anoDestinoField.setEditable(true);
+        anoDestinoField.setPrefWidth(150);
+
+        ComboBox<Integer> anoBaseField = new ComboBox<>();
+        anoBaseField.setPromptText("Seleccione o exercício anterior");
+        anoBaseField.setPrefWidth(220);
+        anoBaseField.setMaxWidth(Double.MAX_VALUE);
+
+        Label dataPeriodo = new Label("Período destino: —");
+        dataPeriodo.getStyleClass().add("exercicio-wizard-period");
+
+        Label baseHint = new Label();
+        baseHint.setWrapText(true);
+        baseHint.getStyleClass().add("exercicios-modal-note");
+
+        GridPane fields = new GridPane();
+        fields.setHgap(14);
+        fields.setVgap(12);
+        ColumnConstraints labelColumn = new ColumnConstraints();
+        labelColumn.setMinWidth(145);
+        ColumnConstraints inputColumn = new ColumnConstraints();
+        inputColumn.setHgrow(Priority.ALWAYS);
+        fields.getColumnConstraints().addAll(labelColumn, inputColumn);
+        fields.add(label("Empresa *"), 0, 0);
+        fields.add(empresaField, 1, 0);
+        fields.add(label("Ano destino *"), 0, 1);
+        fields.add(anoDestinoField, 1, 1);
+        fields.add(label("Ano-base *"), 0, 2);
+        fields.add(anoBaseField, 1, 2);
+        fields.add(dataPeriodo, 1, 3);
+        fields.add(baseHint, 1, 4);
+
+        Region page1Spacer = new Region();
+        VBox.setVgrow(page1Spacer, Priority.ALWAYS);
+        page1.getChildren().addAll(intro, fields, page1Spacer);
+
+        // Etapa 2 — grupos com configuração documental que pode ser reiniciada com segurança.
+        VBox page2 = new VBox(12);
+        page2.getStyleClass().add("exercicio-wizard-page");
+
+        Label moduleIntro = new Label(
+                "Seleccione as áreas cujas séries documentais devem ser preparadas a partir da base. "
+                        + "A numeração começa novamente no destino e o estado de registo AGT é reiniciado."
+        );
+        moduleIntro.setWrapText(true);
+        moduleIntro.getStyleClass().add("exercicios-modal-intro");
+
+        GridPane moduleGrid = new GridPane();
+        moduleGrid.setHgap(10);
+        moduleGrid.setVgap(10);
+
+        Map<String, String> moduleLabels = new LinkedHashMap<>();
+        moduleLabels.put("VENDAS", "Vendas");
+        moduleLabels.put("COMPRAS", "Compras");
+        moduleLabels.put("INVENTARIO", "Inventário / Stock");
+        moduleLabels.put("FINANCEIRO", "Financeiro");
+
+        Map<String, String> moduleAreas = new LinkedHashMap<>();
+        moduleAreas.put("VENDAS", "Vendas");
+        moduleAreas.put("COMPRAS", "Compras");
+        moduleAreas.put("INVENTARIO", "Stock");
+        moduleAreas.put("FINANCEIRO", "Financeiro");
+
+        Map<String, CheckBox> moduleChecks = new LinkedHashMap<>();
+        Map<String, Label> moduleCounts = new LinkedHashMap<>();
+
+        int position = 0;
+        for (Map.Entry<String, String> entry : moduleLabels.entrySet()) {
+            VBox card = new VBox(7);
+            card.getStyleClass().add("exercicio-wizard-module");
+            card.setPadding(new Insets(12));
+            card.setMinHeight(100);
+
+            CheckBox check = new CheckBox(entry.getValue());
+            check.getStyleClass().add("exercicio-wizard-module-check");
+
+            Label count = new Label("A verificar exercício-base…");
+            count.setWrapText(true);
+            count.getStyleClass().add("exercicio-wizard-module-count");
+
+            Label explanation = new Label(
+                    "Só serão copiadas séries e configurações de numeração. "
+                            + "Os documentos e movimentos permanecem intactos."
+            );
+            explanation.setWrapText(true);
+            explanation.getStyleClass().add("exercicio-wizard-module-description");
+
+            card.getChildren().addAll(check, count, explanation);
+            moduleChecks.put(entry.getKey(), check);
+            moduleCounts.put(entry.getKey(), count);
+            moduleGrid.add(card, position % 2, position / 2);
+            GridPane.setHgrow(card, Priority.ALWAYS);
+            position++;
+        }
+        ColumnConstraints moduleCol1 = new ColumnConstraints();
+        moduleCol1.setPercentWidth(50);
+        moduleCol1.setHgrow(Priority.ALWAYS);
+        ColumnConstraints moduleCol2 = new ColumnConstraints();
+        moduleCol2.setPercentWidth(50);
+        moduleCol2.setHgrow(Priority.ALWAYS);
+        moduleGrid.getColumnConstraints().addAll(moduleCol1, moduleCol2);
+
+        Label moduleWarning = new Label(
+                "A criação do exercício não duplica facturas, recibos, movimentos de stock, "
+                        + "lançamentos contabilísticos, saldos ou dados de clientes/fornecedores."
+        );
+        moduleWarning.setWrapText(true);
+        moduleWarning.getStyleClass().add("exercicio-wizard-warning");
+        page2.getChildren().addAll(moduleIntro, moduleGrid, moduleWarning);
+
+        // Etapa 3 — revisão dos parâmetros, aviso da base e escolha do exercício actual.
+        VBox page3 = new VBox(14);
+        page3.getStyleClass().add("exercicio-wizard-page");
+
+        Label reviewIntro = new Label(
+                "Revise a configuração antes de finalizar. A criação e a preparação das séries "
+                        + "decorrem na mesma transacção; se uma etapa falhar, a operação é revertida."
+        );
+        reviewIntro.setWrapText(true);
+        reviewIntro.getStyleClass().add("exercicios-modal-intro");
+
+        VBox reviewFacts = new VBox(9);
+        reviewFacts.getStyleClass().add("exercicio-wizard-review");
+
+        Label reviewCompany = new Label("Empresa: —");
+        Label reviewYear = new Label("Novo exercício: —");
+        Label reviewBase = new Label("Exercício-base: —");
+        Label reviewModules = new Label("Áreas seleccionadas: —");
+        Label reviewSeries = new Label("Séries disponíveis para preparar: —");
+        for (Label fact : List.of(reviewCompany, reviewYear, reviewBase, reviewModules, reviewSeries)) {
+            fact.setWrapText(true);
+            fact.getStyleClass().add("exercicio-wizard-review-line");
+        }
+        reviewFacts.getChildren().addAll(
+                reviewCompany, reviewYear, reviewBase, reviewModules, reviewSeries
+        );
+
+        CheckBox makeCurrent = new CheckBox("Definir o novo exercício como exercício actual da empresa");
+        makeCurrent.getStyleClass().add("exercicio-wizard-current-check");
+
+        Label finalWarning = new Label(
+                "Nota de integridade: apenas a configuração das séries documentais será replicada. "
+                        + "Os documentos e movimentos do exercício anterior não são copiados."
+        );
+        finalWarning.setWrapText(true);
+        finalWarning.getStyleClass().add("exercicio-wizard-warning");
+
+        Label operationStatus = new Label();
+        operationStatus.setWrapText(true);
+        operationStatus.getStyleClass().add("text-muted");
+
+        ProgressIndicator busy = new ProgressIndicator();
+        busy.setMaxSize(26, 26);
+        busy.setVisible(false);
+        busy.setManaged(false);
+
+        page3.getChildren().addAll(reviewIntro, reviewFacts, makeCurrent, finalWarning, operationStatus, busy);
+
+        HBox navigation = new HBox(10);
+        navigation.setAlignment(Pos.CENTER_RIGHT);
+        Button back = new Button("Anterior", IconUtils.icon(Feather.ARROW_LEFT, IconUtils.SIZE_SMALL));
+        back.getStyleClass().add("button-outlined");
+        Button cancel = new Button("Cancelar", IconUtils.icon(Feather.X, IconUtils.SIZE_SMALL));
+        cancel.getStyleClass().add("button-outlined");
+        Button next = new Button("Seguinte", IconUtils.icon(Feather.ARROW_RIGHT, IconUtils.SIZE_SMALL));
+        next.getStyleClass().add("button-primary");
+
+        Region navSpacer = new Region();
+        HBox.setHgrow(navSpacer, Priority.ALWAYS);
+        navigation.getChildren().addAll(navSpacer, back, cancel, next);
+
+        root.getChildren().addAll(stepTitle, progress, pageHost, navigation);
+
+        // Estado inicial: empresa activa já seleccionada, preferencialmente a filtrada na grelha principal.
+        Empresa initialCompany = empresaCombo == null ? null : empresaCombo.getValue();
+        if (initialCompany != null && initialCompany.getAtiva()
+                && empresasActivas.stream().anyMatch(e -> Objects.equals(e.getId(), initialCompany.getId()))) {
+            empresaField.setValue(empresasActivas.stream()
+                    .filter(e -> Objects.equals(e.getId(), initialCompany.getId()))
+                    .findFirst().orElse(null));
         } else {
-            empresas.stream()
-                    .filter(Empresa::getAtiva)
-                    .findFirst()
-                    .ifPresent(empresaField::setValue);
+            empresaField.setValue(empresasActivas.get(0));
         }
 
-        TextField anoField = new TextField();
-        anoField.setPrefColumnCount(8);
-        anoField.setText(suggestNextYear(empresaField.getValue()));
+        final int[] currentStep = {0};
 
-        empresaField.setOnAction(e -> anoField.setText(suggestNextYear(empresaField.getValue())));
+        Runnable updateBaseSelection = () -> {
+            Empresa selectedCompany = empresaField.getValue();
+            Integer target = anoDestinoField.getValue();
+            List<Integer> availableYears = selectedCompany == null ? List.of()
+                    : exercicios.stream()
+                    .filter(ex -> ex.getEmpresa() != null
+                            && Objects.equals(ex.getEmpresa().getId(), selectedCompany.getId())
+                            && ex.getAno() != null
+                            && ex.getEstado() != EstadoExercicio.FUTURO)
+                    .map(ExercicioFiscal::getAno)
+                    .distinct()
+                    .sorted(java.util.Comparator.reverseOrder())
+                    .toList();
 
-        grid.add(label("Empresa *"), 0, 0);
-        grid.add(empresaField, 1, 0);
+            anoBaseField.getItems().setAll(availableYears);
+            Integer requiredBase = target == null ? null : target - 1;
+            if (requiredBase != null && availableYears.contains(requiredBase)) {
+                anoBaseField.setValue(requiredBase);
+            } else {
+                anoBaseField.setValue(null);
+            }
 
-        grid.add(label("Ano *"), 0, 1);
-        grid.add(anoField, 1, 1);
+            if (target != null) {
+                dataPeriodo.setText(
+                        "Período destino: 01/01/" + target + " — 31/12/" + target
+                );
+            } else {
+                dataPeriodo.setText("Período destino: —");
+            }
 
-        CheckBox actualCheck = new CheckBox("Definir automaticamente este exercício como actual");
-        actualCheck.setSelected(true);
-        grid.add(actualCheck, 1, 2);
+            if (selectedCompany == null) {
+                baseHint.setText("Seleccione uma empresa activa.");
+            } else if (target == null) {
+                baseHint.setText("Informe um ano destino válido.");
+            } else if (target <= 2000) {
+                baseHint.setText("Para usar o assistente, o ano destino deve ser 2001 ou posterior.");
+            } else if (exercicios.stream().anyMatch(ex -> ex.getEmpresa() != null
+                    && Objects.equals(ex.getEmpresa().getId(), selectedCompany.getId())
+                    && Objects.equals(ex.getAno(), target))) {
+                baseHint.setText("Este exercício já existe. Escolha outro ano ou abra o registo existente.");
+            } else if (requiredBase == null || !availableYears.contains(requiredBase)) {
+                baseHint.setText(
+                        "Não existe o exercício-base " + requiredBase + " para esta empresa. "
+                                + "Crie/importe esse ano primeiro; não utilize um ano futuro como base."
+                );
+            } else {
+                ExercicioFiscal source = exercicios.stream()
+                        .filter(ex -> ex.getEmpresa() != null
+                                && Objects.equals(ex.getEmpresa().getId(), selectedCompany.getId())
+                                && Objects.equals(ex.getAno(), requiredBase))
+                        .findFirst().orElse(null);
+                String status = source == null || source.getEstado() == null
+                        ? "estado não disponível"
+                        : source.getEstado().toString();
+                baseHint.setText(
+                        "Base válida: exercício " + requiredBase + " (" + status + "). "
+                                + (source != null && source.getEstado() != EstadoExercicio.FECHADO
+                                ? "Recomendação: confirme as operações e saldos antes de continuar."
+                                : "A base é o ano imediatamente anterior.")
+                );
+            }
+        };
 
-        Label note = new Label(
-                "O ano não pode repetir um exercício já existente para a mesma empresa."
-        );
-        note.getStyleClass().add("exercicios-modal-note");
+        Runnable refreshModuleAvailability = () -> {
+            Empresa selectedCompany = empresaField.getValue();
+            Integer baseYear = anoBaseField.getValue();
+            List<SerieDocumento> allSeries = selectedCompany == null
+                    ? List.of()
+                    : serieDocumentoService.listarPorEmpresa(selectedCompany.getId());
 
-        root.getChildren().addAll(intro, grid, note);
+            for (Map.Entry<String, String> entry : moduleAreas.entrySet()) {
+                String code = entry.getKey();
+                String area = entry.getValue();
+                CheckBox check = moduleChecks.get(code);
+                Label countLabel = moduleCounts.get(code);
+                long count = allSeries.stream()
+                        .filter(serie -> Objects.equals(serie.getExercicio(), baseYear))
+                        .filter(serie -> serie.getTipoDocumento() != null
+                                && area.equalsIgnoreCase(serie.getTipoDocumento().getArea()))
+                        .count();
+
+                boolean available = baseYear != null && count > 0;
+                check.setDisable(!available);
+                check.setSelected(available);
+                countLabel.setText(available
+                        ? count + (count == 1 ? " série no exercício-base" : " séries no exercício-base")
+                        : baseYear == null
+                        ? "Seleccione um exercício-base para verificar a disponibilidade."
+                        : "Sem séries de " + moduleLabels.get(code) + " no exercício-base.");
+            }
+        };
+
+        Runnable updateReview = () -> {
+            Empresa selectedCompany = empresaField.getValue();
+            Integer target = anoDestinoField.getValue();
+            Integer baseYear = anoBaseField.getValue();
+            Set<String> selectedModules = moduleChecks.entrySet().stream()
+                    .filter(entry -> entry.getValue().isSelected() && !entry.getValue().isDisabled())
+                    .map(Map.Entry::getKey)
+                    .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+            reviewCompany.setText("Empresa: " + (selectedCompany == null ? "—" : selectedCompany.getNome()));
+            reviewYear.setText("Novo exercício: " + (target == null ? "—" : target)
+                    + (target == null ? "" : " · 01/01/" + target + " a 31/12/" + target));
+            reviewBase.setText("Exercício-base: " + (baseYear == null ? "—" : baseYear));
+            reviewModules.setText("Áreas seleccionadas: " + (selectedModules.isEmpty()
+                    ? "nenhuma (criar apenas o período fiscal)"
+                    : selectedModules.stream().map(moduleLabels::get).collect(java.util.stream.Collectors.joining(", "))));
+
+            long seriesCount = selectedCompany == null || baseYear == null ? 0
+                    : serieDocumentoService.listarPorEmpresa(selectedCompany.getId()).stream()
+                    .filter(serie -> Objects.equals(serie.getExercicio(), baseYear))
+                    .filter(serie -> serie.getTipoDocumento() != null)
+                    .filter(serie -> selectedModules.contains(
+                            moduleAreas.entrySet().stream()
+                                    .filter(entry -> entry.getValue().equalsIgnoreCase(
+                                            serie.getTipoDocumento().getArea()))
+                                    .map(Map.Entry::getKey)
+                                    .findFirst().orElse("")
+                    )).count();
+            reviewSeries.setText("Séries a preparar: " + seriesCount);
+
+            makeCurrent.setSelected(target != null
+                    && target == LocalDate.now().getYear()
+                    && (selectedCompany == null || !Objects.equals(
+                            selectedCompany.getExercicioActual(), target)));
+        };
+
+        java.util.function.IntConsumer showStep = step -> {
+            currentStep[0] = step;
+            pageHost.getChildren().setAll(step == 0 ? page1 : step == 1 ? page2 : page3);
+            stepTitle.setText(switch (step) {
+                case 0 -> "Etapa 1 de 3 · Empresa e exercício-base";
+                case 1 -> "Etapa 2 de 3 · Preparação dos módulos";
+                default -> "Etapa 3 de 3 · Revisão e finalização";
+            });
+            progress.setProgress((step + 1) / 3.0);
+            back.setDisable(step == 0);
+            next.setText(step == 2 ? "Criar exercício" : step == 1 ? "Rever criação" : "Seguinte");
+            next.setGraphic(IconUtils.icon(step == 2 ? Feather.CHECK_CIRCLE : Feather.ARROW_RIGHT,
+                    IconUtils.SIZE_SMALL));
+            if (step == 2) {
+                updateReview.run();
+            }
+        };
+
+        empresaField.valueProperty().addListener((obs, old, value) -> {
+            updateBaseSelection.run();
+            refreshModuleAvailability.run();
+            if (currentStep[0] == 2) updateReview.run();
+        });
+        anoDestinoField.valueProperty().addListener((obs, old, value) -> {
+            updateBaseSelection.run();
+            refreshModuleAvailability.run();
+            if (currentStep[0] == 2) updateReview.run();
+        });
+        anoBaseField.valueProperty().addListener((obs, old, value) -> {
+            refreshModuleAvailability.run();
+            if (currentStep[0] == 2) updateReview.run();
+        });
+        moduleChecks.values().forEach(check ->
+                check.selectedProperty().addListener((obs, old, value) -> {
+                    if (currentStep[0] == 2) updateReview.run();
+                }));
+
+        Runnable commitDestinationYear = () -> {
+            String editor = anoDestinoField.getEditor().getText();
+            int parsed = Integer.parseInt(editor.trim());
+            if (parsed < 2001 || parsed > 2100) {
+                throw new IllegalArgumentException("O ano destino deve estar entre 2001 e 2100.");
+            }
+            anoDestinoField.getValueFactory().setValue(parsed);
+        };
+
+        Runnable validateStepOne = () -> {
+            Empresa company = empresaField.getValue();
+            if (company == null || company.getId() == null || !company.getAtiva()) {
+                throw new IllegalArgumentException("Seleccione uma empresa activa.");
+            }
+
+            commitDestinationYear.run();
+            int target = anoDestinoField.getValue();
+            int baseYear = target - 1;
+
+            if (exercicios.stream().anyMatch(ex -> ex.getEmpresa() != null
+                    && Objects.equals(ex.getEmpresa().getId(), company.getId())
+                    && Objects.equals(ex.getAno(), target))) {
+                throw new IllegalArgumentException("O exercício " + target + " já existe para esta empresa.");
+            }
+
+            if (anoBaseField.getValue() == null || anoBaseField.getValue() != baseYear) {
+                throw new IllegalArgumentException(
+                        "Seleccione o exercício " + baseYear + " como base. "
+                                + "O Kubata não permite criar o destino a partir de um ano futuro."
+                );
+            }
+
+            boolean sourceExists = exercicios.stream().anyMatch(ex -> ex.getEmpresa() != null
+                    && Objects.equals(ex.getEmpresa().getId(), company.getId())
+                    && Objects.equals(ex.getAno(), baseYear)
+                    && ex.getEstado() != EstadoExercicio.FUTURO);
+            if (!sourceExists) {
+                throw new IllegalArgumentException(
+                        "O exercício-base " + baseYear + " não existe para esta empresa."
+                );
+            }
+        };
+
+        cancel.setOnAction(e -> modalManager.hideModal());
+        back.setOnAction(e -> {
+            if (currentStep[0] > 0) showStep.accept(currentStep[0] - 1);
+        });
+        next.setOnAction(e -> {
+            try {
+                if (currentStep[0] == 0) {
+                    validateStepOne.run();
+                    refreshModuleAvailability.run();
+                    showStep.accept(1);
+                    return;
+                }
+                if (currentStep[0] == 1) {
+                    validateStepOne.run();
+                    showStep.accept(2);
+                    return;
+                }
+
+                validateStepOne.run();
+                Empresa selectedCompany = empresaField.getValue();
+                int target = anoDestinoField.getValue();
+                int baseYear = anoBaseField.getValue();
+                Set<String> selectedModules = moduleChecks.entrySet().stream()
+                        .filter(entry -> entry.getValue().isSelected() && !entry.getValue().isDisabled())
+                        .map(Map.Entry::getKey)
+                        .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+                boolean setAsCurrent = makeCurrent.isSelected();
+
+                next.setDisable(true);
+                back.setDisable(true);
+                cancel.setDisable(true);
+                next.setText("A preparar…");
+                busy.setVisible(true);
+                busy.setManaged(true);
+                operationStatus.setText("A validar a base e a preparar as séries sem copiar movimentos…");
+
+                String description = "Criar exercício fiscal " + target + " para "
+                        + selectedCompany.getNome() + " com base em " + baseYear;
+                Task<ExercicioFiscalService.ResultadoCriacao> task = new Task<>() {
+                    @Override
+                    protected ExercicioFiscalService.ResultadoCriacao call() {
+                        return exercicioService.criarExercicioAssistido(
+                                selectedCompany, baseYear, target, selectedModules, setAsCurrent
+                        );
+                    }
+                };
+
+                task.setOnSucceeded(event -> {
+                    ExercicioFiscalService.ResultadoCriacao result = task.getValue();
+                    try {
+                        acessoService.registrarAuditoria(
+                                sessionManager.getUser(), "CREATE", "EXERCICIO", "127.0.0.1",
+                                description + "; séries criadas: " + result.seriesCriadas(), true
+                        );
+                    } catch (Exception auditError) {
+                        // O registo fiscal foi confirmado; uma falha auxiliar de auditoria
+                        // não deve ocultar o resultado nem repetir a operação.
+                    }
+
+                    modalManager.hideModal();
+                    loadData();
+
+                    String message = "Exercício " + result.exercicio().getAno()
+                            + " criado com base em " + result.anoBase() + ".\n"
+                            + "Séries documentais preparadas: " + result.seriesCriadas() + ".\n"
+                            + (result.definidoComoActual()
+                                ? "O novo período foi definido como exercício actual.\n"
+                                : "O exercício actual da empresa foi mantido.\n")
+                            + "Documentos, movimentos, saldos e existências não foram copiados.";
+                    if (!result.avisos().isEmpty()) {
+                        message += "\n\nAvisos:\n• " + String.join("\n• ", result.avisos());
+                    }
+                    modalManager.alert("Exercício criado", message, "success", null);
+                });
+
+                task.setOnFailed(event -> {
+                    Throwable ex = task.getException();
+                    next.setDisable(false);
+                    back.setDisable(false);
+                    cancel.setDisable(false);
+                    next.setText("Criar exercício");
+                    next.setGraphic(IconUtils.icon(Feather.CHECK_CIRCLE, IconUtils.SIZE_SMALL));
+                    busy.setVisible(false);
+                    busy.setManaged(false);
+                    operationStatus.setText(
+                            "A operação não foi concluída. Nenhum exercício parcialmente preparado deve ser utilizado."
+                    );
+                    try {
+                        acessoService.registrarAuditoria(
+                                sessionManager.getUser(), "CREATE_FAILED", "EXERCICIO", "127.0.0.1",
+                                description + "; erro: " + rootMessage(ex), false
+                        );
+                    } catch (Exception ignored) {
+                        // Mantém o erro funcional como prioridade.
+                    }
+                    modalManager.alert(
+                            "Não foi possível criar o exercício",
+                            rootMessage(ex),
+                            "error",
+                            ex
+                    );
+                });
+
+                Thread worker = new Thread(task, "kubata-exercicio-fiscal-wizard");
+                worker.setDaemon(true);
+                worker.start();
+            } catch (Exception ex) {
+                modalManager.alert(
+                        "Verifique os dados do assistente",
+                        rootMessage(ex),
+                        "warning",
+                        null
+                );
+            }
+        });
+
+        updateBaseSelection.run();
+        refreshModuleAvailability.run();
+        showStep.accept(0);
 
         modalManager.showModal(
                 root,
                 new ModalManager.ModalConfig()
-                        .title("Novo exercício fiscal")
-                        .subtitle("Criação controlada do período fiscal")
+                        .title("Assistente de Exercícios Fiscais")
+                        .subtitle("Criação guiada com base no exercício anterior")
                         .icon(Feather.CALENDAR)
                         .tone(ModalManager.ModalTone.DEFAULT)
-                        .size(680, 390)
-                        .resizable(false)
-                        .closeOnEscape(true)
-                        .withConfirmButtons("Criar exercício", "Cancelar")
-                        .confirmStyle("button-primary")
-                        .cancelStyle("button-outlined")
-                        .footerHint("Depois de criado, o exercício pode ser aberto, colocado em encerramento ou fechado no painel lateral.")
-                        .onConfirm(() -> {
-                            try {
-                                Empresa empresa = empresaField.getValue();
-                                if (empresa == null) {
-                                    throw new IllegalArgumentException("Seleccione a empresa.");
-                                }
-
-                                int ano = Integer.parseInt(anoField.getText().trim());
-                                if (ano < 2000 || ano > 2100) {
-                                    throw new IllegalArgumentException("O ano deve estar entre 2000 e 2100.");
-                                }
-
-                                persistenceService.executeAsync(() -> {
-                                    ExercicioFiscal created =
-                                            exercicioService.criarExercicio(empresa, ano);
-
-                                    if (actualCheck.isSelected()) {
-                                        exercicioService.definirComoActual(created.getId());
-                                    }
-                                }, "CREATE", "EXERCICIO",
-                                        "Criação do exercício fiscal " + ano
-                                                + " — " + empresa.getNome(),
-                                        this::loadData);
-                            } catch (Exception ex) {
-                                modalManager.alert(
-                                        "Dados inválidos",
-                                        rootMessage(ex),
-                                        "warning",
-                                        null
-                                );
-                            }
-                        })
+                        .size(850, 620)
+                        .minSize(720, 520)
+                        .resizable(true)
+                        .scrollable(true)
+                        .closeOnOverlayClick(false)
+                        .closeOnEscape(false)
+                        .footerHint("Por segurança, os movimentos e saldos do exercício-base nunca são duplicados.")
         );
     }
 
