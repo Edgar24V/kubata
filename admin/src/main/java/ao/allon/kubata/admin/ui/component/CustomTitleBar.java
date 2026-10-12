@@ -45,6 +45,7 @@ public class CustomTitleBar extends HBox {
     private Consumer<String> onSearchCallback;
     private Runnable onUserInfoCallback;
     private Runnable onLogoutCallback;
+    private Runnable onWindowCloseCallback;
 
     public CustomTitleBar(Stage stage, String appTitle) {
         this.stage = stage;
@@ -175,7 +176,13 @@ public class CustomTitleBar extends HBox {
             maximizeBtn.setGraphic(restoreIcon);
             maximizeBtn.setTooltip(new Tooltip("Restaurar"));
         }
-        closeBtn.setOnAction(e -> stage.close());
+        closeBtn.setOnAction(e -> {
+            if (onWindowCloseCallback != null) {
+                onWindowCloseCallback.run();
+            } else {
+                stage.close();
+            }
+        });
 
         // ── Montagem ────────────────────────────────────────
         getChildren().addAll(
@@ -215,6 +222,10 @@ public class CustomTitleBar extends HBox {
 
     public void setOnLogout(Runnable callback) {
         this.onLogoutCallback = callback;
+    }
+
+    public void setOnWindowClose(Runnable callback) {
+        this.onWindowCloseCallback = callback;
     }
 
     /**
