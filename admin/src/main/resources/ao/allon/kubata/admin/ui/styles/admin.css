@@ -12606,3 +12606,28 @@ Text {
 .context-menu .menu-item:focused .label {
     -fx-text-fill: #185b39;
 }
+
+
+
+/* Exercícios fiscais — mesmos componentes visuais da área Empresa. */
+.exercicios-header-filter-row {
+    -fx-background-color: #ffffff;
+    -fx-spacing: 10px;
+    -fx-padding: 0 0 2px 50px;
+}
+.exercicios-filter-combo {
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8px;
+    -fx-border-color: #d0d7de;
+    -fx-border-radius: 8px;
+}
+.exercicios-filter-combo:hover {
+    -fx-border-color: #9ca8b4;
+}
+.empresa-status.closing {
+    -fx-text-fill: #8a5a00;
+    -fx-background-color: #fff4cc;
+}
+
