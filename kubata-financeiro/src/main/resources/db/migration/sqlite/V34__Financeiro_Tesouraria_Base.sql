@@ -30,5 +30,3 @@ CREATE TABLE IF NOT EXISTS movimentos_caixa (
     CONSTRAINT fk_movimento_caixa FOREIGN KEY (caixa_id) REFERENCES caixas(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_movimentos_caixa_data
-    ON movimentos_caixa(caixa_id, data_movimento DESC);
