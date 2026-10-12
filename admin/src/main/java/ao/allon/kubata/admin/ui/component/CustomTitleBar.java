@@ -2,8 +2,13 @@ package ao.allon.kubata.admin.ui.component;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
@@ -14,6 +19,7 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignM;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignW;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -23,14 +29,19 @@ public class CustomTitleBar extends HBox {
 
     private final Stage stage;
     private final TextField searchField;
+    private final StackPane searchContainer;
     private final Label userLabel;
     private final Label userAvatar;
+    private final MenuButton profileMenu;
+    private final ContextMenu searchResultsPopup = new ContextMenu();
 
     // Para arrastar a janela
     private double dragOffsetX;
     private double dragOffsetY;
 
     private Consumer<String> onSearchCallback;
+    private Runnable onUserInfoCallback;
+    private Runnable onLogoutCallback;
 
     public CustomTitleBar(Stage stage, String appTitle) {
         this.stage = stage;
@@ -60,8 +71,9 @@ public class CustomTitleBar extends HBox {
 
         // ── Campo de Pesquisa ───────────────────────────────
         searchField = new TextField();
-        searchField.setPromptText("Pesquisar na aplicação...");
+        searchField.setPromptText("Pesquisar páginas e comandos...");
         searchField.getStyleClass().add("title-bar-search-box");
+        searchField.setMaxWidth(Double.MAX_VALUE);
 
         // Ícone de pesquisa (sobreposição visual)
         FontIcon searchIcon = new FontIcon(MaterialDesignM.MAGNIFY);
@@ -70,8 +82,12 @@ public class CustomTitleBar extends HBox {
         searchIcon.setMouseTransparent(true);
 
         // Container do campo de pesquisa com ícone
-        StackPane searchContainer = new StackPane();
+        searchContainer = new StackPane();
         searchContainer.setAlignment(Pos.CENTER_LEFT);
+        searchContainer.setMinWidth(190);
+        searchContainer.setPrefWidth(390);
+        searchContainer.setMaxWidth(560);
+        HBox.setHgrow(searchContainer, Priority.ALWAYS);
         searchContainer.getChildren().addAll(searchField);
 
         // Posicionamento do ícone dentro do campo
@@ -83,6 +99,9 @@ public class CustomTitleBar extends HBox {
         searchField.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ENTER) {
                 triggerSearch(searchField.getText().trim());
+            } else if (e.getCode() == KeyCode.ESCAPE) {
+                searchResultsPopup.hide();
+                searchField.clear();
             }
         });
 
@@ -101,9 +120,36 @@ public class CustomTitleBar extends HBox {
         userLabel.setVisible(false);
         userLabel.setManaged(false);
 
-        HBox userBox = new HBox(6, userLabel, userAvatar);
+        HBox userBox = new HBox(7, userLabel, userAvatar);
         userBox.setAlignment(Pos.CENTER);
-        userBox.setPadding(new Insets(0, 8, 0, 8));
+        userBox.setPadding(new Insets(0, 2, 0, 2));
+
+        profileMenu = new MenuButton();
+        profileMenu.setGraphic(userBox);
+        profileMenu.getStyleClass().add("title-bar-user-menu");
+        profileMenu.setTooltip(new Tooltip("Perfil e sessão"));
+        profileMenu.setPopupSide(Side.BOTTOM);
+        profileMenu.setFocusTraversable(true);
+
+        MenuItem sessionInfoItem = new MenuItem("Informações da sessão");
+        sessionInfoItem.setOnAction(e -> {
+            if (onUserInfoCallback != null) {
+                onUserInfoCallback.run();
+            }
+        });
+
+        MenuItem logoutItem = new MenuItem("Encerrar sessão");
+        logoutItem.setOnAction(e -> {
+            if (onLogoutCallback != null) {
+                onLogoutCallback.run();
+            }
+        });
+
+        profileMenu.getItems().addAll(
+                sessionInfoItem,
+                new SeparatorMenuItem(),
+                logoutItem
+        );
 
         // ── Botões de controlo da janela ────────────────────
         Button minimizeBtn = createWindowButton(new FontIcon(MaterialDesignW.WINDOW_MINIMIZE), "Minimizar", false);
@@ -111,11 +157,14 @@ public class CustomTitleBar extends HBox {
         Button closeBtn    = createWindowButton(new FontIcon(MaterialDesignW.WINDOW_CLOSE), "Fechar", true);
 
         minimizeBtn.setOnAction(e -> stage.setIconified(true));
-        maximizeBtn.setOnAction(e -> {
-            stage.setMaximized(!stage.isMaximized());
-            maximizeBtn.setGraphic(stage.isMaximized() 
-                ? new FontIcon(MaterialDesignW.WINDOW_RESTORE) 
-                : new FontIcon(MaterialDesignW.WINDOW_MAXIMIZE));
+        maximizeBtn.setOnAction(e -> stage.setMaximized(!stage.isMaximized()));
+        stage.maximizedProperty().addListener((obs, wasMaximized, isMaximized) -> {
+            FontIcon icon = new FontIcon(
+                    isMaximized ? MaterialDesignW.WINDOW_RESTORE : MaterialDesignW.WINDOW_MAXIMIZE
+            );
+            icon.setIconColor(javafx.scene.paint.Color.WHITE);
+            maximizeBtn.setGraphic(icon);
+            maximizeBtn.setTooltip(new Tooltip(isMaximized ? "Restaurar" : "Maximizar"));
         });
         closeBtn.setOnAction(e -> stage.close());
 
@@ -126,7 +175,7 @@ public class CustomTitleBar extends HBox {
             leftSpacer,
             searchContainer,
             rightSpacer,
-            userBox,
+            profileMenu,
             minimizeBtn,
             maximizeBtn,
             closeBtn
@@ -149,20 +198,45 @@ public class CustomTitleBar extends HBox {
         this.onSearchCallback = callback;
     }
 
-    public void setUserName(String name) {
-        userLabel.setText(name);
-        userLabel.setVisible(true);
-        userLabel.setManaged(true);
+    public void setOnUserInfo(Runnable callback) {
+        this.onUserInfoCallback = callback;
+    }
 
-        String[] parts = name.trim().split("\\s+");
+    public void setOnLogout(Runnable callback) {
+        this.onLogoutCallback = callback;
+    }
+
+    /**
+     * Mostra opções de pesquisa ligadas a páginas ou comandos reais.
+     * Os itens são criados pelo AdminMainView e cada um contém a sua acção.
+     */
+    public void showSearchResults(List<MenuItem> items) {
+        searchResultsPopup.getItems().setAll(items == null ? List.of() : items);
+        if (searchResultsPopup.getItems().isEmpty()) {
+            searchResultsPopup.hide();
+            return;
+        }
+        if (searchContainer.getScene() != null && searchContainer.isVisible()) {
+            searchResultsPopup.show(searchContainer, Side.BOTTOM, 0, 4);
+        }
+    }
+
+    public void setUserName(String name) {
+        String safeName = name == null || name.isBlank() ? "Utilizador" : name.trim();
+        userLabel.setText(safeName);
+        userLabel.setVisible(!"Utilizador".equals(safeName));
+        userLabel.setManaged(userLabel.isVisible());
+
+        String[] parts = safeName.split("\\s+");
         String initials = parts.length >= 2
-            ? String.valueOf(parts[0].charAt(0)) + parts[1].charAt(0)
-            : name.length() > 0 ? String.valueOf(name.charAt(0)) : "U";
-        userAvatar.setText(initials.toUpperCase());
+                ? String.valueOf(parts[0].charAt(0)) + parts[1].charAt(0)
+                : safeName.length() > 0 ? String.valueOf(safeName.charAt(0)) : "U";
+        userAvatar.setText(initials.toUpperCase(java.util.Locale.ROOT));
     }
 
     public void clearSearch() {
         searchField.clear();
+        searchResultsPopup.hide();
     }
 
     public void setSearchPrompt(String prompt) {
@@ -183,6 +257,7 @@ public class CustomTitleBar extends HBox {
         btn.getStyleClass().add("button-icon");
         btn.getStyleClass().add(isClose ? "title-bar-close-btn" : "title-bar-control-btn");
         btn.setTooltip(new Tooltip(tooltip));
+        btn.setAccessibleText(tooltip);
         btn.setFocusTraversable(false);
         return btn;
     }
