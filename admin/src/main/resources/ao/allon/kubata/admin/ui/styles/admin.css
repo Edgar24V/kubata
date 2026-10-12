@@ -12631,3 +12631,74 @@ Text {
     -fx-background-color: #fff4cc;
 }
 
+
+
+
+/* Assistente de exercícios fiscais: fluxo guiado e consistente com o Administrator. */
+.exercicio-wizard {
+    -fx-spacing: 12px;
+    -fx-background-color: transparent;
+}
+.exercicio-wizard-step-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #185b39;
+}
+.exercicio-wizard-progress {
+    -fx-pref-height: 7px;
+    -fx-accent: #217346;
+}
+.exercicio-wizard-page {
+    -fx-spacing: 14px;
+    -fx-padding: 4px 2px;
+    -fx-background-color: transparent;
+}
+.exercicio-wizard-period {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #185b39;
+}
+.exercicio-wizard-module {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dfe5ea;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+.exercicio-wizard-module-check {
+    -fx-font-weight: 800;
+    -fx-text-fill: #1f2937;
+}
+.exercicio-wizard-module-count {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #217346;
+}
+.exercicio-wizard-module-description {
+    -fx-font-size: 10px;
+    -fx-text-fill: #6b7280;
+}
+.exercicio-wizard-warning {
+    -fx-background-color: #fff8e5;
+    -fx-border-color: #f4d68a;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 12px;
+    -fx-text-fill: #77520a;
+    -fx-font-size: 10.5px;
+}
+.exercicio-wizard-review {
+    -fx-background-color: #f7f9fb;
+    -fx-background-radius: 10px;
+    -fx-border-color: #e1e6eb;
+    -fx-border-radius: 10px;
+    -fx-padding: 14px;
+}
+.exercicio-wizard-review-line {
+    -fx-font-size: 11px;
+    -fx-text-fill: #28323c;
+}
+.exercicio-wizard-current-check {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
