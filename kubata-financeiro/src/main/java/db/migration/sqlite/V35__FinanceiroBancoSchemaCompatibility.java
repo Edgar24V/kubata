@@ -17,6 +17,34 @@ public class V35__FinanceiroBancoSchemaCompatibility extends BaseJavaMigration {
     public void migrate(Context context) throws Exception {
         Connection connection = context.getConnection();
 
+        // Compatibilidade com instalações que já criaram tabelas de caixa.
+        ensureColumn(connection, "caixas", "nome", "nome VARCHAR(120) NOT NULL DEFAULT ''");
+        ensureColumn(connection, "caixas", "responsavel", "responsavel VARCHAR(160) NOT NULL DEFAULT ''");
+        ensureColumn(connection, "caixas", "saldo", "saldo DECIMAL(19,2) NOT NULL DEFAULT 0.00");
+        ensureColumn(connection, "caixas", "is_principal", "is_principal BOOLEAN NOT NULL DEFAULT 0");
+        ensureColumn(connection, "caixas", "is_ativo", "is_ativo BOOLEAN NOT NULL DEFAULT 1");
+        ensureColumn(connection, "caixas", "observacoes", "observacoes TEXT");
+        ensureColumn(connection, "caixas", "active", "active BOOLEAN NOT NULL DEFAULT 1");
+        ensureColumn(connection, "caixas", "created_at", "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        ensureColumn(connection, "caixas", "updated_at", "updated_at TIMESTAMP");
+
+        ensureColumn(connection, "movimentos_caixa", "caixa_id", "caixa_id INTEGER");
+        ensureColumn(connection, "movimentos_caixa", "tipo_movimento",
+                "tipo_movimento VARCHAR(30) NOT NULL DEFAULT 'ENTRADA'");
+        ensureColumn(connection, "movimentos_caixa", "valor", "valor DECIMAL(19,2) NOT NULL DEFAULT 0.00");
+        ensureColumn(connection, "movimentos_caixa", "saldo_anterior",
+                "saldo_anterior DECIMAL(19,2) NOT NULL DEFAULT 0.00");
+        ensureColumn(connection, "movimentos_caixa", "saldo_atual",
+                "saldo_atual DECIMAL(19,2) NOT NULL DEFAULT 0.00");
+        ensureColumn(connection, "movimentos_caixa", "descricao", "descricao VARCHAR(255) NOT NULL DEFAULT ''");
+        ensureColumn(connection, "movimentos_caixa", "data_movimento",
+                "data_movimento TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        ensureColumn(connection, "movimentos_caixa", "documento_ref", "documento_ref VARCHAR(100)");
+        ensureColumn(connection, "movimentos_caixa", "active", "active BOOLEAN NOT NULL DEFAULT 1");
+        ensureColumn(connection, "movimentos_caixa", "created_at",
+                "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        ensureColumn(connection, "movimentos_caixa", "updated_at", "updated_at TIMESTAMP");
+
         execute(connection, """
                 CREATE TABLE IF NOT EXISTS contas_bancarias (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,6 +108,10 @@ public class V35__FinanceiroBancoSchemaCompatibility extends BaseJavaMigration {
                     CONSTRAINT fk_movimento_bancario_conta
                         FOREIGN KEY (conta_bancaria_id) REFERENCES contas_bancarias(id)
                 )
+                """);
+        execute(connection, """
+                CREATE INDEX IF NOT EXISTS idx_movimentos_caixa_data
+                    ON movimentos_caixa(caixa_id, data_movimento DESC)
                 """);
         execute(connection, """
                 CREATE INDEX IF NOT EXISTS idx_movimentos_bancarios_conta_data
