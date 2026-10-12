@@ -115,55 +115,27 @@ public class ExerciciosFiscaisView extends VBox {
         setFillWidth(true);
 
         HBox header = buildHeader();
+        HBox kpis = buildKpis();
         HBox filters = buildFilters();
 
         SplitPane workspace = new SplitPane();
         workspace.getStyleClass().add("exercicios-workspace");
         workspace.setOrientation(Orientation.HORIZONTAL);
-        workspace.setDividerPositions(0.76);
-        workspace.setMinHeight(560);
-        workspace.setPrefHeight(620);
+        workspace.setDividerPositions(0.71);
+        workspace.setMinHeight(320);
+        workspace.setPrefHeight(520);
 
         StackPane tablePane = new StackPane(buildTable());
         tablePane.getStyleClass().add("exercicios-table-pane");
-        tablePane.setMinWidth(420);
-        tablePane.setMaxWidth(Double.MAX_VALUE);
+        tablePane.setMinWidth(0);
 
         VBox details = buildDetails();
         details.getStyleClass().add("exercicios-details-pane");
 
         workspace.getItems().addAll(tablePane, details);
-        SplitPane.setResizableWithParent(tablePane, true);
-        SplitPane.setResizableWithParent(details, false);
 
-        VBox pageContent = new VBox();
-        pageContent.setFillWidth(true);
-        pageContent.setSpacing(0);
-        pageContent.setMinWidth(980);
-        pageContent.getChildren().addAll(
-                header,
-                filters,
-                workspace,
-                buildStatusBar()
-        );
+        getChildren().addAll(header, kpis, filters, workspace);
         VBox.setVgrow(workspace, Priority.ALWAYS);
-
-        ScrollPane pageScroll = new ScrollPane(pageContent);
-        pageScroll.getStyleClass().add("exercicios-page-scroll");
-        pageScroll.setFitToWidth(true);
-        pageScroll.setFitToHeight(false);
-        pageScroll.setPannable(true);
-        pageScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        pageScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        pageScroll.setMinViewportHeight(0);
-
-        pageContent.minHeightProperty().bind(Bindings.createDoubleBinding(
-                () -> pageScroll.getViewportBounds().getHeight(),
-                pageScroll.viewportBoundsProperty()
-        ));
-
-        getChildren().add(pageScroll);
-        VBox.setVgrow(pageScroll, Priority.ALWAYS);
     }
 
     private HBox buildHeader() {
@@ -208,9 +180,9 @@ public class ExerciciosFiscaisView extends VBox {
     }
 
     private HBox buildKpis() {
-        HBox row = new HBox(10);
+        HBox row = new HBox(12);
         row.getStyleClass().add("exercicios-kpi-row");
-        row.setPadding(new Insets(0, 18, 12, 18));
+        row.setPadding(new Insets(4, 18, 8, 18));
 
         totalLabel = new Label("0");
         abertosLabel = new Label("0");
@@ -218,84 +190,29 @@ public class ExerciciosFiscaisView extends VBox {
         fechadosLabel = new Label("0");
 
         row.getChildren().addAll(
-                kpi("Total", "Todos os exercícios carregados", totalLabel, Feather.LAYERS),
-                kpi("Abertos", "Operacionais", abertosLabel, Feather.UNLOCK),
-                kpi("Em encerramento", "Aguardam fecho", encerramentoLabel, Feather.POWER),
-                kpi("Fechados", "Histórico encerrado", fechadosLabel, Feather.LOCK)
+                kpi("Total", totalLabel, Feather.LAYERS),
+                kpi("Abertos", abertosLabel, Feather.UNLOCK),
+                kpi("Em encerramento", encerramentoLabel, Feather.POWER),
+                kpi("Fechados", fechadosLabel, Feather.LOCK)
         );
 
         return row;
     }
 
-    private HBox buildStatusBar() {
-        HBox bar = new HBox(16);
-        bar.getStyleClass().add("exercicios-status-bar");
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(7, 12, 7, 12));
 
-        totalLabel = new Label("0");
-        abertosLabel = new Label("0");
-        encerramentoLabel = new Label("0");
-        fechadosLabel = new Label("0");
 
-        bar.getChildren().addAll(
-                statusItem("Registos", totalLabel),
-                separator(),
-                statusItem("Abertos", abertosLabel),
-                statusItem("Em encerramento", encerramentoLabel),
-                statusItem("Fechados", fechadosLabel)
-        );
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Label hint = new Label("Duplo clique: consultar  •  Clique direito: operações");
-        hint.getStyleClass().add("exercicios-status-hint");
-        bar.getChildren().addAll(spacer, hint);
-
-        return bar;
-    }
-
-    private HBox statusItem(String title, Label value) {
-        HBox item = new HBox(5);
-        item.setAlignment(Pos.CENTER_LEFT);
-
-        Label titleLabel = new Label(title + ":");
-        titleLabel.getStyleClass().add("exercicios-status-label");
-
-        value.getStyleClass().add("exercicios-status-value");
-        item.getChildren().addAll(titleLabel, value);
-        return item;
-    }
-
-    private Separator separator() {
-        Separator separator = new Separator();
-        separator.setOrientation(Orientation.VERTICAL);
-        separator.setPrefHeight(18);
-        return separator;
-    }
-
-    private VBox kpi(String title, String caption, Label value, Feather icon) {
-        VBox card = new VBox(4);
-        card.getStyleClass().add("exercicios-kpi-card");
-        HBox.setHgrow(card, Priority.ALWAYS);
-
-        HBox top = new HBox(8);
-        top.setAlignment(Pos.CENTER_LEFT);
-
-        Label iconLabel = new Label("", IconUtils.icon(icon, 14));
-        iconLabel.getStyleClass().add("exercicios-kpi-icon");
+    private VBox kpi(String title, Label value, Feather iconCode) {
+        Label icon = new Label("", IconUtils.icon(iconCode, 16));
+        icon.getStyleClass().add("exercicios-kpi-icon");
 
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("exercicios-kpi-title");
-
-        top.getChildren().addAll(iconLabel, titleLabel);
-
         value.getStyleClass().add("exercicios-kpi-value");
-        Label captionLabel = new Label(caption);
-        captionLabel.getStyleClass().add("exercicios-kpi-caption");
 
-        card.getChildren().addAll(top, value, captionLabel);
+        VBox text = new VBox(1, titleLabel, value);
+        VBox card = new VBox(4, new HBox(8, icon, text));
+        card.getStyleClass().add("exercicios-kpi-card");
+        HBox.setHgrow(card, Priority.ALWAYS);
         return card;
     }
 
@@ -489,8 +406,7 @@ public class ExerciciosFiscaisView extends VBox {
         root.getStyleClass().add("exercicios-details");
         root.setPadding(new Insets(16));
         root.setPrefWidth(320);
-        root.setMinWidth(300);
-        root.setMaxWidth(370);
+        root.setMinWidth(280);
 
         HBox heading = new HBox(8);
         heading.setAlignment(Pos.CENTER_LEFT);
