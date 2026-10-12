@@ -12,12 +12,19 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Serviço central de instalação e inicialização dos módulos do Kubata.
@@ -32,33 +39,86 @@ public class ModuleInstallationService {
 
     private static final Logger logger = LoggerFactory.getLogger(ModuleInstallationService.class);
 
+    private static final int MAX_CATALOG_SYNC_ATTEMPTS = 3;
+
     private final ModuleRegistry moduleRegistry;
     private final ModuloSistemaRepository moduloRepository;
+    private final TransactionTemplate catalogTransactionTemplate;
 
-    public ModuleInstallationService(ModuleRegistry moduleRegistry,
-                                     ModuloSistemaRepository moduloRepository) {
+    public ModuleInstallationService(
+            ModuleRegistry moduleRegistry,
+            ModuloSistemaRepository moduloRepository,
+            PlatformTransactionManager transactionManager
+    ) {
         this.moduleRegistry = moduleRegistry;
         this.moduloRepository = moduloRepository;
+        this.catalogTransactionTemplate = new TransactionTemplate(transactionManager);
+        this.catalogTransactionTemplate.setPropagationBehavior(
+                TransactionDefinition.PROPAGATION_REQUIRES_NEW
+        );
     }
 
     /**
      * Sincroniza a tabela administrativa com os módulos reais registados.
      * Não cria módulos fictícios e não remove registos históricos existentes.
      */
-    @Transactional
+    /**
+     * Sincroniza o catálogo em transacções curtas e repete a transacção inteira
+     * quando uma escrita concorrente provoca SQLITE_BUSY/SQLITE_BUSY_SNAPSHOT.
+     * Repetir apenas a consulta dentro da transacção original não resolve o
+     * snapshot WAL desactualizado: é necessário fazer rollback e começar de novo.
+     */
     public List<ModuloSistema> synchronizeCatalog() {
         List<KubataModule> registered = moduleRegistry.getAllModules().stream()
                 .sorted(Comparator.comparing(KubataModule::getModuleName,
                         String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
+        for (int attempt = 1; attempt <= MAX_CATALOG_SYNC_ATTEMPTS; attempt++) {
+            try {
+                List<ModuloSistema> result = catalogTransactionTemplate.execute(
+                        status -> synchronizeCatalogInTransaction(registered)
+                );
+                if (result == null) {
+                    throw new IllegalStateException(
+                            "A sincronização do catálogo não devolveu resultados."
+                    );
+                }
+                return result;
+            } catch (RuntimeException ex) {
+                if (attempt >= MAX_CATALOG_SYNC_ATTEMPTS || !isRetryableSqliteLock(ex)) {
+                    throw ex;
+                }
+
+                logger.warn(
+                        "Bloqueio temporário SQLite ao sincronizar o catálogo "
+                                + "(tentativa {}/{}). A transacção será reiniciada.",
+                        attempt,
+                        MAX_CATALOG_SYNC_ATTEMPTS
+                );
+                pauseBeforeCatalogRetry(attempt);
+            }
+        }
+
+        throw new IllegalStateException("Não foi possível sincronizar o catálogo de módulos.");
+    }
+
+    private List<ModuloSistema> synchronizeCatalogInTransaction(List<KubataModule> registered) {
+        // Uma leitura inicial e uma escrita em lote evitam auto-flushs entre findByCodigo().
+        List<ModuloSistema> existingModules = moduloRepository.findAll();
+        Map<String, ModuloSistema> byCode = new LinkedHashMap<>();
+        for (ModuloSistema existing : existingModules) {
+            if (existing.getCodigo() != null && !existing.getCodigo().isBlank()) {
+                byCode.putIfAbsent(existing.getCodigo(), existing);
+            }
+        }
+
         List<ModuloSistema> result = new ArrayList<>(registered.size());
 
         for (KubataModule module : registered) {
-            ModuloSistema entity = moduloRepository.findByCodigo(module.getModuleId())
-                    .orElseGet(ModuloSistema::new);
-
-            if (entity.getId() == null) {
+            ModuloSistema entity = byCode.get(module.getModuleId());
+            if (entity == null) {
+                entity = new ModuloSistema();
                 entity.setCodigo(module.getModuleId());
                 entity.setEstado(ModuloSistema.EstadoModulo.DISPONIVEL);
                 entity.setObrigatorio(false);
@@ -74,10 +134,44 @@ public class ModuleInstallationService {
                 entity.setEstado(ModuloSistema.EstadoModulo.DISPONIVEL);
             }
 
-            result.add(moduloRepository.save(entity));
+            result.add(entity);
         }
 
-        return result;
+        return moduloRepository.saveAll(result);
+    }
+
+    private boolean isRetryableSqliteLock(Throwable failure) {
+        for (Throwable current = failure; current != null; current = current.getCause()) {
+            if (current instanceof SQLException sqlException) {
+                int primaryCode = sqlException.getErrorCode() & 0xff;
+                if (primaryCode == 5 || primaryCode == 6) {
+                    return true;
+                }
+            }
+
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toUpperCase(Locale.ROOT);
+                if (normalized.contains("SQLITE_BUSY")
+                        || normalized.contains("SQLITE_LOCKED")
+                        || normalized.contains("DATABASE IS LOCKED")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void pauseBeforeCatalogRetry(int attempt) {
+        try {
+            Thread.sleep(150L * attempt);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "A sincronização do catálogo foi interrompida durante a recuperação do bloqueio SQLite.",
+                    ex
+            );
+        }
     }
 
     /**
