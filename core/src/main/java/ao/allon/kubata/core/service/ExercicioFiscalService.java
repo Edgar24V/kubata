@@ -126,6 +126,11 @@ public class ExercicioFiscalService {
 
         Set<String> modulosNormalizados = normalizarModulos(modulos);
         Empresa empresaGerida = base.getEmpresa() == null ? empresa : base.getEmpresa();
+        if (!empresaGerida.getAtiva()) {
+            throw new IllegalArgumentException(
+                    "A empresa foi desactivada durante a preparação. Active-a novamente antes de continuar."
+            );
+        }
 
         List<String> avisos = new ArrayList<>();
         if (base.getEstado() != ExercicioFiscal.EstadoExercicio.FECHADO) {
@@ -140,6 +145,8 @@ public class ExercicioFiscalService {
                 .filter(serie -> serie.getExercicio() != null
                         && serie.getExercicio() == anoBase)
                 .filter(serie -> serie.getTipoDocumento() != null)
+                .filter(serie -> serie.getEstado() == SerieDocumento.EstadoSerie.ACTIVA
+                        || serie.getEstado() == SerieDocumento.EstadoSerie.PENDENTE_AGT)
                 .filter(serie -> modulosNormalizados.contains(
                         moduloPorArea(serie.getTipoDocumento().getArea())
                 ))
