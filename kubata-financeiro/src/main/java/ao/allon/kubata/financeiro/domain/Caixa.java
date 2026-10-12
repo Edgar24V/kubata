@@ -68,9 +68,6 @@ public class Caixa extends BaseEntity {
 
     public void setIsAtivo(Boolean isAtivo) {
         this.isAtivo = isAtivo;
-        if (isAtivo != null) {
-            setActive(isAtivo);
-        }
     }
 
     public String getObservacoes() {
