@@ -72,6 +72,8 @@ public class ContaBancariaService {
             conta.setBanco(banco);
             conta.setNumeroConta(numero);
             conta.setTitular(titular);
+            conta.setDescricao(normalizarOpcional(dados.getDescricao()) == null
+                    ? banco + " - " + numero : dados.getDescricao().trim());
             conta.setIban(iban);
             conta.setSwiftCode(normalizarOpcional(dados.getSwiftCode()));
             conta.setSaldo(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
@@ -87,6 +89,9 @@ public class ContaBancariaService {
             conta.setBanco(banco);
             conta.setNumeroConta(numero);
             conta.setTitular(titular);
+            if (normalizarOpcional(dados.getDescricao()) != null) {
+                conta.setDescricao(dados.getDescricao().trim());
+            }
             conta.setIban(iban);
             conta.setSwiftCode(normalizarOpcional(dados.getSwiftCode()));
             // O saldo pertence ao livro de movimentos e nunca ao formulário de edição.
