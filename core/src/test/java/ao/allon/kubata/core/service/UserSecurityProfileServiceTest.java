@@ -5,6 +5,7 @@ import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSecurityFinancialUsage;
 import ao.allon.kubata.core.domain.UserSecurityProfile;
+import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.repository.EmpresaRepository;
 import ao.allon.kubata.core.repository.PerfilAcessoRepository;
 import ao.allon.kubata.core.repository.UserAccessPermissionRepository;
@@ -24,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -183,6 +185,57 @@ class UserSecurityProfileServiceTest {
                 eq(UserSecurityProfileService.MODULE), eq("127.0.0.1"),
                 isNull(), isNull(), eq(false), any()
         );
+    }
+
+    @Test
+    void adminNaoDeveFicarTrancadoPorSessoesAntigas() {
+        User user = admin(10L);
+        UserSecurityProfile profile = new UserSecurityProfile();
+        profile.setMaxConcurrentSessions(2);
+        profile.setSessionTimeoutMinutes(480);
+        when(profileRepository.findByUserId(10L)).thenReturn(Optional.of(profile));
+
+        LocalDateTime now = LocalDateTime.of(2026, 10, 12, 12, 0);
+        UserSession recente = sessionAt(now.minusMinutes(10));
+        UserSession antiga = sessionAt(now.minusMinutes(60));
+        when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc("Administrador"))
+                .thenReturn(List.of(recente, antiga));
+
+        assertDoesNotThrow(() -> service.enforceConcurrentSessionLimit(user, now));
+
+        verify(userSessionRepository).delete(antiga);
+        verify(userSessionRepository, never()).delete(recente);
+    }
+
+    @Test
+    void utilizadorNormalContinuaLimitadoPeloNumeroDeSessoes() {
+        User user = new User();
+        user.setId(11L);
+        user.setNome("Operador");
+        user.setEmail("operador@kubata.local");
+        user.setRole(Role.USER);
+        user.setActive(true);
+
+        UserSecurityProfile profile = new UserSecurityProfile();
+        profile.setMaxConcurrentSessions(1);
+        profile.setSessionTimeoutMinutes(480);
+        when(profileRepository.findByUserId(11L)).thenReturn(Optional.of(profile));
+
+        LocalDateTime now = LocalDateTime.of(2026, 10, 12, 12, 0);
+        when(userSessionRepository.findAllByUsernameOrderByLoginTimeDesc("Operador"))
+                .thenReturn(List.of(sessionAt(now.minusMinutes(10))));
+
+        assertThrows(
+                ao.allon.kubata.core.exception.AuthenticationException.class,
+                () -> service.enforceConcurrentSessionLimit(user, now)
+        );
+        verify(userSessionRepository, never()).delete(any(UserSession.class));
+    }
+
+    private static UserSession sessionAt(LocalDateTime loginTime) {
+        UserSession session = new UserSession("Administrador", "POSTO", "127.0.0.1", "KUBATA ERP");
+        session.setLoginTime(loginTime);
+        return session;
     }
 
     private static User admin(Long id) {

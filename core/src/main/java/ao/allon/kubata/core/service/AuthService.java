@@ -89,15 +89,15 @@ public class AuthService {
             throw new AuthenticationException("Credenciais inválidas.");
         }
 
-        if (isPasswordExpired(user)) {
-            acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Senha expirada", false);
-            throw new AuthenticationException("Sua senha expirou e deve ser alterada.");
-        }
-
         if (!user.isEnabled()) {
             acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Conta inativa", false);
             throw new AuthenticationException("Conta inativa. Contate o administrador.");
         }
+
+        // Uma palavra-passe expirada não impede a autenticação: o utilizador prova quem é
+        // (palavra-passe + MFA) e é então obrigado a defini-la de novo. Rejeitar aqui sem
+        // oferecer a alteração deixava a conta trancada para sempre.
+        boolean passwordExpired = isPasswordExpired(user);
 
         boolean mfaSatisfied = !user.isMfaEnabled();
         if (user.isMfaEnabled()) {
@@ -156,6 +156,12 @@ public class AuthService {
             throw new PasswordChangeRequiredException(user);
         }
 
+        if (passwordExpired) {
+            acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip,
+                    "Senha expirada - alteração obrigatória", false);
+            throw PasswordChangeRequiredException.expired(user);
+        }
+
         userSecurityProfileService.enforceConcurrentSessionLimit(user, LocalDateTime.now());
 
         user.setUltimoAcesso(LocalDateTime.now());
@@ -199,7 +205,11 @@ public class AuthService {
     @Transactional
     public void logout(User user, String ip) {
         if (user != null) {
-            userSessionRepository.findByUsername(user.getNome())
+            // Pode existir mais de uma sessão com o mesmo nome (findByUsername devolvia
+            // Optional e rebentava nesse caso). Esta saída fecha a sessão mais recente.
+            userSessionRepository.findAllByUsernameOrderByLoginTimeDesc(user.getNome())
+                .stream()
+                .findFirst()
                 .ifPresent(userSessionRepository::delete);
             acessoService.registrarAuditoria(user, "LOGOUT", "AUTH", ip, "Saída do sistema", true);
         }
