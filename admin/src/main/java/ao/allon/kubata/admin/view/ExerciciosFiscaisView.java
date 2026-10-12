@@ -33,6 +33,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 @Component
@@ -57,6 +58,7 @@ public class ExerciciosFiscaisView extends VBox {
     private FilteredList<ExercicioFiscal> exerciciosFiltrados;
 
     private AdvancedTableView<ExercicioFiscal> table;
+    private TextField searchField;
     private ComboBox<Empresa> empresaCombo;
     private ComboBox<String> estadoCombo;
 
@@ -69,9 +71,11 @@ public class ExerciciosFiscaisView extends VBox {
     private Label detailEmpresa;
     private Label detailAno;
     private Label detailPeriodo;
-    private Label detailEstado;
+    private Label detailStatus;
     private Label detailActual;
     private Label detailEncerrado;
+
+    private VBox detailsPane;
 
     private Button btnActual;
     private Button btnEncerramento;
@@ -114,112 +118,83 @@ public class ExerciciosFiscaisView extends VBox {
         setPadding(Insets.EMPTY);
         setFillWidth(true);
 
-        HBox header = buildHeader();
+        VBox header = buildHeader();
         HBox kpis = buildKpis();
-        HBox filters = buildFilters();
 
-        SplitPane workspace = new SplitPane();
-        workspace.getStyleClass().add("exercicios-workspace");
-        workspace.setOrientation(Orientation.HORIZONTAL);
-        workspace.setDividerPositions(0.71);
-        workspace.setMinHeight(320);
-        workspace.setPrefHeight(520);
+        table = buildTable();
+        detailsPane = buildDetails();
 
-        StackPane tablePane = new StackPane(buildTable());
-        tablePane.getStyleClass().add("exercicios-table-pane");
-        tablePane.setMinWidth(0);
+        BorderPane body = new BorderPane();
+        body.setPadding(new Insets(0, 18, 18, 18));
 
-        VBox details = buildDetails();
-        details.getStyleClass().add("exercicios-details-pane");
+        SplitPane split = new SplitPane(table, detailsPane);
+        split.setDividerPositions(0.71);
+        split.getStyleClass().add("empresa-content-split");
+        BorderPane.setMargin(split, new Insets(12, 0, 0, 0));
+        body.setCenter(split);
 
-        workspace.getItems().addAll(tablePane, details);
-
-        getChildren().addAll(header, kpis, filters, workspace);
-        VBox.setVgrow(workspace, Priority.ALWAYS);
+        getChildren().addAll(header, kpis, body);
+        VBox.setVgrow(body, Priority.ALWAYS);
     }
 
-    private HBox buildHeader() {
-        HBox header = new HBox(12);
-        header.getStyleClass().add("exercicios-header");
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(14, 18, 12, 18));
+        private VBox buildHeader() {
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(16, 18, 10, 18));
+        root.getStyleClass().add("empresa-header");
+
+        HBox titleRow = new HBox(12);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
 
         Label icon = new Label("", IconUtils.icon(Feather.CALENDAR, 18));
-        icon.getStyleClass().add("exercicios-title-icon");
+        icon.getStyleClass().add("empresa-title-icon");
 
-        VBox titles = new VBox(2);
-        Label title = new Label("Gestão de Exercícios");
-        title.getStyleClass().add("exercicios-title");
+        VBox titles = new VBox(3);
+        Label title = new Label("Exercícios Fiscais");
+        title.getStyleClass().add("h2");
 
         Label subtitle = new Label(
-                "Gestão dos exercícios fiscais da plataforma e das empresas instaladas."
+                "Gestão dos períodos fiscais, exercício actual e operações de encerramento"
         );
-        subtitle.getStyleClass().add("exercicios-subtitle");
-
+        subtitle.getStyleClass().add("text-muted");
         titles.getChildren().addAll(title, subtitle);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        searchField = new TextField();
+        searchField.setPromptText("Pesquisar empresa, ano, estado ou observações...");
+        searchField.setPrefWidth(300);
+        searchField.setMaxWidth(360);
+        searchField.getStyleClass().add("empresa-search");
+        searchField.textProperty().addListener((obs, old, value) -> applyFilters());
+
         Button btnNovo = new Button(
-                "Novo Exercício",
-                IconUtils.icon(Feather.PLUS, IconUtils.SIZE_SMALL)
+                "Novo exercício",
+                IconUtils.icon(Feather.PLUS_CIRCLE, IconUtils.SIZE_SMALL)
         );
         btnNovo.getStyleClass().add("button-primary");
         btnNovo.setOnAction(e -> showNovoExercicioDialog());
 
         Button btnRefresh = new Button(
-                "Actualizar",
+                "",
                 IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
         );
         btnRefresh.getStyleClass().add("button-outlined");
+        btnRefresh.setTooltip(new Tooltip("Actualizar exercícios fiscais"));
         btnRefresh.setOnAction(e -> loadData());
 
-        header.getChildren().addAll(icon, titles, spacer, btnNovo, btnRefresh);
-        return header;
-    }
-
-    private HBox buildKpis() {
-        HBox row = new HBox(12);
-        row.getStyleClass().add("exercicios-kpi-row");
-        row.setPadding(new Insets(4, 18, 8, 18));
-
-        totalLabel = new Label("0");
-        abertosLabel = new Label("0");
-        encerramentoLabel = new Label("0");
-        fechadosLabel = new Label("0");
-
-        row.getChildren().addAll(
-                kpi("Total", totalLabel, Feather.LAYERS),
-                kpi("Abertos", abertosLabel, Feather.UNLOCK),
-                kpi("Em encerramento", encerramentoLabel, Feather.POWER),
-                kpi("Fechados", fechadosLabel, Feather.LOCK)
+        titleRow.getChildren().addAll(
+                icon, titles, spacer, searchField, btnNovo, btnRefresh
         );
 
-        return row;
+        HBox filterRow = buildFilterRow();
+        root.getChildren().addAll(titleRow, filterRow);
+        return root;
     }
 
-
-
-    private VBox kpi(String title, Label value, Feather iconCode) {
-        Label icon = new Label("", IconUtils.icon(iconCode, 16));
-        icon.getStyleClass().add("exercicios-kpi-icon");
-
-        Label titleLabel = new Label(title);
-        titleLabel.getStyleClass().add("exercicios-kpi-title");
-        value.getStyleClass().add("exercicios-kpi-value");
-
-        VBox text = new VBox(1, titleLabel, value);
-        VBox card = new VBox(4, new HBox(8, icon, text));
-        card.getStyleClass().add("exercicios-kpi-card");
-        HBox.setHgrow(card, Priority.ALWAYS);
-        return card;
-    }
-
-    private HBox buildFilters() {
+    private HBox buildFilterRow() {
         HBox box = new HBox(10);
-        box.getStyleClass().add("exercicios-filters");
-        box.setPadding(new Insets(0, 18, 12, 18));
+        box.getStyleClass().add("exercicios-header-filter-row");
         box.setAlignment(Pos.CENTER_LEFT);
 
         Label companyLabel = new Label("Empresa");
@@ -227,8 +202,9 @@ public class ExerciciosFiscaisView extends VBox {
 
         empresaCombo = new ComboBox<>(empresas);
         empresaCombo.setPromptText("Todas as empresas");
-        empresaCombo.setPrefWidth(280);
-        empresaCombo.setMaxWidth(340);
+        empresaCombo.setPrefWidth(250);
+        empresaCombo.setMaxWidth(320);
+        empresaCombo.getStyleClass().add("exercicios-filter-combo");
         empresaCombo.setOnAction(e -> applyFilters());
 
         Label estadoLabel = new Label("Estado");
@@ -243,10 +219,11 @@ public class ExerciciosFiscaisView extends VBox {
                 )
         );
         estadoCombo.setValue("Todos");
-        estadoCombo.setPrefWidth(170);
+        estadoCombo.setPrefWidth(180);
+        estadoCombo.getStyleClass().add("exercicios-filter-combo");
         estadoCombo.setOnAction(e -> applyFilters());
 
-        Label hint = new Label("A pesquisa rápida da tabela também filtra por empresa, ano e observações.");
+        Label hint = new Label("Seleccione uma linha para consultar os detalhes e operações.");
         hint.getStyleClass().add("exercicios-filter-hint");
 
         Region spacer = new Region();
@@ -257,17 +234,51 @@ public class ExerciciosFiscaisView extends VBox {
                 estadoLabel, estadoCombo,
                 spacer, hint
         );
-
         return box;
     }
 
-    private AdvancedTableView<ExercicioFiscal> buildTable() {
+        private HBox buildKpis() {
+        HBox row = new HBox(12);
+        row.getStyleClass().add("empresa-kpi-row");
+        row.setPadding(new Insets(4, 18, 8, 18));
+
+        totalLabel = new Label("0");
+        abertosLabel = new Label("0");
+        encerramentoLabel = new Label("0");
+        fechadosLabel = new Label("0");
+
+        row.getChildren().addAll(
+                kpi("Total de exercícios", totalLabel, Feather.LAYERS),
+                kpi("Abertos", abertosLabel, Feather.UNLOCK),
+                kpi("Em encerramento", encerramentoLabel, Feather.POWER),
+                kpi("Fechados", fechadosLabel, Feather.LOCK)
+        );
+        return row;
+    }
+
+        private VBox kpi(String title, Label value, Feather iconCode) {
+        Label icon = new Label("", IconUtils.icon(iconCode, 16));
+        icon.getStyleClass().add("empresa-kpi-icon");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("empresa-kpi-title");
+        value.getStyleClass().add("empresa-kpi-value");
+
+        VBox text = new VBox(1, titleLabel, value);
+        VBox card = new VBox(4, new HBox(8, icon, text));
+        card.getStyleClass().add("empresa-kpi-card");
+        HBox.setHgrow(card, Priority.ALWAYS);
+        return card;
+    }
+
+        private AdvancedTableView<ExercicioFiscal> buildTable() {
         table = new AdvancedTableView<>();
         table.setEditable(true);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         TableUtils.standardize(table);
         table.setEntityName("Exercício");
+        table.setOnRefresh(this::loadData);
 
         exerciciosFiltrados = new FilteredList<>(exercicios, item -> true);
         table.setData(exerciciosFiltrados);
@@ -403,46 +414,46 @@ public class ExerciciosFiscaisView extends VBox {
 
     private VBox buildDetails() {
         VBox root = new VBox(12);
-        root.getStyleClass().add("exercicios-details");
+        root.getStyleClass().add("empresa-details");
         root.setPadding(new Insets(16));
-        root.setPrefWidth(320);
-        root.setMinWidth(280);
+        root.setMinWidth(310);
 
-        HBox heading = new HBox(8);
+        HBox heading = new HBox(9);
         heading.setAlignment(Pos.CENTER_LEFT);
 
-        Label icon = new Label("", IconUtils.icon(Feather.CALENDAR, 15));
-        icon.getStyleClass().add("exercicios-details-icon");
-
-        VBox titleBox = new VBox(1);
+        Label icon = new Label("", IconUtils.icon(Feather.CALENDAR, 18));
         detailTitle = new Label("Nenhum exercício seleccionado");
-        detailTitle.getStyleClass().add("exercicios-details-title");
+        detailTitle.getStyleClass().add("h3");
 
-        Label subtitle = new Label("Detalhes e operações do exercício");
-        subtitle.getStyleClass().add("exercicios-details-subtitle");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        titleBox.getChildren().addAll(detailTitle, subtitle);
-        heading.getChildren().addAll(icon, titleBox);
+        detailStatus = new Label("—");
+        detailStatus.getStyleClass().add("empresa-status");
+
+        heading.getChildren().addAll(icon, detailTitle, spacer, detailStatus);
 
         Separator separator = new Separator();
 
         VBox facts = new VBox(8);
-        facts.getStyleClass().add("exercicios-details-facts");
+        facts.getStyleClass().add("empresa-details-facts");
 
-        detailEmpresa = fact("Empresa");
-        detailAno = fact("Ano");
-        detailPeriodo = fact("Período");
-        detailEstado = fact("Estado");
-        detailActual = fact("Exercício actual");
-        detailEncerrado = fact("Encerrado em");
+        detailEmpresa = fact();
+        detailAno = fact();
+        detailPeriodo = fact();
+        detailActual = fact();
+        detailEncerrado = fact();
 
         facts.getChildren().addAll(
-                detailEmpresa, detailAno, detailPeriodo,
-                detailEstado, detailActual, detailEncerrado
+                factRow("Empresa", detailEmpresa),
+                factRow("Ano fiscal", detailAno),
+                factRow("Período", detailPeriodo),
+                factRow("Exercício actual", detailActual),
+                factRow("Encerrado em", detailEncerrado)
         );
 
-        Label actionsTitle = new Label("Operações");
-        actionsTitle.getStyleClass().add("exercicios-details-section");
+        Label actionsTitle = new Label("Operações do exercício");
+        actionsTitle.getStyleClass().add("empresa-details-section");
 
         VBox actions = new VBox(7);
 
@@ -481,25 +492,38 @@ public class ExerciciosFiscaisView extends VBox {
         help.setWrapText(true);
         help.getStyleClass().add("exercicios-details-help");
 
-        Region spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
+        Region bottomSpacer = new Region();
+        VBox.setVgrow(bottomSpacer, Priority.ALWAYS);
 
         root.getChildren().addAll(
                 heading, separator, facts,
-                actionsTitle, actions, spacer, help
+                actionsTitle, actions, bottomSpacer, help
         );
-
         clearDetails();
         return root;
     }
 
-    private Label fact(String caption) {
-        Label label = new Label(caption + ": —");
-        label.getStyleClass().add("exercicios-detail-fact");
+    private Label fact() {
+        Label label = new Label("—");
+        label.getStyleClass().add("empresa-fact-value");
+        label.setWrapText(true);
         return label;
     }
 
-    private Button actionButton(String text,
+    private HBox factRow(String caption, Label value) {
+        Label title = new Label(caption);
+        title.getStyleClass().add("empresa-fact-label");
+        title.setMinWidth(95);
+
+        HBox row = new HBox(8, title, value);
+        HBox.setHgrow(value, Priority.ALWAYS);
+        row.setAlignment(Pos.TOP_LEFT);
+        return row;
+    }
+
+
+
+        private Button actionButton(String text,
                                 Feather icon,
                                 String style,
                                 javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
@@ -557,8 +581,11 @@ public class ExerciciosFiscaisView extends VBox {
             return;
         }
 
-        Empresa selectedEmpresa = empresaCombo.getValue();
-        String estado = estadoCombo.getValue();
+        Empresa selectedEmpresa = empresaCombo == null ? null : empresaCombo.getValue();
+        String estado = estadoCombo == null ? "Todos" : estadoCombo.getValue();
+        String query = searchField == null || searchField.getText() == null
+                ? ""
+                : searchField.getText().trim().toLowerCase(Locale.ROOT);
 
         exerciciosFiltrados.setPredicate(exercicio -> {
             boolean empresaOk = selectedEmpresa == null
@@ -570,14 +597,36 @@ public class ExerciciosFiscaisView extends VBox {
                     || (exercicio.getEstado() != null
                     && estado.equals(exercicio.getEstado().toString()));
 
-            return empresaOk && estadoOk;
+            String nomeEmpresa = exercicio.getEmpresa() == null
+                    ? ""
+                    : value(exercicio.getEmpresa().getNome());
+            String estadoExercicio = exercicio.getEstado() == null
+                    ? ""
+                    : exercicio.getEstado().toString();
+            String observacoes = exercicio.getObservacoes() == null
+                    ? ""
+                    : exercicio.getObservacoes();
+
+            String searchable = String.join(" ",
+                    nomeEmpresa,
+                    value(exercicio.getAno()),
+                    formatDate(exercicio.getDataInicio()),
+                    formatDate(exercicio.getDataFim()),
+                    estadoExercicio,
+                    observacoes
+            ).toLowerCase(Locale.ROOT);
+
+            boolean queryOk = query.isBlank() || searchable.contains(query);
+            return empresaOk && estadoOk && queryOk;
         });
 
         updateKpis();
-        showDetails(table.getSelectionModel().getSelectedItem());
+        showDetails(table == null ? null : table.getSelectionModel().getSelectedItem());
     }
 
-    private void updateKpis() {
+
+
+        private void updateKpis() {
         long total = exerciciosFiltrados == null ? 0 : exerciciosFiltrados.size();
         long abertos = count(EstadoExercicio.ABERTO);
         long encerramento = count(EstadoExercicio.ENCERRAMENTO);
@@ -607,7 +656,7 @@ public class ExerciciosFiscaisView extends VBox {
 
         String empresaNome = exercicio.getEmpresa() == null
                 ? "—"
-                : exercicio.getEmpresa().getNome();
+                : value(exercicio.getEmpresa().getNome());
 
         boolean actual = exercicio.getEmpresa() != null
                 && Objects.equals(
@@ -615,26 +664,34 @@ public class ExerciciosFiscaisView extends VBox {
                 exercicio.getAno()
         );
 
-        detailTitle.setText("Exercício " + exercicio.getAno());
-        detailEmpresa.setText("Empresa: " + empresaNome);
-        detailAno.setText("Ano: " + value(exercicio.getAno()));
+        detailTitle.setText("Exercício " + value(exercicio.getAno()));
+
+        String state = exercicio.getEstado() == null
+                ? "—"
+                : exercicio.getEstado().toString();
+        detailStatus.setText(state.equals("—") ? "—" : state.toUpperCase(Locale.ROOT));
+        detailStatus.getStyleClass().removeAll("active", "inactive", "closing");
+        if (exercicio.getEstado() == EstadoExercicio.ABERTO) {
+            detailStatus.getStyleClass().add("active");
+        } else if (exercicio.getEstado() == EstadoExercicio.ENCERRAMENTO) {
+            detailStatus.getStyleClass().add("closing");
+        } else if (exercicio.getEstado() == EstadoExercicio.FECHADO) {
+            detailStatus.getStyleClass().add("inactive");
+        }
+
+        detailEmpresa.setText(empresaNome);
+        detailAno.setText(value(exercicio.getAno()));
         detailPeriodo.setText(
-                "Período: "
-                        + formatDate(exercicio.getDataInicio())
+                formatDate(exercicio.getDataInicio())
                         + " — "
                         + formatDate(exercicio.getDataFim())
         );
-        detailEstado.setText(
-                "Estado: "
-                        + (exercicio.getEstado() == null ? "—" : exercicio.getEstado())
-        );
-        detailActual.setText("Exercício actual: " + (actual ? "Sim" : "Não"));
+        detailActual.setText(actual ? "Sim" : "Não");
         detailEncerrado.setText(
-                "Encerrado em: "
-                        + (exercicio.getEncerradoEm() == null
+                exercicio.getEncerradoEm() == null
                         ? "—"
                         : DATE_FORMAT.format(exercicio.getEncerradoEm().toLocalDate())
-                                + " por " + value(exercicio.getEncerradoPor()))
+                                + " por " + value(exercicio.getEncerradoPor())
         );
 
         btnActual.setDisable(actual || exercicio.getEstado() == EstadoExercicio.FECHADO);
@@ -645,12 +702,15 @@ public class ExerciciosFiscaisView extends VBox {
 
     private void clearDetails() {
         if (detailTitle != null) detailTitle.setText("Nenhum exercício seleccionado");
-        if (detailEmpresa != null) detailEmpresa.setText("Empresa: —");
-        if (detailAno != null) detailAno.setText("Ano: —");
-        if (detailPeriodo != null) detailPeriodo.setText("Período: —");
-        if (detailEstado != null) detailEstado.setText("Estado: —");
-        if (detailActual != null) detailActual.setText("Exercício actual: —");
-        if (detailEncerrado != null) detailEncerrado.setText("Encerrado em: —");
+        if (detailStatus != null) {
+            detailStatus.setText("—");
+            detailStatus.getStyleClass().removeAll("active", "inactive", "closing");
+        }
+        if (detailEmpresa != null) detailEmpresa.setText("—");
+        if (detailAno != null) detailAno.setText("—");
+        if (detailPeriodo != null) detailPeriodo.setText("—");
+        if (detailActual != null) detailActual.setText("—");
+        if (detailEncerrado != null) detailEncerrado.setText("—");
 
         if (btnActual != null) btnActual.setDisable(true);
         if (btnEncerramento != null) btnEncerramento.setDisable(true);
@@ -658,7 +718,9 @@ public class ExerciciosFiscaisView extends VBox {
         if (btnReabrir != null) btnReabrir.setDisable(true);
     }
 
-    public void showNovoExercicioDialog() {
+
+
+        public void showNovoExercicioDialog() {
         if (empresas.isEmpty()) {
             loadData();
             modalManager.alert(
