@@ -84,6 +84,32 @@ public class MainController {
         switchToLogin();
     }
 
+    /**
+     * Fecha a aplicação apenas depois de confirmar o fim da sessão persistida.
+     * Se a gravação do logout falhar, a janela permanece aberta.
+     */
+    public void closeApplication() {
+        User user = sessionManager.getUser();
+        if (user != null) {
+            try {
+                applicationContext.getBean(AuthService.class).logout(user, "127.0.0.1");
+            } catch (Exception ex) {
+                showAlert(
+                        "Não foi possível encerrar a sessão",
+                        "O Kubata Administrator continuará aberto porque o encerramento "
+                                + "da sessão não foi confirmado.\n\n"
+                                + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                );
+                return;
+            }
+            sessionManager.logout();
+        }
+
+        if (stage != null) {
+            stage.close();
+        }
+    }
+
     private void switchToLogin() {
         Parent root = loginController.createView(stage);
 
