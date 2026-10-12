@@ -191,14 +191,14 @@ public class AdminMainView extends StackPane {
         openTabsLabel.getStyleClass().add("status-bar-meta");
 
         Label version = new Label(
-                "Kubata Administrator · v1.0.0",
+                "Kubata Admin · 1.0.0-SNAPSHOT",
                 IconUtils.icon(Feather.INFO, IconUtils.SIZE_SMALL)
         );
         version.getStyleClass().add("status-bar-meta");
         version.setMinWidth(0);
         version.setMaxWidth(155);
         version.setTextOverrun(OverrunStyle.ELLIPSIS);
-        version.setTooltip(new Tooltip("Versão da aplicação"));
+        version.setTooltip(new Tooltip("Kubata Administrator · versão 1.0.0-SNAPSHOT"));
 
         Button helpButton = new Button(
                 "Ajuda",
