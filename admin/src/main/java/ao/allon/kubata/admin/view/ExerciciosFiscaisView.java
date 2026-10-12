@@ -15,15 +15,12 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.core.ui.table.TextTableCell;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
@@ -137,7 +134,7 @@ public class ExerciciosFiscaisView extends VBox {
         VBox.setVgrow(body, Priority.ALWAYS);
     }
 
-        private VBox buildHeader() {
+    private VBox buildHeader() {
         VBox root = new VBox(10);
         root.setPadding(new Insets(16, 18, 10, 18));
         root.getStyleClass().add("empresa-header");
@@ -237,7 +234,7 @@ public class ExerciciosFiscaisView extends VBox {
         return box;
     }
 
-        private HBox buildKpis() {
+    private HBox buildKpis() {
         HBox row = new HBox(12);
         row.getStyleClass().add("empresa-kpi-row");
         row.setPadding(new Insets(4, 18, 8, 18));
@@ -256,7 +253,7 @@ public class ExerciciosFiscaisView extends VBox {
         return row;
     }
 
-        private VBox kpi(String title, Label value, Feather iconCode) {
+    private VBox kpi(String title, Label value, Feather iconCode) {
         Label icon = new Label("", IconUtils.icon(iconCode, 16));
         icon.getStyleClass().add("empresa-kpi-icon");
 
@@ -271,7 +268,7 @@ public class ExerciciosFiscaisView extends VBox {
         return card;
     }
 
-        private AdvancedTableView<ExercicioFiscal> buildTable() {
+    private AdvancedTableView<ExercicioFiscal> buildTable() {
         table = new AdvancedTableView<>();
         table.setEditable(true);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
@@ -523,7 +520,7 @@ public class ExerciciosFiscaisView extends VBox {
 
 
 
-        private Button actionButton(String text,
+    private Button actionButton(String text,
                                 Feather icon,
                                 String style,
                                 javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
@@ -626,7 +623,7 @@ public class ExerciciosFiscaisView extends VBox {
 
 
 
-        private void updateKpis() {
+    private void updateKpis() {
         long total = exerciciosFiltrados == null ? 0 : exerciciosFiltrados.size();
         long abertos = count(EstadoExercicio.ABERTO);
         long encerramento = count(EstadoExercicio.ENCERRAMENTO);
@@ -720,7 +717,7 @@ public class ExerciciosFiscaisView extends VBox {
 
 
 
-        public void showNovoExercicioDialog() {
+    public void showNovoExercicioDialog() {
         if (empresas.isEmpty()) {
             loadData();
             modalManager.alert(
