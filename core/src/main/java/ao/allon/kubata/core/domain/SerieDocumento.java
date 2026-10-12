@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "adm_serie_documento",
     uniqueConstraints = @UniqueConstraint(
-        columnNames = {"tipo_documento", "serie", "empresa_id"}
+        columnNames = {"tipo_documento", "serie", "empresa_id", "exercicio"}
     ))
 @Data
 @Builder
