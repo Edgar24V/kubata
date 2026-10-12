@@ -1,13 +1,6 @@
 -- Kubata Financeiro / Tesouraria (SQLite)
--- Expande a tabela bancária legada sem apagar dados, e cria o livro de caixa.
-ALTER TABLE contas_bancarias ADD COLUMN titular VARCHAR(255) NOT NULL DEFAULT '';
-ALTER TABLE contas_bancarias ADD COLUMN swift_code VARCHAR(100);
-ALTER TABLE contas_bancarias ADD COLUMN is_principal BOOLEAN NOT NULL DEFAULT 0;
-ALTER TABLE contas_bancarias ADD COLUMN is_ativo BOOLEAN NOT NULL DEFAULT 1;
-
-CREATE INDEX IF NOT EXISTS idx_contas_bancarias_ativo
-    ON contas_bancarias(is_ativo);
-
+-- O livro de caixa é criado de forma não destrutiva; a compatibilidade da
+-- tabela bancária legada é tratada pela migração Java V35.
 CREATE TABLE IF NOT EXISTS caixas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(120) NOT NULL COLLATE NOCASE UNIQUE,
@@ -39,6 +32,3 @@ CREATE TABLE IF NOT EXISTS movimentos_caixa (
 
 CREATE INDEX IF NOT EXISTS idx_movimentos_caixa_data
     ON movimentos_caixa(caixa_id, data_movimento DESC);
-
-CREATE INDEX IF NOT EXISTS idx_movimentos_bancarios_conta_data
-    ON movimentos_bancarios(conta_bancaria_id, data_movimento DESC);
