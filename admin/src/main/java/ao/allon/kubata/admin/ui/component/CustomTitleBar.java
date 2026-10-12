@@ -169,6 +169,12 @@ public class CustomTitleBar extends HBox {
             maximizeBtn.setGraphic(icon);
             maximizeBtn.setTooltip(new Tooltip(isMaximized ? "Restaurar" : "Maximizar"));
         });
+        if (stage.isMaximized()) {
+            FontIcon restoreIcon = new FontIcon(MaterialDesignW.WINDOW_RESTORE);
+            restoreIcon.setIconColor(javafx.scene.paint.Color.WHITE);
+            maximizeBtn.setGraphic(restoreIcon);
+            maximizeBtn.setTooltip(new Tooltip("Restaurar"));
+        }
         closeBtn.setOnAction(e -> stage.close());
 
         // ── Montagem ────────────────────────────────────────
