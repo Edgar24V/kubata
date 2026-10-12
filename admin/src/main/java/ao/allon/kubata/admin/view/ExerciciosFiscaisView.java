@@ -752,7 +752,7 @@ public class ExerciciosFiscaisView extends VBox {
         root.getStyleClass().add("exercicio-wizard");
         root.setPadding(new Insets(4));
         root.setPrefWidth(790);
-        root.setMinWidth(680);
+        root.setMinWidth(620);
 
         Label stepTitle = new Label("Etapa 1 de 3 · Empresa e exercício-base");
         stepTitle.getStyleClass().add("exercicio-wizard-step-title");
@@ -1313,6 +1313,9 @@ public class ExerciciosFiscaisView extends VBox {
                         .scrollable(true)
                         .closeOnOverlayClick(false)
                         .closeOnEscape(false)
+                        .windowControls(false)
+                        .minimizable(false)
+                        .maximizable(false)
                         .footerHint("Por segurança, os movimentos e saldos do exercício-base nunca são duplicados.")
         );
     }
