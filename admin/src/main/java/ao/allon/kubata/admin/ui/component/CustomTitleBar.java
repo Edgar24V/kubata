@@ -216,9 +216,11 @@ public class CustomTitleBar extends HBox {
      * Os itens são criados pelo AdminMainView e cada um contém a sua acção.
      */
     public void showSearchResults(List<MenuItem> items) {
+        if (searchResultsPopup.isShowing()) {
+            searchResultsPopup.hide();
+        }
         searchResultsPopup.getItems().setAll(items == null ? List.of() : items);
         if (searchResultsPopup.getItems().isEmpty()) {
-            searchResultsPopup.hide();
             return;
         }
         if (searchContainer.getScene() != null && searchContainer.isVisible()) {
