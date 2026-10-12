@@ -15,4 +15,12 @@ public interface ContaBancariaRepository extends JpaRepository<ContaBancaria, Lo
     List<ContaBancaria> findByIsAtivoTrue();
 
     boolean existsByIban(String iban);
+
+    boolean existsByIbanIgnoreCase(String iban);
+
+    boolean existsByIbanIgnoreCaseAndIdNot(String iban, Long id);
+
+    boolean existsByNumeroContaIgnoreCase(String numeroConta);
+
+    boolean existsByNumeroContaIgnoreCaseAndIdNot(String numeroConta, Long id);
 }
