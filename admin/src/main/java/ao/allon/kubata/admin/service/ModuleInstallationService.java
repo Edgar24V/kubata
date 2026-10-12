@@ -59,13 +59,12 @@ public class ModuleInstallationService {
     }
 
     /**
-     * Sincroniza a tabela administrativa com os módulos reais registados.
-     * Não cria módulos fictícios e não remove registos históricos existentes.
-     */
-    /**
-     * Sincroniza o catálogo em transacções curtas e repete a transacção inteira
-     * quando uma escrita concorrente provoca SQLITE_BUSY/SQLITE_BUSY_SNAPSHOT.
-     * Repetir apenas a consulta dentro da transacção original não resolve o
+     * Sincroniza a tabela administrativa com os módulos reais registados, sem
+     * criar módulos fictícios nem remover registos históricos existentes.
+     *
+     * O catálogo é sincronizado em transacções curtas e a transacção inteira é
+     * repetida quando uma escrita concorrente provoca SQLITE_BUSY/SQLITE_BUSY_SNAPSHOT.
+     * Repetir apenas a consulta dentro da transacção original não resolve um
      * snapshot WAL desactualizado: é necessário fazer rollback e começar de novo.
      */
     public List<ModuloSistema> synchronizeCatalog() {
