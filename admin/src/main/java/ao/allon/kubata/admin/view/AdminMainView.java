@@ -75,6 +75,7 @@ public class AdminMainView extends StackPane {
     public void init(Stage stage) {
         if (titleBar == null) {
             titleBar = new CustomTitleBar(stage, "Kubata Administrator");
+            titleBar.setUserName(currentUserName());
             titleBar.setSearchPrompt("Pesquisar páginas, módulos e comandos...");
             titleBar.setOnSearch(this::performGlobalSearch);
             titleBar.setOnUserInfo(this::showSessionInfo);
@@ -351,7 +352,7 @@ public class AdminMainView extends StackPane {
             for (Node child : parent.getChildrenUnmodifiable()) {
                 String childText = extractVisibleText(child);
                 if (!childText.isBlank()) {
-                    if (!text.isEmpty()) {
+                    if (text.length() > 0) {
                         text.append(' ');
                     }
                     text.append(childText);
