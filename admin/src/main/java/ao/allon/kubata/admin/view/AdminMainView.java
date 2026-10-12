@@ -80,6 +80,7 @@ public class AdminMainView extends StackPane {
             titleBar.setOnSearch(this::performGlobalSearch);
             titleBar.setOnUserInfo(this::showSessionInfo);
             titleBar.setOnLogout(this::confirmLogout);
+            titleBar.setOnWindowClose(this::confirmApplicationClose);
 
             buildUI();
             buildRibbon();
@@ -436,6 +437,40 @@ public class AdminMainView extends StackPane {
                         + "ou encerrar o acesso em segurança.",
                 "info",
                 null
+        );
+    }
+
+    private void confirmApplicationClose() {
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(4));
+        Label message = new Label(
+                "Pretende fechar o Kubata Administrator? A sessão será encerrada na base de dados "
+                        + "antes de a aplicação sair."
+        );
+        message.setWrapText(true);
+        content.getChildren().add(message);
+
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title("Fechar Kubata Administrator")
+                        .icon(Feather.X_CIRCLE)
+                        .tone(ModalManager.ModalTone.WARNING)
+                        .size(500, 230)
+                        .resizable(false)
+                        .withConfirmButtons("Fechar aplicação", "Cancelar")
+                        .confirmStyle("button-outlined-danger")
+                        .cancelStyle("button-outlined")
+                        .onConfirm(() -> {
+                            try {
+                                applicationContext.getBean(MainController.class).closeApplication();
+                            } catch (Exception ex) {
+                                notificationService.showError(
+                                        "Falha ao fechar a aplicação",
+                                        rootMessage(ex)
+                                );
+                            }
+                        })
         );
     }
 
