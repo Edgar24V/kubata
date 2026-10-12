@@ -202,6 +202,14 @@ public class UserSecurityProfileService {
 
         int maxSessions = profile.getMaxConcurrentSessions();
         if (maxSessions > 0 && sessions.size() >= maxSessions) {
+            // O administrador pode corrigir a política na consola; libertar sessões antigas
+            // evita que sessões órfãs bloqueiem o próprio acesso administrativo.
+            if (user.isSuperadmin() || user.getRole() == Role.ADMIN) {
+                sessions.stream()
+                        .skip(maxSessions - 1L)
+                        .forEach(userSessionRepository::delete);
+                return;
+            }
             throw new AuthenticationException(
                     "O limite de sessões simultâneas desta conta foi atingido."
             );
