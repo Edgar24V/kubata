@@ -41,6 +41,9 @@
         <jfx-frameless.version>0.1.1</jfx-frameless.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
         <lombok.version>1.18.48</lombok.version>
+        <!-- Mockito/Byte Buddy compatíveis com JVM 25, mantendo bytecode da aplicação em Java 21. -->
+        <mockito.version>5.24.0</mockito.version>
+        <byte-buddy.version>1.18.14</byte-buddy.version>
     </properties>
 
     <dependencyManagement>
