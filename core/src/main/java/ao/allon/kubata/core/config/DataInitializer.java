@@ -42,6 +42,7 @@ public class DataInitializer {
                 }
 
                 User admin = new User();
+                admin.setCodigo(generateCode());
                 admin.setNome("Administrador");
                 admin.setEmail(adminEmail);
                 admin.setPassword(passwordEncoder.encode(adminPassword));
@@ -53,6 +54,17 @@ public class DataInitializer {
                 log.info("Usuário administrador inicial criado com email {}. A palavra-passe provisória deverá ser alterada no primeiro acesso.", adminEmail);
             }
         };
+    }
+
+    private String generateCode() {
+        String code;
+        do {
+            code = "USR-" + java.util.UUID.randomUUID()
+                    .toString()
+                    .substring(0, 8)
+                    .toUpperCase(java.util.Locale.ROOT);
+        } while (userRepository.existsByCodigoIgnoreCase(code));
+        return code;
     }
 
     private String firstNonBlank(String... values) {

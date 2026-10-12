@@ -10,7 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +34,9 @@ class DataInitializerTest {
 
         dataInitializer.initData().run();
 
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).save(argThat(user ->
+                user.getCodigo() != null
+                        && user.getCodigo().matches("USR-[A-F0-9]{8}")
+        ));
     }
 }

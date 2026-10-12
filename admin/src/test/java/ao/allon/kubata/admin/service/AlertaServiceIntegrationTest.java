@@ -31,6 +31,8 @@ class AlertaServiceIntegrationTest {
     @Transactional
     void devePersistirCicloCompletoDoAlertaNoContextoSpring() {
         User actor = new User();
+        actor.setCodigo("USR-" + java.util.UUID.randomUUID()
+                .toString().substring(0, 8).toUpperCase(java.util.Locale.ROOT));
         actor.setNome("Alerta Integration");
         actor.setEmail("alerta.integration." + System.nanoTime() + "@test.local");
         actor.setPassword("integration");

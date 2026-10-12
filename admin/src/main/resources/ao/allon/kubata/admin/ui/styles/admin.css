@@ -12366,3 +12366,243 @@ Text {
 .kubata-center-navigation > .separator {
     -fx-padding: 2 0;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KUBATA ADMINISTRATOR · Cabeçalho, pesquisa global e rodapé funcional
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kubata-admin-shell {
+    -fx-background-color: #f6f8fa;
+}
+
+.kubata-main-top-area {
+    -fx-background-color: #ffffff;
+}
+
+.custom-title-bar {
+    -fx-background-color: linear-gradient(to right, #185b39, #217346);
+    -fx-min-height: 42px;
+    -fx-pref-height: 42px;
+    -fx-max-height: 42px;
+    -fx-padding: 0 0 0 2px;
+}
+
+.title-bar-app-icon {
+    -fx-padding: 0 2px 0 0;
+}
+
+.title-bar-app-name {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.title-bar-search-box {
+    -fx-min-width: 190px;
+    -fx-pref-width: 390px;
+    -fx-max-width: 560px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+    -fx-background-color: rgba(255, 255, 255, 0.14);
+    -fx-background-radius: 7px;
+    -fx-border-color: rgba(255, 255, 255, 0.18);
+    -fx-border-radius: 7px;
+    -fx-border-width: 1px;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: rgba(255, 255, 255, 0.72);
+    -fx-padding: 5px 10px 5px 30px;
+    -fx-font-size: 11px;
+}
+
+.title-bar-search-box:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.19);
+    -fx-border-color: rgba(255, 255, 255, 0.30);
+}
+
+.title-bar-search-box:focused {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #b8e4c8;
+    -fx-text-fill: #1f2937;
+    -fx-prompt-text-fill: #78838d;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.10), 5, 0.04, 0, 1);
+}
+
+.title-bar-user-menu {
+    -fx-background-color: transparent;
+    -fx-background-radius: 7px;
+    -fx-border-color: transparent;
+    -fx-border-radius: 7px;
+    -fx-padding: 3px 8px;
+    -fx-min-height: 34px;
+    -fx-text-fill: #ffffff;
+    -fx-mark-color: #ffffff;
+    -fx-cursor: hand;
+}
+
+.title-bar-user-menu:hover,
+.title-bar-user-menu:showing,
+.title-bar-user-menu:focused {
+    -fx-background-color: rgba(255, 255, 255, 0.13);
+}
+
+.title-bar-user-menu > .arrow-button {
+    -fx-padding: 0 0 0 7px;
+}
+
+.title-bar-user-menu > .arrow-button > .arrow {
+    -fx-background-color: rgba(255, 255, 255, 0.90);
+}
+
+.title-bar-user-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+}
+
+.title-bar-user-avatar {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #185b39;
+    -fx-background-radius: 50%;
+    -fx-min-width: 27px;
+    -fx-pref-width: 27px;
+    -fx-max-width: 27px;
+    -fx-min-height: 27px;
+    -fx-pref-height: 27px;
+    -fx-max-height: 27px;
+    -fx-alignment: center;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.title-bar-control-btn,
+.title-bar-close-btn {
+    -fx-background-radius: 0;
+    -fx-min-width: 44px;
+    -fx-pref-width: 44px;
+    -fx-max-width: 44px;
+    -fx-min-height: 42px;
+    -fx-pref-height: 42px;
+    -fx-max-height: 42px;
+    -fx-padding: 0;
+}
+
+.title-bar-control-btn .ikonli-font-icon,
+.title-bar-close-btn .ikonli-font-icon {
+    -fx-icon-color: #ffffff;
+    -fx-icon-size: 15px;
+}
+
+.title-bar-control-btn:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.13);
+}
+
+.title-bar-close-btn:hover {
+    -fx-background-color: #c42b3a;
+}
+
+.status-bar {
+    -fx-background-color: #185b39;
+    -fx-padding: 4px 12px;
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+    -fx-spacing: 9px;
+    -fx-border-color: rgba(255, 255, 255, 0.14) transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.status-bar-dot {
+    -fx-text-fill: #a8e6bb;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.status-bar-session {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-padding: 4px 8px;
+    -fx-background-color: rgba(255, 255, 255, 0.12);
+    -fx-background-radius: 999px;
+}
+
+.status-bar-user {
+    -fx-text-fill: rgba(255, 255, 255, 0.96);
+    -fx-font-size: 10px;
+    -fx-font-weight: 600;
+    -fx-text-overrun: ellipsis;
+}
+
+.status-bar-active-page {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-overrun: ellipsis;
+}
+
+.status-bar-meta {
+    -fx-text-fill: rgba(255, 255, 255, 0.78);
+    -fx-font-size: 9.5px;
+}
+
+.status-bar-divider .line {
+    -fx-border-color: rgba(255, 255, 255, 0.28);
+    -fx-border-width: 0 1px 0 0;
+}
+
+.status-bar-action {
+    -fx-background-color: rgba(255, 255, 255, 0.08);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(255, 255, 255, 0.18);
+    -fx-border-radius: 6px;
+    -fx-padding: 4px 8px;
+    -fx-min-height: 24px;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-cursor: hand;
+}
+
+.status-bar-action:hover,
+.status-bar-action:focused {
+    -fx-background-color: rgba(255, 255, 255, 0.18);
+    -fx-border-color: rgba(255, 255, 255, 0.36);
+}
+
+.status-bar-action .ikonli-font-icon {
+    -fx-icon-color: #ffffff;
+    -fx-icon-size: 12px;
+}
+
+.status-bar-logout:hover {
+    -fx-background-color: #a92434;
+    -fx-border-color: #cc6470;
+}
+
+.context-menu {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 9px;
+    -fx-border-color: #dfe5ea;
+    -fx-border-radius: 9px;
+    -fx-padding: 5px;
+    -fx-effect: dropshadow(three-pass-box, rgba(31, 41, 55, 0.16), 12, 0.08, 0, 3);
+}
+
+.context-menu .menu-item {
+    -fx-background-radius: 5px;
+    -fx-padding: 8px 12px;
+}
+
+.context-menu .menu-item .label {
+    -fx-text-fill: #263238;
+    -fx-font-size: 11px;
+}
+
+.context-menu .menu-item:focused {
+    -fx-background-color: #e8f5ed;
+}
+
+.context-menu .menu-item:focused .label {
+    -fx-text-fill: #185b39;
+}
