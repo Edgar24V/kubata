@@ -7,6 +7,7 @@ import ao.allon.kubata.admin.ui.util.ThemeManager;
 import ao.allon.kubata.admin.view.AdminMainView;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.service.AuthService;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -57,6 +58,30 @@ public class MainController {
 
         sessionManager.login(user);
         switchToMain();
+    }
+
+    /**
+     * Termina a sessão no serviço de autenticação e regressa ao login.
+     * Se o registo de logout falhar, mantém a sessão local activa para evitar
+     * mostrar o login enquanto a sessão anterior ainda consta como válida.
+     */
+    public void logoutToLogin() {
+        User user = sessionManager.getUser();
+        if (user != null) {
+            try {
+                applicationContext.getBean(AuthService.class).logout(user, "127.0.0.1");
+            } catch (Exception ex) {
+                showAlert(
+                        "Não foi possível encerrar a sessão",
+                        "O encerramento não foi confirmado pela base de dados. "
+                                + "A sessão permanece activa.\n\n"
+                                + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                );
+                return;
+            }
+            sessionManager.logout();
+        }
+        switchToLogin();
     }
 
     private void switchToLogin() {
