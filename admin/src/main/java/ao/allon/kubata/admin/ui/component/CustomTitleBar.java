@@ -3,13 +3,16 @@ package ao.allon.kubata.admin.ui.component;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputControl;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
@@ -186,7 +189,9 @@ public class CustomTitleBar extends HBox {
 
         // ── Duplo-clique para maximizar ─────────────────────
         setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2 && !isOnControlButton(e.getX())) {
+            if (e.getClickCount() == 2
+                    && !isInteractiveTarget(e.getTarget())
+                    && !isOnControlButton(e.getX())) {
                 stage.setMaximized(!stage.isMaximized());
             }
         });
@@ -264,16 +269,34 @@ public class CustomTitleBar extends HBox {
 
     private void setupDragging() {
         setOnMousePressed(e -> {
-            dragOffsetX = e.getSceneX();
-            dragOffsetY = e.getSceneY();
+            if (isInteractiveTarget(e.getTarget())) {
+                dragOffsetX = Double.NaN;
+                dragOffsetY = Double.NaN;
+                return;
+            }
+            dragOffsetX = e.getScreenX() - stage.getX();
+            dragOffsetY = e.getScreenY() - stage.getY();
         });
 
         setOnMouseDragged(e -> {
-            if (!stage.isMaximized()) {
+            if (!stage.isMaximized()
+                    && !Double.isNaN(dragOffsetX)
+                    && !Double.isNaN(dragOffsetY)) {
                 stage.setX(e.getScreenX() - dragOffsetX);
                 stage.setY(e.getScreenY() - dragOffsetY);
             }
         });
+    }
+
+    private boolean isInteractiveTarget(Object target) {
+        Node node = target instanceof Node ? (Node) target : null;
+        while (node != null && node != this) {
+            if (node instanceof ButtonBase || node instanceof TextInputControl) {
+                return true;
+            }
+            node = node.getParent();
+        }
+        return false;
     }
 
     private boolean isOnControlButton(double x) {
