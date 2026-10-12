@@ -99,6 +99,9 @@ public class ContaBancaria extends BaseEntity {
 
     public void setIsAtivo(Boolean isAtivo) {
         this.isAtivo = isAtivo;
+        if (isAtivo != null) {
+            setActive(isAtivo);
+        }
     }
 
     @Override
