@@ -1062,6 +1062,8 @@ public class ExerciciosFiscaisView extends VBox {
                         .filter(serie -> Objects.equals(serie.getExercicio(), baseYear))
                         .filter(serie -> serie.getTipoDocumento() != null
                                 && area.equalsIgnoreCase(serie.getTipoDocumento().getArea()))
+                        .filter(serie -> serie.getEstado() == SerieDocumento.EstadoSerie.ACTIVA
+                                || serie.getEstado() == SerieDocumento.EstadoSerie.PENDENTE_AGT)
                         .count();
 
                 boolean available = baseYear != null && count > 0;
