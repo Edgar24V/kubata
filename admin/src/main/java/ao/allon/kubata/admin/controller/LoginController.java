@@ -1066,7 +1066,8 @@ public class LoginController {
             if (error instanceof PasswordChangeRequiredException required) {
                 showMandatoryPasswordChange(
                         required.getUser(),
-                        password
+                        password,
+                        required.isExpired()
                 );
                 return;
             }
@@ -1087,17 +1088,32 @@ public class LoginController {
                 return;
             }
 
-            if (error != null) {
+            // Falhas de negócio (conta bloqueada, limite de sessões, IP/horário não
+            // autorizado, conta inactiva...) já trazem uma mensagem própria para o
+            // utilizador. Escondê-las atrás de "verifique as credenciais" impedia
+            // perceber porque é que o login falhava.
+            if (error instanceof AuthenticationException authError
+                    && authError.getMessage() != null
+                    && !authError.getMessage().isBlank()) {
                 log.warn(
                         "Falha de autenticação para {}: {}",
                         email,
-                        error.getMessage()
+                        authError.getMessage()
                 );
+                showMessage(authError.getMessage(), true);
+                shakeNode(loginButton);
+                return;
             }
 
+            // Qualquer outra coisa é um erro técnico (BD, migração, configuração...):
+            // regista-se com o stack trace completo e indica-se o tipo ao utilizador.
+            log.error("Erro técnico ao iniciar sessão para {}", email, error);
             showMessage(
-                    "Não foi possível iniciar a sessão. "
-                            + "Verifique as credenciais e tente novamente.",
+                    "Erro técnico ao iniciar sessão"
+                            + (error == null
+                            ? "."
+                            : " (" + error.getClass().getSimpleName() + "). "
+                            + "Consulte o registo da aplicação para mais detalhes."),
                     true
             );
             shakeNode(loginButton);
@@ -1108,7 +1124,8 @@ public class LoginController {
 
     private void showMandatoryPasswordChange(
             User user,
-            String currentPassword
+            String currentPassword,
+            boolean expired
     ) {
         PasswordField newPassword = new PasswordField();
         newPassword.setPromptText(
@@ -1156,7 +1173,10 @@ public class LoginController {
         VBox content = new VBox(
                 14,
                 new Label(
-                        "A credencial temporária foi validada. "
+                        expired
+                                ? "A sua palavra-passe expirou. "
+                                + "Por segurança, deve definir agora uma nova palavra-passe."
+                                : "A credencial temporária foi validada. "
                                 + "Por segurança, deve definir agora uma nova palavra-passe."
                 ),
                 new Label(
@@ -1271,7 +1291,7 @@ public class LoginController {
         modalManager.showModal(
                 content,
                 new ModalManager.ModalConfig()
-                        .title("Primeiro acesso")
+                        .title(expired ? "Palavra-passe expirada" : "Primeiro acesso")
                         .subtitle(
                                 "Alteração obrigatória da palavra-passe"
                         )
