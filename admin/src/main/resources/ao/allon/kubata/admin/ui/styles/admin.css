@@ -6704,9 +6704,11 @@ Text {
     -fx-min-height: 38px;
     -fx-pref-height: 38px;
     -fx-alignment: CENTER;
-    -fx-background-color: #e8f5e9;
+    -fx-background-color: -kubata-green-pale;
     -fx-background-radius: 10px;
-    -fx-text-fill: #1a5c35;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
 }
 
 .exercicios-title {
@@ -6725,34 +6727,34 @@ Text {
 }
 
 .exercicios-kpi-card {
+    -fx-padding: 12px 14px;
     -fx-background-color: #ffffff;
-    -fx-background-radius: 9px;
+    -fx-background-radius: 10px;
     -fx-border-color: #e1e6eb;
-    -fx-border-radius: 9px;
-    -fx-padding: 10px 12px;
-    -fx-min-height: 68px;
+    -fx-border-radius: 10px;
+    -fx-min-height: 66px;
 }
 
 .exercicios-kpi-icon {
-    -fx-min-width: 28px;
-    -fx-pref-width: 28px;
-    -fx-min-height: 28px;
-    -fx-pref-height: 28px;
+    -fx-min-width: 30px;
+    -fx-pref-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
     -fx-alignment: CENTER;
-    -fx-background-color: #e8f5e9;
+    -fx-background-color: -kubata-green-pale;
     -fx-background-radius: 8px;
-    -fx-text-fill: #217346;
+    -fx-text-fill: -kubata-green;
 }
 
 .exercicios-kpi-title {
-    -fx-text-fill: #4b5563;
-    -fx-font-size: 11px;
-    -fx-font-weight: 800;
+    -fx-text-fill: -color-fg-muted;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 600;
 }
 
 .exercicios-kpi-value {
-    -fx-text-fill: #111827;
-    -fx-font-size: 21px;
+    -fx-text-fill: #1f2937;
+    -fx-font-size: 20px;
     -fx-font-weight: 800;
 }
 
@@ -6781,19 +6783,32 @@ Text {
     -fx-background-color: #f6f8fa;
 }
 
-.exercicios-workspace > .advanced-table {
-    -fx-background-color: #ffffff;
-    -fx-background-radius: 10px 0 0 10px;
-    -fx-border-color: #e1e6eb;
-    -fx-border-radius: 10px 0 0 10px;
+.exercicios-workspace > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 0 5px;
 }
 
-.exercicios-details {
+.exercicios-table-pane {
     -fx-background-color: #ffffff;
-    -fx-background-radius: 0 10px 10px 0;
+    -fx-background-radius: 10px;
     -fx-border-color: #e1e6eb;
-    -fx-border-width: 1px 1px 1px 0;
-    -fx-border-radius: 0 10px 10px 0;
+    -fx-border-radius: 10px;
+    -fx-padding: 0;
+}
+
+.exercicios-table-pane .advanced-table {
+    -fx-background-color: transparent;
+    -fx-background-radius: 10px;
+    -fx-border-color: transparent;
+}
+
+.exercicios-details,
+.exercicios-details-pane {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10px;
+    -fx-border-color: #e1e6eb;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
 }
 
 .exercicios-details-icon {
@@ -6802,9 +6817,9 @@ Text {
     -fx-min-height: 30px;
     -fx-pref-height: 30px;
     -fx-alignment: CENTER;
-    -fx-background-color: #e8f5e9;
+    -fx-background-color: -kubata-green-pale;
     -fx-background-radius: 8px;
-    -fx-text-fill: #217346;
+    -fx-text-fill: -kubata-green;
 }
 
 .exercicios-details-title {
