@@ -90,6 +90,13 @@ public class SerieDocumentoService {
                 continue;
             }
 
+            // Uma série inactiva/encerrada não deve voltar a ser activada
+            // automaticamente só porque foi criado um novo exercício.
+            if (base.getEstado() != SerieDocumento.EstadoSerie.ACTIVA
+                    && base.getEstado() != SerieDocumento.EstadoSerie.PENDENTE_AGT) {
+                continue;
+            }
+
             Optional<SerieDocumento> existente =
                     repository.findByEmpresaIdAndTipoDocumentoAndSerieAndExercicio(
                             empresa.getId(),
