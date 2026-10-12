@@ -970,6 +970,17 @@ public class ExerciciosFiscaisView extends VBox {
             empresaField.setValue(empresasActivas.get(0));
         }
 
+        // Sugerir automaticamente o ano seguinte ao mais recente da empresa,
+        // mantendo o destino editável para preparação de exercícios históricos.
+        int anoSugerido;
+        try {
+            anoSugerido = Integer.parseInt(suggestNextYear(empresaField.getValue()));
+        } catch (NumberFormatException ignored) {
+            anoSugerido = LocalDate.now().getYear();
+        }
+        anoSugerido = Math.max(2001, Math.min(2100, anoSugerido));
+        anoDestinoField.getValueFactory().setValue(anoSugerido);
+
         final int[] currentStep = {0};
 
         Runnable updateBaseSelection = () -> {
