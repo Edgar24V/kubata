@@ -176,9 +176,18 @@ public final class ModuleWorkspaceView extends VBox {
 
         boolean hasConcreteView = view.viewClass() != null
                 && Node.class.isAssignableFrom(view.viewClass());
-        Button openButton = new Button(hasConcreteView ? "Abrir funcionalidade" : "Ecrã não integrado");
-        openButton.getStyleClass().add(hasConcreteView ? "button-outlined" : "button-outlined");
-        openButton.setDisable(!hasConcreteView);
+        boolean permitted = securityService.hasPermission(
+                actor,
+                module.getModuleId(),
+                view.viewId(),
+                PermissaoPerfil.Operacao.VER
+        );
+        String actionText = !permitted
+                ? "Sem permissão"
+                : hasConcreteView ? "Abrir funcionalidade" : "Ecrã não integrado";
+        Button openButton = new Button(actionText);
+        openButton.getStyleClass().add("button-outlined");
+        openButton.setDisable(!hasConcreteView || !permitted);
         openButton.setOnAction(event -> openFunction(view));
 
         Region spacer = new Region();
@@ -246,8 +255,13 @@ public final class ModuleWorkspaceView extends VBox {
     }
 
     private void openFunction(ModuleView view) {
-        if (!securityService.hasModuleAccess(actor, module.getModuleId())) {
-            feedbackLabel.setText("A política de segurança do utilizador não permite abrir este módulo.");
+        if (!securityService.hasPermission(
+                actor,
+                module.getModuleId(),
+                view.viewId(),
+                PermissaoPerfil.Operacao.VER
+        )) {
+            feedbackLabel.setText("A política de segurança não permite consultar esta funcionalidade.");
             return;
         }
         if (!isInstalled()) {
