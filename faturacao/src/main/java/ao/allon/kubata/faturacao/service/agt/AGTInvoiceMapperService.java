@@ -144,6 +144,10 @@ public class AGTInvoiceMapperService {
         dto.setLines(mapLines(fatura.getItens()));
         DocumentTotalsDTO totals = mapDocumentTotals(fatura);
         dto.setDocumentTotals(totals);
+        Map<String, Object> signedTotals = new LinkedHashMap<>();
+        signedTotals.put("taxPayable", totals.getTaxPayable());
+        signedTotals.put("netTotal", totals.getNetTotal());
+        signedTotals.put("grossTotal", totals.getGrossTotal());
         Map<String, Object> signedPayload = new LinkedHashMap<>();
         signedPayload.put("documentNo", dto.getDocumentNo());
         signedPayload.put("taxRegistrationNumber", emitterNif);
@@ -152,15 +156,13 @@ public class AGTInvoiceMapperService {
         signedPayload.put("customerTaxID", dto.getCustomerTaxID());
         signedPayload.put("customerCountry", dto.getCustomerCountry());
         signedPayload.put("companyName", dto.getCompanyName());
-        signedPayload.put("documentTotals", totals);
+        signedPayload.put("documentTotals", signedTotals);
         String documentSignature = signatureService.signJwsPayload(signedPayload);
         dto.setJwsDocumentSignature(documentSignature);
         fatura.setJwsDocumentSignature(documentSignature);
         
-        // PaymentReceipt (para FR)
-        if (fatura.getTipoDocumento() == TipoDocumento.FATURA_RECIBO) {
-            dto.setPaymentReceipt(createPaymentReceipt(fatura));
-        }
+        // No contrato AGT, paymentReceipt só é usado por AR/RG.
+        // FR mantém as linhas de artigos/serviços e os respectivos totais.
         
         // Retenções na fonte
         if (fatura.getTotalRetencao() != null && fatura.getTotalRetencao().compareTo(BigDecimal.ZERO) > 0) {
@@ -184,25 +186,38 @@ public class AGTInvoiceMapperService {
 
             // Código e descrição do produto
             if (item.getProduto() != null) {
-                line.setProductCode(String.valueOf(item.getProduto().getId()));
+                String productCode = item.getProduto().getCodigo();
+                line.setProductCode(productCode != null && !productCode.isBlank()
+                    ? productCode : String.valueOf(item.getProduto().getId()));
             } else {
-                line.setProductCode("SRV"); // Serviço genérico
+                line.setProductCode("SRV");
             }
             line.setProductDescription(item.getDescricao());
-            
-            // Quantidade e unidade
-            line.setQuantity(BigDecimal.valueOf(item.getQuantidade()));
-            line.setUnitOfMeasure(item.getProduto() != null && item.getProduto().getUnidadeMedida() != null 
-                ? item.getProduto().getUnidadeMedida().name() : "UN");
-            
-            // Preços
-            line.setUnitPrice(item.getPrecoUnitario());
-            line.setUnitPriceBase(item.getPrecoUnitario()); // Após descontos (se houver)
-            
-            // Valores
-            // Valor tributável da venda, sem IVA: a AGT espera creditAmount.
-            line.setCreditAmount(item.getSubtotal() != null ? item.getSubtotal() : BigDecimal.ZERO);
-            line.setSettlementAmount(BigDecimal.ZERO); // Descontos ainda não parametrizados na linha
+
+            // Quantidade decimal é preservada na comunicação fiscal.
+            BigDecimal quantity = item.getQuantidadeDecimal() != null
+                ? item.getQuantidadeDecimal()
+                : BigDecimal.valueOf(item.getQuantidade() == null ? 0 : item.getQuantidade());
+            line.setQuantity(quantity);
+            line.setUnitOfMeasure(mapUnitOfMeasure(item));
+
+            // unitPriceBase é o preço sem desconto e sem imposto;
+            // unitPrice é o preço líquido por unidade, sem imposto.
+            BigDecimal unitPriceBase = item.getPrecoUnitario() == null
+                ? BigDecimal.ZERO : item.getPrecoUnitario();
+            BigDecimal netLine = item.getSubtotal() == null ? BigDecimal.ZERO : item.getSubtotal();
+            BigDecimal unitPrice = quantity.signum() > 0
+                ? netLine.divide(quantity, 2, java.math.RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+            BigDecimal grossBase = unitPriceBase.multiply(quantity);
+            BigDecimal settlement = grossBase.subtract(netLine).max(BigDecimal.ZERO)
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+            line.setUnitPriceBase(unitPriceBase);
+            line.setUnitPrice(unitPrice);
+            // Vendas: apenas creditAmount preenchido; impostos são enviados separadamente.
+            line.setDebitAmount(null);
+            line.setCreditAmount(netLine);
+            line.setSettlementAmount(settlement);
             
             // Impostos
             line.setTaxes(mapTaxes(item));
@@ -213,31 +228,67 @@ public class AGTInvoiceMapperService {
         return lines;
     }
 
+    private String mapUnitOfMeasure(ItemFatura item) {
+        if (item.getProduto() == null || item.getProduto().getUnidadeMedida() == null) return "UN";
+        return switch (item.getProduto().getUnidadeMedida()) {
+            case UNIDADE -> "UN";
+            case KILOGRAMA -> "KG";
+            case LITRO -> "L";
+            case METRO -> "M";
+            case CAIXA -> "CX";
+            case SERVICO -> "SV";
+            case HORA -> "H";
+        };
+    }
+
     /**
-     * Mapeia os impostos de uma linha.
+     * Mapeia IVA para os códigos admitidos pela AGT. O regime de imposto do
+     * produto prevalece quando contém um código fiscal explicitamente suportado.
      */
     private List<TaxDTO> mapTaxes(ItemFatura item) {
         List<TaxDTO> taxes = new ArrayList<>();
-        
+        BigDecimal taxPercentage = item.getPercentualIva() == null
+            ? BigDecimal.ZERO : item.getPercentualIva();
+
         TaxDTO tax = new TaxDTO();
         tax.setTaxType("IVA");
         tax.setTaxCountryRegion("AO");
-        
-        BigDecimal taxPercentage = item.getPercentualIva();
-        if (taxPercentage != null && taxPercentage.compareTo(BigDecimal.ZERO) > 0) {
-            tax.setTaxCode("NOR"); // Normal
-            tax.setTaxPercentage(taxPercentage);
-        } else {
-            tax.setTaxCode("ISE"); // Isento
-            tax.setTaxPercentage(BigDecimal.ZERO);
-            if (item.getCodigoIsencao() != null) {
-                tax.setTaxExemptionCode(item.getCodigoIsencao());
+
+        String taxCode = null;
+        if (item.getProduto() != null && item.getProduto().getImposto() != null
+                && "IVA".equalsIgnoreCase(item.getProduto().getImposto().getTipo())) {
+            String configuredCode = item.getProduto().getImposto().getCodigo();
+            if (configuredCode != null && List.of("NOR", "INT", "RED", "ISE", "OUT")
+                    .contains(configuredCode.trim().toUpperCase(java.util.Locale.ROOT))) {
+                taxCode = configuredCode.trim().toUpperCase(java.util.Locale.ROOT);
             }
         }
-        
-        tax.setTaxContribution(item.getValorIva());
+
+        if (taxPercentage.compareTo(BigDecimal.ZERO) <= 0) {
+            taxCode = "ISE";
+            tax.setTaxPercentage(BigDecimal.ZERO);
+            String exemptionCode = item.getCodigoIsencao();
+            if (exemptionCode == null || exemptionCode.isBlank()) {
+                throw new IllegalStateException("Item isento sem código de isenção AGT: " + item.getDescricao());
+            }
+            if (!exemptionCode.matches("[A-Z0-9]{3}")) {
+                throw new IllegalStateException("Código de isenção AGT deve ter 3 caracteres: " + item.getDescricao());
+            }
+            tax.setTaxExemptionCode(exemptionCode);
+        } else {
+            if (taxCode == null) {
+                if (taxPercentage.compareTo(new BigDecimal("14.00")) == 0) taxCode = "NOR";
+                else if (taxPercentage.compareTo(new BigDecimal("7.00")) == 0) taxCode = "RED";
+                else if (taxPercentage.compareTo(new BigDecimal("5.00")) == 0
+                        || taxPercentage.compareTo(new BigDecimal("14.00")) != 0) taxCode = "OUT";
+            }
+            tax.setTaxCode(taxCode);
+            tax.setTaxPercentage(taxPercentage);
+        }
+
+        BigDecimal taxContribution = item.getValorIva() == null ? BigDecimal.ZERO : item.getValorIva();
+        tax.setTaxContribution(taxContribution.setScale(2, java.math.RoundingMode.HALF_UP));
         taxes.add(tax);
-        
         return taxes;
     }
 
@@ -246,9 +297,9 @@ public class AGTInvoiceMapperService {
      */
     private DocumentTotalsDTO mapDocumentTotals(Fatura fatura) {
         DocumentTotalsDTO totals = new DocumentTotalsDTO();
-        totals.setNetTotal(fatura.getSubtotal());
-        totals.setTaxPayable(fatura.getIva());
-        totals.setGrossTotal(fatura.getTotal());
+        totals.setNetTotal(fatura.getSubtotal() == null ? BigDecimal.ZERO : fatura.getSubtotal().setScale(2, java.math.RoundingMode.HALF_UP));
+        totals.setTaxPayable(fatura.getIva() == null ? BigDecimal.ZERO : fatura.getIva().setScale(2, java.math.RoundingMode.HALF_UP));
+        totals.setGrossTotal(fatura.getTotal() == null ? BigDecimal.ZERO : fatura.getTotal().setScale(2, java.math.RoundingMode.HALF_UP));
         return totals;
     }
 
@@ -283,8 +334,8 @@ public class AGTInvoiceMapperService {
         
         if (fatura.getTotalRetencao() != null && fatura.getTotalRetencao().compareTo(BigDecimal.ZERO) > 0) {
             WithholdingTaxDTO withholding = new WithholdingTaxDTO();
-            withholding.setWithholdingTaxType("IR"); // Imposto de Renda
-            withholding.setWithholdingTaxDescription("Retenção na Fonte - 6.5%");
+            withholding.setWithholdingTaxType("IRT");
+            withholding.setWithholdingTaxDescription("Retenção na fonte");
             withholding.setWithholdingTaxAmount(fatura.getTotalRetencao());
             list.add(withholding);
         }
