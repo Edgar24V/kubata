@@ -53,6 +53,9 @@ public class DocumentDTO {
     
     @JsonProperty("paymentReceipt")
     private PaymentReceiptDTO paymentReceipt;
+
+    @JsonProperty("referenceInfo")
+    private ReferenceInfoDTO referenceInfo;
     
     @JsonProperty("documentTotals")
     private DocumentTotalsDTO documentTotals;
@@ -173,6 +176,14 @@ public class DocumentDTO {
     
     public void setPaymentReceipt(PaymentReceiptDTO paymentReceipt) {
         this.paymentReceipt = paymentReceipt;
+    }
+
+    public ReferenceInfoDTO getReferenceInfo() {
+        return referenceInfo;
+    }
+
+    public void setReferenceInfo(ReferenceInfoDTO referenceInfo) {
+        this.referenceInfo = referenceInfo;
     }
     
     public DocumentTotalsDTO getDocumentTotals() {
