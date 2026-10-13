@@ -14,6 +14,9 @@ public class LineDTO {
     
     @JsonProperty("lineNumber")
     private int lineNumber;
+
+    @JsonProperty("operationType")
+    private String operationType;
     
     @JsonProperty("productCode")
     private String productCode;
@@ -57,6 +60,14 @@ public class LineDTO {
     
     public void setLineNumber(int lineNumber) {
         this.lineNumber = lineNumber;
+    }
+
+    public String getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(String operationType) {
+        this.operationType = operationType;
     }
     
     public String getProductCode() {
