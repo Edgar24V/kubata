@@ -1,6 +1,7 @@
 package ao.allon.kubata.faturacao.service.agt.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 
 /**
@@ -199,10 +200,16 @@ public class AGTResponseDTO {
     /** Estrutura de erro utilizada nos serviços oficiais de registo/consulta da AGT. */
     public static class AGTErrorEntryDTO {
         @JsonProperty("errorCode")
+        @JsonAlias("idError")
         private String errorCode;
         @JsonProperty("errorDescription")
+        @JsonAlias("descriptionError")
         private String errorDescription;
+        @JsonProperty("documentNo")
+        private String documentNo;
 
+        public String getDocumentNo() { return documentNo; }
+        public void setDocumentNo(String documentNo) { this.documentNo = documentNo; }
         public String getErrorCode() { return errorCode; }
         public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
         public String getErrorDescription() { return errorDescription; }
