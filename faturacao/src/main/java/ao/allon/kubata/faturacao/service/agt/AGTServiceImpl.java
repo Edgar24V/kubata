@@ -7,6 +7,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.time.format.DateTimeFormatter;
+import java.math.RoundingMode;
 import java.util.Base64;
 import java.util.logging.Logger;
 
@@ -29,15 +30,12 @@ public class AGTServiceImpl implements AGTService {
         
         String previousHash = (data.previousHash() != null && !data.previousHash().isEmpty()) ? data.previousHash() : "";
         
-        String contentToSign = String.format(java.util.Locale.US, "%s;%s;%s;%.2f;%s",
-                data.invoiceDate().format(DATE_FORMATTER),
-                data.systemEntryDate().format(DATETIME_FORMATTER),
-                data.invoiceNo(),
-                data.totalAmount().doubleValue(),
-                previousHash);
-        
-        // Log para auditoria/debug da string a assinar (CRÍTICO para validação AGT)
-        logger.info("AGT Signing String: [" + contentToSign + "]");
+        String total = data.totalAmount().setScale(2, RoundingMode.HALF_UP).toPlainString();
+        String contentToSign = data.invoiceDate().format(DATE_FORMATTER) + ";"
+                + data.systemEntryDate().format(DATETIME_FORMATTER) + ";"
+                + data.invoiceNo() + ";" + total + ";" + previousHash;
+
+        // Não registar em log o conteúdo fiscal usado na assinatura.
 
         Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
         signature.initSign(privateKey);
@@ -80,12 +78,10 @@ public class AGTServiceImpl implements AGTService {
         try {
             String previousHash = (data.previousHash() != null && !data.previousHash().isEmpty()) ? data.previousHash() : "";
             
-            String contentToVerify = String.format(java.util.Locale.US, "%s;%s;%s;%.2f;%s",
-                    data.invoiceDate().format(DATE_FORMATTER),
-                    data.systemEntryDate().format(DATETIME_FORMATTER),
-                    data.invoiceNo(),
-                    data.totalAmount().doubleValue(),
-                    previousHash);
+            String total = data.totalAmount().setScale(2, RoundingMode.HALF_UP).toPlainString();
+            String contentToVerify = data.invoiceDate().format(DATE_FORMATTER) + ";"
+                    + data.systemEntryDate().format(DATETIME_FORMATTER) + ";"
+                    + data.invoiceNo() + ";" + total + ";" + previousHash;
 
             Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
             signature.initVerify(publicKey);
