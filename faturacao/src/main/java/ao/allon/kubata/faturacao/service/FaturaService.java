@@ -293,6 +293,144 @@ public class FaturaService {
         return faturaRepository.save(fatura);
     }
 
+    /**
+     * Submissão manual segura: só chama a AGT depois de a transacção local
+     * terminar, e distingue recepção do pedido de validação fiscal concluída.
+     */
+    @Transactional
+    public CompletableFuture<AGTResponseDTO> submeterAgtManualmente(Long faturaId) {
+        Fatura fatura = faturaRepository.findById(faturaId)
+            .orElseThrow(() -> new IllegalArgumentException("Factura não encontrada: " + faturaId));
+
+        if (!requiresAgtSubmission(fatura.getTipoDocumento())) {
+            throw new IllegalStateException("O tipo deste documento não pode ser submetido como factura à AGT.");
+        }
+        String estadoActual = fatura.getAgtSubmissionStatus();
+        if ("SUBMITTED".equalsIgnoreCase(estadoActual) || "SUCCESS".equalsIgnoreCase(estadoActual)) {
+            throw new IllegalStateException("Este documento já tem um pedido AGT registado ou foi validado.");
+        }
+        agtElectronicInvoiceService.assertReadyForFiscalEmission();
+
+        CompletableFuture<AGTResponseDTO> result = new CompletableFuture<>();
+        Runnable submit = () -> {
+            CompletableFuture<AGTResponseDTO> remote;
+            try {
+                remote = agtElectronicInvoiceService.submitInvoiceAsync(fatura);
+                if (remote == null) {
+                    throw new IllegalStateException("O serviço AGT não devolveu um resultado de submissão.");
+                }
+            } catch (Exception ex) {
+                guardarEstadoSubmissao(fatura, "FAILED", null);
+                result.completeExceptionally(ex);
+                return;
+            }
+
+            remote.whenComplete((response, failure) -> {
+                if (failure != null) {
+                    guardarEstadoSubmissao(fatura, "FAILED", null);
+                    result.completeExceptionally(failure);
+                    return;
+                }
+                if (response == null) {
+                    guardarEstadoSubmissao(fatura, "FAILED", null);
+                    result.completeExceptionally(
+                        new IllegalStateException("A AGT não devolveu uma resposta ao pedido."));
+                    return;
+                }
+                if ("SIMULATED".equalsIgnoreCase(response.getStatus())) {
+                    guardarEstadoSubmissao(fatura, "SIMULATED", null);
+                    result.complete(response);
+                    return;
+                }
+                if (response.getRequestID() != null && !response.getRequestID().isBlank()
+                        && (response.getErrorList() == null || response.getErrorList().isEmpty())) {
+                    guardarEstadoSubmissao(fatura, "SUBMITTED", response.getRequestID());
+                    result.complete(response);
+                    return;
+                }
+                guardarEstadoSubmissao(fatura, "FAILED", null);
+                result.complete(response);
+            });
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    submit.run();
+                }
+
+                @Override
+                public void afterCompletion(int status) {
+                    if (status != STATUS_COMMITTED && !result.isDone()) {
+                        result.completeExceptionally(new IllegalStateException(
+                            "A transacção local não foi confirmada; o documento não foi submetido à AGT."));
+                    }
+                }
+            });
+        } else {
+            submit.run();
+        }
+        return result;
+    }
+
+    /**
+     * Consulta o requestID oficial e actualiza o estado fiscal do documento.
+     * Códigos 7, 8 e 9 são tratados como processamento pendente/cancelado,
+     * nunca como validação bem-sucedida.
+     */
+    public Fatura actualizarEstadoAgt(Long faturaId) {
+        Fatura fatura = faturaRepository.findById(faturaId)
+            .orElseThrow(() -> new IllegalArgumentException("Factura não encontrada: " + faturaId));
+        String requestId = fatura.getAgtRequestId();
+        if (requestId == null || requestId.isBlank()) {
+            throw new IllegalStateException("Esta factura ainda não tem requestID devolvido pela AGT.");
+        }
+
+        AGTResponseDTO response = agtElectronicInvoiceService.consultValidationStatus(requestId);
+        if (response == null) {
+            throw new IllegalStateException("A consulta AGT não devolveu uma resposta.");
+        }
+        if ("SIMULATED".equalsIgnoreCase(response.getStatus())) {
+            return fatura;
+        }
+        if (response.getResultCode() == null) {
+            String detalhe = response.getRequestErrorList() == null ? ""
+                : response.getRequestErrorList().stream()
+                    .map(e -> String.valueOf(e.getErrorCode()) + ": " + String.valueOf(e.getErrorDescription()))
+                    .collect(Collectors.joining("; "));
+            throw new IllegalStateException("A AGT não devolveu resultCode. " + detalhe);
+        }
+
+        int resultCode = response.getResultCode();
+        if (resultCode == 7 || resultCode == 8 || resultCode == 9) {
+            // Pedido prematuro, ainda em curso ou cancelado: não marcar a factura como validada.
+            return fatura;
+        }
+        if (resultCode != 0 && resultCode != 1 && resultCode != 2) {
+            throw new IllegalStateException("resultCode AGT desconhecido: " + resultCode);
+        }
+
+        AGTResponseDTO.DocumentStatusDTO documentResult =
+            response.getDocumentStatusList() == null ? null : response.getDocumentStatusList().stream()
+                .filter(d -> fatura.getNumero() != null && fatura.getNumero().equals(d.getDocumentNo()))
+                .findFirst().orElse(null);
+        if (documentResult == null) {
+            throw new IllegalStateException("A resposta AGT não inclui o documento " + fatura.getNumero() + ".");
+        }
+
+        if ("V".equalsIgnoreCase(documentResult.getDocumentStatus())) {
+            fatura.setAgtSubmissionStatus("SUCCESS");
+        } else if ("I".equalsIgnoreCase(documentResult.getDocumentStatus())) {
+            fatura.setAgtSubmissionStatus("REJECTED");
+        } else {
+            throw new IllegalStateException("Estado de documento AGT não reconhecido: "
+                + documentResult.getDocumentStatus());
+        }
+        fatura.setAgtSubmissionDate(LocalDateTime.now());
+        return faturaRepository.save(fatura);
+    }
+
     private void processarEmissao(Fatura fatura) {
         if (fatura.getStatus() == StatusFatura.EMITIDA) {
             throw new IllegalStateException("A fatura já foi emitida ou processada");
