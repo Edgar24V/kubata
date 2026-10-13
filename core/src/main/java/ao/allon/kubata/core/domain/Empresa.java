@@ -127,6 +127,22 @@ public class Empresa extends BaseEntity {
     @Column(name = "moeda_alternativa")
     private String moedaAlternativa;
 
+    /** Tipo de instalação seleccionado no assistente: STANDARD ou DEMONSTRACAO. */
+    @Column(name = "tipo_instalacao", length = 20, nullable = false)
+    private String tipoInstalacao = "STANDARD";
+
+    /** Taxa monetária configurada para a moeda alternativa da empresa. */
+    @Column(name = "taxa_cambio", precision = 18, scale = 6)
+    private BigDecimal taxaCambio;
+
+    /** Convenção usada na aplicação da taxa: DIRECTO ou INVERTIDO. */
+    @Column(name = "sentido_cambio", length = 20, nullable = false)
+    private String sentidoCambio = "INVERTIDO";
+
+    /** Periodicidade do IVA: MENSAL, TRIMESTRAL ou ISENTO. */
+    @Column(name = "periodicidade_iva", length = 20, nullable = false)
+    private String periodicidadeIva = "MENSAL";
+
     @Column(name = "casas_decimais_valor")
     private Integer casasDecimaisValor = 2;
 
