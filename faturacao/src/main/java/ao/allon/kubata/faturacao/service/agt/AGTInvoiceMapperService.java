@@ -102,8 +102,19 @@ public class AGTInvoiceMapperService {
         if (fatura.getDataEmissao() == null || fatura.getSystemEntryDate() == null) {
             throw new IllegalStateException("Data de emissão e data de gravação são obrigatórias para a AGT.");
         }
-        if (fatura.getItens() == null || fatura.getItens().isEmpty()) {
+        boolean receiptType = fatura.getTipoDocumento() == TipoDocumento.RECIBO;
+        if (!receiptType && (fatura.getItens() == null || fatura.getItens().isEmpty())) {
             throw new IllegalStateException("O documento deve conter linhas de artigos ou serviços para a AGT.");
+        }
+        Fatura sourceForReceipt = null;
+        if (receiptType) {
+            sourceForReceipt = resolveSourceDocument(fatura);
+            if (fatura.getTotal() == null || sourceForReceipt.getTotal() == null
+                    || fatura.getTotal().compareTo(sourceForReceipt.getTotal()) != 0) {
+                throw new IllegalStateException(
+                    "O recibo RC só pode ser submetido quando o valor corresponder integralmente ao documento de origem. "
+                    + "Recibos parciais exigem alocação fiscal por documento/linha ainda não suportada.");
+            }
         }
         DocumentDTO dto = new DocumentDTO();
 
@@ -154,7 +165,23 @@ public class AGTInvoiceMapperService {
         }
         dto.setCompanyName(buyerName);
         dto.setEacCode(fatura.getEacCode());
-        dto.setLines(mapLines(fatura.getItens()));
+        if (receiptType) {
+            dto.setPaymentReceipt(createPaymentReceipt(fatura, sourceForReceipt));
+        } else {
+            dto.setLines(mapLines(fatura.getItens()));
+        }
+        if (fatura.getTipoDocumento() == TipoDocumento.NOTA_CREDITO
+                || fatura.getTipoDocumento() == TipoDocumento.NOTA_DEBITO) {
+            Fatura source = resolveSourceDocument(fatura);
+            ReferenceInfoDTO referenceInfo = new ReferenceInfoDTO();
+            referenceInfo.setReference(source.getNumero());
+            String reason = fatura.getMotivoCancelamento();
+            if (reason == null || reason.isBlank()) reason = fatura.getObservacoes();
+            if (reason != null && !reason.isBlank()) {
+                referenceInfo.setReason(reason.length() > 60 ? reason.substring(0, 60) : reason);
+            }
+            dto.setReferenceInfo(referenceInfo);
+        }
         DocumentTotalsDTO totals = mapDocumentTotals(fatura);
         dto.setDocumentTotals(totals);
         Map<String, Object> signedTotals = new LinkedHashMap<>();
@@ -330,22 +357,37 @@ public class AGTInvoiceMapperService {
     /**
      * Cria o paymentReceipt para Fatura/Recibo (FR).
      */
-    private PaymentReceiptDTO createPaymentReceipt(Fatura fatura) {
+    private Fatura resolveSourceDocument(Fatura fatura) {
+        Fatura source = fatura.getFaturaReferencia();
+        if (source == null) source = fatura.getFaturaOriginal();
+        if (source == null || source.getNumero() == null || source.getNumero().isBlank()
+                || source.getDataEmissao() == null) {
+            throw new IllegalStateException(
+                "Este documento exige uma factura/documento de origem persistido e identificado.");
+        }
+        return source;
+    }
+
+    private PaymentReceiptDTO createPaymentReceipt(Fatura recibo, Fatura source) {
+        if (source == null) {
+            throw new IllegalStateException("O recibo AGT necessita de um documento de origem.");
+        }
+        BigDecimal amountPaid = recibo.getTotal();
+        if (amountPaid == null || amountPaid.signum() <= 0) {
+            throw new IllegalStateException("O valor do recibo deve ser positivo.");
+        }
+
         PaymentReceiptDTO receipt = new PaymentReceiptDTO();
-        
         List<PaymentReceiptDTO.SourceDocumentDTO> sourceDocuments = new ArrayList<>();
         PaymentReceiptDTO.SourceDocumentDTO sourceDoc = new PaymentReceiptDTO.SourceDocumentDTO();
-        
         sourceDoc.setLineNo(1);
-        sourceDoc.setCreditAmount(fatura.getTotal()); // Valor pago
-        
+        sourceDoc.setCreditAmount(amountPaid);
+
         PaymentReceiptDTO.SourceDocumentIDDTO sourceDocId = new PaymentReceiptDTO.SourceDocumentIDDTO();
-        sourceDocId.setOriginatingON(fatura.getNumero());
-        sourceDocId.setDocumentDate(fatura.getDataEmissao().format(DATE_FORMATTER));
-        
+        sourceDocId.setOriginatingON(source.getNumero());
+        sourceDocId.setDocumentDate(source.getDataEmissao().format(DATE_FORMATTER));
         sourceDoc.setSourceDocumentID(sourceDocId);
         sourceDocuments.add(sourceDoc);
-        
         receipt.setSourceDocuments(sourceDocuments);
         return receipt;
     }
