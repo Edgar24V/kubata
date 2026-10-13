@@ -1,3 +1,2 @@
--- Adiciona BI à tabela de clientes no SQLite.
--- O esquema SQLite não contém a V9 PostgreSQL; esta coluna é criada aqui.
+-- Adiciona campo BI (Bilhete de Identidade) à tabela de clientes
 ALTER TABLE clientes ADD COLUMN bi VARCHAR(20);
