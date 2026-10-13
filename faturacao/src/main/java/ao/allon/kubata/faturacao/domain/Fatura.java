@@ -115,7 +115,7 @@ public class Fatura extends BaseEntity {
     @Column(name = "rejected_document_no", length = 60)
     private String rejectedDocumentNo;
 
-    @Column(name = "jws_document_signature", length = 256)
+    @Column(name = "jws_document_signature", length = 2048)
     private String jwsDocumentSignature;
 
     @Column(name = "customer_country", nullable = false, length = 2)
