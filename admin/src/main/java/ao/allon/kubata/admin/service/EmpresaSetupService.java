@@ -467,13 +467,14 @@ public class EmpresaSetupService {
     }
 
     private boolean isAngolaProvince(String value) {
+        String province = value == null ? "" : value.trim();
         return Set.of(
                 "Bengo", "Benguela", "Bié", "Cabinda", "Cuando", "Cubango",
                 "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
                 "Icolo e Bengo", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje",
                 "Moxico", "Moxico Leste", "Namibe", "Uíge", "Zaire",
                 "Cuando Cubango"
-        ).contains(value == null ? "" : value.trim());
+        ).stream().anyMatch(candidate -> candidate.equalsIgnoreCase(province));
     }
 
     private String parameterType(String key) {
