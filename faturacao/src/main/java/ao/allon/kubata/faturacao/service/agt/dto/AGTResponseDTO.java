@@ -29,7 +29,7 @@ public class AGTResponseDTO {
     private List<AGTErrorEntryDTO> errorList;
 
     @JsonProperty("resultCode")
-    private Integer resultCode;
+    private String resultCode;
 
     @JsonProperty("taxRegistrationNumber")
     private String taxRegistrationNumber;
@@ -82,8 +82,8 @@ public class AGTResponseDTO {
     public void setRequestID(String requestID) { this.requestID = requestID; }
     public List<AGTErrorEntryDTO> getErrorList() { return errorList; }
     public void setErrorList(List<AGTErrorEntryDTO> errorList) { this.errorList = errorList; }
-    public Integer getResultCode() { return resultCode; }
-    public void setResultCode(Integer resultCode) { this.resultCode = resultCode; }
+    public String getResultCode() { return resultCode; }
+    public void setResultCode(String resultCode) { this.resultCode = resultCode; }
     public String getTaxRegistrationNumber() { return taxRegistrationNumber; }
     public void setTaxRegistrationNumber(String taxRegistrationNumber) { this.taxRegistrationNumber = taxRegistrationNumber; }
     public List<DocumentStatusDTO> getDocumentStatusList() { return documentStatusList; }
