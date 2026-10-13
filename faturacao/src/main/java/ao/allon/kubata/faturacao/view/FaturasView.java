@@ -1756,45 +1756,19 @@ public class FaturasView extends BorderPane {
  * Corrigir documento rejeitado na AGT
  */
 private void corrigirAGT() {
-        Fatura f = getSelectedFatura();
-        if (f == null) {
-            AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura para corrigir.");
-            return;
-        }
-
-        if (!"REJECTED".equals(f.getAgtSubmissionStatus()) && !"FAILED".equals(f.getAgtSubmissionStatus())) {
-            AlertUtils.showWarningAlert("Aviso", "Apenas faturas rejeitadas podem ser corrigidas.");
-            return;
-        }
-
-        boolean confirmed = AlertUtils.showConfirmation("Corrigir Fatura na AGT",
-            "Deseja submeter a correção da fatura " + f.getNumero() + " à AGT?\n\n" +
-            "Documento rejeitado: " + (f.getRejectedDocumentNo() != null ? f.getRejectedDocumentNo() : "N/A"));
-
-        if (confirmed) {
-            String loadingId = loadingService.showLoading("A submeter correção à AGT...");
-
-        agtElectronicInvoiceService.submitCorrection(f, f.getRejectedDocumentNo())
-            .thenAccept(response -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    if (response != null && "SIMULATED".equalsIgnoreCase(response.getStatus())) {
-                        AlertUtils.showWarningAlert("Simulação", "A correção não foi enviada nem validada pela AGT.");
-                    } else if (response != null && response.getRequestID() != null && !response.getRequestID().isBlank()) {
-                        AlertUtils.showInfoAlert("Pedido recebido", "A AGT recebeu o pedido. A validação está pendente. requestID: " + response.getRequestID());
-                    } else {
-                        AlertUtils.showWarningAlert("Estado indeterminado", "A AGT não confirmou a recepção nem a validação da correção.");
-                    }
-                    refresh();
-                });
-            })
-            .exceptionally(ex -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    AlertUtils.showExceptionAlert("Erro", "Falha ao submeter correção", ex);
-                });
-                return null;
-            });
+    Fatura f = getSelectedFatura();
+    if (f == null) {
+        AlertUtils.showWarningAlert("Aviso", "Selecione uma factura rejeitada.");
+        return;
     }
+    if (!"REJECTED".equalsIgnoreCase(f.getAgtSubmissionStatus())
+            && !"FAILED".equalsIgnoreCase(f.getAgtSubmissionStatus())) {
+        AlertUtils.showWarningAlert("Aviso", "Só documentos rejeitados podem originar uma correcção.");
+        return;
+    }
+    AlertUtils.showWarningAlert(
+        "Correção fiscal indisponível",
+        "Uma correção AGT tem de ser um documento novo, com novo número sequencial e referência ao documento rejeitado. "
+            + "O ecrã actual ainda não cria esse novo documento; nada foi enviado à AGT.");
 }
 }
