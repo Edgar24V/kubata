@@ -363,7 +363,12 @@ public class FaturaService {
                 null
             );
             
-            String assinatura = agtService.generateDocumentHash(agtData, HashUtils.getPrivateKey());
+            java.security.PrivateKey fiscalPrivateKey = signatureService.getPrivateKeyForFiscalHash();
+            if (fiscalPrivateKey == null) {
+                // Apenas desenvolvimento/testes: a emissão real é bloqueada sem o certificado fiscal.
+                fiscalPrivateKey = HashUtils.getPrivateKey();
+            }
+            String assinatura = agtService.generateDocumentHash(agtData, fiscalPrivateKey);
             fatura.setHash(assinatura);
             
             // Marca de validação: 4 caracteres nas posições 1ª, 11ª, 21ª, 31ª (Anexo I, ponto 6-b)
@@ -381,20 +386,7 @@ public class FaturaService {
             
             serieService.atualizarHashAnterior(serie, assinatura);
             
-            // 3.1 Gerar Assinatura Digital JWS (Decreto 683/25)
-            try {
-                String jwsSignature = signatureService.signDocument(
-                    fatura.getNumero(),
-                    fatura.getDataEmissao().toString(),
-                    fatura.getTotal(),
-                    (fatura.getCliente() != null && fatura.getCliente().getNif() != null) ? fatura.getCliente().getNif() : "999999999",
-                    assinatura
-                );
-                fatura.setJwsDocumentSignature(jwsSignature);
-            } catch (Exception e) {
-                System.err.println("Aviso: Falha ao gerar assinatura JWS: " + e.getMessage());
-                // Não interromper emissão, mas logar o erro
-            }
+            // A JWS oficial da AGT é criada no mapeador após formar o payload do schema.
             
         } catch (Exception e) {
             throw new IllegalStateException("Erro ao gerar assinatura: " + e.getMessage(), e);
