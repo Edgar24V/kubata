@@ -145,9 +145,9 @@ public class AGTInvoiceMapperService {
         }
         
         // O contrato AGT usa companyName para a denominação do comprador.
-        String buyerName = fatura.getCompanyName();
-        if ((buyerName == null || buyerName.isBlank()) && fatura.getCliente() != null) {
-            buyerName = fatura.getCliente().getNome();
+        String buyerName = fatura.getCliente() != null ? fatura.getCliente().getNome() : null;
+        if (buyerName == null || buyerName.isBlank()) {
+            buyerName = fatura.getCompanyName();
         }
         if (buyerName == null || buyerName.isBlank()) {
             buyerName = "Consumidor Final";
