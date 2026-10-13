@@ -85,7 +85,7 @@ public class JWSDigitalSignatureService {
             String encodedPayload = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
 
             // Criar o header protegido
-            JWSHeader header = new JWSHeader(getAlgorithm(), "JOSE", "json");
+            JWSHeader header = new JWSHeader(getAlgorithm(), "JOSE");
             String headerJson = objectMapper.writeValueAsString(header);
             String encodedHeader = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
 
@@ -142,6 +142,31 @@ public class JWSDigitalSignatureService {
                 && certificatePassword != null && !certificatePassword.isEmpty();
         }
         return false;
+    }
+
+    /**
+     * Devolve a chave privada carregada do certificado PKCS#12 de produção para
+     * a assinatura de hash SAF-T, evitando chaves de desenvolvimento independentes.
+     * Devolve null apenas no modo de desenvolvimento, para permitir os testes legados.
+     */
+    public PrivateKey getPrivateKeyForFiscalHash() {
+        if (!"RSA_SHA256".equals(signatureType) || !isConfigured()) {
+            if (!allowDevelopmentSignatures) {
+                throw new IllegalStateException("A chave privada fiscal RSA não está configurada.");
+            }
+            return null;
+        }
+        try {
+            loadCertificate();
+            if (certificate == null || privateKey == null
+                    || !"RSA".equalsIgnoreCase(privateKey.getAlgorithm())) {
+                throw new IllegalStateException("O certificado não contém uma chave privada RSA válida.");
+            }
+            certificate.checkValidity();
+            return privateKey;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Não foi possível obter a chave privada do certificado fiscal.", ex);
+        }
     }
 
     /**
@@ -301,14 +326,12 @@ public class JWSDigitalSignatureService {
 
     // Classes internas para estrutura JWS
     private static class JWSHeader {
-        public final String alg;
         public final String typ;
-        public final String cty;
+        public final String alg;
 
-        public JWSHeader(String alg, String typ, String cty) {
-            this.alg = alg;
+        public JWSHeader(String alg, String typ) {
             this.typ = typ;
-            this.cty = cty;
+            this.alg = alg;
         }
     }
 
