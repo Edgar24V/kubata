@@ -17,7 +17,7 @@ import ao.allon.kubata.core.repository.AuditLogRepository;
 import ao.allon.kubata.core.repository.BackupRecordRepository;
 import ao.allon.kubata.core.repository.ModuloSistemaRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
-import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.core.service.SecurityService;
 import ao.allon.kubata.core.service.AuditService;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.ObjectProvider;
@@ -60,7 +60,7 @@ public class PlatformCommandCenterService {
     private final UserSessionRepository sessionRepository;
     private final AuditLogRepository auditRepository;
     private final AuditService auditService;
-    private final AcessoService acessoService;
+    private final SecurityService securityService;
     private final Environment environment;
 
     public PlatformCommandCenterService(
@@ -74,7 +74,7 @@ public class PlatformCommandCenterService {
             UserSessionRepository sessionRepository,
             AuditLogRepository auditRepository,
             AuditService auditService,
-            AcessoService acessoService,
+            SecurityService securityService,
             Environment environment) {
         this.jdbcTemplate = jdbcTemplate;
         this.flywayProvider = flywayProvider;
@@ -86,7 +86,7 @@ public class PlatformCommandCenterService {
         this.sessionRepository = sessionRepository;
         this.auditRepository = auditRepository;
         this.auditService = auditService;
-        this.acessoService = acessoService;
+        this.securityService = securityService;
         this.environment = environment;
     }
 
@@ -142,26 +142,25 @@ public class PlatformCommandCenterService {
 
         sessionRepository.delete(target);
 
-        try {
-            auditService.logAction(
-                    actor,
-                    actor == null ? "SYSTEM" : actor.getNome(),
-                    AuditLog.AuditActionType.CANCEL,
-                    "USER_SESSION",
-                    String.valueOf(sessionId),
-                    "Sessão encerrada pelo Command Center: " + safe(target.getUsername()),
-                    target.getUsername(),
-                    null,
-                    MODULE,
-                    null,
-                    "Kubata Administrator",
-                    null,
-                    false,
-                    AuditLog.AGTComplianceLevel.HIGH
-            );
-        } catch (Exception ignored) {
-            // Auditoria não deve impedir a conclusão segura do encerramento.
-        }
+        // A remoção da sessão e o respectivo registo de auditoria fazem parte
+        // da mesma transacção. Se a auditoria falhar, a operação falha e a remoção
+        // é revertida em vez de deixar uma operação privilegiada sem evidência.
+        auditService.logAction(
+                actor,
+                actor.getNome(),
+                AuditLog.AuditActionType.CANCEL,
+                "USER_SESSION",
+                String.valueOf(sessionId),
+                "Sessão encerrada pelo Command Center: " + safe(target.getUsername()),
+                target.getUsername(),
+                null,
+                MODULE,
+                null,
+                "Kubata Administrator",
+                null,
+                false,
+                AuditLog.AGTComplianceLevel.HIGH
+        );
     }
 
     public List<PlatformOperationSummary> recentOperations(User actor) {
@@ -396,10 +395,9 @@ public class PlatformCommandCenterService {
         if (actor == null) {
             throw new SecurityException("Sessão administrativa não autenticada.");
         }
-        if (actor.isSuperadmin() || actor.getRole() == ao.allon.kubata.core.domain.Role.ADMIN) {
-            return;
-        }
-        if (!acessoService.temAcesso(actor, MODULE, resource, operation)) {
+        // Verifica a política individual do utilizador e a permissão RBAC
+        // exacta (módulo + recurso + operação), incluindo para contas privilegiadas.
+        if (!securityService.hasPermission(actor, MODULE, resource, operation)) {
             throw new SecurityException("Permissão insuficiente para " + resource + ".");
         }
     }
