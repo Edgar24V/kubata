@@ -78,6 +78,11 @@ class ModuleNavigationIntegrationTest {
                 .collect(Collectors.toSet());
 
         for (KubataModule module : moduleRegistry.getAllModules()) {
+            assertFalse(
+                    module.getModuleViews().isEmpty(),
+                    "O módulo '" + module.getModuleId()
+                            + "' deve registar as suas funcionalidades antes de ser apresentado no acesso central."
+            );
             assertTrue(
                     moduleGroups.contains(module.getModuleName()),
                     "O módulo registado '" + module.getModuleId()
