@@ -1,6 +1,12 @@
 package ao.allon.kubata.admin.ui.fxribbon;
 
 import ao.allon.kubata.admin.ui.util.IconUtils;
+import ao.allon.kubata.admin.service.ModuleInstallationService;
+import ao.allon.kubata.core.domain.ModuloSistema;
+import ao.allon.kubata.core.module.KubataModule;
+import ao.allon.kubata.core.module.ModuleRegistry;
+import ao.allon.kubata.core.repository.ModuloSistemaRepository;
+import ao.allon.kubata.core.service.SecurityService;
 import ao.allon.kubata.admin.view.*;
 import ao.allon.kubata.financeiro.view.CaixasView;
 import ao.allon.kubata.financeiro.view.ContasBancariasView;
@@ -14,6 +20,7 @@ import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Comparator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -24,7 +31,7 @@ import java.util.function.Supplier;
  * Manutenção · Infraestrutura (só para ADMIN / superadmin).
  */
 @Service
-public class RibbonProgrammaticService {
+public class RibbonProgrammaticService {\n\n    private final ModuleRegistry moduleRegistry;\n    private final ModuloSistemaRepository moduloRepository;\n    private final ModuleInstallationService moduleInstallationService;\n    private final SecurityService securityService;\n\n    public RibbonProgrammaticService(\n            ModuleRegistry moduleRegistry,\n            ModuloSistemaRepository moduloRepository,\n            ModuleInstallationService moduleInstallationService,\n            SecurityService securityService) {\n        this.moduleRegistry = moduleRegistry;\n        this.moduloRepository = moduloRepository;\n        this.moduleInstallationService = moduleInstallationService;\n        this.securityService = securityService;\n    }
 
     /**
      * Callback para abrir ou focar uma tab de trabalho no TabPane principal.
@@ -104,6 +111,86 @@ public class RibbonProgrammaticService {
         tab.addGroup(dados);
 
         return tab;
+    }
+
+    private RibbonTab buildModules(
+            User user,
+            TabOpener opener,
+            Function<Class<? extends Node>, Node> beanLookup) {
+        RibbonTab tab = new RibbonTab("Módulos");
+
+        List<KubataModule> modules = moduleRegistry.getAllModules().stream()
+                .filter(KubataModule::isActive)
+                .filter(module -> securityService.hasModuleAccess(user, module.getModuleId()))
+                .sorted(Comparator.comparing(KubataModule::getModuleName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        for (KubataModule module : modules) {
+            RibbonGroup group = new RibbonGroup(module.getModuleName());
+            group.addSmallButtons(List.of(smallBtn(
+                    "open_module_" + module.getModuleId(),
+                    "Abrir",
+                    Feather.GRID,
+                    module.getModuleDescription(),
+                    () -> openModuleWorkspace(module, user, opener, beanLookup)
+            )));
+            tab.addGroup(group);
+        }
+
+        if (modules.isEmpty()) {
+            RibbonGroup unavailable = new RibbonGroup("Módulos");
+            unavailable.addSmallButtons(List.of(smallBtn(
+                    "modules_unavailable",
+                    "Sem acesso",
+                    Feather.LOCK,
+                    "Não existem módulos autorizados para o utilizador actual.",
+                    () -> opener.open(
+                            "modules_access_denied",
+                            "Acesso aos Módulos",
+                            () -> new javafx.scene.control.Label(
+                                    "Não existem módulos autorizados para o utilizador actual."
+                            ),
+                            true
+                    )
+            )));
+            tab.addGroup(unavailable);
+        }
+
+        return tab;
+    }
+
+    private void openModuleWorkspace(
+            KubataModule module,
+            User user,
+            TabOpener opener,
+            Function<Class<? extends Node>, Node> beanLookup) {
+        if (!securityService.hasModuleAccess(user, module.getModuleId())) {
+            opener.open(
+                    "module_access_denied_" + module.getModuleId(),
+                    "Acesso negado",
+                    () -> new javafx.scene.control.Label(
+                            "A política de segurança actual não permite abrir o módulo "
+                                    + module.getModuleName() + "."
+                    ),
+                    true
+            );
+            return;
+        }
+
+        opener.open(
+                "module_" + module.getModuleId(),
+                module.getModuleName(),
+                () -> new ao.allon.kubata.admin.view.ModuleWorkspaceView(
+                        module,
+                        moduloRepository,
+                        moduleInstallationService,
+                        securityService,
+                        user,
+                        beanLookup,
+                        opener
+                ),
+                true
+        );
     }
 
     private RibbonTab buildSeguranca(TabOpener opener, Function<Class<? extends Node>, Node> bl) {
