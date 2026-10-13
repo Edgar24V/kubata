@@ -84,23 +84,15 @@ public class SecurityService {
         if (!userSecurityProfileService.isModuleAllowed(user, modulo)) return false;
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
 
-        // Compatibilidade com concessões directas legadas. Esse formato antigo
-        // guarda módulo/recurso, mas não separa operações; preservamos o seu
-        // contrato histórico enquanto os perfis RBAC usam operação exacta.
+        // As concessões directas legadas guardam módulo + opção (operação),
+        // sem recurso. Só é concedido o acto explicitamente gravado; um nome de
+        // recurso na coluna opcao nunca deve transformar-se em acesso total CRUD.
         boolean hasDirect = permissionRepository.findByUser(user).stream()
-                .anyMatch(permission -> {
-                    if (permission == null
-                            || !ModuleAccessRules.moduleMatches(permission.getModulo(), modulo)) {
-                        return false;
-                    }
-
-                    // As permissões antigas só guardam módulo + opção (operação).
-                    // Mantém também a leitura de registos antigos que guardavam
-                    // o identificador do recurso na coluna opcao.
-                    return ModuleAccessRules.operationMatches(permission.getOpcao(), operacao.name())
-                            || (permission.getOpcao() != null
-                                && permission.getOpcao().equalsIgnoreCase(recurso));
-                });
+                .anyMatch(permission ->
+                        permission != null
+                                && ModuleAccessRules.moduleMatches(permission.getModulo(), modulo)
+                                && ModuleAccessRules.operationMatches(
+                                        permission.getOpcao(), operacao.name()));
         if (hasDirect) return true;
 
         // RBAC moderno: módulo, recurso e operação têm de coincidir.
