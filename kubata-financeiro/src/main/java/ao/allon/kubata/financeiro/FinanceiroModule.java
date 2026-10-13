@@ -61,7 +61,7 @@ public class FinanceiroModule extends AbstractKubataModule implements KubataModu
             null,
             "financeiro.caixas",
             null,
-            3
+            2
         ));
         
         addView(new ModuleView(
