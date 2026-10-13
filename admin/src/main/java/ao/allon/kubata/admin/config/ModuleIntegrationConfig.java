@@ -35,15 +35,9 @@ public class ModuleIntegrationConfig {
             ContabilidadeModule contabilidadeModule,
             FiscalModule fiscalModule) {
         
-        // Registra todos os módulos
-        moduleRegistry.registerModule(inventarioModule);
-        moduleRegistry.registerModule(vendasModule);
-        moduleRegistry.registerModule(comprasModule);
-        moduleRegistry.registerModule(financeiroModule);
-        moduleRegistry.registerModule(contabilidadeModule);
-        moduleRegistry.registerModule(fiscalModule);
-        
-        return List.of(
+        // Preparar o catálogo funcional uma vez no registo. A navegação não
+        // deve reinicializar um módulo partilhado sempre que abre uma página.
+        List<KubataModule> modules = List.of(
             inventarioModule,
             vendasModule,
             comprasModule,
@@ -51,5 +45,12 @@ public class ModuleIntegrationConfig {
             contabilidadeModule,
             fiscalModule
         );
+
+        modules.forEach(module -> {
+            module.initialize();
+            moduleRegistry.registerModule(module);
+        });
+
+        return modules;
     }
 }
