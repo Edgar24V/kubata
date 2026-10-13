@@ -92,8 +92,21 @@ public class AGTInvoiceMapperService {
      * Mapeia uma Fatura para DocumentDTO.
      */
     public DocumentDTO mapToDocumentDTO(Fatura fatura) {
+        if (fatura == null) {
+            throw new IllegalArgumentException("O documento de facturação é obrigatório.");
+        }
+        if (fatura.getNumero() == null || fatura.getNumero().isBlank()
+                || fatura.getNumero().length() < 8 || fatura.getNumero().length() > 60) {
+            throw new IllegalArgumentException("O número fiscal do documento deve ter entre 8 e 60 caracteres.");
+        }
+        if (fatura.getDataEmissao() == null || fatura.getSystemEntryDate() == null) {
+            throw new IllegalStateException("Data de emissão e data de gravação são obrigatórias para a AGT.");
+        }
+        if (fatura.getItens() == null || fatura.getItens().isEmpty()) {
+            throw new IllegalStateException("O documento deve conter linhas de artigos ou serviços para a AGT.");
+        }
         DocumentDTO dto = new DocumentDTO();
-        
+
         // Identificação do documento
         dto.setDocumentNo(fatura.getNumero());
         dto.setDocumentType(getDocumentTypeCode(fatura.getTipoDocumento()));
@@ -215,7 +228,7 @@ public class AGTInvoiceMapperService {
             line.setUnitPriceBase(unitPriceBase);
             line.setUnitPrice(unitPrice);
             // Vendas: apenas creditAmount preenchido; impostos são enviados separadamente.
-            line.setDebitAmount(null);
+            line.setDebitAmount(BigDecimal.ZERO);
             line.setCreditAmount(netLine);
             line.setSettlementAmount(settlement);
             
@@ -255,10 +268,11 @@ public class AGTInvoiceMapperService {
         tax.setTaxCountryRegion("AO");
 
         String taxCode = null;
-        if (item.getProduto() != null && item.getProduto().getImposto() != null
+        if (taxPercentage.compareTo(BigDecimal.ZERO) > 0
+                && item.getProduto() != null && item.getProduto().getImposto() != null
                 && "IVA".equalsIgnoreCase(item.getProduto().getImposto().getTipo())) {
             String configuredCode = item.getProduto().getImposto().getCodigo();
-            if (configuredCode != null && List.of("NOR", "INT", "RED", "ISE", "OUT")
+            if (configuredCode != null && List.of("NOR", "INT", "RED", "OUT")
                     .contains(configuredCode.trim().toUpperCase(java.util.Locale.ROOT))) {
                 taxCode = configuredCode.trim().toUpperCase(java.util.Locale.ROOT);
             }
@@ -279,8 +293,7 @@ public class AGTInvoiceMapperService {
             if (taxCode == null) {
                 if (taxPercentage.compareTo(new BigDecimal("14.00")) == 0) taxCode = "NOR";
                 else if (taxPercentage.compareTo(new BigDecimal("7.00")) == 0) taxCode = "RED";
-                else if (taxPercentage.compareTo(new BigDecimal("5.00")) == 0
-                        || taxPercentage.compareTo(new BigDecimal("14.00")) != 0) taxCode = "OUT";
+                else taxCode = "OUT";
             }
             tax.setTaxCode(taxCode);
             tax.setTaxPercentage(taxPercentage);
