@@ -10,7 +10,12 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,6 +43,9 @@ public class AGTInvoiceMapperService {
     @Value("${agt.emitter.company-name:}")
     private String emitterCompanyName;
 
+    @Value("${agt.software.signature-version:1}")
+    private Integer signatureVersion;
+
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
@@ -49,14 +57,22 @@ public class AGTInvoiceMapperService {
      * Cria a requisição de submissão completa para a API AGT.
      */
     public AGTInvoiceSubmissionRequest createSubmissionRequest(List<Fatura> faturas) {
-        String submissionGUID = UUID.randomUUID().toString();
-        String timestamp = java.time.LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME);
-
-        AGTInvoiceSubmissionRequest.SoftwareInfoDetail softwareInfoDetail = 
-            new AGTInvoiceSubmissionRequest.SoftwareInfoDetail(productId, productVersion, softwareValidationNumber);
-        
-        AGTInvoiceSubmissionRequest.SoftwareInfo softwareInfo = 
-            new AGTInvoiceSubmissionRequest.SoftwareInfo(softwareInfoDetail, ""); // JWS signature will be added later
+        if (faturas == null || faturas.isEmpty() || faturas.size() > 30) {
+            throw new IllegalArgumentException("A submissão AGT deve conter entre 1 e 30 documentos.");
+        }
+        String submissionUUID = UUID.randomUUID().toString();
+        String timestamp = OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        int signatureVersionValue = signatureVersion == null ? 1 : signatureVersion;
+        AGTInvoiceSubmissionRequest.SoftwareInfoDetail softwareInfoDetail =
+            new AGTInvoiceSubmissionRequest.SoftwareInfoDetail(productId, productVersion, softwareValidationNumber, signatureVersionValue);
+        Map<String, Object> softwarePayload = new LinkedHashMap<>();
+        softwarePayload.put("productId", productId);
+        softwarePayload.put("productVersion", productVersion);
+        softwarePayload.put("softwareValidationNumber", softwareValidationNumber);
+        softwarePayload.put("signatureVersion", signatureVersionValue);
+        String softwareSignature = signatureService.signJwsPayload(softwarePayload);
+        AGTInvoiceSubmissionRequest.SoftwareInfo softwareInfo =
+            new AGTInvoiceSubmissionRequest.SoftwareInfo(softwareInfoDetail, softwareSignature);
 
         List<DocumentDTO> documents = new ArrayList<>();
         for (Fatura fatura : faturas) {
@@ -82,7 +98,10 @@ public class AGTInvoiceMapperService {
         dto.setDocumentNo(fatura.getNumero());
         dto.setDocumentType(getDocumentTypeCode(fatura.getTipoDocumento()));
         dto.setDocumentDate(fatura.getDataEmissao().format(DATE_FORMATTER));
-        dto.setSystemEntryDate(fatura.getSystemEntryDate().format(DATE_TIME_FORMATTER));
+        dto.setSystemEntryDate(fatura.getSystemEntryDate()
+            .atZone(ZoneId.systemDefault())
+            .withZoneSameInstant(ZoneOffset.UTC)
+            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         
         // Status do documento (conforme Decreto 683/25)
         if (fatura.getDocumentStatus() != null) {
@@ -101,23 +120,7 @@ public class AGTInvoiceMapperService {
             dto.setRejectedDocumentNo(fatura.getRejectedDocumentNo());
         }
         
-        // Assinatura digital
-        if (fatura.getJwsDocumentSignature() == null || fatura.getJwsDocumentSignature().isBlank()) {
-            try {
-                String customerTaxId = (fatura.getCliente() != null) ? fatura.getCliente().getNif() : "999999999";
-                String sig = signatureService.signDocument(
-                    fatura.getNumero(),
-                    fatura.getDataEmissao() != null ? fatura.getDataEmissao().toString() : "",
-                    fatura.getTotal(),
-                    customerTaxId,
-                    fatura.getHash()
-                );
-                fatura.setJwsDocumentSignature(sig);
-            } catch (Exception e) {
-                fatura.setJwsDocumentSignature(null);
-            }
-        }
-        dto.setJwsDocumentSignature(fatura.getJwsDocumentSignature());
+        // A assinatura JWS é gerada depois de preencher todos os campos oficiais da AGT.
         
         // Dados do cliente
         dto.setCustomerCountry(fatura.getCustomerCountry() != null ? fatura.getCustomerCountry() : "AO");
@@ -128,19 +131,31 @@ public class AGTInvoiceMapperService {
             dto.setCustomerTaxID("999999999"); // Consumidor final
         }
         
-        // Dados da empresa emitente
-        if (fatura.getCompanyName() != null && !fatura.getCompanyName().isBlank()) {
-            dto.setCompanyName(fatura.getCompanyName());
-        } else {
-            dto.setCompanyName(emitterCompanyName);
+        // O contrato AGT usa companyName para a denominação do comprador.
+        String buyerName = fatura.getCompanyName();
+        if ((buyerName == null || buyerName.isBlank()) && fatura.getCliente() != null) {
+            buyerName = fatura.getCliente().getNome();
         }
+        if (buyerName == null || buyerName.isBlank()) {
+            buyerName = "Consumidor Final";
+        }
+        dto.setCompanyName(buyerName);
         dto.setEacCode(fatura.getEacCode());
-        
-        // Linhas do documento
         dto.setLines(mapLines(fatura.getItens()));
-        
-        // Totais
-        dto.setDocumentTotals(mapDocumentTotals(fatura));
+        DocumentTotalsDTO totals = mapDocumentTotals(fatura);
+        dto.setDocumentTotals(totals);
+        Map<String, Object> signedPayload = new LinkedHashMap<>();
+        signedPayload.put("documentNo", dto.getDocumentNo());
+        signedPayload.put("taxRegistrationNumber", emitterNif);
+        signedPayload.put("documentType", dto.getDocumentType());
+        signedPayload.put("documentDate", dto.getDocumentDate());
+        signedPayload.put("customerTaxID", dto.getCustomerTaxID());
+        signedPayload.put("customerCountry", dto.getCustomerCountry());
+        signedPayload.put("companyName", dto.getCompanyName());
+        signedPayload.put("documentTotals", totals);
+        String documentSignature = signatureService.signJwsPayload(signedPayload);
+        dto.setJwsDocumentSignature(documentSignature);
+        fatura.setJwsDocumentSignature(documentSignature);
         
         // PaymentReceipt (para FR)
         if (fatura.getTipoDocumento() == TipoDocumento.FATURA_RECIBO) {
@@ -165,7 +180,8 @@ public class AGTInvoiceMapperService {
         for (ItemFatura item : itens) {
             LineDTO line = new LineDTO();
             line.setLineNumber(lineNumber++);
-            
+            line.setOperationType(item.getProduto() != null ? "TB" : "SG");
+
             // Código e descrição do produto
             if (item.getProduto() != null) {
                 line.setProductCode(String.valueOf(item.getProduto().getId()));
@@ -184,8 +200,9 @@ public class AGTInvoiceMapperService {
             line.setUnitPriceBase(item.getPrecoUnitario()); // Após descontos (se houver)
             
             // Valores
-            line.setDebitAmount(item.getTotal());
-            line.setSettlementAmount(BigDecimal.ZERO); // Descontos aplicados
+            // Valor tributável da venda, sem IVA: a AGT espera creditAmount.
+            line.setCreditAmount(item.getSubtotal() != null ? item.getSubtotal() : BigDecimal.ZERO);
+            line.setSettlementAmount(BigDecimal.ZERO); // Descontos ainda não parametrizados na linha
             
             // Impostos
             line.setTaxes(mapTaxes(item));
