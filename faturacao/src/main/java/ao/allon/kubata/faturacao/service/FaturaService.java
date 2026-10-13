@@ -14,11 +14,14 @@ import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason;
 import ao.allon.kubata.faturacao.domain.enums.DocumentStatus;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
+import ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO;
 import ao.allon.kubata.faturacao.service.agt.AGTInvoiceData;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import ao.allon.kubata.faturacao.util.HashUtils;
 import ao.allon.kubata.faturacao.util.AngolaValidationUtils;
@@ -293,6 +297,9 @@ public class FaturaService {
         if (fatura.getStatus() == StatusFatura.EMITIDA) {
             throw new IllegalStateException("A fatura já foi emitida ou processada");
         }
+        if (requiresAgtSubmission(fatura.getTipoDocumento())) {
+            agtElectronicInvoiceService.assertReadyForFiscalEmission();
+        }
 
         // Operador/Usuário responsável (para impressão/SAF-T/AGT)
         try {
@@ -411,25 +418,13 @@ public class FaturaService {
             fatura.setStatus(StatusFatura.EMITIDA);
         }
         
-        // 5. Faturação Eletrónica (Comunicação em Tempo Real AGT)
-        fatura.setAgtSubmissionStatus("PENDING");
-        agtElectronicInvoiceService.submitInvoiceAsync(fatura)
-            .thenAccept(response -> {
-                if (response != null && response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
-                    String validationCode = response.getValidationResults().get(0).getValidationCode();
-                    fatura.setAgtValidationCode(validationCode);
-                    fatura.setAgtSubmissionStatus("SUCCESS");
-                    fatura.setAgtSubmissionDate(LocalDateTime.now());
-                    faturaRepository.save(fatura);
-                    System.out.println("Submissão eletrónica AGT concluída: " + validationCode);
-                }
-            })
-            .exceptionally(ex -> {
-                fatura.setAgtSubmissionStatus("FAILED");
-                faturaRepository.save(fatura);
-                System.err.println("Erro na submissão eletrónica AGT: " + ex.getMessage());
-                return null;
-            });
+        // 5. Submissão fiscal só após commit; requestID não significa validação fiscal.
+        if (requiresAgtSubmission(tipo)) {
+            fatura.setAgtSubmissionStatus("PENDING");
+            submitAgtAfterCommit(fatura);
+        } else {
+            fatura.setAgtSubmissionStatus("NOT_APPLICABLE");
+        }
         
         // Integrar com Contabilidade (após emissão bem sucedida)
         try {
@@ -437,6 +432,75 @@ public class FaturaService {
         } catch (Exception e) {
             System.err.println("Erro ao lançar na contabilidade: " + e.getMessage());
         }
+    }
+
+    private boolean requiresAgtSubmission(TipoDocumento tipo) {
+        return tipo == TipoDocumento.FATURA
+            || tipo == TipoDocumento.FATURA_RECIBO
+            || tipo == TipoDocumento.VENDA_A_DINHEIRO
+            || tipo == TipoDocumento.RECIBO
+            || tipo == TipoDocumento.NOTA_CREDITO
+            || tipo == TipoDocumento.NOTA_DEBITO
+            || tipo == TipoDocumento.AUTO_FATURA;
+    }
+
+    /**
+     * Evita chamar serviços externos antes da confirmação da transacção local.
+     * Só requestID oficial é guardado; a validação é um processo posterior.
+     */
+    private void submitAgtAfterCommit(Fatura fatura) {
+        Runnable submit = () -> {
+            CompletableFuture<AGTResponseDTO> future;
+            try {
+                future = agtElectronicInvoiceService.submitInvoiceAsync(fatura);
+                if (future == null) {
+                    // Mockito/testes unitários ou integração explicitamente desligada.
+                    return;
+                }
+            } catch (Exception ex) {
+                guardarEstadoSubmissao(fatura, "FAILED", null);
+                System.err.println("Erro ao submeter documento à AGT: " + ex.getMessage());
+                return;
+            }
+
+            future.thenAccept(response -> {
+                if (response != null
+                        && "SIMULATED".equalsIgnoreCase(response.getStatus())) {
+                    guardarEstadoSubmissao(fatura, "SIMULATED", null);
+                } else if (response != null
+                        && response.getRequestID() != null
+                        && !response.getRequestID().isBlank()
+                        && (response.getErrorList() == null || response.getErrorList().isEmpty())) {
+                    guardarEstadoSubmissao(fatura, "SUBMITTED", response.getRequestID());
+                } else {
+                    guardarEstadoSubmissao(fatura, "FAILED", null);
+                }
+            }).exceptionally(ex -> {
+                guardarEstadoSubmissao(fatura, "FAILED", null);
+                System.err.println("Erro na submissão electrónica AGT: " + ex.getMessage());
+                return null;
+            });
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    submit.run();
+                }
+            });
+        } else {
+            submit.run();
+        }
+    }
+
+    private void guardarEstadoSubmissao(Fatura fatura, String status, String requestId) {
+        fatura.setAgtSubmissionStatus(status);
+        fatura.setAgtSubmissionDate(LocalDateTime.now());
+        if (requestId != null && !requestId.isBlank()) {
+            fatura.setAgtRequestId(requestId);
+        }
+        faturaRepository.save(fatura);
     }
 
     /**
