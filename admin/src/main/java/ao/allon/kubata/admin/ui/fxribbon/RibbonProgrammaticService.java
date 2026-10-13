@@ -31,7 +31,23 @@ import java.util.function.Supplier;
  * Manutenção · Infraestrutura (só para ADMIN / superadmin).
  */
 @Service
-public class RibbonProgrammaticService {\n\n    private final ModuleRegistry moduleRegistry;\n    private final ModuloSistemaRepository moduloRepository;\n    private final ModuleInstallationService moduleInstallationService;\n    private final SecurityService securityService;\n\n    public RibbonProgrammaticService(\n            ModuleRegistry moduleRegistry,\n            ModuloSistemaRepository moduloRepository,\n            ModuleInstallationService moduleInstallationService,\n            SecurityService securityService) {\n        this.moduleRegistry = moduleRegistry;\n        this.moduloRepository = moduloRepository;\n        this.moduleInstallationService = moduleInstallationService;\n        this.securityService = securityService;\n    }
+public class RibbonProgrammaticService {
+
+    private final ModuleRegistry moduleRegistry;
+    private final ModuloSistemaRepository moduloRepository;
+    private final ModuleInstallationService moduleInstallationService;
+    private final SecurityService securityService;
+
+    public RibbonProgrammaticService(
+            ModuleRegistry moduleRegistry,
+            ModuloSistemaRepository moduloRepository,
+            ModuleInstallationService moduleInstallationService,
+            SecurityService securityService) {
+        this.moduleRegistry = moduleRegistry;
+        this.moduloRepository = moduloRepository;
+        this.moduleInstallationService = moduleInstallationService;
+        this.securityService = securityService;
+    }
 
     /**
      * Callback para abrir ou focar uma tab de trabalho no TabPane principal.
