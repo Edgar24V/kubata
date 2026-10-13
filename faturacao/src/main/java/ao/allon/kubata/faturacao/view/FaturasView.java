@@ -503,8 +503,10 @@ public class FaturasView extends BorderPane {
                 if (status == null) return "-";
                 return switch (status) {
                     case "PENDING" -> "⏳";
+                    case "SUBMITTED" -> "↗";
+                    case "SIMULATED" -> "≈";
                     case "SUCCESS" -> "✓";
-                    case "FAILED" -> "✗";
+                    case "REJECTED", "FAILED" -> "✗";
                     default -> "-";
                 };
             });
@@ -522,18 +524,22 @@ public class FaturasView extends BorderPane {
                     Fatura fatura = getTableRow() != null ? getTableRow().getItem() : null;
                     if (fatura != null) {
                         String status = fatura.getAgtSubmissionStatus();
-                        String tooltipText = switch (status != null ? status : "") {
-                            case "PENDING" -> "Pendente";
-                            case "SUCCESS" -> "Validado: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
-                            case "FAILED" -> "Falhou";
+                        String safeStatus = status != null ? status : "";
+                        String tooltipText = switch (safeStatus) {
+                            case "PENDING" -> "A aguardar submissão";
+                            case "SUBMITTED" -> "Pedido recebido pela AGT; validação pendente. requestID: " + fatura.getAgtRequestId();
+                            case "SIMULATED" -> "Simulação local; não enviada nem validada pela AGT";
+                            case "SUCCESS" -> "Validada pela AGT: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
+                            case "REJECTED", "FAILED" -> "Rejeitada ou falhou; consultar detalhes técnicos";
                             default -> "Não submetido";
                         };
                         setTooltip(new Tooltip(tooltipText));
                         
-                        switch (status != null ? status : "") {
-                            case "PENDING" -> setTextFill(Color.ORANGE);
+                        switch (safeStatus) {
+                            case "PENDING", "SUBMITTED" -> setTextFill(Color.ORANGE);
+                            case "SIMULATED" -> setTextFill(Color.GRAY);
                             case "SUCCESS" -> setTextFill(Color.GREEN);
-                            case "FAILED" -> setTextFill(Color.RED);
+                            case "REJECTED", "FAILED" -> setTextFill(Color.RED);
                             default -> setTextFill(Color.BLACK);
                         }
                     }
@@ -1207,8 +1213,10 @@ public class FaturasView extends BorderPane {
                 if (status == null) return "-";
                 return switch (status) {
                     case "PENDING" -> "⏳";
+                    case "SUBMITTED" -> "↗";
+                    case "SIMULATED" -> "≈";
                     case "SUCCESS" -> "✓";
-                    case "FAILED" -> "✗";
+                    case "REJECTED", "FAILED" -> "✗";
                     default -> "-";
                 };
             });
@@ -1225,18 +1233,21 @@ public class FaturasView extends BorderPane {
                     setText(item);
                     Fatura fatura = getTableView().getItems().get(getIndex());
                     if (fatura != null) {
-                        String status = fatura.getAgtSubmissionStatus();
+                        String status = fatura.getAgtSubmissionStatus() != null ? fatura.getAgtSubmissionStatus() : "";
                         String tooltipText = switch (status) {
-                            case "PENDING" -> "Pendente";
-                            case "SUCCESS" -> "Validado: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
-                            case "FAILED" -> "Falhou";
+                            case "PENDING" -> "A aguardar submissão";
+                            case "SUBMITTED" -> "Pedido recebido pela AGT; validação pendente. requestID: " + fatura.getAgtRequestId();
+                            case "SIMULATED" -> "Simulação local; não enviada nem validada pela AGT";
+                            case "SUCCESS" -> "Validada pela AGT: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
+                            case "REJECTED", "FAILED" -> "Rejeitada ou falhou; consultar detalhes técnicos";
                             default -> "Não submetido";
                         };
                         setTooltip(new Tooltip(tooltipText));
                         setStyle(switch (status) {
-                            case "PENDING" -> "-fx-text-fill: orange;";
+                            case "PENDING", "SUBMITTED" -> "-fx-text-fill: orange;";
+                            case "SIMULATED" -> "-fx-text-fill: gray;";
                             case "SUCCESS" -> "-fx-text-fill: green;";
-                            case "FAILED" -> "-fx-text-fill: red;";
+                            case "REJECTED", "FAILED" -> "-fx-text-fill: red;";
                             default -> "";
                         });
                     }
@@ -1776,7 +1787,7 @@ public class FaturasView extends BorderPane {
             .thenAccept(response -> {
                 javafx.application.Platform.runLater(() -> {
                     loadingService.hideLoading(loadingId);
-                    AlertUtils.showInfoAlert("Sucesso", "Fatura cancelada na AGT com sucesso!");
+                    AlertUtils.showWarningAlert("Anulação indisponível", "A factura não foi anulada na AGT. Consulte a mensagem técnica e siga o procedimento fiscal autorizado.");
                     refresh();
                 });
             })
@@ -1800,7 +1811,7 @@ private void corrigirAGT() {
             return;
         }
 
-        if (!"FAILED".equals(f.getAgtSubmissionStatus())) {
+        if (!"REJECTED".equals(f.getAgtSubmissionStatus()) && !"FAILED".equals(f.getAgtSubmissionStatus())) {
             AlertUtils.showWarningAlert("Aviso", "Apenas faturas rejeitadas podem ser corrigidas.");
             return;
         }
@@ -1816,11 +1827,12 @@ private void corrigirAGT() {
             .thenAccept(response -> {
                 javafx.application.Platform.runLater(() -> {
                     loadingService.hideLoading(loadingId);
-                    if (response != null && response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
-                        String validationCode = response.getValidationResults().get(0).getValidationCode();
-                        AlertUtils.showInfoAlert("Sucesso", "Correção submetida com sucesso!\nCódigo: " + validationCode);
+                    if (response != null && "SIMULATED".equalsIgnoreCase(response.getStatus())) {
+                        AlertUtils.showWarningAlert("Simulação", "A correção não foi enviada nem validada pela AGT.");
+                    } else if (response != null && response.getRequestID() != null && !response.getRequestID().isBlank()) {
+                        AlertUtils.showInfoAlert("Pedido recebido", "A AGT recebeu o pedido. A validação está pendente. requestID: " + response.getRequestID());
                     } else {
-                        AlertUtils.showInfoAlert("Sucesso", "Correção submetida com sucesso!");
+                        AlertUtils.showWarningAlert("Estado indeterminado", "A AGT não confirmou a recepção nem a validação da correção.");
                     }
                     refresh();
                 });
