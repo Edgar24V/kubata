@@ -57,10 +57,11 @@ public class SecurityService {
             return user.getPerfis().stream()
                 .filter(PerfilAcesso::getActivo)
                 .flatMap(p -> p.getPermissoes().stream())
-                .anyMatch(pm -> 
-                    pm.getModulo().equalsIgnoreCase(modulo) &&
-                    (pm.getRecurso().equalsIgnoreCase(modulo) || pm.getRecurso().equalsIgnoreCase("TODOS")) && // Se o recurso for o próprio módulo ou "TODOS"
-                    pm.getOperacao().name().equalsIgnoreCase(operacao) &&
+                .anyMatch(pm ->
+                    ModuleAccessRules.moduleMatches(pm.getModulo(), modulo) &&
+                    (pm.getRecurso().equalsIgnoreCase(modulo) || pm.getRecurso().equalsIgnoreCase("TODOS")) &&
+                    pm.getOperacao() != null &&
+                    ModuleAccessRules.operationMatches(pm.getOperacao().name(), operacao) &&
                     Boolean.TRUE.equals(pm.getPermitido())
                 );
         }
