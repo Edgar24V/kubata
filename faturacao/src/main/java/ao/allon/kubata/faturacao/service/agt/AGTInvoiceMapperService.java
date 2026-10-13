@@ -110,10 +110,14 @@ public class AGTInvoiceMapperService {
         if (receiptType) {
             sourceForReceipt = resolveSourceDocument(fatura);
             if (fatura.getTotal() == null || sourceForReceipt.getTotal() == null
-                    || fatura.getTotal().compareTo(sourceForReceipt.getTotal()) != 0) {
+                    || fatura.getTotal().compareTo(sourceForReceipt.getTotal()) != 0
+                    || fatura.getSubtotal() == null || sourceForReceipt.getSubtotal() == null
+                    || fatura.getSubtotal().compareTo(sourceForReceipt.getSubtotal()) != 0
+                    || fatura.getIva() == null || sourceForReceipt.getIva() == null
+                    || fatura.getIva().compareTo(sourceForReceipt.getIva()) != 0) {
                 throw new IllegalStateException(
-                    "O recibo RC só pode ser submetido quando o valor corresponder integralmente ao documento de origem. "
-                    + "Recibos parciais exigem alocação fiscal por documento/linha ainda não suportada.");
+                    "O recibo RC só pode ser submetido quando subtotal, IVA e total corresponderem integralmente ao documento de origem. "
+                    + "Recibos parciais e reconciliações com valores divergentes ainda não são suportados.");
             }
         }
         DocumentDTO dto = new DocumentDTO();
