@@ -326,12 +326,12 @@ public class JWSDigitalSignatureService {
 
     // Classes internas para estrutura JWS
     private static class JWSHeader {
-        public final String typ;
         public final String alg;
+        public final String typ;
 
         public JWSHeader(String alg, String typ) {
-            this.typ = typ;
             this.alg = alg;
+            this.typ = typ;
         }
     }
 
