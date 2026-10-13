@@ -445,9 +445,12 @@ public class EmpresaWizardView extends VBox {
                 empresa.getNif(), nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
         );
         if (nifValidation != null) {
+            String authorityNote = "AO".equalsIgnoreCase(empresa.getPais())
+                    ? "A confirmação oficial do cadastro continua a ser feita pela AGT."
+                    : "Confirme o cadastro junto da autoridade tributária do país seleccionado.";
             modalManager.alert(
                     "NIF inválido",
-                    nifValidation + " A confirmação oficial do cadastro continua a ser feita pela AGT.",
+                    nifValidation + " " + authorityNote,
                     "warning",
                     null
             );
@@ -957,9 +960,12 @@ public class EmpresaWizardView extends VBox {
                     empresa.getNif(), nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
             );
             if (nifMessage != null) {
+                String authorityNote = "AO".equalsIgnoreCase(empresa.getPais())
+                        ? "A confirmação oficial do cadastro continua a ser feita pela AGT."
+                        : "Confirme o cadastro junto da autoridade tributária do país seleccionado.";
                 modalManager.alert(
                         "NIF inválido",
-                        nifMessage + " A confirmação oficial do cadastro continua a ser feita pela AGT.",
+                        nifMessage + " " + authorityNote,
                         "warning",
                         null
                 );
@@ -1064,11 +1070,14 @@ public class EmpresaWizardView extends VBox {
             fiscalYear.setMaxWidth(Double.MAX_VALUE);
             baseCurrency = combo("AOA", "USD", "EUR", "ZAR", "GBP");
             baseCurrency.setValue(empresa.getMoedaBase() == null ? "AOA" : empresa.getMoedaBase());
-            alternativeCurrency = combo("AOA", "USD", "EUR", "ZAR", "GBP");
-            alternativeCurrency.setValue(empresa.getMoedaAlternativa());
+            alternativeCurrency = combo("Nenhuma", "AOA", "USD", "EUR", "ZAR", "GBP");
+            alternativeCurrency.setValue(normalize(empresa.getMoedaAlternativa()).isBlank()
+                    ? "Nenhuma" : empresa.getMoedaAlternativa());
             exchangeRate = text("Ex.: 920.000000", decimal(empresa.getTaxaCambio()));
             exchangeDirection = combo("Directo", "Invertido");
             exchangeDirection.setValue("DIRECTO".equalsIgnoreCase(empresa.getSentidoCambio()) ? "Directo" : "Invertido");
+            alternativeCurrency.valueProperty().addListener((obs, oldValue, newValue) -> updateExchangeControls(newValue));
+            updateExchangeControls(alternativeCurrency.getValue());
             moneyDecimals = new Spinner<>(0, 6, empresa.getCasasDecimaisValor() == null ? 2 : empresa.getCasasDecimaisValor());
             quantityDecimals = new Spinner<>(0, 6, empresa.getCasasDecimaisQuantidade() == null ? 3 : empresa.getCasasDecimaisQuantidade());
             bank = text("Banco principal", empresa.getBanco());
@@ -1106,6 +1115,19 @@ public class EmpresaWizardView extends VBox {
                     hint("O exercício contabilístico será criado de 1 de Janeiro a 31 de Dezembro. Quando existir moeda alternativa, indique uma taxa positiva e escolha se a conversão será directa ou invertida.")
             );
         }
+        private boolean hasAlternativeCurrency() {
+            String value = normalize(alternativeCurrency == null ? null : alternativeCurrency.getValue());
+            return !value.isBlank() && !"Nenhuma".equalsIgnoreCase(value);
+        }
+        private void updateExchangeControls(String alternative) {
+            boolean enabled = alternative != null && !alternative.isBlank()
+                    && !"Nenhuma".equalsIgnoreCase(alternative);
+            if (exchangeRate != null) {
+                exchangeRate.setDisable(!enabled);
+                if (!enabled) exchangeRate.clear();
+            }
+            if (exchangeDirection != null) exchangeDirection.setDisable(!enabled);
+        }
         public boolean validate() {
             if (fiscalYear.getValue() == null || baseCurrency.getValue() == null) {
                 modalManager.alert("Configuração financeira", "Seleccione o exercício e a moeda base.", "warning", null);
@@ -1119,7 +1141,7 @@ public class EmpresaWizardView extends VBox {
                 return false;
             }
 
-            String alternative = normalize(alternativeCurrency.getValue());
+            String alternative = hasAlternativeCurrency() ? normalize(alternativeCurrency.getValue()) : "";
             String base = normalize(baseCurrency.getValue());
             if (!alternative.isBlank() && alternative.equalsIgnoreCase(base)) {
                 modalManager.alert("Moedas incompatíveis", "A moeda alternativa deve ser diferente da moeda base.", "warning", null);
@@ -1134,13 +1156,6 @@ public class EmpresaWizardView extends VBox {
                 }
                 if (exchangeDirection.getValue() == null) {
                     modalManager.alert("Sentido do câmbio", "Seleccione Directo ou Invertido.", "warning", null);
-                    return false;
-                }
-            } else if (!normalize(exchangeRate.getText()).isBlank()) {
-                if (!validDecimal("Taxa de câmbio", exchangeRate)) return false;
-                BigDecimal rate = decimalValue(exchangeRate);
-                if (rate == null || rate.signum() <= 0) {
-                    modalManager.alert("Taxa de câmbio inválida", "A taxa, quando preenchida, deve ser superior a zero.", "warning", null);
                     return false;
                 }
             }
@@ -1159,8 +1174,8 @@ public class EmpresaWizardView extends VBox {
         public void save() {
             empresa.setExercicioActual(fiscalYear.getValue());
             empresa.setMoedaBase(baseCurrency.getValue());
-            empresa.setMoedaAlternativa(normalize(alternativeCurrency.getValue()).isBlank()
-                    ? null : alternativeCurrency.getValue());
+            empresa.setMoedaAlternativa(hasAlternativeCurrency()
+                    ? alternativeCurrency.getValue() : null);
             empresa.setTaxaCambio(decimalValue(exchangeRate));
             empresa.setSentidoCambio("Directo".equals(exchangeDirection.getValue()) ? "DIRECTO" : "INVERTIDO");
             if (empresa.getMoedaAlternativa() != null) {
