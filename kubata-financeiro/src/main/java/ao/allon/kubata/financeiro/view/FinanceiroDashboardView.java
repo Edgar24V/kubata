@@ -75,11 +75,11 @@ public class FinanceiroDashboardView extends BorderPane {
                 FinanceiroUiSupport.metric("CONTAS A RECEBER", "—", "Saldo ainda por receber", "#7C3AED"));
         cards.setPadding(new Insets(18, 22, 6, 22));
         cards.setAlignment(Pos.CENTER_LEFT);
-        cards.getChildren().get(0).setMinWidth(160);
-        cards.getChildren().get(1).setMinWidth(150);
-        cards.getChildren().get(2).setMinWidth(150);
-        cards.getChildren().get(3).setMinWidth(150);
-        cards.getChildren().get(4).setMinWidth(150);
+        ((Region) cards.getChildren().get(0)).setMinWidth(160);
+        ((Region) cards.getChildren().get(1)).setMinWidth(150);
+        ((Region) cards.getChildren().get(2)).setMinWidth(150);
+        ((Region) cards.getChildren().get(3)).setMinWidth(150);
+        ((Region) cards.getChildren().get(4)).setMinWidth(150);
         cards.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
 
         // As referências aos cartões tornam possível actualizar os números sem
