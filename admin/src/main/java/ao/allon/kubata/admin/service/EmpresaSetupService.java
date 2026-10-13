@@ -318,7 +318,10 @@ public class EmpresaSetupService {
             throw new IllegalArgumentException("O identificador " + empresa.getIdentificador() + " já está atribuído a outra empresa.");
         }
 
-        if (isBlank(empresa.getMoedaBase()) || !empresa.getMoedaBase().trim().matches("(?i)[A-Z]{3}")) {
+        if (isBlank(empresa.getMoedaBase())) {
+            empresa.setMoedaBase("AOA");
+        }
+        if (!empresa.getMoedaBase().trim().matches("(?i)[A-Z]{3}")) {
             throw new IllegalArgumentException("A moeda base deve ser um código ISO de três letras.");
         }
         empresa.setMoedaBase(empresa.getMoedaBase().trim().toUpperCase(java.util.Locale.ROOT));
