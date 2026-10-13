@@ -74,6 +74,7 @@ public class RibbonProgrammaticService {
 
         ribbon.addTab(buildInicio(opener, beanLookup));
         ribbon.addTab(buildGestao(opener, beanLookup));
+        ribbon.addTab(buildModules(user, opener, beanLookup));
         ribbon.addTab(buildSeguranca(opener, beanLookup));
         ribbon.addTab(buildFiscal(opener, beanLookup));
         ribbon.addTab(buildFinanceiro(opener, beanLookup));
