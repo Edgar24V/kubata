@@ -146,6 +146,9 @@ public class Fatura extends BaseEntity {
     @Column(name = "agt_validation_code")
     private String agtValidationCode;
 
+    @Column(name = "agt_request_id", length = 15)
+    private String agtRequestId;
+
     @Column(name = "agt_submission_status")
     private String agtSubmissionStatus; // PENDING, SUCCESS, FAILED
 
@@ -630,4 +633,12 @@ public class Fatura extends BaseEntity {
     public String toString() {
         return "Fatura{id=" + getId() + ", numero='" + numero + "', status=" + status + ", total=" + total + "}";
     }
+    public String getAgtRequestId() {
+        return agtRequestId;
+    }
+
+    public void setAgtRequestId(String agtRequestId) {
+        this.agtRequestId = agtRequestId;
+    }
+
 }
