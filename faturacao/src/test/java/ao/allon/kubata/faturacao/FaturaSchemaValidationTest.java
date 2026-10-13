@@ -1,5 +1,7 @@
 package ao.allon.kubata.faturacao;
 
+import javafx.application.Platform;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -16,6 +18,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class FaturaSchemaValidationTest {
+    @BeforeAll
+    static void initializeJavaFxToolkit() {
+        try {
+            Platform.startup(() -> {});
+        } catch (IllegalStateException ignored) {
+            // Outro teste já iniciou o toolkit JavaFX nesta JVM.
+        }
+    }
+
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
