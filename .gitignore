@@ -58,3 +58,17 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+# Runtime database sidecars and local fiscal-signing material
+*.db-shm
+*.db-wal
+*.jks
+*.jks.ser
+*.p12
+*.pfx
+*.keystore
+*.pem
+*.key
+.env
+.env.*
+!.env.example
