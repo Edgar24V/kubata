@@ -1,4 +1,3 @@
--- V34 mantida para compatibilidade do histórico Flyway.
--- A coluna clientes.bi já é criada por V9__Extend_Cliente_Details.sql.
--- Não voltar a executar ALTER TABLE ADD COLUMN para a mesma coluna.
-SELECT 1;
+-- Adiciona BI à tabela de clientes no SQLite.
+-- O esquema SQLite não contém a V9 PostgreSQL; esta coluna é criada aqui.
+ALTER TABLE clientes ADD COLUMN bi VARCHAR(20);
