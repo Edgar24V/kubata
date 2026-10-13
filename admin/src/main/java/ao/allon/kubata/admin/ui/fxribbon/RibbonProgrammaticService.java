@@ -5,6 +5,7 @@ import ao.allon.kubata.admin.view.*;
 import ao.allon.kubata.financeiro.view.CaixasView;
 import ao.allon.kubata.financeiro.view.ContasBancariasView;
 import ao.allon.kubata.financeiro.view.FinanceiroDashboardView;
+import ao.allon.kubata.financeiro.view.RelatoriosFinanceirosView;
 import ao.allon.kubata.financeiro.view.TitulosFinanceirosView;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
@@ -166,6 +167,14 @@ public class RibbonProgrammaticService {
                 () -> opener.open("financeiro_titulos", "Contas a Pagar e a Receber",
                         () -> bl.apply(TitulosFinanceirosView.class), true)));
         tab.addGroup(compromissos);
+
+        RibbonGroup analise = new RibbonGroup("Análise e Relatórios");
+        analise.addLargeButton(largeBtn(
+                "fin_relatorios", "Relatórios", Feather.BAR_CHART_2,
+                "Entradas, saídas e saldo líquido por período, com exportação CSV",
+                () -> opener.open("financeiro_relatorios", "Relatórios Financeiros",
+                        () -> bl.apply(RelatoriosFinanceirosView.class), true)));
+        tab.addGroup(analise);
 
         return tab;
     }
