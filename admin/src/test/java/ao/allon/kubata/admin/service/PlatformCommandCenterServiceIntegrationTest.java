@@ -68,15 +68,25 @@ class PlatformCommandCenterServiceIntegrationTest {
         actor.setActive(true);
         actor = userRepository.saveAndFlush(actor);
 
+        String targetUsername = "user-target-" + suffix;
         UserSession target = new UserSession(
-                "user-target-" + suffix, "POSTO-IT", "127.0.0.2", "INTEGRATION_TEST");
+                targetUsername, "POSTO-IT-01", "127.0.0.2", "INTEGRATION_TEST");
         target = sessionRepository.saveAndFlush(target);
         Long sessionId = target.getId();
+
+        // O mesmo utilizador pode ter sessões em vários postos. A operação
+        // tem de remover só o identificador seleccionado, sem consulta de username único.
+        UserSession concurrentSession = new UserSession(
+                targetUsername, "POSTO-IT-02", "127.0.0.3", "INTEGRATION_TEST");
+        concurrentSession = sessionRepository.saveAndFlush(concurrentSession);
+        Long concurrentSessionId = concurrentSession.getId();
 
         commandCenter.terminateSession(actor, sessionId);
 
         assertFalse(sessionRepository.existsById(sessionId),
                 "A sessão seleccionada deve ser removida.");
+        assertTrue(sessionRepository.existsById(concurrentSessionId),
+                "As outras sessões do mesmo utilizador devem permanecer activas.");
         assertTrue(auditLogRepository
                         .findByEntityTypeAndEntityIdOrderByTimestampDesc("USER_SESSION", String.valueOf(sessionId))
                         .stream()
