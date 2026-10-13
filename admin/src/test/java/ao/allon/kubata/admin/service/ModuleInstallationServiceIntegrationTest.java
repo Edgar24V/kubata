@@ -4,6 +4,8 @@ import ao.allon.kubata.core.domain.ModuloSistema;
 import ao.allon.kubata.core.module.KubataModule;
 import ao.allon.kubata.core.module.ModuleRegistry;
 import ao.allon.kubata.core.repository.ModuloSistemaRepository;
+import javafx.application.Platform;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +20,15 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("sqlite")
 class ModuleInstallationServiceIntegrationTest {
+
+    @BeforeAll
+    static void setupJavaFx() {
+        try {
+            Platform.startup(() -> {});
+        } catch (IllegalStateException ignored) {
+            // Toolkit já inicializado por outro teste.
+        }
+    }
 
     @Autowired
     private ModuleRegistry moduleRegistry;
