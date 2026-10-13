@@ -395,8 +395,10 @@ public class PlatformCommandCenterService {
         if (actor == null) {
             throw new SecurityException("Sessão administrativa não autenticada.");
         }
-        // Verifica a política individual do utilizador e a permissão RBAC
-        // exacta (módulo + recurso + operação), incluindo para contas privilegiadas.
+        // O serviço central aplica a política individual do módulo, as
+        // concessões directas legadas e o RBAC. Nas permissões por perfil,
+        // módulo, recurso e operação são verificados exactamente; ADMIN/Superadmin
+        // mantêm privilégios globais, mas continuam sujeitos à política individual.
         if (!securityService.hasPermission(actor, MODULE, resource, operation)) {
             throw new SecurityException("Permissão insuficiente para " + resource + ".");
         }
