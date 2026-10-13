@@ -10,10 +10,10 @@ import java.util.List;
 public class AGTInvoiceSubmissionRequest {
     
     @JsonProperty("schemaVersion")
-    private String schemaVersion = "1.0";
+    private String schemaVersion = "2.0";
     
-    @JsonProperty("submissionGUID")
-    private String submissionGUID;
+    @JsonProperty("submissionUUID")
+    private String submissionUUID;
     
     @JsonProperty("taxRegistrationNumber")
     private String taxRegistrationNumber;
@@ -52,7 +52,7 @@ public class AGTInvoiceSubmissionRequest {
         this.schemaVersion = schemaVersion;
     }
     
-    public String getSubmissionGUID() {
+    public String getSubmissionUUID() {
         return submissionGUID;
     }
     
@@ -150,10 +150,20 @@ public class AGTInvoiceSubmissionRequest {
         
         public SoftwareInfoDetail() {}
         
+        @JsonProperty("signatureVersion")
+        private Integer signatureVersion = 1;
+
+        public SoftwareInfoDetail() {}
+
         public SoftwareInfoDetail(String productId, String productVersion, String softwareValidationNumber) {
+            this(productId, productVersion, softwareValidationNumber, 1);
+        }
+
+        public SoftwareInfoDetail(String productId, String productVersion, String softwareValidationNumber, Integer signatureVersion) {
             this.productId = productId;
             this.productVersion = productVersion;
             this.softwareValidationNumber = softwareValidationNumber;
+            this.signatureVersion = signatureVersion == null ? 1 : signatureVersion;
         }
         
         public String getProductId() {
@@ -178,6 +188,14 @@ public class AGTInvoiceSubmissionRequest {
         
         public void setSoftwareValidationNumber(String softwareValidationNumber) {
             this.softwareValidationNumber = softwareValidationNumber;
+        }
+
+        public Integer getSignatureVersion() {
+            return signatureVersion;
+        }
+
+        public void setSignatureVersion(Integer signatureVersion) {
+            this.signatureVersion = signatureVersion;
         }
     }
 }
