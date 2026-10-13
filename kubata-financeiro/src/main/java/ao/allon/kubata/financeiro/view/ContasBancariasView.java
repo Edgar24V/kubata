@@ -345,8 +345,8 @@ public class ContasBancariasView extends BorderPane {
 
     private void deactivate(ContaBancaria conta) {
         if (!FinanceiroUiSupport.confirm("Desactivar conta bancária",
-                "A conta "" + conta.getBanco() + " · " + conta.getNumeroConta()
-                        + "" deixará de aceitar movimentos. O histórico será preservado.")) {
+                "A conta " + conta.getBanco() + " · " + conta.getNumeroConta()
+                        + " deixará de aceitar movimentos. O histórico será preservado.")) {
             return;
         }
         try {
