@@ -103,6 +103,9 @@ public class TituloFinanceiroService {
             titulo.setEstado(EstadoTituloFinanceiro.ABERTO);
         } else {
             titulo = obter(dados.getId());
+            if (titulo.getEstado() == EstadoTituloFinanceiro.ANULADO) {
+                throw new IllegalStateException("Um título anulado não pode ser reaberto ou alterado.");
+            }
             if (liquidacaoRepository.existsByTitulo_Id(titulo.getId())) {
                 throw new IllegalStateException(
                         "Um título com liquidações registadas não pode ser alterado. Registe um novo título ou estorne primeiro as liquidações.");
