@@ -235,7 +235,10 @@ public class ItemFatura extends BaseEntity {
             BigDecimal percDesc = descontoPercentual != null ? descontoPercentual : BigDecimal.ZERO;
             BigDecimal fator = BigDecimal.ONE.subtract(percDesc.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
             this.subtotal = Money.scale(bruto.multiply(fator));
-            this.valorIva = Money.scale(this.subtotal.multiply(percentualIva).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+            BigDecimal impostoCalculado = this.subtotal.multiply(percentualIva)
+                .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+            // AGT exige arredondamento por excesso ao cêntimo para taxContribution.
+            this.valorIva = impostoCalculado.setScale(Money.SCALE, RoundingMode.CEILING);
             this.total = Money.scale(this.subtotal.add(this.valorIva));
         }
         if (quantidade != null && pesoUnitario != null) {
