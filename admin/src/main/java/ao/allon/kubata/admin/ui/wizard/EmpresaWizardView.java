@@ -514,13 +514,14 @@ public class EmpresaWizardView extends VBox {
     }
 
     private boolean isAngolaProvince(String value) {
+        String province = normalize(value);
         return Set.of(
                 "Bengo", "Benguela", "Bié", "Cabinda", "Cuando", "Cubango",
                 "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
                 "Icolo e Bengo", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje",
                 "Moxico", "Moxico Leste", "Namibe", "Uíge", "Zaire",
                 "Cuando Cubango"
-        ).contains(value);
+        ).stream().anyMatch(candidate -> candidate.equalsIgnoreCase(province));
     }
 
     private TextField text(String prompt, String value) {
