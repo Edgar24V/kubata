@@ -32,10 +32,10 @@ public class AGTInvoiceSubmissionRequest {
     
     public AGTInvoiceSubmissionRequest() {}
     
-    public AGTInvoiceSubmissionRequest(String submissionGUID, String taxRegistrationNumber, 
+    public AGTInvoiceSubmissionRequest(String submissionUUID, String taxRegistrationNumber, 
                                      String submissionTimeStamp, SoftwareInfo softwareInfo,
                                      List<DocumentDTO> documents) {
-        this.submissionGUID = submissionGUID;
+        this.submissionUUID = submissionUUID;
         this.taxRegistrationNumber = taxRegistrationNumber;
         this.submissionTimeStamp = submissionTimeStamp;
         this.softwareInfo = softwareInfo;
@@ -53,11 +53,11 @@ public class AGTInvoiceSubmissionRequest {
     }
     
     public String getSubmissionUUID() {
-        return submissionGUID;
+        return submissionUUID;
     }
     
-    public void setSubmissionGUID(String submissionGUID) {
-        this.submissionGUID = submissionGUID;
+    public void setSubmissionUUID(String submissionUUID) {
+        this.submissionUUID = submissionUUID;
     }
     
     public String getTaxRegistrationNumber() {
@@ -147,8 +147,6 @@ public class AGTInvoiceSubmissionRequest {
         
         @JsonProperty("softwareValidationNumber")
         private String softwareValidationNumber;
-        
-        public SoftwareInfoDetail() {}
         
         @JsonProperty("signatureVersion")
         private Integer signatureVersion = 1;
