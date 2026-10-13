@@ -63,7 +63,7 @@ public final class FinanceiroUiSupport {
         card.setPadding(new Insets(16));
         card.setMinHeight(116);
         card.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-border-radius: 12;"
-                + "-fx-border-color: #E3E9E5; -fx-border-width: 0 0 0 4; -fx-border-left: 4px solid " + accent + ";");
+                + "-fx-border-color: #E3E9E5 #E3E9E5 #E3E9E5 " + accent + "; -fx-border-width: 1 1 1 4;");
         return card;
     }
 
