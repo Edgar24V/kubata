@@ -70,23 +70,44 @@ public class SecurityService {
      */
     @Transactional(readOnly = true)
     public boolean hasPermission(User user, String modulo, String recurso, PermissaoPerfil.Operacao operacao) {
-        if (user == null || modulo == null || modulo.isBlank()) return false;
+        if (user == null || modulo == null || modulo.isBlank()
+                || recurso == null || recurso.isBlank() || operacao == null) {
+            return false;
+        }
+
+        // A política individual de segurança é uma restrição adicional e não
+        // pode ser ultrapassada por permissões directas ou por um perfil RBAC.
         if (!userSecurityProfileService.isModuleAllowed(user, modulo)) return false;
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
 
-        // Verifica nos perfis
+        // Compatibilidade com concessões directas legadas. Esse formato antigo
+        // guarda módulo/recurso, mas não separa operações; preservamos o seu
+        // contrato histórico enquanto os perfis RBAC usam operação exacta.
+        boolean hasDirect = permissionRepository.findByUser(user).stream()
+                .anyMatch(permission ->
+                        permission.getModulo() != null
+                                && permission.getModulo().equalsIgnoreCase(modulo)
+                                && permission.getOpcao() != null
+                                && permission.getOpcao().equalsIgnoreCase(recurso));
+        if (hasDirect) return true;
+
+        // RBAC moderno: módulo, recurso e operação têm de coincidir.
         if (user.getPerfis() != null) {
             return user.getPerfis().stream()
-                .filter(PerfilAcesso::getActivo)
-                .flatMap(p -> p.getPermissoes().stream())
-                               .anyMatch(pm ->
-                    pm.getModulo().equalsIgnoreCase(modulo) &&
-                    (pm.getRecurso().equalsIgnoreCase(recurso) || pm.getRecurso().equalsIgnoreCase("TODOS")) &&
-                    pm.getOperacao() == operacao &&
-                    Boolean.TRUE.equals(pm.getPermitido())
-                );
+                    .filter(perfil -> Boolean.TRUE.equals(perfil.getActivo()))
+                    .filter(perfil -> perfil.getPermissoes() != null)
+                    .flatMap(perfil -> perfil.getPermissoes().stream())
+                    .anyMatch(permission ->
+                            permission.getModulo() != null
+                                    && permission.getModulo().equalsIgnoreCase(modulo)
+                                    && permission.getRecurso() != null
+                                    && (permission.getRecurso().equalsIgnoreCase(recurso)
+                                        || permission.getRecurso().equalsIgnoreCase("TODOS"))
+                                    && permission.getOperacao() == operacao
+                                    && Boolean.TRUE.equals(permission.getPermitido())
+                    );
         }
-        
+
         return false;
     }
 
