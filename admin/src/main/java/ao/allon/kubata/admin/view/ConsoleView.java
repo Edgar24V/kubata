@@ -773,10 +773,17 @@ public class ConsoleView extends VBox {
         modalManager.showConfirmModal(new Label("Forçar a saída do utilizador " + session.getUserName() + "?\nEsta ação encerrará a sessão imediatamente."), 
                 "Kick Utilizador", () -> {
             persistenceService.executeAsync(() -> {
-                userSessionRepository.findByUsername(session.getUserName())
-                    .ifPresent(userSessionRepository::delete);
-            }, "USER_KICK", "CONSOLE", "Utilizador " + session.getUserName() + " removido do sistema", () -> {
-                activeSessions.remove(session);
+                String username = session.getUserName();
+                long removed = userSessionRepository.deleteAllByUsername(username);
+                if (removed == 0) {
+                    throw new IllegalStateException(
+                            "Não existem sessões persistidas para o utilizador " + username + "."
+                    );
+                }
+            }, "USER_KICK", "CONSOLE", "Sessões do utilizador " + session.getUserName() + " encerradas", () -> {
+                String username = session.getUserName();
+                activeSessions.removeIf(activeSession ->
+                        username != null && username.equalsIgnoreCase(activeSession.getUserName()));
                 lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
             });
         }, null);
