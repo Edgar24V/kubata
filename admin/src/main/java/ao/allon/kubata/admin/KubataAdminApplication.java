@@ -27,6 +27,13 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         "ao.allon.kubata.contabilidade.domain",
         "ao.allon.kubata.fiscal.domain"
 })
-@EnableJpaRepositories(basePackages = {"ao.allon.kubata.core.repository"})
+@EnableJpaRepositories(basePackages = {
+        "ao.allon.kubata.core.repository",
+        "ao.allon.kubata.inventario.repository",
+        "ao.allon.kubata.vendas.repository",
+        "ao.allon.kubata.compras.repository",
+        "ao.allon.kubata.financeiro.repository",
+        "ao.allon.kubata.contabilidade.repository"
+})
 public class KubataAdminApplication {
 }
