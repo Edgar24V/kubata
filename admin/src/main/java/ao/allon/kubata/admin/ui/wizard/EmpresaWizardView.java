@@ -441,9 +441,8 @@ public class EmpresaWizardView extends VBox {
             return false;
         }
 
-        String nifValidation = NifUtils.validate(
-                empresa.getNif(),
-                nifTypeOf(empresa.getTipoContribuinte())
+        String nifValidation = validateTaxIdForCountry(
+                empresa.getNif(), nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
         );
         if (nifValidation != null) {
             modalManager.alert(
@@ -492,6 +491,16 @@ public class EmpresaWizardView extends VBox {
 
     private String normalize(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String validateTaxIdForCountry(String value, NifUtils.TipoContribuinte taxpayerType, String countryCode) {
+        if ("AO".equalsIgnoreCase(normalize(countryCode))) {
+            return NifUtils.validate(value, taxpayerType);
+        }
+        String normalized = NifUtils.normalize(value);
+        return normalized.matches("[A-Z0-9]{6,30}")
+                ? null
+                : "O identificador fiscal deve conter entre 6 e 30 letras ou algarismos para o país seleccionado.";
     }
 
     private NifUtils.TipoContribuinte nifTypeOf(String value) {
@@ -729,10 +738,9 @@ public class EmpresaWizardView extends VBox {
                 return false;
             }
 
-            String nifMessage = NifUtils.validate(nifValue, nifTypeOf(taxpayerType.getValue()));
-            if (nifMessage != null) {
-                modalManager.alert("NIF inválido", nifMessage
-                        + " A confirmação oficial do cadastro continua a ser feita pela AGT.", "warning", null);
+            String normalizedNif = NifUtils.normalize(nifValue);
+            if (!normalizedNif.matches("[A-Z0-9]{6,30}")) {
+                modalManager.alert("NIF inválido", "Use entre 6 e 30 letras ou algarismos; os separadores visuais são removidos.", "warning", null);
                 return false;
             }
 
@@ -944,9 +952,8 @@ public class EmpresaWizardView extends VBox {
                 return false;
             }
 
-            String nifMessage = NifUtils.validate(
-                    empresa.getNif(),
-                    nifTypeOf(empresa.getTipoContribuinte())
+            String nifMessage = validateTaxIdForCountry(
+                    empresa.getNif(), nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
             );
             if (nifMessage != null) {
                 modalManager.alert(
@@ -959,9 +966,8 @@ public class EmpresaWizardView extends VBox {
             }
 
             if (!fiscalNifValue.isBlank()) {
-                String fiscalMessage = NifUtils.validate(
-                        fiscalNifValue,
-                        nifTypeOf(empresa.getTipoContribuinte())
+                String fiscalMessage = validateTaxIdForCountry(
+                        fiscalNifValue, nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
                 );
                 if (fiscalMessage != null) {
                     modalManager.alert("NIF Fiscal inválido", fiscalMessage, "warning", null);
@@ -970,9 +976,8 @@ public class EmpresaWizardView extends VBox {
             }
 
             if (!socialSecurityNifValue.isBlank()) {
-                String socialMessage = NifUtils.validate(
-                        socialSecurityNifValue,
-                        nifTypeOf(empresa.getTipoContribuinte())
+                String socialMessage = validateTaxIdForCountry(
+                        socialSecurityNifValue, nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
                 );
                 if (socialMessage != null) {
                     modalManager.alert("NIF Segurança Social inválido", socialMessage, "warning", null);
