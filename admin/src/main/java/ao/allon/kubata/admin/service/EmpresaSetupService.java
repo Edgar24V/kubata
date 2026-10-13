@@ -11,6 +11,7 @@ import ao.allon.kubata.core.repository.ParametroSistemaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -92,8 +93,20 @@ public class EmpresaSetupService {
         allParameters.put("BACKUP_EMPRESA_FREQUENCY", backupFrequency == null ? "DAILY" : backupFrequency);
         allParameters.put("BACKUP_EMPRESA_RETENTION_DAYS", String.valueOf(Math.max(1, backupRetentionDays)));
         allParameters.put("MFA_ADMIN_REQUIRED", String.valueOf(mfaAdminRequired));
+        allParameters.put("TIPO_INSTALACAO", nullSafe(saved.getTipoInstalacao()));
+        allParameters.put("DEMO_MODE", String.valueOf("DEMONSTRACAO".equals(saved.getTipoInstalacao())));
+        if ("DEMONSTRACAO".equals(saved.getTipoInstalacao())) {
+            // Registo explícito: não injectar amostras nas tabelas operacionais globais,
+            // pois os módulos ainda não isolam todas as entidades por empresa.
+            allParameters.put("DEMO_DADOS_OPERACIONAIS", "NAO_GERADOS");
+        } else {
+            allParameters.remove("DEMO_DADOS_OPERACIONAIS");
+        }
         allParameters.put("MOEDA_BASE", nullSafe(saved.getMoedaBase()));
         allParameters.put("MOEDA_ALTERNATIVA", nullSafe(saved.getMoedaAlternativa()));
+        allParameters.put("CAMBIO_TAXA", saved.getTaxaCambio() == null ? "" : saved.getTaxaCambio().toPlainString());
+        allParameters.put("CAMBIO_SENTIDO", nullSafe(saved.getSentidoCambio()));
+        allParameters.put("IVA_PERIODICIDADE", nullSafe(saved.getPeriodicidadeIva()));
         allParameters.put("CASAS_DECIMAIS_VALOR", String.valueOf(
                 saved.getCasasDecimaisValor() == null ? 2 : saved.getCasasDecimaisValor()));
         allParameters.put("CASAS_DECIMAIS_QUANTIDADE", String.valueOf(
@@ -257,7 +270,32 @@ public class EmpresaSetupService {
         if (empresa == null) {
             throw new IllegalArgumentException("A empresa não pode ser nula.");
         }
-        if (empresa.getNome() == null || empresa.getNome().isBlank()) {
+
+        if (isBlank(empresa.getTipoInstalacao())) empresa.setTipoInstalacao("STANDARD");
+        else empresa.setTipoInstalacao(empresa.getTipoInstalacao().trim().toUpperCase(java.util.Locale.ROOT));
+        if (!Set.of("STANDARD", "DEMONSTRACAO").contains(empresa.getTipoInstalacao())) {
+            throw new IllegalArgumentException("Seleccione uma instalação Standard ou Demonstração.");
+        }
+
+        if (isBlank(empresa.getPais())) empresa.setPais("AO");
+        empresa.setPais(empresa.getPais().trim().toUpperCase(java.util.Locale.ROOT));
+        if (!Set.of("AO", "PT", "MZ", "NA", "ZA", "CV", "BR", "US", "GB").contains(empresa.getPais())) {
+            throw new IllegalArgumentException("O país seleccionado não é suportado pelo assistente.");
+        }
+
+        if (isBlank(empresa.getPeriodicidadeIva())) empresa.setPeriodicidadeIva("MENSAL");
+        empresa.setPeriodicidadeIva(empresa.getPeriodicidadeIva().trim().toUpperCase(java.util.Locale.ROOT));
+        if (!Set.of("MENSAL", "TRIMESTRAL", "ISENTO").contains(empresa.getPeriodicidadeIva())) {
+            throw new IllegalArgumentException("A periodicidade do IVA deve ser mensal, trimestral ou isenta/não aplicável.");
+        }
+
+        if (isBlank(empresa.getSentidoCambio())) empresa.setSentidoCambio("INVERTIDO");
+        empresa.setSentidoCambio(empresa.getSentidoCambio().trim().toUpperCase(java.util.Locale.ROOT));
+        if (!Set.of("DIRECTO", "INVERTIDO").contains(empresa.getSentidoCambio())) {
+            throw new IllegalArgumentException("O sentido do câmbio deve ser Directo ou Invertido.");
+        }
+
+        if (isBlank(empresa.getNome())) {
             throw new IllegalArgumentException("O nome/razão social da empresa é obrigatório.");
         }
         if (empresa.getNif() == null || empresa.getNif().isBlank()) {
@@ -268,8 +306,39 @@ public class EmpresaSetupService {
         if (nifMessage != null) {
             throw new IllegalArgumentException(nifMessage);
         }
-        if (empresa.getIdentificador() == null || empresa.getIdentificador().isBlank()) {
-            throw new IllegalArgumentException("O identificador da empresa é obrigatório.");
+        if (isBlank(empresa.getIdentificador()) || !empresa.getIdentificador().trim().matches("(?i)[a-z]{3}")) {
+            throw new IllegalArgumentException("O identificador da empresa deve conter exactamente três letras (A–Z).");
+        }
+        empresa.setIdentificador(empresa.getIdentificador().trim().toUpperCase(java.util.Locale.ROOT));
+        boolean duplicateIdentifier = empresaRepository.findAll().stream()
+                .filter(existing -> existing.getIdentificador() != null)
+                .filter(existing -> empresa.getId() == null || !empresa.getId().equals(existing.getId()))
+                .anyMatch(existing -> empresa.getIdentificador().equalsIgnoreCase(existing.getIdentificador()));
+        if (duplicateIdentifier) {
+            throw new IllegalArgumentException("O identificador " + empresa.getIdentificador() + " já está atribuído a outra empresa.");
+        }
+
+        if (isBlank(empresa.getMoedaBase()) || !empresa.getMoedaBase().trim().matches("(?i)[A-Z]{3}")) {
+            throw new IllegalArgumentException("A moeda base deve ser um código ISO de três letras.");
+        }
+        empresa.setMoedaBase(empresa.getMoedaBase().trim().toUpperCase(java.util.Locale.ROOT));
+        if (!isBlank(empresa.getMoedaAlternativa())) {
+            empresa.setMoedaAlternativa(empresa.getMoedaAlternativa().trim().toUpperCase(java.util.Locale.ROOT));
+            if (!empresa.getMoedaAlternativa().matches("[A-Z]{3}")) {
+                throw new IllegalArgumentException("A moeda alternativa deve ser um código ISO de três letras.");
+            }
+            if (empresa.getMoedaBase().equals(empresa.getMoedaAlternativa())) {
+                throw new IllegalArgumentException("A moeda alternativa deve ser diferente da moeda base.");
+            }
+            if (empresa.getTaxaCambio() == null || empresa.getTaxaCambio().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Defina uma taxa de câmbio superior a zero para a moeda alternativa.");
+            }
+        } else {
+            empresa.setMoedaAlternativa(null);
+            empresa.setTaxaCambio(null);
+        }
+        if (empresa.getTaxaCambio() != null && empresa.getTaxaCambio().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("A taxa de câmbio deve ser superior a zero.");
         }
         if (empresa.getPredefinida() && !empresa.getAtiva()) {
             throw new IllegalArgumentException("Uma empresa inactiva não pode ser definida como empresa predefinida.");
@@ -280,11 +349,14 @@ public class EmpresaSetupService {
                     "O rodapé dos documentos não pode exceder " + Empresa.LIMITE_RODAPE_DOCUMENTO + " caracteres."
             );
         }
-        if (isBlank(empresa.getProvincia()) || !isAngolaProvince(empresa.getProvincia())) {
+        if (isBlank(empresa.getProvincia())) {
+            throw new IllegalArgumentException("A província ou região da empresa é obrigatória.");
+        }
+        if ("AO".equals(empresa.getPais()) && !isAngolaProvince(empresa.getProvincia())) {
             throw new IllegalArgumentException("A província da empresa deve ser uma província válida de Angola.");
         }
         if (isBlank(empresa.getMunicipio())) {
-            throw new IllegalArgumentException("O município do domicílio fiscal da empresa é obrigatório.");
+            throw new IllegalArgumentException("O município ou cidade da empresa é obrigatório.");
         }
         if (isBlank(empresa.getRegimeFiscal())) {
             throw new IllegalArgumentException("O regime fiscal da empresa é obrigatório.");
@@ -413,6 +485,12 @@ public class EmpresaSetupService {
             case "MFA_ADMIN_REQUIRED" -> "Exige autenticação multifator para administradores.";
             case "MOEDA_BASE" -> "Moeda base utilizada pela empresa.";
             case "MOEDA_ALTERNATIVA" -> "Moeda alternativa configurada para a empresa.";
+            case "CAMBIO_TAXA" -> "Taxa de câmbio da moeda alternativa.";
+            case "CAMBIO_SENTIDO" -> "Convenção directa ou invertida da taxa de câmbio.";
+            case "IVA_PERIODICIDADE" -> "Periodicidade de entrega ou enquadramento do IVA.";
+            case "TIPO_INSTALACAO" -> "Tipo de instalação: Standard ou Demonstração.";
+            case "DEMO_MODE" -> "Indica se a empresa foi criada para demonstração.";
+            case "DEMO_DADOS_OPERACIONAIS" -> "Estado da carga de dados operacionais demonstrativos.";
             case "CASAS_DECIMAIS_VALOR" -> "Casas decimais padrão para valores monetários.";
             case "CASAS_DECIMAIS_QUANTIDADE" -> "Casas decimais padrão para quantidades.";
             default -> "Parâmetro configurado pelo Assistente de Instalação de Empresa.";
@@ -421,8 +499,9 @@ public class EmpresaSetupService {
 
     private String parameterGroup(String key) {
         if (key.startsWith("BACKUP") || key.startsWith("MFA")) return "SEGURANCA";
-        if (key.startsWith("MOEDA") || key.startsWith("CASAS")) return "FINANCEIRO";
-        if (key.startsWith("SETUP")) return "SISTEMA";
+        if (key.startsWith("MOEDA") || key.startsWith("CASAS") || key.startsWith("CAMBIO")) return "FINANCEIRO";
+        if (key.startsWith("IVA_")) return "FISCAL";
+        if (key.startsWith("DEMO_") || key.equals("TIPO_INSTALACAO") || key.startsWith("SETUP")) return "SISTEMA";
         return "SISTEMA";
     }
 
