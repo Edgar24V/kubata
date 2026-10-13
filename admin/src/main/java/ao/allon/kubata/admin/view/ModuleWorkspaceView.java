@@ -245,6 +245,7 @@ public final class ModuleWorkspaceView extends VBox {
         }
         try {
             installationService.installAndInitialize(module.getModuleId());
+            renderFunctions();
             feedbackLabel.setText("Módulo inicializado e estado ACTIVO guardado.");
             refreshState();
         } catch (RuntimeException ex) {
