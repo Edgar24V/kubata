@@ -139,7 +139,8 @@ public class RibbonProgrammaticService {
         RibbonTab tab = new RibbonTab("Módulos");
 
         List<KubataModule> modules = moduleRegistry.getAllModules().stream()
-                .filter(KubataModule::isActive)
+                // Mantém módulos desactivados acessíveis à página de gestão, para que
+                // um administrador autorizado os possa voltar a activar.
                 .filter(module -> securityService.hasModuleAccess(user, module.getModuleId()))
                 .sorted(Comparator.comparing(KubataModule::getModuleName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
