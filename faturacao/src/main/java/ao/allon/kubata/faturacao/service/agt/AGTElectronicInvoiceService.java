@@ -160,17 +160,24 @@ public class AGTElectronicInvoiceService {
         return submitInvoiceAsync(fatura).get();
     }
 
-    @Async
+    /**
+     * A anulação oficial utiliza o endpoint AGT anularFactura, com contrato próprio.
+     * Nunca voltar a registar o mesmo documento como se isso o anulasse.
+     * A operação fica bloqueada até o payload específico ser implementado e homologado.
+     */
     public CompletableFuture<AGTResponseDTO> cancelInvoice(Fatura fatura, DocumentCancelReason reason) {
+        if (fatura == null || fatura.getId() == null) {
+            return CompletableFuture.failedFuture(
+                new IllegalArgumentException("É necessário seleccionar uma factura persistida."));
+        }
         if (reason == null) {
             return CompletableFuture.failedFuture(
                 new IllegalArgumentException("O motivo de anulação é obrigatório."));
         }
-        fatura.setDocumentStatus(DocumentStatus.ANULADO);
-        fatura.setDocumentCancelReason(reason);
-        fatura.setMotivoCancelamento(reason.getDescricao());
-        fatura.setDataCancelamento(LocalDateTime.now());
-        return submitInvoiceAsync(fatura);
+        return CompletableFuture.failedFuture(new UnsupportedOperationException(
+            "A anulação fiscal ainda não está disponível. A AGT exige uma operação específica; "
+            + "o Kubata não alterou nem anulou esta factura. Não volte a emitir o documento. "
+            + "Utilize o procedimento fiscal autorizado até a integração ser homologada."));
     }
 
     @Async
