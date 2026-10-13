@@ -895,8 +895,12 @@ public class EmpresaWizardView extends VBox {
             certificateDate.setMaxWidth(Double.MAX_VALUE);
             certificateHash = text("Hash / impressão digital", empresa.getHashCertificadoAGT());
 
+            boolean angolaCompany = "AO".equalsIgnoreCase(empresa.getPais());
+            if (!angolaCompany) saftEnabled = false;
             CheckBox saft = new CheckBox("Preparar integração/controlo SAFT-AO");
             saft.setSelected(saftEnabled);
+            saft.setDisable(!angolaCompany);
+            saft.setTooltip(new Tooltip("Disponível apenas para empresas com domicílio fiscal em Angola."));
             saft.selectedProperty().addListener((obs, old, value) -> saftEnabled = value);
 
             return page(
