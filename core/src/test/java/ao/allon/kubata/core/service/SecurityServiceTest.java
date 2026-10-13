@@ -58,6 +58,28 @@ class SecurityServiceTest {
     }
 
     @Test
+    void deveReconhecerAliasDeModuloEOperacaoLegadaAoAbrirFuncionalidade() {
+        User actor = new User();
+        actor.setNome("Operador de Stock");
+        actor.setRole(Role.OPERATOR);
+
+        UserAccessPermission permission = new UserAccessPermission();
+        permission.setUser(actor);
+        permission.setModulo("STOCK");
+        permission.setOpcao("Ver");
+
+        when(userSecurityProfileService.isModuleAllowed(actor, "inventario")).thenReturn(true);
+        when(permissionRepository.findByUser(actor)).thenReturn(List.of(permission));
+
+        assertTrue(securityService.hasPermission(
+                actor,
+                "inventario",
+                "produtos",
+                PermissaoPerfil.Operacao.VER
+        ));
+    }
+
+    @Test
     void politicaIndividualDoModuloDeveBloquearAcessoMesmoComPermissaoDirecta() {
         User actor = new User();
         actor.setNome("Operador Restrito");
