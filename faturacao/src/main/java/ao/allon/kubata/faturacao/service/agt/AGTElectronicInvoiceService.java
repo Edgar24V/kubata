@@ -108,6 +108,14 @@ public class AGTElectronicInvoiceService {
         }
 
         try {
+            // Nunca comunicar com homologação/produção usando assinaturas de desenvolvimento.
+            signatureService.assertProductionReady();
+            if (softwareValidationNumber == null || softwareValidationNumber.isBlank()) {
+                throw new IllegalStateException("O número de validação do software AGT está em falta.");
+            }
+            if (emitterNif == null || emitterNif.isBlank() || emitterCompanyName == null || emitterCompanyName.isBlank()) {
+                throw new IllegalStateException("O NIF e a denominação legal do emitente são obrigatórios.");
+            }
             AGTInvoiceSubmissionRequest request = mapperService.createSubmissionRequest(faturas);
             String jsonPayload = objectMapper.writeValueAsString(request);
             HttpHeaders headers = new HttpHeaders();
