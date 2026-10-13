@@ -311,7 +311,7 @@ public class AGTInvoiceMapperService {
                 "O IVA da linha não foi calculado: " + item.getDescricao());
         }
         BigDecimal taxContribution = item.getValorIva() == null ? BigDecimal.ZERO : item.getValorIva();
-        tax.setTaxContribution(taxContribution.setScale(2, java.math.RoundingMode.HALF_UP));
+        tax.setTaxContribution(taxContribution.setScale(2, java.math.RoundingMode.CEILING));
         taxes.add(tax);
         return taxes;
     }
