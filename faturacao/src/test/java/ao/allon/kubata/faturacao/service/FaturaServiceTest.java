@@ -8,6 +8,7 @@ import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
+import ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +42,9 @@ class FaturaServiceTest {
 
     @Mock
     private AGTElectronicInvoiceService agtElectronicInvoiceService;
+
+    @Mock
+    private JWSDigitalSignatureService signatureService;
 
     @Mock
     private ContabilidadeService contabilidadeService;
