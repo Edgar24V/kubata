@@ -1745,60 +1745,11 @@ public class FaturasView extends BorderPane {
      * Cancelar/Anular fatura na AGT
      */
     private void cancelarAGT() {
-    Fatura f = getSelectedFatura();
-    if (f == null) {
-        AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura para cancelar na AGT.");
-        return;
-    }
-
-    // Verificar se a fatura já foi submetida
-    if (!"SUCCESS".equals(f.getAgtSubmissionStatus())) {
-        AlertUtils.showWarningAlert("Aviso", "Apenas faturas validadas pela AGT podem ser canceladas.");
-        return;
-    }
-
-    // Modal para motivo de cancelamento
-    Dialog<ButtonType> dialog = new Dialog<>();
-    dialog.setTitle("Cancelar Fatura na AGT");
-    dialog.setHeaderText("Selecione o motivo de anulação");
-
-    VBox content = new VBox(10);
-    content.setPadding(new Insets(10));
-
-    Label lblMotivo = new Label("Motivo de anulação:");
-    ComboBox<ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason> cmbMotivo = new ComboBox<>();
-    cmbMotivo.getItems().addAll(ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason.values());
-    cmbMotivo.setPromptText("Selecione o motivo");
-
-    content.getChildren().addAll(lblMotivo, cmbMotivo);
-    dialog.getDialogPane().setContent(content);
-    dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-    Optional<ButtonType> result = dialog.showAndWait();
-    if (result.isPresent() && result.get() == ButtonType.OK) {
-        if (cmbMotivo.getValue() == null) {
-            AlertUtils.showWarningAlert("Aviso", "Selecione um motivo de anulação.");
-            return;
-        }
-
-        String loadingId = loadingService.showLoading("A cancelar fatura na AGT...");
-
-        agtElectronicInvoiceService.cancelInvoice(f, cmbMotivo.getValue())
-            .thenAccept(response -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    AlertUtils.showWarningAlert("Anulação indisponível", "A factura não foi anulada na AGT. Consulte a mensagem técnica e siga o procedimento fiscal autorizado.");
-                    refresh();
-                });
-            })
-            .exceptionally(ex -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    AlertUtils.showExceptionAlert("Erro", "Falha ao cancelar fatura na AGT", ex);
-                });
-                return null;
-            });
-    }
+    AlertUtils.showWarningAlert(
+        "Anulação fiscal indisponível",
+        "O Kubata ainda não concluiu a integração específica com o endpoint oficial AGT anularFactura. "
+            + "Nenhuma alteração foi feita e a factura não foi anulada. Não volte a emitir o mesmo documento; "
+            + "siga o procedimento fiscal autorizado enquanto a integração é homologada.");
 }
 
 /**
