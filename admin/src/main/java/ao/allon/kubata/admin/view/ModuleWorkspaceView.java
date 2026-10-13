@@ -14,9 +14,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.springframework.dao.DataAccessException;
@@ -64,6 +63,9 @@ public final class ModuleWorkspaceView extends VBox {
         this.beanLookup = java.util.Objects.requireNonNull(beanLookup, "beanLookup");
         this.tabOpener = java.util.Objects.requireNonNull(tabOpener, "tabOpener");
 
+        // Inicializa somente os metadados de navegação; a instalação persistida
+        // continua a ser controlada explicitamente pelo botão abaixo.
+        module.initialize();
         setSpacing(16);
         setPadding(new Insets(22));
         getStyleClass().add("kubata-module-workspace");
@@ -180,9 +182,10 @@ public final class ModuleWorkspaceView extends VBox {
         openButton.setOnAction(event -> openFunction(view));
 
         Region spacer = new Region();
-        HBoxPlaceholder footer = new HBoxPlaceholder(openButton, permissionLabel, spacer);
+        HBox footer = new HBox(8, openButton, spacer, permissionLabel);
+        footer.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(spacer, Priority.ALWAYS);
         card.getChildren().addAll(title, detail, footer);
-        VBox.setVgrow(spacer, Priority.ALWAYS);
         return card;
     }
 
@@ -288,16 +291,4 @@ public final class ModuleWorkspaceView extends VBox {
         return value == null || value.isBlank() ? "—" : value;
     }
 
-    /**
-     * Pequeno HBox local para manter os cartões sem depender de um componente
-     * externo e preservar a responsividade do conteúdo.
-     */
-    private static final class HBoxPlaceholder extends javafx.scene.layout.HBox {
-        private HBoxPlaceholder(Node action, Node metadata, Node spacer) {
-            super(8, action, spacer, metadata);
-            setAlignment(Pos.CENTER_LEFT);
-            getChildren().get(1).setManaged(false);
-            getChildren().get(1).setVisible(false);
-        }
-    }
 }
