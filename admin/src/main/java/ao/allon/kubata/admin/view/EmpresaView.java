@@ -445,13 +445,27 @@ public class EmpresaView extends VBox {
         detailsLocation.setText(
                 join(" · ", empresa.getProvincia(), empresa.getMunicipio(), empresa.getLocalidade())
         );
+        String ivaLabel = switch (empresa.getPeriodicidadeIva() == null
+                ? "MENSAL" : empresa.getPeriodicidadeIva().toUpperCase(Locale.ROOT)) {
+            case "TRIMESTRAL" -> "IVA trimestral";
+            case "ISENTO" -> "IVA isento/não aplicável";
+            default -> "IVA mensal";
+        };
+        String installationLabel = "DEMONSTRACAO".equalsIgnoreCase(empresa.getTipoInstalacao())
+                ? "Demonstração" : "Standard";
         detailsFiscal.setText(
-                join(" · ", empresa.getRegimeFiscal(), empresa.getCae())
+                join(" · ", empresa.getRegimeFiscal(), empresa.getCae(), ivaLabel, installationLabel)
         );
+        String exchangeLabel = empresa.getTaxaCambio() == null
+                ? null
+                : "Taxa " + empresa.getTaxaCambio().toPlainString()
+                    + " (" + ("DIRECTO".equalsIgnoreCase(empresa.getSentidoCambio()) ? "directa" : "invertida") + ")";
         detailsExercise.setText(
                 join(" · ",
                         empresa.getExercicioActual() == null ? null : String.valueOf(empresa.getExercicioActual()),
-                        empresa.getMoedaBase()
+                        empresa.getMoedaBase(),
+                        empresa.getMoedaAlternativa(),
+                        exchangeLabel
                 )
         );
 
