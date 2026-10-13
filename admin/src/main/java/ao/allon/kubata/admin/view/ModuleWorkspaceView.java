@@ -63,9 +63,8 @@ public final class ModuleWorkspaceView extends VBox {
         this.beanLookup = java.util.Objects.requireNonNull(beanLookup, "beanLookup");
         this.tabOpener = java.util.Objects.requireNonNull(tabOpener, "tabOpener");
 
-        // Inicializa somente os metadados de navegação; a instalação persistida
-        // continua a ser controlada explicitamente pelo botão abaixo.
-        module.initialize();
+        // As funcionalidades são registadas por ModuleIntegrationConfig.
+        // Abrir uma página não deve reinicializar o objecto partilhado do módulo.
         setSpacing(16);
         setPadding(new Insets(22));
         getStyleClass().add("kubata-module-workspace");
