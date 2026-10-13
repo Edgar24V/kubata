@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -79,7 +81,10 @@ public class AGTElectronicInvoiceService {
             JWSDigitalSignatureService signatureService) {
         this.mapperService = mapperService;
         this.signatureService = signatureService;
-        this.restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(10_000);
+        requestFactory.setReadTimeout(30_000);
+        this.restTemplate = new RestTemplate(requestFactory);
         this.objectMapper = new ObjectMapper()
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
@@ -151,6 +156,23 @@ public class AGTElectronicInvoiceService {
                 }
             }
             return CompletableFuture.completedFuture(body);
+        } catch (HttpStatusCodeException httpError) {
+            // Respostas HTTP 4xx/5xx da AGT podem conter errorList útil para o utilizador.
+            try {
+                AGTResponseDTO errorBody = objectMapper.readValue(
+                    httpError.getResponseBodyAsString(), AGTResponseDTO.class);
+                if (errorBody != null && errorBody.getErrorList() != null
+                        && !errorBody.getErrorList().isEmpty()) {
+                    errorBody.setStatus("REJECTED");
+                    errorBody.setMessage("O serviço AGT rejeitou o pedido (HTTP "
+                        + httpError.getStatusCode().value() + ").");
+                    return CompletableFuture.completedFuture(errorBody);
+                }
+            } catch (Exception parseError) {
+                httpError.addSuppressed(parseError);
+            }
+            return CompletableFuture.failedFuture(new IllegalStateException(
+                "Falha HTTP ao comunicar com a AGT: " + httpError.getStatusCode().value(), httpError));
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
         }
