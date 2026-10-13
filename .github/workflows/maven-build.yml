@@ -2,11 +2,26 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ "main", "develop", "feature/*" ]
+    branches: [ "main", "develop", "feature/*", "feat/*" ]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop", "feat/*" ]
 
 jobs:
+  admin-company-setup:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 25
+      uses: actions/setup-java@v4
+      with:
+        java-version: '25'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Test Administrator and dependent modules
+      run: mvn -B -pl admin -am clean test
+
   build:
     runs-on: windows-latest
 
