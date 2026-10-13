@@ -606,7 +606,11 @@ public class FaturasView extends BorderPane {
         MenuItem miNotaCredito = new MenuItem("Nota de Crédito", IconUtils.icon(Feather.FILE_MINUS, IconUtils.SIZE_SMALL));
         miNotaCredito.setOnAction(e -> emitirNotaCredito());
 
-        ContextMenu cm = new ContextMenu(miEmitir, miCancelar, new SeparatorMenuItem(), miRecibo, miNotaCredito, new SeparatorMenuItem(), miImprimir, miEmail);
+        MenuItem miConsultarAGT = new MenuItem("Consultar estado AGT", IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
+        miConsultarAGT.setOnAction(e -> consultarEstadoAGT());
+
+        ContextMenu cm = new ContextMenu(miEmitir, miCancelar, new SeparatorMenuItem(), miRecibo,
+            miNotaCredito, new SeparatorMenuItem(), miConsultarAGT, new SeparatorMenuItem(), miImprimir, miEmail);
         return cm;
     }
 
@@ -1628,9 +1632,11 @@ public class FaturasView extends BorderPane {
             return;
         }
 
-        // Verificar se a fatura já foi submetida
-        if ("SUCCESS".equals(f.getAgtSubmissionStatus())) {
-            AlertUtils.showWarningAlert("Aviso", "Esta fatura já foi submetida e validada pela AGT.");
+        // Não repetir um pedido já registado nem voltar a submeter uma factura validada.
+        if ("SUBMITTED".equalsIgnoreCase(f.getAgtSubmissionStatus())
+                || "SUCCESS".equalsIgnoreCase(f.getAgtSubmissionStatus())) {
+            AlertUtils.showWarningAlert("Aviso",
+                "Já existe um pedido AGT para esta factura ou a factura já foi validada. Consulte o estado antes de tentar novamente.");
             return;
         }
 
@@ -1640,15 +1646,30 @@ public class FaturasView extends BorderPane {
         if (confirmed) {
             String loadingId = loadingService.showLoading("A submeter fatura à AGT...");
 
-            agtElectronicInvoiceService.submitInvoiceAsync(f)
+            faturaService.submeterAgtManualmente(f.getId())
                 .thenAccept(response -> {
                     javafx.application.Platform.runLater(() -> {
                         loadingService.hideLoading(loadingId);
-                        if (response != null && response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
-                            String validationCode = response.getValidationResults().get(0).getValidationCode();
-                            AlertUtils.showInfoAlert("Sucesso", "Fatura submetida com sucesso!\nCódigo de validação: " + validationCode);
+                        if (response != null && "SIMULATED".equalsIgnoreCase(response.getStatus())) {
+                            AlertUtils.showWarningAlert("Simulação",
+                                "Nenhuma factura foi enviada ou validada pela AGT. Configure a integração oficial para emitir em produção.");
+                        } else if (response != null && response.getRequestID() != null
+                                && !response.getRequestID().isBlank()
+                                && (response.getErrorList() == null || response.getErrorList().isEmpty())) {
+                            AlertUtils.showInfoAlert("Pedido recebido",
+                                "A AGT recebeu o pedido, mas ainda não confirmou a validade da factura.\nrequestID: "
+                                    + response.getRequestID() + "\nUse “Consultar estado AGT” para acompanhar a validação.");
+                        } else if (response != null && response.getErrorList() != null
+                                && !response.getErrorList().isEmpty()) {
+                            String errors = response.getErrorList().stream()
+                                .map(error -> String.valueOf(error.getErrorCode()) + ": "
+                                    + String.valueOf(error.getErrorDescription()))
+                                .collect(Collectors.joining("\n"));
+                            AlertUtils.showWarningAlert("Pedido rejeitado",
+                                "A AGT não aceitou o pedido de registo:\n" + errors);
                         } else {
-                            AlertUtils.showInfoAlert("Sucesso", "Fatura submetida com sucesso!");
+                            AlertUtils.showWarningAlert("Estado indeterminado",
+                                "A resposta não confirmou o registo nem a validação fiscal. Consulte o estado técnico.");
                         }
                         refresh();
                     });
@@ -1664,6 +1685,51 @@ public class FaturasView extends BorderPane {
 
     }
  
+    /**
+     * Consulta o resultado assíncrono da AGT sem confundir recepção com validação.
+     */
+    private void consultarEstadoAGT() {
+        Fatura f = getSelectedFatura();
+        if (f == null) {
+            AlertUtils.showWarningAlert("Aviso", "Selecione uma factura para consultar a AGT.");
+            return;
+        }
+        if (f.getAgtRequestId() == null || f.getAgtRequestId().isBlank()) {
+            AlertUtils.showWarningAlert("Aviso",
+                "A factura ainda não tem requestID da AGT. Submeta-a primeiro ou consulte o estado técnico.");
+            return;
+        }
+
+        String loadingId = loadingService.showLoading("A consultar o estado da factura na AGT...");
+        java.util.concurrent.CompletableFuture
+            .supplyAsync(() -> faturaService.actualizarEstadoAgt(f.getId()))
+            .thenAccept(updated -> Platform.runLater(() -> {
+                loadingService.hideLoading(loadingId);
+                String status = updated.getAgtSubmissionStatus();
+                if ("SUCCESS".equalsIgnoreCase(status)) {
+                    AlertUtils.showInfoAlert("Factura validada",
+                        "A AGT confirmou a validade da factura " + updated.getNumero() + ".");
+                } else if ("REJECTED".equalsIgnoreCase(status)) {
+                    AlertUtils.showWarningAlert("Factura inválida",
+                        "A AGT rejeitou a factura. Consulte os erros devolvidos no relatório técnico antes de emitir uma correcção.");
+                } else if ("SIMULATED".equalsIgnoreCase(status)) {
+                    AlertUtils.showWarningAlert("Simulação",
+                        "O estado não foi consultado na AGT; o módulo está em modo de simulação.");
+                } else {
+                    AlertUtils.showInfoAlert("Validação pendente",
+                        "A AGT ainda não concluiu o processamento do pedido. O estado continua pendente.");
+                }
+                refresh();
+            }))
+            .exceptionally(ex -> {
+                Platform.runLater(() -> {
+                    loadingService.hideLoading(loadingId);
+                    AlertUtils.showExceptionAlert("Erro", "Não foi possível consultar o estado na AGT.", ex);
+                });
+                return null;
+            });
+    }
+
     /**
      * Cancelar/Anular fatura na AGT
      */
