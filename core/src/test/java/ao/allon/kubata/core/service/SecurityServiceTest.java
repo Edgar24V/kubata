@@ -42,7 +42,7 @@ class SecurityServiceTest {
         UserAccessPermission directPermission = new UserAccessPermission();
         directPermission.setUser(actor);
         directPermission.setModulo("ADMINISTRATOR");
-        directPermission.setOpcao("UTILIZADORES");
+        directPermission.setOpcao("Ver");
 
         when(userSecurityProfileService.isModuleAllowed(actor, "ADMINISTRATOR")).thenReturn(true);
         when(permissionRepository.findByUser(actor)).thenReturn(List.of(directPermission));
@@ -72,6 +72,28 @@ class SecurityServiceTest {
         when(permissionRepository.findByUser(actor)).thenReturn(List.of(permission));
 
         assertTrue(securityService.hasPermission(
+                actor,
+                "inventario",
+                "produtos",
+                PermissaoPerfil.Operacao.VER
+        ));
+    }
+
+    @Test
+    void permissaoLegadaDeApagarNaoDeveConcederVisualizacao() {
+        User actor = new User();
+        actor.setNome("Operador Limitado");
+        actor.setRole(Role.OPERATOR);
+
+        UserAccessPermission permission = new UserAccessPermission();
+        permission.setUser(actor);
+        permission.setModulo("INVENTARIO");
+        permission.setOpcao("Apagar");
+
+        when(userSecurityProfileService.isModuleAllowed(actor, "inventario")).thenReturn(true);
+        when(permissionRepository.findByUser(actor)).thenReturn(List.of(permission));
+
+        assertFalse(securityService.hasPermission(
                 actor,
                 "inventario",
                 "produtos",
