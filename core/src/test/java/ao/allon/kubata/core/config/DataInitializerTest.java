@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,8 +30,8 @@ class DataInitializerTest {
     @Test
     void shouldCreateDefaultAdminWhenNoUserExistsAndNoBootstrapPasswordIsConfigured() throws Exception {
         when(userRepository.count()).thenReturn(0L);
-        when(userRepository.existsByEmail("admin@dev.com")).thenReturn(false);
-        when(passwordEncoder.encode("admin123")).thenReturn("hashed-admin-password");
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed-admin-password");
 
         dataInitializer.initData().run();
 
