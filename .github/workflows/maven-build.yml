@@ -7,6 +7,22 @@ on:
     branches: [ "main", "develop", "feat/*", "feature/*" ]
 
 jobs:
+  admin-p0-tests:
+    name: Administrator P0 integration tests
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 25
+      uses: actions/setup-java@v4
+      with:
+        java-version: '25'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Test Admin and its module dependencies
+      run: mvn -B -pl admin -am clean test
+
   build:
     runs-on: windows-latest
 
