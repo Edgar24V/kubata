@@ -77,7 +77,9 @@ public class RibbonProgrammaticService {
         ribbon.addTab(buildModules(user, opener, beanLookup));
         ribbon.addTab(buildSeguranca(opener, beanLookup));
         ribbon.addTab(buildFiscal(opener, beanLookup));
-        ribbon.addTab(buildFinanceiro(opener, beanLookup));
+        if (securityService.hasModuleAccess(user, "financeiro")) {
+            ribbon.addTab(buildFinanceiro(opener, beanLookup));
+        }
         ribbon.addTab(buildSistema(opener, beanLookup));
 
         if (isAdmin(user)) {
