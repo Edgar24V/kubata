@@ -121,7 +121,7 @@ public class JWSDigitalSignatureService {
             }
             String payloadJson = objectMapper.writeValueAsString(payload);
             String encodedPayload = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
-            String headerJson = objectMapper.writeValueAsString(new JWSHeader(getAlgorithm(), "JOSE", "json"));
+            String headerJson = objectMapper.writeValueAsString(new JWSHeader(getAlgorithm(), "JOSE"));
             String encodedHeader = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
             String signingInput = encodedHeader + "." + encodedPayload;
             return signingInput + "." + base64UrlEncode(createSignature(signingInput));
