@@ -34,7 +34,8 @@
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-sqlite</artifactId>
+            <artifactId>flyway-database-nc-sqlite</artifactId>
+            <version>${flyway.version}</version>
         </dependency>
         <dependency>
             <groupId>jakarta.validation</groupId>
