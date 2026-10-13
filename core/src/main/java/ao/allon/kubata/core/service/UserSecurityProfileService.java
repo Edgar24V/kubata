@@ -14,6 +14,7 @@ import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSecurityFinancialUsageRepository;
 import ao.allon.kubata.core.repository.UserSecurityProfileRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
+import ao.allon.kubata.core.security.ModuleAccessRules;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -242,7 +243,7 @@ public class UserSecurityProfileService {
             return true;
         }
 
-        return allowed.stream().anyMatch(m -> m.equalsIgnoreCase(modulo.trim()));
+        return allowed.stream().anyMatch(m -> ModuleAccessRules.moduleMatches(m, modulo));
     }
 
     public boolean isCompanyAllowed(User user, Long empresaId) {
