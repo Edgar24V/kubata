@@ -182,6 +182,14 @@ public class AGTElectronicInvoiceService {
 
     @Async
     public CompletableFuture<AGTResponseDTO> submitCorrection(Fatura faturaCorrecao, String rejectedDocumentNo) {
+        if (faturaCorrecao == null || faturaCorrecao.getNumero() == null || faturaCorrecao.getNumero().isBlank()) {
+            return CompletableFuture.failedFuture(
+                new IllegalArgumentException("É necessário criar um novo documento de correção com número próprio."));
+        }
+        if (rejectedDocumentNo != null && rejectedDocumentNo.equals(faturaCorrecao.getNumero())) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                "A correção tem de usar um novo número sequencial. O documento rejeitado não pode ser reenviado com o mesmo número."));
+        }
         if (rejectedDocumentNo == null || rejectedDocumentNo.isBlank()) {
             return CompletableFuture.failedFuture(
                 new IllegalArgumentException("A correção exige o número do documento rejeitado."));
