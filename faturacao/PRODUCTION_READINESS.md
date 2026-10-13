@@ -37,3 +37,18 @@ O certificado/chave usado para assinar os hashes fiscais e os payloads JWS deve 
 - Produção: simulação e assinatura de desenvolvimento estão desactivadas. A emissão/submissão falha de forma explícita quando a configuração fiscal real estiver incompleta.
 
 Documentação técnica de referência: portal oficial do parceiro AGT, serviços **Registar Factura** e **Consultar Estado da Factura**.
+
+## Limites funcionais assumidos nesta fase
+
+- O mapeamento de recibo AGT (RC) exige documento de origem identificado e pagamento integral. Recibos parciais continuam bloqueados até haver alocação fiscal por documento/linha e reconciliação correcta dos totais.
+- As notas de crédito/débito levam agora `referenceInfo` para o documento de origem. A correcção de uma factura rejeitada continua bloqueada na interface porque requer criar um documento novo, com nova numeração e referência explícita ao documento rejeitado.
+- A anulação continua bloqueada: não marcar localmente como anulada nem submeter novamente a factura normal. A operação oficial específica `anularFactura` precisa do payload/assinatura exactos e validação de homologação.
+- O arredondamento do IVA por linha foi alinhado com a regra AGT de arredondar por excesso ao cêntimo. Testar em homologação os casos de IVA, descontos, retenções, notas de crédito/débito e reconciliação de totais antes de emitir documentos reais.
+
+## CI observado nesta branch
+
+O job de teste do Administrator/dependências passou num run anterior. A compilação de reactor completa falhou antes de alcançar Faturação porque o runner recebeu HTTP 403 ao descarregar `maven-jar-plugin:3.4.2` do Maven Central. O job dedicado `mvn -B -pl faturacao -am clean test` foi acrescentado para testar especificamente este módulo; consultar o resultado mais recente em GitHub Actions. Um run externo bloqueado por dependência não equivale a compilação verde.
+
+## Rotação de credenciais e histórico Git
+
+O ficheiro local serializado de chave foi removido da versão actual e o tipo de ficheiro foi adicionado ao `.gitignore`. **Remover um ficheiro num commit não o elimina dos commits anteriores.** Se esse ficheiro continha uma chave real/activa, considerá-la exposta: revogar/substituir a credencial e coordenar uma limpeza do histórico Git antes de publicar ou distribuir um novo histórico. Não reutilizar essa chave em produção.
