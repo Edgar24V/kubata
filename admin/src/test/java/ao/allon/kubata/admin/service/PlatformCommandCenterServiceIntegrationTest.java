@@ -95,14 +95,14 @@ class PlatformCommandCenterServiceIntegrationTest {
         actor.setPassword("test-hash");
         actor.setRole(Role.OPERATOR);
         actor.setActive(true);
-        actor = userRepository.saveAndFlush(actor);
+        User operator = userRepository.saveAndFlush(actor);
 
         UserSession target = new UserSession(
                 "user-protected-" + suffix, "POSTO-IT", "127.0.0.3", "INTEGRATION_TEST");
         target = sessionRepository.saveAndFlush(target);
         Long sessionId = target.getId();
 
-        assertThrows(SecurityException.class, () -> commandCenter.terminateSession(actor, sessionId));
+        assertThrows(SecurityException.class, () -> commandCenter.terminateSession(operator, sessionId));
         assertTrue(sessionRepository.existsById(sessionId),
                 "Uma sessão não pode ser removida quando a autorização falha.");
     }
