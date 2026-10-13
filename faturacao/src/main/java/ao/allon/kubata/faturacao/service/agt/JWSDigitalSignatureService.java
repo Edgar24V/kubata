@@ -33,6 +33,9 @@ public class JWSDigitalSignatureService {
     @Value("${agt.certificado.password:}")
     private String certificatePassword;
 
+    @Value("${agt.allow-development-signatures:true}")
+    private boolean allowDevelopmentSignatures;
+
     private final ObjectMapper objectMapper;
     private PrivateKey privateKey;
     private X509Certificate certificate;
@@ -59,7 +62,13 @@ public class JWSDigitalSignatureService {
         try {
             // Verificar se temos configuração válida
             if (!isConfigured()) {
+                if (!allowDevelopmentSignatures) {
+                    throw new IllegalStateException("Assinatura fiscal não configurada. A assinatura de desenvolvimento está desactivada.");
+                }
                 return generateDevelopmentSignature(documentNumber, hash);
+            }
+            if (!allowDevelopmentSignatures && !"RSA_SHA256".equals(signatureType)) {
+                throw new IllegalStateException("O ambiente de produção exige assinatura RS256 (RSA-SHA256).");
             }
 
             // Criar o payload do JWS
@@ -94,7 +103,35 @@ public class JWSDigitalSignatureService {
     }
 
     /**
-     * Verifica se o serviço está configurado para assinatura real
+     * Cria uma JWS compacta para um payload oficial da AGT.
+     * O chamador deve construir um Map ordenado com exactamente os campos
+     * exigidos pelo contrato AGT; a ordenação faz parte dos bytes assinados.
+     */
+    public String signJwsPayload(Object payload) {
+        try {
+            if (!isConfigured()) {
+                if (!allowDevelopmentSignatures) {
+                    throw new IllegalStateException("Assinatura RS256 não configurada; assinatura simulada proibida.");
+                }
+                String json = objectMapper.writeValueAsString(payload);
+                return generateDevelopmentSignature("PAYLOAD", sha256Prefix(json));
+            }
+            if (!allowDevelopmentSignatures && !"RSA_SHA256".equals(signatureType)) {
+                throw new IllegalStateException("A AGT exige assinatura RS256 em produção.");
+            }
+            String payloadJson = objectMapper.writeValueAsString(payload);
+            String encodedPayload = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
+            String headerJson = objectMapper.writeValueAsString(new JWSHeader(getAlgorithm(), "JOSE", "json"));
+            String encodedHeader = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
+            String signingInput = encodedHeader + "." + encodedPayload;
+            return signingInput + "." + base64UrlEncode(createSignature(signingInput));
+        } catch (Exception e) {
+            throw new IllegalStateException("Não foi possível assinar o payload JWS da AGT.", e);
+        }
+    }
+
+    /**
+     * Verifica se o serviço está configurado para assinatura real.
      */
     public boolean isConfigured() {
         if ("HMAC_SHA256".equals(signatureType)) {
@@ -108,12 +145,47 @@ public class JWSDigitalSignatureService {
     }
 
     /**
-     * Gera uma assinatura de desenvolvimento (não válida para produção)
+     * Falha explicitamente se o material de assinatura não for adequado para produção.
+     * A validação do registo do software junto da AGT é um requisito separado.
+     */
+    public void assertProductionReady() {
+        if (!"RSA_SHA256".equals(signatureType)) {
+            throw new IllegalStateException("A produção exige KUBATA_AGT_SIGNATURE_TYPE=RSA_SHA256.");
+        }
+        if (!isConfigured()) {
+            throw new IllegalStateException("Certificado PKCS#12 e palavra-passe fiscal não configurados.");
+        }
+        try {
+            loadCertificate();
+            if (certificate == null || privateKey == null) {
+                throw new IllegalStateException("O certificado não contém uma chave privada e certificado X.509.");
+            }
+            certificate.checkValidity();
+            if (!"RSA".equalsIgnoreCase(privateKey.getAlgorithm())) {
+                throw new IllegalStateException("A chave privada configurada não é RSA.");
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Certificado fiscal inválido ou inacessível.", e);
+        }
+    }
+
+    /**
+     * Gera uma assinatura de desenvolvimento (não válida para produção).
      */
     private String generateDevelopmentSignature(String documentNumber, String hash) {
-        // Em desenvolvimento, gera uma assinatura simulada
-        String devSignature = "DEV." + documentNumber + "." + hash.substring(0, 20);
+        String safeHash = (hash == null || hash.isBlank()) ? "NO-HASH" : hash;
+        String digest = sha256Prefix(documentNumber + "|" + safeHash);
+        String devSignature = "DEV." + documentNumber + "." + digest;
         return base64UrlEncode(devSignature.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String sha256Prefix(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest).substring(0, 20);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 não está disponível.", e);
+        }
     }
 
     /**
