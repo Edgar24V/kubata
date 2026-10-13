@@ -80,7 +80,7 @@ public class AGTInvoiceMapperService {
         }
 
         return new AGTInvoiceSubmissionRequest(
-            submissionGUID,
+            submissionUUID,
             emitterNif,
             timestamp,
             softwareInfo,
@@ -296,17 +296,19 @@ public class AGTInvoiceMapperService {
      * Converte TipoDocumento para código AGT.
      */
     private String getDocumentTypeCode(TipoDocumento tipo) {
-        if (tipo == null) return "FT";
-        
+        if (tipo == null) {
+            throw new IllegalArgumentException("O tipo de documento é obrigatório para submissão à AGT.");
+        }
         return switch (tipo) {
             case FATURA -> "FT";
             case FATURA_RECIBO -> "FR";
+            case VENDA_A_DINHEIRO -> "TV";
             case RECIBO -> "RC";
             case NOTA_CREDITO -> "NC";
             case NOTA_DEBITO -> "ND";
-            case GUIA_TRANSPORTE -> "GT";
-            case GUIA_REMESSA -> "GR";
-            default -> "FT";
+            case AUTO_FATURA -> "AF";
+            default -> throw new IllegalArgumentException(
+                "O tipo de documento " + tipo + " não é suportado no serviço de facturação electrónica da AGT.");
         };
     }
 }
