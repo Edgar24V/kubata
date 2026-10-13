@@ -300,7 +300,7 @@ public class CaixasView extends BorderPane {
 
     private void deactivate(Caixa caixa) {
         if (!FinanceiroUiSupport.confirm("Desactivar caixa",
-                "O caixa "" + caixa.getNome() + "" ficará indisponível para novos movimentos. O histórico será preservado.")) {
+                "O caixa " + caixa.getNome() + " ficará indisponível para novos movimentos. O histórico será preservado.")) {
             return;
         }
         try {
