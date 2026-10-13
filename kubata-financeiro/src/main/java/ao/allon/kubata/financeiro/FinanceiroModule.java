@@ -45,13 +45,23 @@ public class FinanceiroModule extends AbstractKubataModule implements KubataModu
         super.initialize();
         
         addView(new ModuleView(
+            "visao-geral",
+            "Visão Geral Financeira",
+            "Indicadores de liquidez, saldos e movimentos recentes",
+            null,
+            "financeiro.dashboard",
+            null,
+            1
+        ));
+
+        addView(new ModuleView(
             "caixas",
             "Caixas",
             "Gestão de caixas e movimentos",
             null,
             "financeiro.caixas",
             null,
-            1
+            3
         ));
         
         addView(new ModuleView(
@@ -61,27 +71,27 @@ public class FinanceiroModule extends AbstractKubataModule implements KubataModu
             null,
             "financeiro.contas-bancarias",
             null,
-            2
+            3
         ));
         
         addView(new ModuleView(
             "contas-pagar",
             "Contas a Pagar",
-            "Gestão de contas a pagar",
+            "Títulos de fornecedor e liquidações ligadas à tesouraria",
             null,
-            "financeiro.contas-pagar",
+            "financeiro.titulos",
             null,
-            3
+            4
         ));
         
         addView(new ModuleView(
             "contas-receber",
             "Contas a Receber",
-            "Gestão de contas a receber",
+            "Títulos de cliente e liquidações ligadas à tesouraria",
             null,
-            "financeiro.contas-receber",
+            "financeiro.titulos",
             null,
-            4
+            5
         ));
         
         addView(new ModuleView(
@@ -91,7 +101,7 @@ public class FinanceiroModule extends AbstractKubataModule implements KubataModu
             null,
             "financeiro.retencao",
             null,
-            5
+            6
         ));
     }
 }
