@@ -291,14 +291,25 @@ public class AGTInvoiceMapperService {
             tax.setTaxExemptionCode(exemptionCode);
         } else {
             if (taxCode == null) {
-                if (taxPercentage.compareTo(new BigDecimal("14.00")) == 0) taxCode = "NOR";
-                else if (taxPercentage.compareTo(new BigDecimal("7.00")) == 0) taxCode = "RED";
-                else taxCode = "OUT";
+                if (taxPercentage.compareTo(new BigDecimal("14.00")) == 0) {
+                    taxCode = "NOR";
+                } else if (taxPercentage.compareTo(new BigDecimal("7.00")) == 0) {
+                    taxCode = "RED";
+                } else {
+                    throw new IllegalStateException(
+                        "Código fiscal AGT não configurado para IVA de " + taxPercentage
+                        + "% no artigo/serviço " + item.getDescricao()
+                        + ". Configure um código AGT explícito antes de submeter.");
+                }
             }
             tax.setTaxCode(taxCode);
             tax.setTaxPercentage(taxPercentage);
         }
 
+        if (taxPercentage.compareTo(BigDecimal.ZERO) > 0 && item.getValorIva() == null) {
+            throw new IllegalStateException(
+                "O IVA da linha não foi calculado: " + item.getDescricao());
+        }
         BigDecimal taxContribution = item.getValorIva() == null ? BigDecimal.ZERO : item.getValorIva();
         tax.setTaxContribution(taxContribution.setScale(2, java.math.RoundingMode.HALF_UP));
         taxes.add(tax);
