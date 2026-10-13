@@ -302,7 +302,7 @@ public class EmpresaSetupService {
             throw new IllegalArgumentException("O NIF da empresa é obrigatório.");
         }
         NifUtils.TipoContribuinte nifType = nifTypeOf(empresa.getTipoContribuinte());
-        String nifMessage = NifUtils.validate(empresa.getNif(), nifType);
+        String nifMessage = validateTaxIdForCountry(empresa.getNif(), nifType, empresa.getPais());
         if (nifMessage != null) {
             throw new IllegalArgumentException(nifMessage);
         }
@@ -374,13 +374,13 @@ public class EmpresaSetupService {
             throw new IllegalArgumentException("CAE inválido: use apenas algarismos, entre 2 e 10 caracteres.");
         }
         if (!isBlank(empresa.getNifFiscal())) {
-            String message = NifUtils.validate(empresa.getNifFiscal(), nifType);
+            String message = validateTaxIdForCountry(empresa.getNifFiscal(), nifType, empresa.getPais());
             if (message != null) {
                 throw new IllegalArgumentException("NIF Fiscal inválido: " + message);
             }
         }
         if (!isBlank(empresa.getNifSegurancaSocial())) {
-            String message = NifUtils.validate(empresa.getNifSegurancaSocial(), nifType);
+            String message = validateTaxIdForCountry(empresa.getNifSegurancaSocial(), nifType, empresa.getPais());
             if (message != null) {
                 throw new IllegalArgumentException("NIF da Segurança Social inválido: " + message);
             }
@@ -425,6 +425,18 @@ public class EmpresaSetupService {
         }
     }
 
+    private String validateTaxIdForCountry(String value,
+                                           NifUtils.TipoContribuinte taxpayerType,
+                                           String countryCode) {
+        if ("AO".equalsIgnoreCase(countryCode)) {
+            return NifUtils.validate(value, taxpayerType);
+        }
+        String normalized = NifUtils.normalize(value);
+        return normalized.matches("[A-Z0-9]{6,30}")
+                ? null
+                : "O identificador fiscal deve conter entre 6 e 30 letras ou algarismos para o país seleccionado.";
+    }
+
     private NifUtils.TipoContribuinte nifTypeOf(String value) {
         if ("Pessoa Singular".equalsIgnoreCase(value)) {
             return NifUtils.TipoContribuinte.PESSOA_SINGULAR;
@@ -466,7 +478,7 @@ public class EmpresaSetupService {
 
     private String parameterType(String key) {
         if (key.contains("ENABLED") || key.equals("SETUP_CONCLUIDO")
-                || key.equals("MFA_ADMIN_REQUIRED")) {
+                || key.equals("MFA_ADMIN_REQUIRED") || key.equals("DEMO_MODE")) {
             return "BOOLEAN";
         }
         if (key.contains("RETENTION_DAYS") || key.startsWith("CASAS_DECIMAIS_")) {
