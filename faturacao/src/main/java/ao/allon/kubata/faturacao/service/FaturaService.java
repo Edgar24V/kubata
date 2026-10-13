@@ -405,7 +405,12 @@ public class FaturaService {
             throw new IllegalStateException("A AGT não devolveu resultCode. " + detalhe);
         }
 
-        int resultCode = response.getResultCode();
+        final int resultCode;
+        try {
+            resultCode = Integer.parseInt(response.getResultCode().trim());
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("resultCode AGT não numérico: " + response.getResultCode(), ex);
+        }
         if (resultCode == 7 || resultCode == 8 || resultCode == 9) {
             // Pedido prematuro, ainda em curso ou cancelado: não marcar a factura como validada.
             return fatura;
