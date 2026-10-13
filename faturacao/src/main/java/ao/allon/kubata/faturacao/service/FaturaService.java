@@ -306,8 +306,11 @@ public class FaturaService {
             throw new IllegalStateException("O tipo deste documento não pode ser submetido como factura à AGT.");
         }
         String estadoActual = fatura.getAgtSubmissionStatus();
-        if ("SUBMITTED".equalsIgnoreCase(estadoActual) || "SUCCESS".equalsIgnoreCase(estadoActual)) {
-            throw new IllegalStateException("Este documento já tem um pedido AGT registado ou foi validado.");
+        if ("SUBMITTED".equalsIgnoreCase(estadoActual) || "SUCCESS".equalsIgnoreCase(estadoActual)
+                || "REJECTED".equalsIgnoreCase(estadoActual) || "FAILED".equalsIgnoreCase(estadoActual)) {
+            throw new IllegalStateException(
+                "Este documento já foi submetido, validado, rejeitado ou tem estado de transmissão incerto. "
+                + "Não reenvie o mesmo número; consulte o requestID se existir ou emita uma correção com nova numeração.");
         }
         agtElectronicInvoiceService.assertReadyForFiscalEmission();
 
