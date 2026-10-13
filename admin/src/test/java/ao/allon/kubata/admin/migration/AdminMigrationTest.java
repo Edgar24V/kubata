@@ -32,29 +32,40 @@ public class AdminMigrationTest {
 
     @Test
     public void testMigrationSuccess() {
-        // Verifica se o Flyway aplicou todas as migrações (Versão atual deve ser pelo menos 1)
-        assertTrue(flyway.info().current().getVersion().compareTo(org.flywaydb.core.api.MigrationVersion.fromVersion("1")) >= 0, 
-            "A versão atual do banco deve ser pelo menos 1 após as migrações");
+        assertNotNull(flyway.info().current(),
+                "O Flyway deve identificar a versão actual do schema.");
+        assertTrue(flyway.info().current().getVersion().compareTo(
+                        org.flywaydb.core.api.MigrationVersion.fromVersion("1")) >= 0,
+                "A versão actual do banco deve ser pelo menos 1 após as migrações.");
 
-        // Verifica se a tabela users existe
-        Integer countUsers = jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM users", Integer.class);
-        assertNotNull(countUsers, "A tabela users deve existir");
-        
-        // Verifica se a tabela empresas foi criada
-        Integer countEmpresas = jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM empresas", Integer.class);
-        assertNotNull(countEmpresas, "A tabela empresas deve existir");
+        // Validar explicitamente checksums/estado dos scripts e confirmar que
+        // nenhum script válido ficou por aplicar no ambiente isolado de testes.
+        assertDoesNotThrow(flyway::validate, "A validação de migrações não deve falhar.");
+        assertEquals(0, flyway.info().pending().length,
+                "Não devem existir migrações pendentes depois do arranque.");
 
-        // Verifica se a tabela audit_log foi criada
-        Integer countAudit = jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM audit_log", Integer.class);
-        assertNotNull(countAudit, "A tabela audit_log deve existir");
+        assertTableExists("users");
+        assertTableExists("empresas");
+        assertTableExists("audit_log");
+        assertTableExists("user_sessions");
+        assertTableExists("adm_modulo_sistema");
 
-        // Verifica se as novas colunas da V8 existem na tabela empresas
         assertDoesNotThrow(() -> {
             jdbcTemplate.execute("SELECT ano_inicio FROM empresas LIMIT 1");
             jdbcTemplate.execute("SELECT identificador FROM empresas LIMIT 1");
-        }, "As colunas da migração V8 devem existir na tabela empresas");
+            jdbcTemplate.execute("SELECT username, login_time FROM user_sessions LIMIT 1");
+            jdbcTemplate.execute("SELECT codigo, nome, versao, estado FROM adm_modulo_sistema LIMIT 1");
+            jdbcTemplate.execute("SELECT hash_integrity FROM audit_log LIMIT 1");
+        }, "As colunas nucleares de empresa, sessão, catálogo e auditoria devem existir.");
+    }
+
+    private void assertTableExists(String tableName) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
+                Integer.class,
+                tableName
+        );
+        assertEquals(1, count,
+                () -> "A tabela obrigatória '" + tableName + "' não foi criada pelas migrações.");
     }
 }

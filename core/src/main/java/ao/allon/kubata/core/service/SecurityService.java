@@ -2,6 +2,7 @@ package ao.allon.kubata.core.service;
 
 import ao.allon.kubata.core.domain.*;
 import ao.allon.kubata.core.repository.UserAccessPermissionRepository;
+import ao.allon.kubata.core.security.ModuleAccessRules;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,8 +46,10 @@ public class SecurityService {
         // 1. Verifica permissões legadas (diretas no usuário)
         List<UserAccessPermission> directPerms = permissionRepository.findByUser(user);
         boolean hasDirect = directPerms.stream()
-                .anyMatch(p -> p.getModulo().equalsIgnoreCase(modulo) && 
-                               p.getOpcao().equalsIgnoreCase(operacao));
+                .anyMatch(permission ->
+                        permission != null
+                                && ModuleAccessRules.moduleMatches(permission.getModulo(), modulo)
+                                && ModuleAccessRules.operationMatches(permission.getOpcao(), operacao));
         if (hasDirect) return true;
 
         // 2. Verifica permissões via Perfis (RBAC)
@@ -54,10 +57,11 @@ public class SecurityService {
             return user.getPerfis().stream()
                 .filter(PerfilAcesso::getActivo)
                 .flatMap(p -> p.getPermissoes().stream())
-                .anyMatch(pm -> 
-                    pm.getModulo().equalsIgnoreCase(modulo) &&
-                    (pm.getRecurso().equalsIgnoreCase(modulo) || pm.getRecurso().equalsIgnoreCase("TODOS")) && // Se o recurso for o próprio módulo ou "TODOS"
-                    pm.getOperacao().name().equalsIgnoreCase(operacao) &&
+                .anyMatch(pm ->
+                    ModuleAccessRules.moduleMatches(pm.getModulo(), modulo) &&
+                    (pm.getRecurso().equalsIgnoreCase(modulo) || pm.getRecurso().equalsIgnoreCase("TODOS")) &&
+                    pm.getOperacao() != null &&
+                    ModuleAccessRules.operationMatches(pm.getOperacao().name(), operacao) &&
                     Boolean.TRUE.equals(pm.getPermitido())
                 );
         }
@@ -70,23 +74,44 @@ public class SecurityService {
      */
     @Transactional(readOnly = true)
     public boolean hasPermission(User user, String modulo, String recurso, PermissaoPerfil.Operacao operacao) {
-        if (user == null || modulo == null || modulo.isBlank()) return false;
+        if (user == null || modulo == null || modulo.isBlank()
+                || recurso == null || recurso.isBlank() || operacao == null) {
+            return false;
+        }
+
+        // A política individual de segurança é uma restrição adicional e não
+        // pode ser ultrapassada por permissões directas ou por um perfil RBAC.
         if (!userSecurityProfileService.isModuleAllowed(user, modulo)) return false;
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
 
-        // Verifica nos perfis
+        // As concessões directas legadas guardam módulo + opção (operação),
+        // sem recurso. Só é concedido o acto explicitamente gravado; um nome de
+        // recurso na coluna opcao nunca deve transformar-se em acesso total CRUD.
+        boolean hasDirect = permissionRepository.findByUser(user).stream()
+                .anyMatch(permission ->
+                        permission != null
+                                && ModuleAccessRules.moduleMatches(permission.getModulo(), modulo)
+                                && ModuleAccessRules.operationMatches(
+                                        permission.getOpcao(), operacao.name()));
+        if (hasDirect) return true;
+
+        // RBAC moderno: módulo, recurso e operação têm de coincidir.
         if (user.getPerfis() != null) {
             return user.getPerfis().stream()
-                .filter(PerfilAcesso::getActivo)
-                .flatMap(p -> p.getPermissoes().stream())
-                               .anyMatch(pm ->
-                    pm.getModulo().equalsIgnoreCase(modulo) &&
-                    (pm.getRecurso().equalsIgnoreCase(recurso) || pm.getRecurso().equalsIgnoreCase("TODOS")) &&
-                    pm.getOperacao() == operacao &&
-                    Boolean.TRUE.equals(pm.getPermitido())
-                );
+                    .filter(perfil -> Boolean.TRUE.equals(perfil.getActivo()))
+                    .filter(perfil -> perfil.getPermissoes() != null)
+                    .flatMap(perfil -> perfil.getPermissoes().stream())
+                    .anyMatch(permission ->
+                            permission.getModulo() != null
+                                    && ModuleAccessRules.moduleMatches(permission.getModulo(), modulo)
+                                    && permission.getRecurso() != null
+                                    && (permission.getRecurso().equalsIgnoreCase(recurso)
+                                        || permission.getRecurso().equalsIgnoreCase("TODOS"))
+                                    && permission.getOperacao() == operacao
+                                    && Boolean.TRUE.equals(permission.getPermitido())
+                    );
         }
-        
+
         return false;
     }
 
@@ -102,7 +127,7 @@ public class SecurityService {
             return user.getPerfis().stream()
                 .filter(PerfilAcesso::getActivo)
                 .flatMap(p -> p.getPermissoes().stream())
-                .filter(pm -> pm.getModulo().equalsIgnoreCase(modulo) && 
+                .filter(pm -> ModuleAccessRules.moduleMatches(pm.getModulo(), modulo) &&
                               pm.getRecurso().equalsIgnoreCase(recurso) &&
                               pm.getValorRestricao() != null)
                 .map(PermissaoPerfil::getValorRestricao)
@@ -123,14 +148,16 @@ public class SecurityService {
 
         // Verifica permissões legadas
         List<UserAccessPermission> perms = permissionRepository.findByUser(user);
-        if (perms.stream().anyMatch(p -> p.getModulo().equalsIgnoreCase(modulo))) return true;
+        if (perms.stream().anyMatch(permission -> permission != null
+                && ModuleAccessRules.moduleMatches(permission.getModulo(), modulo))) return true;
 
         // Verifica nos perfis
         if (user.getPerfis() != null) {
             return user.getPerfis().stream()
                 .filter(PerfilAcesso::getActivo)
                 .flatMap(p -> p.getPermissoes().stream())
-                .anyMatch(pm -> pm.getModulo().equalsIgnoreCase(modulo) && Boolean.TRUE.equals(pm.getPermitido()));
+                .anyMatch(pm -> ModuleAccessRules.moduleMatches(pm.getModulo(), modulo)
+                        && Boolean.TRUE.equals(pm.getPermitido()));
         }
 
         return false;

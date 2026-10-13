@@ -1,5 +1,7 @@
 package ao.allon.kubata.faturacao;
 
+import javafx.application.Platform;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,6 +14,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @SpringBootTest
 @ActiveProfiles("test-pg")
 class PostgresMigrationTest {
+    @BeforeAll
+    static void initializeJavaFxToolkit() {
+        try {
+            Platform.startup(() -> {});
+        } catch (IllegalStateException ignored) {
+            // Outro teste já iniciou o toolkit JavaFX nesta JVM.
+        }
+    }
+
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

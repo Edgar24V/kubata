@@ -22,7 +22,10 @@ CREATE TABLE IF NOT EXISTS backup_config (
     last_error_message VARCHAR(1000)
 );
 
--- Inserir configuração padrão
+-- Inserir configuração padrão. A condição é compatível com PostgreSQL e H2
+-- (usado pelos testes de migração), ao contrário de ON CONFLICT.
 INSERT INTO backup_config (id, enabled, frequency, schedule_time, retention_days)
-VALUES (1, true, 'DAILY', '02:00:00', 30)
-ON CONFLICT (id) DO NOTHING;
+SELECT 1, TRUE, 'DAILY', '02:00:00', 30
+WHERE NOT EXISTS (
+    SELECT 1 FROM backup_config WHERE id = 1
+);
