@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main", "develop", "feature/*", "feat/*" ]
   pull_request:
-    branches: [ "main", "develop", "feat/*" ]
+    branches: [ "main", "develop", "feature/*", "feat/*" ]
 
 jobs:
   admin-company-setup:
@@ -21,6 +21,21 @@ jobs:
 
     - name: Test Administrator and dependent modules
       run: mvn -B -pl admin -am clean test
+
+  faturacao-tests:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 25
+      uses: actions/setup-java@v4
+      with:
+        java-version: '25'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Test Faturação and its dependencies
+      run: mvn -B -pl faturacao -am clean test
 
   build:
     runs-on: windows-latest
