@@ -3,9 +3,11 @@ package ao.allon.kubata.faturacao.service;
 import ao.allon.kubata.core.repository.PlanoContaRepository;
 import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.Fatura;
+import ao.allon.kubata.faturacao.domain.Recibo;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
+import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
@@ -53,6 +55,9 @@ class FaturaServiceTest {
 
     @Mock
     private PlanoContaRepository planoContaRepository;
+
+    @Mock
+    private ReciboService reciboService;
 
     @InjectMocks
     private FaturaService faturaService;
@@ -136,11 +141,21 @@ class FaturaServiceTest {
     }
 
     @Test
-    void registrarRecebimento_DeveMarcarComoPagaQuandoIgualOuMaiorQueTotal() {
+    void registrarRecebimento_DeveDelegarParaReciboEActualizarLiquidacao() {
+        fatura.setStatus(StatusFatura.EMITIDA);
         fatura.recalculateTotals();
+        when(reciboService.registrar(eq(1L), eq(fatura.getTotal()), eq("REF123"), anyString(),
+                eq(MetodoPagamento.DINHEIRO))).thenAnswer(invocation -> {
+            fatura.setStatus(StatusFatura.PAGA);
+            return new Recibo();
+        });
+
         Fatura res = faturaService.registrarRecebimento(1L, fatura.getTotal(), "REF123");
+
         assertEquals(StatusFatura.PAGA, res.getStatus());
-        assertTrue(res.getObservacoes().contains("Recebimento"));
+        verify(reciboService).registrar(eq(1L), eq(fatura.getTotal()), eq("REF123"), anyString(),
+                eq(MetodoPagamento.DINHEIRO));
+        verify(faturaRepository, never()).save(any(Fatura.class));
     }
 
     @Test
