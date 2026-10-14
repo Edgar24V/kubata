@@ -1114,6 +1114,7 @@ public class FaturaService {
 
         // Criar Nota de Crédito
         Fatura notaCredito = new Fatura();
+        notaCredito.setTipoDocumento(TipoDocumento.NOTA_CREDITO);
         notaCredito.setCliente(faturaOriginal.getCliente());
         notaCredito.setFaturaReferencia(faturaOriginal);
         notaCredito.setMotivoCancelamento(motivo); // Usando campo motivo para retificação
@@ -1157,6 +1158,7 @@ public class FaturaService {
                 .orElseThrow(() -> new IllegalArgumentException("Fatura original não encontrada"));
 
         Fatura notaDebito = new Fatura();
+        notaDebito.setTipoDocumento(TipoDocumento.NOTA_DEBITO);
         notaDebito.setCliente(faturaOriginal.getCliente());
         notaDebito.setFaturaReferencia(faturaOriginal);
         notaDebito.setMotivoCancelamento(motivo);
