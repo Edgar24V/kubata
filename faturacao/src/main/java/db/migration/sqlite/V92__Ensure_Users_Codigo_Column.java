@@ -31,6 +31,14 @@ public class V92__Ensure_Users_Codigo_Column extends BaseJavaMigration {
                 statement.execute("ALTER TABLE users ADD COLUMN codigo VARCHAR(40)");
             }
         }
+
+        // Instalações autónomas podem conter utilizadores criados antes da identidade
+        // partilhada. Atribuir códigos estáveis apenas aos registos ainda sem código.
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate(
+                    "UPDATE users SET codigo = 'USR-' || id WHERE codigo IS NULL OR TRIM(codigo) = ''");
+            statement.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_users_codigo ON users(codigo)");
+        }
     }
 
     private boolean tableExists(Connection connection, String tableName) throws SQLException {
