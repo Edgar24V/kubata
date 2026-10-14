@@ -467,29 +467,49 @@ public class FaturaService {
         // VALIDAÇÃO AGT: Itens isentos devem ter código de isenção
         validarCodigosIsencao(fatura);
         
-        // 1. Garantir Série
+        // 1. Seleccionar série. Em produção, nunca inventar uma série fiscal local.
+        TipoDocumento tipoSolicitado = fatura.getTipoDocumento();
         if (fatura.getSerie() == null) {
-            TipoDocumento tipo = fatura.getTipoDocumento();
-            Serie serie = serieService.findPadrao(tipo)
-                    .orElseGet(() -> serieService.criarSeriePadrao(tipo));
-            fatura.setSerie(serie);
+            Optional<Serie> seriePadrao = serieService.findPadrao(tipoSolicitado);
+            if (seriePadrao.isPresent()) {
+                fatura.setSerie(seriePadrao.get());
+            } else if (requiresAgtSubmission(tipoSolicitado)
+                    && agtElectronicInvoiceService.isProductionReadinessEnforced()) {
+                throw new IllegalStateException(
+                    "Não existe uma série electrónica autorizada pela AGT para "
+                    + tipoSolicitado.getDescricao() + ". Solicite uma série no separador Séries de Faturação.");
+            } else {
+                fatura.setSerie(serieService.criarSeriePadrao(tipoSolicitado));
+            }
         }
-        
+
         Serie serie = fatura.getSerie();
-        TipoDocumento tipo = serie.getTipoDocumento();
-        
-        // Garantir consistência
-        if (fatura.getTipoDocumento() != tipo) {
-            fatura.setTipoDocumento(tipo);
+        if (serie == null) {
+            throw new IllegalStateException("Não foi possível seleccionar ou criar uma série para o documento.");
         }
-        
-        // 2. Garantir Número Sequencial se não tiver
+        TipoDocumento tipo = serie.getTipoDocumento();
+
+        // Não corrigir silenciosamente o tipo fiscal ao escolher uma série diferente.
+        if (fatura.getTipoDocumento() != tipo) {
+            throw new IllegalStateException(
+                "O tipo do documento (" + tipoSolicitado.getDescricao()
+                + ") não corresponde ao tipo da série (" + tipo.getDescricao() + ").");
+        }
+        if (requiresAgtSubmission(tipo)
+                && agtElectronicInvoiceService.isProductionReadinessEnforced()
+                && !serie.isAutorizadaAgt()) {
+            throw new IllegalStateException(
+                "A série seleccionada não tem código e intervalo de numeração autorizados pela AGT. "
+                + "Emissão fiscal bloqueada.");
+        }
+
+        // 2. Garantir número sequencial dentro do intervalo autorizado
         if (fatura.getNumeroSequencial() == null) {
              Long proximo = serieService.getProximoNumero(serie);
              fatura.setNumeroSequencial(proximo);
-             String numeroFatura = String.format("%s %s/%d", 
-                tipo.getCodigo(), 
-                serie.getDesignacao(), 
+             String numeroFatura = String.format("%s %s/%d",
+                serie.codigoDocumentoFiscal(),
+                serie.getDesignacao(),
                 proximo);
              fatura.setNumero(numeroFatura);
         }
