@@ -19,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -48,6 +49,12 @@ public class AGTElectronicInvoiceService {
 
     @Value("${agt.api.url:https://sifphml.minfin.gov.ao/sigt/fe/v1}")
     private String agtApiUrl;
+
+    @Value("${agt.api.username:}")
+    private String agtApiUsername;
+
+    @Value("${agt.api.password:}")
+    private String agtApiPassword;
 
     @Value("${agt.api.enabled:false}")
     private boolean agtApiEnabled;
@@ -113,6 +120,7 @@ public class AGTElectronicInvoiceService {
         }
 
         try {
+            validarCredenciaisAgt();
             // Nunca comunicar com homologação/produção usando assinaturas de desenvolvimento.
             signatureService.assertProductionReady();
             if (softwareValidationNumber == null || softwareValidationNumber.isBlank()) {
@@ -125,6 +133,8 @@ public class AGTElectronicInvoiceService {
             String jsonPayload = objectMapper.writeValueAsString(request);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setBasicAuth(agtApiUsername, agtApiPassword, StandardCharsets.UTF_8);
             ResponseEntity<AGTResponseDTO> response = restTemplate.exchange(
                 normalizarBaseUrl() + "/registarFactura",
                 HttpMethod.POST,
@@ -235,6 +245,7 @@ public class AGTElectronicInvoiceService {
         }
 
         try {
+            validarCredenciaisAgt();
             int signatureVersionValue = signatureVersion == null ? 1 : signatureVersion;
             Map<String, Object> softwareDetail = new LinkedHashMap<>();
             softwareDetail.put("productId", productId);
@@ -320,6 +331,10 @@ public class AGTElectronicInvoiceService {
         if (!enforceProductionReadiness) return;
         List<String> errors = new ArrayList<>();
         if (!agtApiEnabled) errors.add("KUBATA_AGT_API_ENABLED=true é obrigatório.");
+        if (agtApiUsername == null || agtApiUsername.isBlank()
+                || agtApiPassword == null || agtApiPassword.isBlank()) {
+            errors.add("Credenciais Basic Auth da AGT em falta.");
+        }
         if (softwareValidationNumber == null || softwareValidationNumber.isBlank()) {
             errors.add("Número de validação do software AGT em falta.");
         }
@@ -363,6 +378,14 @@ public class AGTElectronicInvoiceService {
         response.setRequestID(requestId);
         response.setSubmissionId(requestId);
         return response;
+    }
+
+    private void validarCredenciaisAgt() {
+        if (agtApiUsername == null || agtApiUsername.isBlank()
+                || agtApiPassword == null || agtApiPassword.isBlank()) {
+            throw new IllegalStateException(
+                "Credenciais Basic Auth da AGT em falta. Configure KUBATA_AGT_API_USERNAME e KUBATA_AGT_API_PASSWORD.");
+        }
     }
 
     private String normalizarBaseUrl() {
