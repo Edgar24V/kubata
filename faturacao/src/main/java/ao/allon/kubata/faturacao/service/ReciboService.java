@@ -104,6 +104,12 @@ public class ReciboService {
         }
 
         BigDecimal recebidoAnteriormente = totalRecebidoFatura(faturaId);
+        // Reconcilia dados legados antes de avançar. A coluna é actualizada em
+        // cada pagamento e, combinada com @Version em Fatura, detecta concorrência.
+        BigDecimal recebidoPersistido = dinheiro(fatura.getValorRecebido());
+        if (recebidoPersistido.compareTo(recebidoAnteriormente) != 0) {
+            fatura.setValorRecebido(recebidoAnteriormente);
+        }
         BigDecimal pendente = totalDocumento.subtract(recebidoAnteriormente).setScale(2, RoundingMode.HALF_UP);
         if (pendente.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("A factura já se encontra totalmente liquidada.");
@@ -130,6 +136,7 @@ public class ReciboService {
         lancarNaContabilidade(salvo);
 
         BigDecimal liquidado = recebidoAnteriormente.add(valorRecebido).setScale(2, RoundingMode.HALF_UP);
+        fatura.setValorRecebido(liquidado); // força actualização versionada até nos pagamentos parciais
         fatura.setStatus(liquidado.compareTo(totalDocumento) >= 0
                 ? StatusFatura.PAGA : StatusFatura.EMITIDA);
         faturaRepository.save(fatura);
