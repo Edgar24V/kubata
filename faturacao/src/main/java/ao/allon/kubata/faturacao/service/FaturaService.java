@@ -208,11 +208,12 @@ public class FaturaService {
             Fatura existente = faturaRepository.findById(fatura.getId())
                     .orElseThrow(() -> new IllegalArgumentException("Fatura não encontrada"));
             
-            // Regra de Imutabilidade AGT: Não permitir alteração de documentos assinados
-            if (existente.getStatus() == StatusFatura.EMITIDA || existente.getStatus() == StatusFatura.PAGA || existente.getStatus() == StatusFatura.CANCELADA) {
-                if (existente.getHash() != null && !existente.getHash().isEmpty()) {
-                    throw new IllegalStateException("Regra de Integridade AGT: Documentos assinados não podem ser alterados.");
-                }
+            // Documentos emitidos são imutáveis, mesmo que uma falha anterior tenha
+            // deixado o hash vazio. Não usar a presença do hash como autorização de edição.
+            if (existente.getStatus() != StatusFatura.RASCUNHO) {
+                throw new IllegalStateException(
+                    "Integridade fiscal: documentos que já saíram do estado RASCUNHO não podem ser alterados. "
+                    + "Crie o documento correctivo apropriado.");
             }
         }
 
@@ -440,8 +441,10 @@ public class FaturaService {
     }
 
     private void processarEmissao(Fatura fatura) {
-        if (fatura.getStatus() == StatusFatura.EMITIDA) {
-            throw new IllegalStateException("A fatura já foi emitida ou processada");
+        if (fatura.getStatus() != StatusFatura.RASCUNHO) {
+            throw new IllegalStateException(
+                "Só é possível emitir documentos no estado RASCUNHO. Estado actual: "
+                + fatura.getStatus());
         }
         if (requiresAgtSubmission(fatura.getTipoDocumento())) {
             agtElectronicInvoiceService.assertReadyForFiscalEmission();
@@ -873,27 +876,27 @@ public class FaturaService {
                 .orElseThrow(() -> new IllegalArgumentException("Fatura não encontrada"));
 
         if (fatura.getStatus() == StatusFatura.CANCELADA) {
-            throw new IllegalStateException("A fatura já está cancelada.");
+            throw new IllegalStateException("O documento já está cancelado.");
         }
 
-        // AGT Compliance: Não permitir cancelar faturas rascunho sem assinatura se o objetivo for anulação fiscal
-        // Faturas EMITIDAS/PAGAS requerem anulação formal
-        fatura.setStatus(StatusFatura.CANCELADA);
-        fatura.setDocumentStatus(DocumentStatus.ANULADO);
-        fatura.setDocumentCancelReason(reason != null ? reason : DocumentCancelReason.INCORRETA_IDENTIFICACAO);
-        fatura.setMotivoCancelamento(motivo);
-        fatura.setDataCancelamento(LocalDateTime.now());
-        faturaRepository.save(fatura);
-        
-        // Estornar estoque se necessário
-        for (ItemFatura item : fatura.getItens()) {
-            if (item.getProduto() != null) {
-                produtoService.registarEntrada(item.getProduto().getId(), item.getQuantidade(), "Cancelamento Fatura " + fatura.getNumero());
-            }
+        // Um rascunho ainda não é um documento fiscal emitido; pode ser descartado
+        // localmente sem movimentos de stock, anulação fiscal ou comunicação à AGT.
+        if (fatura.getStatus() == StatusFatura.RASCUNHO) {
+            fatura.setStatus(StatusFatura.CANCELADA);
+            fatura.setMotivoCancelamento(motivo);
+            fatura.setDataCancelamento(LocalDateTime.now());
+            faturaRepository.save(fatura);
+            return;
         }
-        
-        // AGT Compliance: Submeter anulação à AGT
-        agtElectronicInvoiceService.submitInvoiceAsync(fatura);
+
+        // Não transformar localmente uma factura fiscal em cancelada. A operação
+        // oficial de anulação e a sua assinatura ainda requerem validação no ambiente
+        // de homologação da AGT; reenviar o documento normal como se fosse anulação
+        // criaria um estado fiscal falso e poderia duplicar movimentos de stock.
+        throw new IllegalStateException(
+            "Anulação fiscal indisponível: o documento não foi alterado. "
+            + "A anulação de documentos emitidos só poderá ser activada após implementar "
+            + "e homologar o fluxo oficial AGT. Utilize uma nota de crédito quando aplicável.");
     }
     
     @Transactional
