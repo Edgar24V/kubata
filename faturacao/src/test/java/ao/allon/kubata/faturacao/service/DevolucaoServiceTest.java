@@ -66,7 +66,7 @@ class DevolucaoServiceTest {
         item.calculateTotal();
         devolucao.addItem(item);
 
-        when(sessionManager.getCurrentUser()).thenReturn("admin");
+        lenient().when(sessionManager.getCurrentUser()).thenReturn("admin");
     }
 
     @Test
