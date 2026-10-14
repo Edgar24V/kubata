@@ -59,6 +59,13 @@ public class Serie {
     @Column(name = "agt_last_document_number")
     private Long agtLastDocumentNumber;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
+
     public Serie() {
     }
 
