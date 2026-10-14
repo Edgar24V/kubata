@@ -6,6 +6,7 @@ import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
+import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.repository.ItemFaturaRepository;
 import ao.allon.kubata.core.repository.PlanoContaRepository;
@@ -18,6 +19,9 @@ import ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO;
 import ao.allon.kubata.faturacao.service.agt.AGTInvoiceData;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService;
+import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -42,6 +46,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 @Service
 public class FaturaService {
 
+    private static final Logger log = LoggerFactory.getLogger(FaturaService.class);
+
+    @Value("${faturacao.contabilidade.obrigatoria:true}")
+    private boolean contabilidadeObrigatoria;
+
     private final FaturaRepository faturaRepository;
     private final ItemFaturaRepository itemFaturaRepository;
     private final ProdutoService produtoService;
@@ -52,8 +61,9 @@ public class FaturaService {
     private final ContabilidadeService contabilidadeService;
     private final PlanoContaRepository planoContaRepository;
     private final SessionManager sessionManager;
+    private final ReciboService reciboService;
 
-    public FaturaService(FaturaRepository faturaRepository, ItemFaturaRepository itemFaturaRepository, ProdutoService produtoService, SerieService serieService, AGTService agtService, AGTElectronicInvoiceService agtElectronicInvoiceService, JWSDigitalSignatureService signatureService, ContabilidadeService contabilidadeService, PlanoContaRepository planoContaRepository, SessionManager sessionManager) {
+    public FaturaService(FaturaRepository faturaRepository, ItemFaturaRepository itemFaturaRepository, ProdutoService produtoService, SerieService serieService, AGTService agtService, AGTElectronicInvoiceService agtElectronicInvoiceService, JWSDigitalSignatureService signatureService, ContabilidadeService contabilidadeService, PlanoContaRepository planoContaRepository, SessionManager sessionManager, ReciboService reciboService) {
         this.faturaRepository = faturaRepository;
         this.itemFaturaRepository = itemFaturaRepository;
         this.produtoService = produtoService;
@@ -64,6 +74,7 @@ public class FaturaService {
         this.contabilidadeService = contabilidadeService;
         this.planoContaRepository = planoContaRepository;
         this.sessionManager = sessionManager;
+        this.reciboService = reciboService;
     }
 
     public Optional<Fatura> findById(Long id) {
@@ -587,11 +598,17 @@ public class FaturaService {
             fatura.setAgtSubmissionStatus("NOT_APPLICABLE");
         }
         
-        // Integrar com Contabilidade (após emissão bem sucedida)
+        // Em produção, emissão e lançamento contabilístico têm de ser atómicos.
+        // Nunca declarar a operação concluída quando o diário falha.
         try {
             lancarNaContabilidade(fatura);
-        } catch (Exception e) {
-            System.err.println("Erro ao lançar na contabilidade: " + e.getMessage());
+        } catch (RuntimeException e) {
+            if (contabilidadeObrigatoria) {
+                throw new IllegalStateException(
+                        "A emissão foi interrompida porque o lançamento contabilístico falhou.", e);
+            }
+            log.error("Falha contabilística no documento {}. O perfil actual permite executar sem contabilidade obrigatória.",
+                    fatura.getNumero(), e);
         }
     }
 
@@ -737,45 +754,80 @@ public class FaturaService {
     }
 
     private void lancarNaContabilidade(Fatura fatura) {
-        // Obter contas padrão (PGC Angolano)
-        // 31.1 - Clientes (Conta Corrente)
-        // 61.1 - Vendas de Mercadorias
-        // 34.5 - IVA
-        
+        TipoDocumento tipo = fatura.getTipoDocumento();
+        if (tipo == TipoDocumento.ORCAMENTO
+                || tipo == TipoDocumento.ENCOMENDA
+                || tipo == TipoDocumento.PRO_FORMA
+                || tipo == TipoDocumento.GUIA_REMESSA
+                || tipo == TipoDocumento.GUIA_TRANSPORTE
+                || tipo == TipoDocumento.DOC_CONFERENCIA
+                || tipo == TipoDocumento.OUTROS) {
+            return; // Documentos comerciais/logísticos não representam venda contabilística concluída.
+        }
+
         PlanoConta contaCliente = planoContaRepository.findByCodigo("31.1").orElse(null);
         PlanoConta contaVenda = planoContaRepository.findByCodigo("61.1").orElse(null);
         PlanoConta contaIva = planoContaRepository.findByCodigo("34.5").orElse(null);
-        
-        if (contaCliente == null || contaVenda == null) {
-            System.err.println("Contas contábeis padrão não encontradas. Lançamento ignorado.");
+        PlanoConta contaCaixa = null;
+
+        boolean recibo = tipo == TipoDocumento.RECIBO;
+        boolean pagamentoImediato = tipo == TipoDocumento.FATURA_RECIBO
+                || tipo == TipoDocumento.VENDA_A_DINHEIRO
+                || recibo;
+        if (pagamentoImediato) {
+            contaCaixa = planoContaRepository.findByCodigo("45.1").orElse(null);
+        }
+
+        BigDecimal total = fatura.getTotal() == null ? BigDecimal.ZERO : fatura.getTotal();
+        BigDecimal iva = fatura.getTotalImposto() == null ? BigDecimal.ZERO : fatura.getTotalImposto();
+        BigDecimal valorLiquido = total.subtract(iva);
+
+        boolean needsClient = !pagamentoImediato || recibo;
+        boolean missing = (needsClient && contaCliente == null)
+                || (!recibo && contaVenda == null)
+                || (pagamentoImediato && contaCaixa == null)
+                || (!recibo && iva.compareTo(BigDecimal.ZERO) > 0 && contaIva == null);
+        if (missing) {
+            String message = "Contas contabilísticas necessárias em falta para " + tipo.getDescricao()
+                    + " " + fatura.getNumero()
+                    + " (cliente 31.1, vendas 61.1, IVA 34.5 e/ou caixa 45.1).";
+            if (contabilidadeObrigatoria) {
+                throw new IllegalStateException(message);
+            }
+            log.warn("{} O perfil actual permite continuar sem lançamento contabilístico.", message);
             return;
         }
-        
-        // Lançamento da Venda (Débito Cliente / Crédito Venda)
-        BigDecimal valorSemIva = fatura.getTotal().subtract(fatura.getTotalImposto());
-        contabilidadeService.lancar(
-            fatura.getDataEmissao(),
-            contaCliente,
-            contaVenda,
-            valorSemIva,
-            "Venda - Fatura " + fatura.getNumero(),
-            fatura.getNumero(),
-            fatura.getTipoDocumento().name(),
-            null // Usuario ID (pegar da sessão se possível)
-        );
-        
-        // Lançamento do IVA (Débito Cliente / Crédito IVA a Pagar)
-        if (fatura.getTotalImposto().compareTo(BigDecimal.ZERO) > 0 && contaIva != null) {
-            contabilidadeService.lancar(
-                fatura.getDataEmissao(),
-                contaCliente,
-                contaIva,
-                fatura.getTotalImposto(),
-                "IVA - Fatura " + fatura.getNumero(),
-                fatura.getNumero(),
-                fatura.getTipoDocumento().name(),
-                null
-            );
+
+        if (recibo) {
+            // O recibo liquida uma conta corrente existente; não volta a reconhecer a venda.
+            contabilidadeService.lancar(fatura.getDataEmissao(), contaCaixa, contaCliente, total,
+                    "Recebimento - Documento " + fatura.getNumero(),
+                    fatura.getNumero(), tipo.name(), null);
+            return;
+        }
+
+        PlanoConta contaDebito = pagamentoImediato ? contaCaixa : contaCliente;
+        if (tipo == TipoDocumento.NOTA_CREDITO) {
+            // A nota de crédito reduz o rendimento e cria/regulariza crédito a favor do cliente.
+            contabilidadeService.lancar(fatura.getDataEmissao(), contaVenda, contaCliente, valorLiquido,
+                    "Nota de crédito - " + fatura.getNumero(),
+                    fatura.getNumero(), tipo.name(), null);
+            if (iva.compareTo(BigDecimal.ZERO) > 0) {
+                contabilidadeService.lancar(fatura.getDataEmissao(), contaIva, contaCliente, iva,
+                        "Regularização de IVA - " + fatura.getNumero(),
+                        fatura.getNumero(), tipo.name(), null);
+            }
+            return;
+        }
+
+        // Factura normal, factura/recibo, venda a dinheiro, nota de débito e autofactura.
+        contabilidadeService.lancar(fatura.getDataEmissao(), contaDebito, contaVenda, valorLiquido,
+                "Venda - " + tipo.getDescricao() + " " + fatura.getNumero(),
+                fatura.getNumero(), tipo.name(), null);
+        if (iva.compareTo(BigDecimal.ZERO) > 0) {
+            contabilidadeService.lancar(fatura.getDataEmissao(), contaDebito, contaIva, iva,
+                    "IVA - " + tipo.getDescricao() + " " + fatura.getNumero(),
+                    fatura.getNumero(), tipo.name(), null);
         }
     }
 
@@ -924,23 +976,21 @@ public class FaturaService {
         cancelarFatura(id, motivo, DocumentCancelReason.INCORRETA_IDENTIFICACAO);
     }
     
+    /**
+     * Compatibilidade com chamadores antigos: o recebimento é agora registado
+     * como recibo real, com saldo pendente, método de pagamento e lançamento
+     * contabilístico; nunca apenas como texto nas observações da factura.
+     */
     @Transactional
     public Fatura registrarRecebimento(Long faturaId, BigDecimal valorRecebido, String referencia) {
         Fatura fatura = faturaRepository.findById(faturaId)
-                .orElseThrow(() -> new IllegalArgumentException("Fatura não encontrada"));
-        if (fatura.getStatus() == StatusFatura.CANCELADA) {
-            throw new IllegalStateException("Não é possível registrar recebimento de fatura cancelada");
-        }
-        if (valorRecebido == null || valorRecebido.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Valor recebido inválido");
-        }
-        if (valorRecebido.compareTo(fatura.getTotal()) >= 0) {
-            fatura.setStatus(StatusFatura.PAGA);
-        }
-        String obs = fatura.getObservacoes();
-        String extra = "Recebimento: " + valorRecebido + (referencia != null ? " (" + referencia + ")" : "");
-        fatura.setObservacoes(obs == null || obs.isEmpty() ? extra : (obs + " | " + extra));
-        return faturaRepository.save(fatura);
+                .orElseThrow(() -> new IllegalArgumentException("Factura não encontrada."));
+        MetodoPagamento metodo = fatura.getMetodoPagamento() != null
+                ? fatura.getMetodoPagamento() : MetodoPagamento.DINHEIRO;
+        reciboService.registrar(faturaId, valorRecebido, referencia,
+                "Recebimento registado a partir do módulo de Faturação.", metodo);
+        return faturaRepository.findById(faturaId)
+                .orElseThrow(() -> new IllegalStateException("Factura não encontrada após o recebimento."));
     }
     
     @Transactional
