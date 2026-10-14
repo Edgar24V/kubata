@@ -159,10 +159,20 @@ class FaturaServiceTest {
     }
 
     @Test
-    void emitirNotaCredito_DeveDevolverEstoqueEAdicionarObservacao() {
+    void emitirNotaCredito_DeveDevolverEstoqueESemAlterarFacturaOriginal() {
         fatura.setStatus(StatusFatura.EMITIDA);
+        fatura.setObservacoes("Observação original imutável");
+        Serie serieNc = new Serie("2026-NC", TipoDocumento.NOTA_CREDITO, LocalDate.now().getYear());
+        serieNc.setId(3L);
+        serieNc.setUltimoNumero(0L);
+        when(serieService.findPadrao(TipoDocumento.NOTA_CREDITO)).thenReturn(Optional.of(serieNc));
+        when(serieService.getProximoNumero(serieNc)).thenReturn(1L);
+
         Fatura res = faturaService.emitirNotaCredito(1L, "Devolução parcial");
+
         assertTrue(res.getObservacoes().contains("Nota de Crédito"));
+        assertEquals("Observação original imutável", fatura.getObservacoes());
+        verify(faturaRepository, never()).save(same(fatura));
         verify(produtoService, times(1)).registarEntrada(eq(10L), eq(2), anyString());
     }
 }
