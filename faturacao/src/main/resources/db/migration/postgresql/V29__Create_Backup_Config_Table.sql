@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS backup_config (
     last_error_message VARCHAR(1000)
 );
 
--- Inserir configuração padrão
-INSERT INTO backup_config (id, enabled, frequency, schedule_time, retention_days)
-VALUES (1, true, 'DAILY', '02:00:00', 30)
-ON CONFLICT (id) DO NOTHING;
+-- Inserir configuração padrão sem fixar o ID: mantém a sequência BIGSERIAL coerente.
+-- A sintaxe é compatível com PostgreSQL e com H2 em modo PostgreSQL para os testes.
+INSERT INTO backup_config (enabled, frequency, schedule_time, retention_days)
+SELECT TRUE, 'DAILY', TIME '02:00:00', 30
+WHERE NOT EXISTS (SELECT 1 FROM backup_config);

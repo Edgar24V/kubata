@@ -72,7 +72,12 @@ public class FaturaServiceNotaDebitoTest {
         faturaOriginal.setDataEmissao(LocalDate.now());
         when(faturaRepository.findById(1L)).thenReturn(Optional.of(faturaOriginal));
         Serie serie = new Serie();
+        serie.setTipoDocumento(TipoDocumento.NOTA_DEBITO);
+        serie.setDesignacao(String.valueOf(LocalDate.now().getYear()));
+        serie.setAno(LocalDate.now().getYear());
+        serie.setAtiva(true);
         when(serieService.findPadrao(TipoDocumento.NOTA_DEBITO)).thenReturn(Optional.of(serie));
+        when(serieService.getProximoNumero(serie)).thenReturn(1L);
         when(faturaRepository.save(ArgumentMatchers.any(Fatura.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ItemFatura it = new ItemFatura();

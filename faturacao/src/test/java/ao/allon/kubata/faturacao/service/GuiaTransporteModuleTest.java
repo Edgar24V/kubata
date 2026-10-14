@@ -72,9 +72,11 @@ class GuiaTransporteModuleTest {
         it.setQuantidade(1);
         it.setPrecoUnitario(new BigDecimal("0.00"));
         it.setPercentualIva(BigDecimal.ZERO);
+        it.setCodigoIsencao("M02");
+        it.setMotivoIsencao("Isenção definida para o cenário de teste");
         guia.addItem(it);
 
-        when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test

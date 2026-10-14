@@ -497,6 +497,9 @@ public class FaturaService {
         
         // 1. Seleccionar série. Em produção, nunca inventar uma série fiscal local.
         TipoDocumento tipoSolicitado = fatura.getTipoDocumento();
+        if (tipoSolicitado == null) {
+            throw new IllegalStateException("Tipo de documento obrigatório para emissão.");
+        }
         if (fatura.getSerie() == null) {
             Optional<Serie> seriePadrao = serieService.findPadrao(tipoSolicitado);
             if (seriePadrao.isPresent()) {
@@ -516,6 +519,10 @@ public class FaturaService {
             throw new IllegalStateException("Não foi possível seleccionar ou criar uma série para o documento.");
         }
         TipoDocumento tipo = serie.getTipoDocumento();
+        if (tipo == null) {
+            throw new IllegalStateException("A série '" + serie.getDesignacao()
+                + "' não tem tipo de documento configurado. Corrija a série antes de emitir.");
+        }
 
         // Não corrigir silenciosamente o tipo fiscal ao escolher uma série diferente.
         if (fatura.getTipoDocumento() != tipo) {

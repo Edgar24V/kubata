@@ -3,6 +3,7 @@ package ao.allon.kubata.faturacao.service;
 import ao.allon.kubata.core.repository.PlanoContaRepository;
 import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.Fatura;
+import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.domain.Recibo;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Serie;
@@ -74,17 +75,19 @@ class FaturaServiceTest {
         Serie serie = new Serie("2026", TipoDocumento.FATURA, LocalDate.now().getYear());
         serie.setId(2L);
         serie.setUltimoNumero(0L);
-        when(serieService.findPadrao(TipoDocumento.FATURA)).thenReturn(Optional.of(serie));
-        when(serieService.getProximoNumero(serie)).thenReturn(1L);
+        lenient().when(serieService.findPadrao(TipoDocumento.FATURA)).thenReturn(Optional.of(serie));
+        lenient().when(serieService.getProximoNumero(serie)).thenReturn(1L);
         ItemFatura item = new ItemFatura();
         item.setDescricao("Produto A");
         item.setQuantidade(2);
         item.setPrecoUnitario(new BigDecimal("1000"));
         item.setPercentualIva(new BigDecimal("14.00"));
-        item.setProdutoId(10L);
+        Produto produto = new Produto();
+        produto.setId(10L);
+        item.setProduto(produto);
         fatura.addItem(item);
-        when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
-        when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
+        lenient().when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test
