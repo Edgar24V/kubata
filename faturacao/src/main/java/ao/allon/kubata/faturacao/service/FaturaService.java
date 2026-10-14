@@ -19,6 +19,7 @@ import ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO;
 import ao.allon.kubata.faturacao.service.agt.AGTInvoiceData;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +64,7 @@ public class FaturaService {
     private final SessionManager sessionManager;
     private final ReciboService reciboService;
 
+    @Autowired
     public FaturaService(FaturaRepository faturaRepository, ItemFaturaRepository itemFaturaRepository, ProdutoService produtoService, SerieService serieService, AGTService agtService, AGTElectronicInvoiceService agtElectronicInvoiceService, JWSDigitalSignatureService signatureService, ContabilidadeService contabilidadeService, PlanoContaRepository planoContaRepository, SessionManager sessionManager, ReciboService reciboService) {
         this.faturaRepository = faturaRepository;
         this.itemFaturaRepository = itemFaturaRepository;
@@ -75,6 +77,21 @@ public class FaturaService {
         this.planoContaRepository = planoContaRepository;
         this.sessionManager = sessionManager;
         this.reciboService = reciboService;
+    }
+
+    /**
+     * Construtor legado usado por testes e integrações que ainda não injectam
+     * o serviço de recibos. O contexto Spring usa o construtor @Autowired acima.
+     */
+    public FaturaService(FaturaRepository faturaRepository, ItemFaturaRepository itemFaturaRepository,
+                         ProdutoService produtoService, SerieService serieService, AGTService agtService,
+                         AGTElectronicInvoiceService agtElectronicInvoiceService,
+                         JWSDigitalSignatureService signatureService,
+                         ContabilidadeService contabilidadeService, PlanoContaRepository planoContaRepository,
+                         SessionManager sessionManager) {
+        this(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService,
+                agtElectronicInvoiceService, signatureService, contabilidadeService,
+                planoContaRepository, sessionManager, null);
     }
 
     public Optional<Fatura> findById(Long id) {
