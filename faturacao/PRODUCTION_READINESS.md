@@ -11,6 +11,8 @@ Definir os valores no gestor de segredos/ambiente do servidor; nunca no reposit�
 - `SPRING_PROFILES_ACTIVE=prod`
 - `KUBATA_AGT_API_ENABLED=true`
 - `KUBATA_AGT_API_URL=https://sifp.minfin.gov.ao/sigt/fe/v1`
+- `KUBATA_AGT_API_USERNAME=<username Basic Auth atribuído pela AGT>`
+- `KUBATA_AGT_API_PASSWORD=<password Basic Auth atribuído pela AGT>`
 - `KUBATA_AGT_SOFTWARE_VALIDATION_NUMBER=<número oficial atribuído pela AGT>`
 - `KUBATA_AGT_EMITTER_NIF=<NIF real da empresa emitente>`
 - `KUBATA_AGT_EMITTER_COMPANY_NAME=<denominação legal registada>`
