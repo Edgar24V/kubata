@@ -7,6 +7,7 @@ import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
+import ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,8 @@ class GuiaRemessaModuleTest {
     private AGTService agtService;
     @Mock
     private AGTElectronicInvoiceService agtElectronicInvoiceService;
+    @Mock
+    private JWSDigitalSignatureService signatureService;
     @Mock
     private ContabilidadeService contabilidadeService;
     @Mock
