@@ -75,6 +75,17 @@ public class Fatura extends BaseEntity {
     @Column(nullable = false)
     private BigDecimal total = BigDecimal.ZERO;
 
+    /**
+     * Total acumulado dos recibos activos. É persistido para permitir controlo
+     * optimista das liquidações concorrentes, evitando sobre-recebimentos.
+     */
+    @Column(name = "valor_recebido", nullable = false, precision = 18, scale = 2)
+    private BigDecimal valorRecebido = BigDecimal.ZERO;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "total_retencao", nullable = false)
     private BigDecimal totalRetencao = BigDecimal.ZERO;
 
@@ -333,6 +344,18 @@ public class Fatura extends BaseEntity {
 
     public void setTotal(BigDecimal total) {
         this.total = total;
+    }
+
+    public BigDecimal getValorRecebido() {
+        return valorRecebido != null ? valorRecebido : BigDecimal.ZERO;
+    }
+
+    public void setValorRecebido(BigDecimal valorRecebido) {
+        this.valorRecebido = valorRecebido != null ? valorRecebido : BigDecimal.ZERO;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public BigDecimal getTotalRetencao() {
