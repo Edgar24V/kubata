@@ -9,6 +9,8 @@ import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.repository.ClienteRepository;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.repository.SerieRepository;
+import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,11 +27,24 @@ public class SerieService {
     private final SerieRepository serieRepository;
     private final FaturaRepository faturaRepository;
     private final ClienteRepository clienteRepository;
+    private final AGTElectronicInvoiceService agtElectronicInvoiceService;
 
-    public SerieService(SerieRepository serieRepository, FaturaRepository faturaRepository, ClienteRepository clienteRepository) {
+    @Autowired
+    public SerieService(SerieRepository serieRepository, FaturaRepository faturaRepository,
+                        ClienteRepository clienteRepository, AGTElectronicInvoiceService agtElectronicInvoiceService) {
         this.serieRepository = serieRepository;
         this.faturaRepository = faturaRepository;
         this.clienteRepository = clienteRepository;
+        this.agtElectronicInvoiceService = agtElectronicInvoiceService;
+    }
+
+    /** Construtor de compatibilidade para testes antigos que não usam integração AGT. */
+    public SerieService(SerieRepository serieRepository, FaturaRepository faturaRepository,
+                        ClienteRepository clienteRepository) {
+        this.serieRepository = serieRepository;
+        this.faturaRepository = faturaRepository;
+        this.clienteRepository = clienteRepository;
+        this.agtElectronicInvoiceService = null;
     }
 
     public List<Serie> findAll() {
@@ -42,6 +57,75 @@ public class SerieService {
 
     public Optional<Serie> findPadrao(TipoDocumento tipo) {
         return serieRepository.findByTipoDocumentoAndPadraoTrue(tipo);
+    }
+
+    /**
+     * Solicita uma série electrónica à AGT e persiste o código e o intervalo
+     * autorizado pelo serviço fiscal. Não cria séries fiscais fictícias.
+     */
+    @Transactional
+    public Serie solicitarSerieAgt(TipoDocumento tipo, int ano, String estabelecimento,
+                                   boolean contingencia, boolean padrao) {
+        if (agtElectronicInvoiceService == null) {
+            throw new IllegalStateException("A integração AGT não está configurada neste serviço.");
+        }
+        if (tipo == null) throw new IllegalArgumentException("Tipo de documento obrigatório.");
+
+        String tipoAgt = switch (tipo) {
+            case FATURA -> "FT";
+            case FATURA_RECIBO -> "FR";
+            case VENDA_A_DINHEIRO -> "TV";
+            case RECIBO -> "RC";
+            case NOTA_CREDITO -> "NC";
+            case NOTA_DEBITO -> "ND";
+            case AUTO_FATURA -> "AF";
+            default -> throw new IllegalArgumentException(
+                "O tipo " + tipo.getDescricao() + " não possui uma série electrónica suportada nesta operação.");
+        };
+
+        AGTElectronicInvoiceService.AgtSeriesAuthorization autorizacao =
+            agtElectronicInvoiceService.solicitarSerieAgt(
+                ano, tipoAgt, estabelecimento, contingencia ? "C" : "N");
+
+        Optional<Serie> existenteOpt = serieRepository.findByDesignacaoAndTipoDocumentoAndAno(
+            autorizacao.seriesCode(), tipo, ano);
+        Serie serie;
+        if (existenteOpt.isPresent()) {
+            serie = existenteOpt.get();
+            if (!serie.isAutorizadaAgt()
+                    || !estabelecimento.equals(serie.getEstablishmentNumber())
+                    || !String.valueOf(contingencia ? "C" : "N").equals(serie.getSeriesContingencyIndicator())) {
+                throw new IllegalStateException(
+                    "O código de série devolvido pela AGT já existe localmente com uma configuração diferente.");
+            }
+            if (autorizacao.firstDocumentNumber() != serie.getAgtLastDocumentNumber() + 1) {
+                throw new IllegalStateException(
+                    "A AGT devolveu um intervalo não contíguo para a série existente. Reconcilie a série antes de continuar.");
+            }
+            serie.setAgtLastDocumentNumber(autorizacao.lastDocumentNumber());
+            serie.setAgtAuthorizedQuantity(serie.getAgtAuthorizedQuantity() + autorizacao.authorizedQuantity());
+        } else {
+            serie = new Serie();
+            serie.setDesignacao(autorizacao.seriesCode());
+            serie.setTipoDocumento(tipo);
+            serie.setAno(ano);
+            serie.setUltimoNumero(autorizacao.firstDocumentNumber() - 1);
+            serie.setAgtFirstDocumentNumber(autorizacao.firstDocumentNumber());
+            serie.setAgtLastDocumentNumber(autorizacao.lastDocumentNumber());
+            serie.setAgtAuthorizedQuantity(autorizacao.authorizedQuantity());
+            serie.setAgtSeriesCode(autorizacao.seriesCode());
+            serie.setEstablishmentNumber(autorizacao.establishmentNumber());
+            serie.setSeriesContingencyIndicator(autorizacao.contingencyIndicator());
+            serie.setDataInicio(LocalDate.now());
+            serie.setAtiva(true);
+        }
+
+        serie.setAgtSeriesCode(autorizacao.seriesCode());
+        serie.setEstablishmentNumber(autorizacao.establishmentNumber());
+        serie.setSeriesContingencyIndicator(autorizacao.contingencyIndicator());
+        if (padrao) serie.setPadrao(true);
+
+        return save(serie);
     }
 
     @Transactional
@@ -114,7 +198,23 @@ public class SerieService {
             throw new IllegalStateException("A série pertence ao ano " + s.getAno() + " e não pode ser usada em " + anoAtual + ". Crie uma nova série para o ano corrente.");
         }
         
-        Long proximo = s.getUltimoNumero() + 1;
+        if (agtElectronicInvoiceService != null
+                && agtElectronicInvoiceService.isProductionReadinessEnforced()
+                && !s.isAutorizadaAgt()) {
+            throw new IllegalStateException(
+                "A série não tem autorização e intervalo oficial da AGT. Solicite uma série electrónica antes de emitir.");
+        }
+
+        long base = s.getUltimoNumero() == null ? 0L : s.getUltimoNumero();
+        long proximo = base + 1L;
+        if (s.isAutorizadaAgt()) {
+            proximo = Math.max(proximo, s.getAgtFirstDocumentNumber());
+            if (proximo > s.getAgtLastDocumentNumber()) {
+                throw new IllegalStateException(
+                    "O intervalo autorizado pela AGT para a série " + s.getDesignacao()
+                    + " esgotou. Solicite uma extensão de série antes de emitir novos documentos.");
+            }
+        }
         s.setUltimoNumero(proximo);
         serieRepository.save(s);
         return proximo;
