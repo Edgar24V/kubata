@@ -95,7 +95,9 @@ class FaturaServiceTest {
         Fatura res = faturaService.emitirFatura(1L);
         assertEquals(StatusFatura.EMITIDA, res.getStatus());
         verify(produtoService, times(1)).registarSaida(eq(10L), eq(2), anyString());
-        verify(faturaRepository, times(1)).save(any(Fatura.class));
+        // A emissão persiste o documento e o callback assíncrono pode persistir
+        // novamente o estado da submissão AGT (SUBMITTED/FAILED/SIMULATED).
+        verify(faturaRepository, atLeastOnce()).save(any(Fatura.class));
     }
 
     @Test
