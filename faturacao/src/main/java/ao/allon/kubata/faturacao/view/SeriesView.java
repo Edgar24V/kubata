@@ -11,6 +11,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.concurrent.Task;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -51,10 +52,15 @@ public class SeriesView extends VBox {
         btnNew.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.ACCENT);
         btnNew.setOnAction(e -> showSerieDialog(null));
 
+        Button btnAgt = new Button("Solicitar Série AGT");
+        btnAgt.setTooltip(new Tooltip("Solicitar autorização oficial de numeração à AGT"));
+        btnAgt.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.SUCCESS);
+        btnAgt.setOnAction(e -> showAgtSeriesDialog());
+
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        header.getChildren().addAll(titleBox, spacer, btnNew);
+        header.getChildren().addAll(titleBox, spacer, btnAgt, btnNew);
 
         // Table
         table = new TableView<>();
@@ -178,6 +184,116 @@ public class SeriesView extends VBox {
         } catch (Exception e) {
             AlertUtils.showErrorAlert("Erro", "Falha ao alterar estado: " + e.getMessage());
         }
+    }
+
+    private void showAgtSeriesDialog() {
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(20));
+
+        ComboBox<TipoDocumento> cbTipo = new ComboBox<>();
+        cbTipo.getItems().setAll(
+            TipoDocumento.FATURA,
+            TipoDocumento.FATURA_RECIBO,
+            TipoDocumento.VENDA_A_DINHEIRO,
+            TipoDocumento.RECIBO,
+            TipoDocumento.NOTA_CREDITO,
+            TipoDocumento.NOTA_DEBITO,
+            TipoDocumento.AUTO_FATURA
+        );
+        cbTipo.setValue(TipoDocumento.FATURA);
+        cbTipo.setMaxWidth(Double.MAX_VALUE);
+
+        TextField txtAno = new TextField(String.valueOf(LocalDate.now().getYear()));
+        txtAno.setPromptText("Ano fiscal");
+
+        TextField txtEstabelecimento = new TextField();
+        txtEstabelecimento.setPromptText("Código registado na AGT (ex.: SEDE quando permitido)");
+
+        ComboBox<String> cbContingencia = new ComboBox<>();
+        cbContingencia.getItems().setAll("Normal (N)", "Contingência (C)");
+        cbContingencia.setValue("Normal (N)");
+        cbContingencia.setMaxWidth(Double.MAX_VALUE);
+
+        CheckBox chkPadrao = new CheckBox("Definir como série padrão para este tipo");
+        Label aviso = new Label(
+            "A série só fica utilizável após autorização real da AGT. "
+            + "Este pedido requer credenciais Basic Auth, certificado RSA e software validado.");
+        aviso.setWrapText(true);
+        aviso.getStyleClass().addAll(Styles.TEXT_SMALL, Styles.WARNING);
+
+        content.getChildren().addAll(
+            TileFactory.createFormField("Tipo de documento", "Tipo fiscal a numerar", cbTipo),
+            TileFactory.createFormField("Ano fiscal", "Ano solicitado à AGT", txtAno),
+            TileFactory.createFormField("Estabelecimento", "Código previamente registado no Portal do Contribuinte", txtEstabelecimento),
+            TileFactory.createFormField("Regime da série", "Normal ou contingência", cbContingencia),
+            chkPadrao,
+            aviso
+        );
+
+        modalService.create()
+            .title("Solicitar Série Fiscal Electrónica")
+            .content(content)
+            .autoSize()
+            .withConfirmButton("Solicitar à AGT", () -> {
+                try {
+                    if (cbTipo.getValue() == null) {
+                        throw new IllegalArgumentException("Seleccione o tipo de documento.");
+                    }
+                    final int ano;
+                    try {
+                        ano = Integer.parseInt(txtAno.getText().trim());
+                    } catch (NumberFormatException ex) {
+                        throw new IllegalArgumentException("O ano fiscal deve ser um número válido.");
+                    }
+                    if (ano < 2000 || ano > 2200) {
+                        throw new IllegalArgumentException("O ano fiscal indicado não é válido.");
+                    }
+                    String estabelecimento = txtEstabelecimento.getText() == null
+                        ? "" : txtEstabelecimento.getText().trim();
+                    if (estabelecimento.isBlank()) {
+                        throw new IllegalArgumentException(
+                            "Indique o código do estabelecimento registado na AGT. Use SEDE apenas quando permitido.");
+                    }
+
+                    String indicador = cbContingencia.getValue() != null
+                        && cbContingencia.getValue().endsWith("(C)") ? "C" : "N";
+                    TipoDocumento tipo = cbTipo.getValue();
+                    boolean padrao = chkPadrao.isSelected();
+
+                    Task<Serie> task = new Task<>() {
+                        @Override
+                        protected Serie call() {
+                            return serieService.solicitarSerieAgt(tipo, ano, estabelecimento, "C".equals(indicador), padrao);
+                        }
+                    };
+                    task.setOnSucceeded(event -> {
+                        Serie serie = task.getValue();
+                        loadData();
+                        AlertUtils.showInfoAlert(
+                            "Série autorizada pela AGT",
+                            "Código: " + serie.getAgtSeriesCode()
+                            + "\nTipo: " + serie.getTipoDocumento().getDescricao()
+                            + "\nPrimeiro número autorizado: " + serie.getAgtFirstDocumentNumber()
+                            + "\nÚltimo número autorizado: " + serie.getAgtLastDocumentNumber()
+                            + "\nQuantidade autorizada: " + serie.getAgtAuthorizedQuantity());
+                    });
+                    task.setOnFailed(event -> {
+                        Throwable failure = task.getException();
+                        String message = failure == null || failure.getMessage() == null
+                            ? "Não foi possível concluir o pedido." : failure.getMessage();
+                        AlertUtils.showErrorAlert("Não foi possível solicitar a série AGT", message);
+                    });
+                    Thread worker = new Thread(task, "kubata-agt-series-request");
+                    worker.setDaemon(true);
+                    worker.start();
+                    return true;
+                } catch (Exception ex) {
+                    AlertUtils.showErrorAlert("Dados inválidos", ex.getMessage());
+                    return false;
+                }
+            })
+            .withCancelButton("Cancelar")
+            .buildAndShow();
     }
 
     private void showSerieDialog(Serie serie) {
