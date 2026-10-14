@@ -1120,7 +1120,8 @@ public class FaturaService {
         notaCredito.setDataEmissao(LocalDate.now());
         notaCredito.setDataVencimento(LocalDate.now());
         notaCredito.setStatus(StatusFatura.RASCUNHO);
-        notaCredito.setObservacoes("Referente à fatura " + faturaOriginal.getNumero());
+        notaCredito.setObservacoes("Nota de Crédito referente à factura " + faturaOriginal.getNumero()
+                + (motivo != null && !motivo.isBlank() ? ": " + motivo : ""));
 
         // Definir Série de Nota de Crédito
         Serie serieNC = serieService.findPadrao(TipoDocumento.NOTA_CREDITO)
@@ -1146,15 +1147,7 @@ public class FaturaService {
         notaCredito = salvar(notaCredito);
         processarEmissao(notaCredito);
 
-        // Marcar documento original como retificado (corrigido via NC)
-        // Nota: EstadoDocumento do SAF-T-AO não possui RETIFICADO (usa-se indicação visual no relatório).
-        // Aqui usamos o campo DocumentStatus/observações para refletir a retificação no sistema.
-        faturaOriginal.setObservacoes(
-                (faturaOriginal.getObservacoes() != null ? faturaOriginal.getObservacoes() + "\n" : "")
-                + "RETIFICADO via Nota de Crédito " + notaCredito.getNumero() + ": " + motivo
-        );
-        faturaRepository.save(faturaOriginal);
-        
+        // O documento emitido permanece imutável. A relação fiscal fica em faturaReferencia.
         return notaCredito;
     }
 
@@ -1170,7 +1163,8 @@ public class FaturaService {
         notaDebito.setDataEmissao(LocalDate.now());
         notaDebito.setDataVencimento(LocalDate.now());
         notaDebito.setStatus(StatusFatura.RASCUNHO);
-        notaDebito.setObservacoes("Débito referente à fatura " + faturaOriginal.getNumero());
+        notaDebito.setObservacoes("Nota de Débito referente à factura " + faturaOriginal.getNumero()
+                + (motivo != null && !motivo.isBlank() ? ": " + motivo : ""));
 
         Serie serieND = serieService.findPadrao(TipoDocumento.NOTA_DEBITO)
                 .orElseGet(() -> serieService.criarSeriePadrao(TipoDocumento.NOTA_DEBITO));
@@ -1184,13 +1178,7 @@ public class FaturaService {
         notaDebito = salvar(notaDebito);
         processarEmissao(notaDebito);
 
-        // Marcar documento original como retificado (corrigido via ND)
-        faturaOriginal.setObservacoes(
-                (faturaOriginal.getObservacoes() != null ? faturaOriginal.getObservacoes() + "\n" : "")
-                + "RETIFICADO via Nota de Débito " + notaDebito.getNumero() + ": " + motivo
-        );
-        faturaRepository.save(faturaOriginal);
-
+        // O documento emitido permanece imutável. A relação fiscal fica em faturaReferencia.
         return notaDebito;
     }
 
