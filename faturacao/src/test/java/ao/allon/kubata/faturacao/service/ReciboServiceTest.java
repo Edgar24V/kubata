@@ -56,13 +56,13 @@ class ReciboServiceTest {
         fatura.setStatus(StatusFatura.EMITIDA);
         fatura.setTotal(new BigDecimal("100.00"));
 
-        when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
-        when(reciboRepository.sumValorByFaturaId(1L)).thenReturn(new BigDecimal("0.00"));
-        when(reciboRepository.count()).thenReturn(0L);
-        when(reciboRepository.save(any(Recibo.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(planoContaRepository.findByCodigo("45.1"))
+        lenient().when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
+        lenient().when(reciboRepository.sumValorByFaturaId(1L)).thenReturn(new BigDecimal("0.00"));
+        lenient().when(reciboRepository.count()).thenReturn(0L);
+        lenient().when(reciboRepository.save(any(Recibo.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(planoContaRepository.findByCodigo("45.1"))
                 .thenReturn(Optional.of(PlanoConta.builder().codigo("45.1").descricao("Caixa").movimento(true).build()));
-        when(planoContaRepository.findByCodigo("31.1"))
+        lenient().when(planoContaRepository.findByCodigo("31.1"))
                 .thenReturn(Optional.of(PlanoConta.builder().codigo("31.1").descricao("Clientes").movimento(true).build()));
     }
 
