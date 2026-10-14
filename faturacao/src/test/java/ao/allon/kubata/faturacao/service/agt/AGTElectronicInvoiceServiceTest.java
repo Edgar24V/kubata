@@ -38,6 +38,20 @@ class AGTElectronicInvoiceServiceTest {
     }
 
     @Test
+    void enabledApiWithoutBasicAuthCredentialsMustFailBeforeCallingAgt() {
+        AGTElectronicInvoiceService service = createService(false);
+        ReflectionTestUtils.setField(service, "agtApiEnabled", true);
+        ReflectionTestUtils.setField(service, "agtApiUsername", "");
+        ReflectionTestUtils.setField(service, "agtApiPassword", "");
+
+        CompletionException exception = assertThrows(CompletionException.class,
+            () -> service.submitInvoicesAsync(List.of(new Fatura())).join());
+
+        assertInstanceOf(IllegalStateException.class, exception.getCause());
+        assertTrue(exception.getCause().getMessage().contains("Credenciais Basic Auth da AGT em falta"));
+    }
+
+    @Test
     void registrationMustRejectMoreThanThirtyDocuments() {
         AGTElectronicInvoiceService service = createService(true);
         List<Fatura> documents = IntStream.range(0, 31).mapToObj(i -> new Fatura()).toList();
