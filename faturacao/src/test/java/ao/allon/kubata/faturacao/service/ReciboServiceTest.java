@@ -74,6 +74,7 @@ class ReciboServiceTest {
 
         assertEquals(new BigDecimal("40.00"), recibo.getValor());
         assertEquals(MetodoPagamento.TRANSFERENCIA_BANCARIA, recibo.getMetodoPagamento());
+        assertEquals(new BigDecimal("40.00"), fatura.getValorRecebido());
         assertEquals(StatusFatura.EMITIDA, fatura.getStatus());
         verify(reciboRepository).save(any(Recibo.class));
         verify(contabilidadeService).lancar(
@@ -88,6 +89,7 @@ class ReciboServiceTest {
         reciboService.registrar(1L, new BigDecimal("40.00"), "TRF-002", "Liquidação");
 
         assertEquals(StatusFatura.PAGA, fatura.getStatus());
+        assertEquals(new BigDecimal("100.00"), fatura.getValorRecebido());
         verify(faturaRepository).save(fatura);
     }
 
