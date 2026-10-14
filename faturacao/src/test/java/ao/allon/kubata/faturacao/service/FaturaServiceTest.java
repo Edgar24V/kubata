@@ -86,12 +86,46 @@ class FaturaServiceTest {
     }
 
     @Test
-    void cancelarFatura_DeveDevolverEstoqueQuandoEmitida() {
+    void cancelarFatura_DeveBloquearAnulacaoFiscalSemFluxoAgtHomologado() {
         fatura.setStatus(StatusFatura.EMITIDA);
-        faturaService.cancelarFatura(1L, "Cancelamento Teste");
+
+        assertThrows(IllegalStateException.class,
+            () -> faturaService.cancelarFatura(1L, "Cancelamento Teste"));
+
+        assertEquals(StatusFatura.EMITIDA, fatura.getStatus());
+        verify(produtoService, never()).registarEntrada(eq(10L), eq(2), anyString());
+        verify(agtElectronicInvoiceService, never()).submitInvoiceAsync(any(Fatura.class));
+        verify(faturaRepository, never()).save(any(Fatura.class));
+    }
+
+    @Test
+    void cancelarRascunho_DeveCancelarLocalmenteSemMovimentarEstoqueNemEnviarAgt() {
+        fatura.setStatus(StatusFatura.RASCUNHO);
+
+        faturaService.cancelarFatura(1L, "Rascunho abandonado");
+
         assertEquals(StatusFatura.CANCELADA, fatura.getStatus());
-        verify(produtoService, times(1)).incrementarEstoque(eq(10L), eq(2));
         verify(faturaRepository, times(1)).save(any(Fatura.class));
+        verify(produtoService, never()).registarEntrada(eq(10L), eq(2), anyString());
+        verify(agtElectronicInvoiceService, never()).submitInvoiceAsync(any(Fatura.class));
+    }
+
+    @Test
+    void salvar_DeveImpedirEdicaoDeDocumentoEmitidoMesmoSemHash() {
+        fatura.setStatus(StatusFatura.EMITIDA);
+        fatura.setHash(null);
+
+        assertThrows(IllegalStateException.class, () -> faturaService.salvar(fatura));
+        verify(faturaRepository, never()).save(any(Fatura.class));
+    }
+
+    @Test
+    void emitirFatura_DeveBloquearReemissaoDeDocumentosPagosOuCancelados() {
+        for (StatusFatura estado : new StatusFatura[] { StatusFatura.PAGA, StatusFatura.CANCELADA }) {
+            fatura.setStatus(estado);
+            assertThrows(IllegalStateException.class, () -> faturaService.emitirFatura(1L));
+        }
+        verify(produtoService, never()).registarSaida(eq(10L), eq(2), anyString());
     }
 
     @Test
