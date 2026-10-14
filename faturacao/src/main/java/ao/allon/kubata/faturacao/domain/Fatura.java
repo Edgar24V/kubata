@@ -175,6 +175,20 @@ public class Fatura extends BaseEntity {
         this.usuario = usuario;
     }
 
+    /**
+     * Os rascunhos podem ser descartados. Documentos fiscais que saíram de
+     * RASCUNHO devem permanecer no histórico auditável; correcções são feitas
+     * por documentos próprios, nunca por eliminação lógica do original.
+     */
+    @PreRemove
+    void validarEliminacaoFiscal() {
+        if (status != StatusFatura.RASCUNHO) {
+            throw new IllegalStateException(
+                "Um documento que saiu de RASCUNHO não pode ser eliminado. "
+                + "Preserve o histórico fiscal e utilize o fluxo correctivo aplicável.");
+        }
+    }
+
     @Override
     protected void onCreate() {
         super.onCreate();
