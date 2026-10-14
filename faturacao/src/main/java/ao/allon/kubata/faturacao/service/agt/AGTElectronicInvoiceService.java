@@ -495,6 +495,10 @@ public class AGTElectronicInvoiceService {
      * Bloqueia emissão fiscal no perfil de produção quando falta configuração AGT.
      * Este controlo não equivale a certificação do software pela AGT.
      */
+    public boolean isProductionReadinessEnforced() {
+        return enforceProductionReadiness;
+    }
+
     public void assertReadyForFiscalEmission() {
         if (!enforceProductionReadiness) return;
         List<String> errors = new ArrayList<>();
