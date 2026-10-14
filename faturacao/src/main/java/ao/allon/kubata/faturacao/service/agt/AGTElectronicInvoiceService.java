@@ -6,6 +6,7 @@ import ao.allon.kubata.faturacao.domain.enums.DocumentStatus;
 import ao.allon.kubata.faturacao.service.agt.dto.AGTInvoiceSubmissionRequest;
 import ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -22,6 +23,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -30,6 +32,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -49,6 +53,9 @@ public class AGTElectronicInvoiceService {
 
     @Value("${agt.api.url:https://sifphml.minfin.gov.ao/sigt/fe/v1}")
     private String agtApiUrl;
+
+    @Value("${agt.series.api.url:}")
+    private String agtSeriesApiUrl;
 
     @Value("${agt.api.username:}")
     private String agtApiUsername;
@@ -284,6 +291,167 @@ public class AGTElectronicInvoiceService {
             throw new IllegalStateException("Erro ao consultar o estado do pedido AGT.", e);
         }
     }
+
+    /**
+     * Solicita à AGT uma série fiscal electrónica e devolve exclusivamente a
+     * autorização recebida no serviço oficial. Nunca gera códigos nem intervalos
+     * fictícios quando a API está desactivada ou em modo de simulação.
+     *
+     * A documentação pública da AGT apresenta URLs diferentes para homologação
+     * e produção; em homologação deve ser configurado o endpoint exacto fornecido
+     * pela AGT através de KUBATA_AGT_SERIES_API_URL.
+     */
+    public AgtSeriesAuthorization solicitarSerieAgt(
+            int seriesYear,
+            String documentType,
+            String establishmentNumber,
+            String contingencyIndicator) {
+        if (!agtApiEnabled) {
+            throw new IllegalStateException("A solicitação de séries AGT exige KUBATA_AGT_API_ENABLED=true.");
+        }
+        validarCredenciaisAgt();
+        signatureService.assertProductionReady();
+
+        if (softwareValidationNumber == null || softwareValidationNumber.isBlank()) {
+            throw new IllegalStateException("O número oficial de validação do software AGT está em falta.");
+        }
+        if (emitterNif == null || emitterNif.isBlank()) {
+            throw new IllegalStateException("O NIF real do emitente está em falta.");
+        }
+        if (documentType == null || !documentType.matches("[A-Z]{2}")) {
+            throw new IllegalArgumentException("Tipo de documento AGT inválido.");
+        }
+        if (seriesYear < 2000 || seriesYear > 2200) {
+            throw new IllegalArgumentException("Ano fiscal inválido.");
+        }
+        if (establishmentNumber == null || establishmentNumber.isBlank()
+                || establishmentNumber.length() > 200) {
+            throw new IllegalArgumentException("O código do estabelecimento AGT é obrigatório (ou SEDE quando permitido pela AGT).");
+        }
+        if (!"N".equals(contingencyIndicator) && !"C".equals(contingencyIndicator)) {
+            throw new IllegalArgumentException("O indicador de contingência deve ser N ou C.");
+        }
+
+        try {
+            int signatureVersionValue = signatureVersion == null ? 1 : signatureVersion;
+            Map<String, Object> softwareDetail = new LinkedHashMap<>();
+            softwareDetail.put("productId", productId);
+            softwareDetail.put("productVersion", productVersion);
+            softwareDetail.put("softwareValidationNumber", softwareValidationNumber);
+            softwareDetail.put("signatureVersion", signatureVersionValue);
+
+            Map<String, Object> softwareInfo = new LinkedHashMap<>();
+            softwareInfo.put("softwareInfoDetail", softwareDetail);
+            softwareInfo.put("jwsSoftwareSignature", signatureService.signJwsPayload(softwareDetail));
+
+            // A assinatura abrange os campos da solicitação fiscal e usa a mesma
+            // representação de valores que será transmitida no envelope.
+            Map<String, Object> signedSeriesFields = new LinkedHashMap<>();
+            signedSeriesFields.put("taxRegistrationNumber", emitterNif);
+            signedSeriesFields.put("establishmentNumber", establishmentNumber);
+            signedSeriesFields.put("seriesYear", seriesYear);
+            signedSeriesFields.put("documentType", documentType);
+            signedSeriesFields.put("seriesContingencyIndicator", contingencyIndicator);
+
+            Map<String, Object> request = new LinkedHashMap<>();
+            request.put("schemaVersion", "1.2");
+            request.put("submissionUUID", UUID.randomUUID().toString());
+            request.put("taxRegistrationNumber", emitterNif);
+            request.put("submissionTimeStamp", OffsetDateTime.now(ZoneOffset.UTC)
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+            request.put("softwareInfo", softwareInfo);
+            request.put("seriesYear", seriesYear);
+            request.put("documentType", documentType);
+            request.put("establishmentNumber", establishmentNumber);
+            request.put("seriesContingencyIndicator", contingencyIndicator);
+            request.put("jwsSignature", signatureService.signJwsPayload(signedSeriesFields));
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setBasicAuth(agtApiUsername, agtApiPassword, StandardCharsets.UTF_8);
+
+            ResponseEntity<JsonNode> response = restTemplate.exchange(
+                obterUrlSolicitacaoSerie(),
+                HttpMethod.POST,
+                new HttpEntity<>(request, headers),
+                JsonNode.class
+            );
+
+            JsonNode body = response.getBody();
+            if (body == null) {
+                throw new IllegalStateException("A AGT devolveu uma resposta vazia ao solicitar a série.");
+            }
+            JsonNode seriesResult = body.get("seriesFEResult");
+            if (seriesResult == null || !seriesResult.isObject()) {
+                String errors = body.has("errorList") ? body.get("errorList").toString() : body.toString();
+                throw new IllegalStateException("A AGT não autorizou a série: " + errors);
+            }
+
+            String seriesCode = requiredJsonText(seriesResult, "seriesCode");
+            long authorizedQuantity = parsePositiveLong(requiredJsonText(seriesResult, "authorizedQuantity"), "authorizedQuantity");
+            long firstDocumentNumber = extractDocumentSequence(requiredJsonText(seriesResult, "firstDocumentNo"), "firstDocumentNo");
+            long lastDocumentNumber = extractDocumentSequence(requiredJsonText(seriesResult, "lastDocumentNo"), "lastDocumentNo");
+
+            if (seriesCode.length() > 60 || lastDocumentNumber < firstDocumentNumber) {
+                throw new IllegalStateException("A AGT devolveu um código ou intervalo de numeração inválido.");
+            }
+
+            return new AgtSeriesAuthorization(
+                seriesCode, authorizedQuantity, firstDocumentNumber, lastDocumentNumber,
+                establishmentNumber, contingencyIndicator, seriesYear, documentType
+            );
+        } catch (org.springframework.web.client.RestClientException e) {
+            throw new IllegalStateException("Falha de comunicação ao solicitar uma série fiscal à AGT.", e);
+        }
+    }
+
+    private String obterUrlSolicitacaoSerie() {
+        if (agtSeriesApiUrl != null && !agtSeriesApiUrl.isBlank()) {
+            return agtSeriesApiUrl.trim();
+        }
+        if (normalizarBaseUrl().contains("sifphml.minfin.gov.ao")) {
+            throw new IllegalStateException(
+                "Configure KUBATA_AGT_SERIES_API_URL com o endpoint de homologação confirmado pela AGT.");
+        }
+        return normalizarBaseUrl() + "/solicitarSerie";
+    }
+
+    private String requiredJsonText(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        if (value == null || value.isNull() || value.asText().isBlank()) {
+            throw new IllegalStateException("A resposta AGT não contém o campo obrigatório " + field + ".");
+        }
+        return value.asText().trim();
+    }
+
+    private long parsePositiveLong(String value, String field) {
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed <= 0) throw new NumberFormatException("must be positive");
+            return parsed;
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Campo AGT " + field + " deve ser um número inteiro positivo.", e);
+        }
+    }
+
+    private long extractDocumentSequence(String documentNo, String field) {
+        Matcher matcher = Pattern.compile("(\\d+)$").matcher(documentNo.trim());
+        if (!matcher.find()) {
+            throw new IllegalStateException("Campo AGT " + field + " não termina num número sequencial: " + documentNo);
+        }
+        return parsePositiveLong(matcher.group(1), field);
+    }
+
+    public record AgtSeriesAuthorization(
+            String seriesCode,
+            long authorizedQuantity,
+            long firstDocumentNumber,
+            long lastDocumentNumber,
+            String establishmentNumber,
+            String contingencyIndicator,
+            int seriesYear,
+            String documentType) {}
 
     public String getPublicConsultationUrl(Fatura fatura) {
         if (fatura.getAgtValidationCode() == null) return null;
