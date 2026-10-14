@@ -18,4 +18,6 @@ public interface SerieRepository extends JpaRepository<Serie, Long> {
     Optional<Serie> findByTipoDocumentoAndPadraoTrue(TipoDocumento tipoDocumento);
     
     boolean existsByDesignacaoAndTipoDocumentoAndAno(String designacao, TipoDocumento tipoDocumento, Integer ano);
+
+    Optional<Serie> findByDesignacaoAndTipoDocumentoAndAno(String designacao, TipoDocumento tipoDocumento, Integer ano);
 }
