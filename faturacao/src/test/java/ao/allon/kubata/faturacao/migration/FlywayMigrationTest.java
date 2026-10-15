@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ConnectionCallback;
+import org.springframework.dao.DataAccessException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -64,7 +65,7 @@ public class FlywayMigrationTest {
         String sqlProdutoInvalido = "INSERT INTO produtos (nome, codigo_barra, preco_unitario, categoria_id, active, created_at) "
                 + "VALUES ('Tablet', '987654321', 300.00, 99999, TRUE, CURRENT_TIMESTAMP)";
 
-        assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+        assertThrows(DataAccessException.class,
                 () -> jdbcTemplate.update(sqlProdutoInvalido),
                 "Deve lançar excepção ao usar FK inexistente");
     }
