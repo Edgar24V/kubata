@@ -194,7 +194,13 @@ public class FaturasController {
                         return false;
                     }
                     try {
-                        faturaService.cancelarFatura(selecionada.getId(), motivo);
+                        if (selecionada.getStatus() == StatusFatura.RASCUNHO) {
+                            faturaService.descartarRascunho(selecionada.getId());
+                        } else {
+                            var motivoFiscal = ao.allon.kubata.faturacao.ui.util.FaturaCancellationUtils.escolherMotivoFiscal();
+                            if (motivoFiscal.isEmpty()) return false;
+                            faturaService.cancelarFatura(selecionada.getId(), motivo, motivoFiscal.get());
+                        }
                         carregarFaturas();
                         return true;
                     } catch (Exception e) {
