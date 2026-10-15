@@ -69,6 +69,8 @@ class GuiaRemessaModuleTest {
         it.setQuantidade(2);
         it.setPrecoUnitario(new BigDecimal("1000.00"));
         it.setPercentualIva(BigDecimal.ZERO);
+        it.setCodigoIsencao("M00");
+        it.setMotivoIsencao("Isenção aplicável à guia de remessa em teste");
         guia.addItem(it);
 
         when(faturaRepository.save(any(Fatura.class))).thenAnswer(inv -> inv.getArgument(0));
