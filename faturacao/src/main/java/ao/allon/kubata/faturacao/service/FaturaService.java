@@ -302,11 +302,6 @@ public class FaturaService {
         if (fatura.getStatus() != StatusFatura.RASCUNHO) {
             throw new IllegalStateException("Só é possível emitir documentos que estejam em rascunho.");
         }
-        if (fatura.getTipoDocumento() == TipoDocumento.ORCAMENTO
-                || fatura.getTipoDocumento() == TipoDocumento.PRO_FORMA
-                || fatura.getTipoDocumento() == TipoDocumento.ENCOMENDA) {
-            throw new IllegalStateException("Orçamentos, pro-formas e encomendas devem ser convertidos antes de uma emissão fiscal.");
-        }
         if (fatura.getCliente() == null) {
             throw new IllegalArgumentException("Seleccione um cliente antes de emitir o documento.");
         }
@@ -331,6 +326,35 @@ public class FaturaService {
         fatura.recalculateTotals();
         if (fatura.getTotal() == null || fatura.getTotal().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("O total do documento deve ser superior a zero.");
+        }
+
+        // Orçamentos, encomendas e pró-formas podem ser emitidos comercialmente,
+        // mas nunca passam pelo fluxo fiscal, não são enviados à AGT e não movem stock.
+        if (fatura.getTipoDocumento() == TipoDocumento.ORCAMENTO
+                || fatura.getTipoDocumento() == TipoDocumento.PRO_FORMA
+                || fatura.getTipoDocumento() == TipoDocumento.ENCOMENDA) {
+            Serie serieComercial = fatura.getSerie();
+            if (serieComercial == null) {
+                serieComercial = serieService.findPadrao(fatura.getTipoDocumento())
+                        .orElseGet(() -> serieService.criarSeriePadrao(fatura.getTipoDocumento()));
+                fatura.setSerie(serieComercial);
+            }
+            if (serieComercial.getTipoDocumento() != fatura.getTipoDocumento()) {
+                throw new IllegalArgumentException("A série seleccionada não pertence ao tipo do documento comercial.");
+            }
+            if (fatura.getNumeroSequencial() == null) {
+                Long sequencial = serieService.getProximoNumero(serieComercial);
+                fatura.setNumeroSequencial(sequencial);
+                fatura.setNumero(String.format("%s %s/%d",
+                        fatura.getTipoDocumento().getCodigo(), serieComercial.getDesignacao(), sequencial));
+            }
+            fatura.setDataEmissao(LocalDate.now());
+            fatura.setSystemEntryDate(LocalDateTime.now());
+            fatura.setStatus(StatusFatura.EMITIDA);
+            fatura.setAgtSubmissionStatus("NOT_APPLICABLE");
+            fatura.setAgtValidationCode(null);
+            fatura.setAgtSubmissionDate(null);
+            return;
         }
 
         // Se a integração real estiver activada, bloquear antes de consumir o número da série.
