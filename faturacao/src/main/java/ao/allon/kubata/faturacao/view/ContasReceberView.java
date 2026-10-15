@@ -320,11 +320,20 @@ public class ContasReceberView extends BorderPane {
             .withConfirmButton("Confirmar", () -> {
                 try {
                     BigDecimal valor = new BigDecimal(txtValor.getText().replace(",", "."));
-                    if (valor.compareTo(BigDecimal.ZERO) <= 0 || valor.compareTo(aberto) > 0) {
-                        throw new IllegalArgumentException("Valor inválido");
+                    if (cbForma.getValue() == null) {
+                        throw new IllegalArgumentException("Seleccione a forma de pagamento.");
                     }
-                    reciboService.registrar(fatura.getId(), valor, txtReferencia.getText(), txtObs.getText());
-                    faturaService.registrarRecebimento(fatura.getId(), valor, txtReferencia.getText());
+                    if (valor.compareTo(BigDecimal.ZERO) <= 0 || valor.compareTo(aberto) > 0) {
+                        throw new IllegalArgumentException("O valor deve ser positivo e não pode exceder o saldo em aberto.");
+                    }
+                    ao.allon.kubata.faturacao.domain.enums.MetodoPagamento metodo = switch (cbForma.getValue()) {
+                        case "Dinheiro" -> ao.allon.kubata.faturacao.domain.enums.MetodoPagamento.DINHEIRO;
+                        case "Transferência" -> ao.allon.kubata.faturacao.domain.enums.MetodoPagamento.TRANSFERENCIA_BANCARIA;
+                        case "POS" -> ao.allon.kubata.faturacao.domain.enums.MetodoPagamento.CARTAO_POS;
+                        case "Cheque" -> ao.allon.kubata.faturacao.domain.enums.MetodoPagamento.CHEQUE;
+                        default -> throw new IllegalArgumentException("Forma de pagamento não suportada.");
+                    };
+                    reciboService.registrar(fatura.getId(), valor, txtReferencia.getText(), txtObs.getText(), metodo);
                     AlertUtils.showInfoAlert("Sucesso", "Recebimento registado.");
                     refreshData();
                     return true;
