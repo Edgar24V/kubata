@@ -261,6 +261,27 @@ class FaturaServiceTest {
     }
 
     @Test
+    void emitirNotaCredito_PorAnulacaoDeveCobrirTodoOSaldoDasLinhas() {
+        fatura.setStatus(StatusFatura.EMITIDA);
+        fatura.getItens().get(0).setId(11L);
+        when(faturaRepository.findByIdWithItensForCreditNote(1L)).thenReturn(Optional.of(fatura));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> faturaService.emitirNotaCredito(
+                        1L,
+                        "Anulação integral",
+                        FinalidadeNotaCredito.ANULACAO,
+                        MeioConhecimentoAdquirente.CORREIO_ELECTRONICO,
+                        "E-mail de confirmação da anulação, referência NC-ANUL-001",
+                        LocalDateTime.now().minusMinutes(1),
+                        List.of(new ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest(
+                                11L, BigDecimal.ONE))));
+
+        assertTrue(exception.getMessage().contains("todo o saldo"));
+        verify(faturaRepository, never()).save(any(Fatura.class));
+    }
+
+    @Test
     void emitirNotaCredito_DeveExigirProvaDoConhecimentoDoAdquirenteAntesDeCarregarFactura() {
         assertThrows(IllegalArgumentException.class, () -> faturaService.emitirNotaCredito(
                 1L,
