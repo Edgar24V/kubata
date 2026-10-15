@@ -1496,8 +1496,38 @@ public class FaturaService {
 
     @Transactional
     public Fatura emitirNotaDebito(Long faturaId, String motivo, List<ItemFatura> itensAdicionais) {
+        if (faturaId == null || faturaId <= 0) {
+            throw new IllegalArgumentException("Seleccione uma factura original válida.");
+        }
         Fatura faturaOriginal = faturaRepository.findById(faturaId)
-                .orElseThrow(() -> new IllegalArgumentException("Fatura original não encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException("Factura original não encontrada."));
+
+        if (faturaOriginal.getStatus() != StatusFatura.EMITIDA
+                && faturaOriginal.getStatus() != StatusFatura.PAGA) {
+            throw new IllegalStateException(
+                    "A nota de débito exige um documento original emitido ou pago; estado actual: "
+                    + faturaOriginal.getStatus());
+        }
+        TipoDocumento tipoOriginal = faturaOriginal.getTipoDocumento();
+        if (tipoOriginal != TipoDocumento.FATURA
+                && tipoOriginal != TipoDocumento.FATURA_RECIBO
+                && tipoOriginal != TipoDocumento.VENDA_A_DINHEIRO
+                && tipoOriginal != TipoDocumento.AUTO_FATURA) {
+            throw new IllegalStateException(
+                    "O tipo de documento original não admite nota de débito neste fluxo.");
+        }
+        if (faturaOriginal.getCliente() == null) {
+            throw new IllegalStateException("A factura original não tem cliente associado.");
+        }
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("Indique o motivo da nota de débito para fins de auditoria.");
+        }
+        if (itensAdicionais == null || itensAdicionais.isEmpty()) {
+            throw new IllegalArgumentException("A nota de débito deve conter pelo menos uma linha.");
+        }
+        if (itensAdicionais.stream().anyMatch(java.util.Objects::isNull)) {
+            throw new IllegalArgumentException("A nota de débito contém uma linha vazia.");
+        }
 
         Fatura notaDebito = new Fatura();
         notaDebito.setTipoDocumento(TipoDocumento.NOTA_DEBITO);
