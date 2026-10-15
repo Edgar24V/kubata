@@ -6,6 +6,9 @@ import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.Cliente;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.EstadoDocumento;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
+import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.ClienteService;
 import ao.allon.kubata.faturacao.service.SessionManager;
@@ -955,37 +958,107 @@ public class FaturasView extends BorderPane {
     }
 
     private void emitirNotaCredito() {
-        Fatura f = getSelectedFatura();
-        if (f == null) {
-            AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura.");
+        Fatura seleccionada = getSelectedFatura();
+        if (seleccionada == null) {
+            AlertUtils.showWarningAlert("Aviso", "Seleccione uma factura.");
             return;
         }
 
-        TextField motivoField = new TextField();
-        motivoField.setPromptText("Motivo da nota de crédito");
-        VBox content = new VBox(8, new Label("Motivo"), motivoField);
+        ComboBox<FinalidadeNotaCredito> finalidadeField = new ComboBox<>(
+                FXCollections.observableArrayList(FinalidadeNotaCredito.values()));
+        finalidadeField.setValue(FinalidadeNotaCredito.ANULACAO);
+        finalidadeField.setMaxWidth(Double.MAX_VALUE);
+
+        TextArea motivoField = new TextArea();
+        motivoField.setPromptText("Motivo concreto da anulação total (obrigatório)");
+        motivoField.setPrefRowCount(3);
+
+        ComboBox<MeioConhecimentoAdquirente> meioField = new ComboBox<>(
+                FXCollections.observableArrayList(MeioConhecimentoAdquirente.values()));
+        meioField.setPromptText("Meio de conhecimento do adquirente");
+        meioField.setMaxWidth(Double.MAX_VALUE);
+
+        TextArea comprovativoField = new TextArea();
+        comprovativoField.setPromptText(
+                "Referência verificável de carta/e-mail, assinatura com nome e NIF, carimbo ou outra prova");
+        comprovativoField.setPrefRowCount(2);
+
+        DatePicker dataConhecimentoField = new DatePicker(LocalDate.now());
+        dataConhecimentoField.setMaxWidth(Double.MAX_VALUE);
+
+        VBox content = new VBox(8,
+                new Label("Finalidade"), finalidadeField,
+                new Label("Motivo concreto"), motivoField,
+                new Label("Como o adquirente tomou conhecimento"), meioField,
+                new Label("Comprovativo / referência documental"), comprovativoField,
+                new Label("Data de conhecimento do adquirente"), dataConhecimentoField);
         content.setPadding(new Insets(10));
 
         modalService.create()
-            .title("Nota de Crédito")
+            .title("Emitir Nota de Crédito")
             .content(content)
-            .autoSize()
-            .withConfirmButton("Confirmar", () -> {
-                String loadingId = loadingService.showLoading("Emitindo nota de crédito...", LoadingScreen.LoadingStyle.SPINNER);
-                
+            .dynamicSize()
+            .withConfirmButton("Emitir nota de crédito", () -> {
+                String motivo = motivoField.getText();
+                String comprovativo = comprovativoField.getText();
+                LocalDate dataConhecimento = dataConhecimentoField.getValue();
+                if (finalidadeField.getValue() == null || meioField.getValue() == null
+                        || motivo == null || motivo.isBlank()
+                        || comprovativo == null || comprovativo.isBlank()
+                        || comprovativo.trim().length() > 1000
+                        || dataConhecimento == null || dataConhecimento.isAfter(LocalDate.now())
+                        || (seleccionada.getDataEmissao() != null
+                            && dataConhecimento.isBefore(seleccionada.getDataEmissao()))) {
+                    AlertUtils.showWarningAlert("Dados obrigatórios",
+                            "Preencha finalidade, motivo, meio e comprovativo (até 1000 caracteres), com data entre a emissão da factura e hoje.");
+                    return false;
+                }
+
+                String loadingId = loadingService.showLoading(
+                        "A validar e emitir nota de crédito...", LoadingScreen.LoadingStyle.SPINNER);
                 new Thread(() -> {
                     try {
-                        faturaService.emitirNotaCredito(f.getId(), motivoField.getText());
+                        Fatura original = faturaService.findFaturaParaImpressao(seleccionada.getId())
+                                .orElseThrow(() -> new IllegalStateException("Factura original não encontrada."));
+                        if (original.getItens() == null || original.getItens().isEmpty()) {
+                            throw new IllegalStateException("A factura original não contém linhas para creditar.");
+                        }
+                        java.util.List<NotaCreditoItemRequest> linhas = new java.util.ArrayList<>();
+                        for (ao.allon.kubata.faturacao.domain.ItemFatura item : original.getItens()) {
+                            if (item.getId() == null) {
+                                throw new IllegalStateException(
+                                        "A factura contém uma linha sem ID persistido. Reconcilie-a antes de emitir a Nota de Crédito.");
+                            }
+                            BigDecimal quantidade = item.getQuantidadeDecimal() != null
+                                    ? item.getQuantidadeDecimal()
+                                    : BigDecimal.valueOf(item.getQuantidade() == null ? 0 : item.getQuantidade());
+                            if (quantidade.signum() <= 0) {
+                                throw new IllegalStateException(
+                                        "A factura contém uma quantidade inválida. Não foi possível emitir a Nota de Crédito.");
+                            }
+                            linhas.add(new NotaCreditoItemRequest(item.getId(), quantidade));
+                        }
+                        faturaService.emitirNotaCredito(
+                                original.getId(),
+                                motivo.trim(),
+                                finalidadeField.getValue(),
+                                meioField.getValue(),
+                                comprovativo.trim(),
+                                dataConhecimento.atStartOfDay(),
+                                linhas);
                         Platform.runLater(() -> {
                             loadData();
                             refreshKPIs();
+                            AlertUtils.showInfoAlert("Sucesso",
+                                    "Nota de Crédito emitida. A factura original permanece no histórico e o documento fiscal mantém a referência.");
                         });
                     } catch (Exception ex) {
-                        Platform.runLater(() -> AlertUtils.showExceptionAlert("Erro", "Não foi possível emitir.", ex));
+                        Platform.runLater(() -> AlertUtils.showExceptionAlert(
+                                "Erro", "Não foi possível emitir a Nota de Crédito.", ex));
                     } finally {
                         Platform.runLater(() -> loadingService.hideLoading(loadingId));
                     }
-                }).start();
+                }, "kubata-emissao-nota-credito").start();
                 return true;
             })
             .withCancelButton("Cancelar")
