@@ -38,6 +38,13 @@ public class FlywayMigrationTest {
     }
 
     @Test
+    public void testReturnLineStoresReferenceToOriginalInvoiceLine() {
+        assertDoesNotThrow(() -> jdbcTemplate.queryForList(
+                "SELECT item_fatura_origem_id FROM itens_devolucao WHERE 1 = 0"),
+                "A migração deve adicionar a referência da linha original às devoluções.");
+    }
+
+    @Test
     public void testReferentialIntegrity() {
         // Os testes de migração correm com SQLite neste perfil; o perfil test-pg usa H2.
         // Cada motor tem o seu comando de activação de chaves estrangeiras.
