@@ -102,23 +102,11 @@ public class AGTInvoiceMapperService {
         if (fatura.getDataEmissao() == null || fatura.getSystemEntryDate() == null) {
             throw new IllegalStateException("Data de emissão e data de gravação são obrigatórias para a AGT.");
         }
-        boolean receiptType = fatura.getTipoDocumento() == TipoDocumento.RECIBO;
-        if (!receiptType && (fatura.getItens() == null || fatura.getItens().isEmpty())) {
+        // TipoDocumento.RECIBO representa RC (recibo em numerário). O contrato
+        // AGT reserva paymentReceipt para AR/RG, que ainda não são tipos explícitos
+        // no domínio do Kubata. Por isso RC é enviado como documento com linhas.
+        if (fatura.getItens() == null || fatura.getItens().isEmpty()) {
             throw new IllegalStateException("O documento deve conter linhas de artigos ou serviços para a AGT.");
-        }
-        Fatura sourceForReceipt = null;
-        if (receiptType) {
-            sourceForReceipt = resolveSourceDocument(fatura);
-            if (fatura.getTotal() == null || sourceForReceipt.getTotal() == null
-                    || fatura.getTotal().compareTo(sourceForReceipt.getTotal()) != 0
-                    || fatura.getSubtotal() == null || sourceForReceipt.getSubtotal() == null
-                    || fatura.getSubtotal().compareTo(sourceForReceipt.getSubtotal()) != 0
-                    || fatura.getIva() == null || sourceForReceipt.getIva() == null
-                    || fatura.getIva().compareTo(sourceForReceipt.getIva()) != 0) {
-                throw new IllegalStateException(
-                    "O recibo RC só pode ser submetido quando subtotal, IVA e total corresponderem integralmente ao documento de origem. "
-                    + "Recibos parciais e reconciliações com valores divergentes ainda não são suportados.");
-            }
         }
         DocumentDTO dto = new DocumentDTO();
 
@@ -169,11 +157,9 @@ public class AGTInvoiceMapperService {
         }
         dto.setCompanyName(buyerName);
         dto.setEacCode(fatura.getEacCode());
-        if (receiptType) {
-            dto.setPaymentReceipt(createPaymentReceipt(fatura, sourceForReceipt));
-        } else {
-            dto.setLines(mapLines(fatura.getItens()));
-        }
+        // RC usa linhas; paymentReceipt só deve ser emitido quando o domínio
+        // suportar explicitamente AR (aviso de cobrança/recibo) ou RG (recibo geral).
+        dto.setLines(mapLines(fatura.getItens()));
         if (fatura.getTipoDocumento() == TipoDocumento.NOTA_CREDITO
                 || fatura.getTipoDocumento() == TipoDocumento.NOTA_DEBITO) {
             Fatura source = resolveSourceDocument(fatura);
@@ -358,9 +344,6 @@ public class AGTInvoiceMapperService {
         return totals;
     }
 
-    /**
-     * Cria o paymentReceipt para Fatura/Recibo (FR).
-     */
     private Fatura resolveSourceDocument(Fatura fatura) {
         Fatura source = fatura.getFaturaReferencia();
         if (source == null) source = fatura.getFaturaOriginal();
@@ -370,30 +353,6 @@ public class AGTInvoiceMapperService {
                 "Este documento exige uma factura/documento de origem persistido e identificado.");
         }
         return source;
-    }
-
-    private PaymentReceiptDTO createPaymentReceipt(Fatura recibo, Fatura source) {
-        if (source == null) {
-            throw new IllegalStateException("O recibo AGT necessita de um documento de origem.");
-        }
-        BigDecimal amountPaid = recibo.getTotal();
-        if (amountPaid == null || amountPaid.signum() <= 0) {
-            throw new IllegalStateException("O valor do recibo deve ser positivo.");
-        }
-
-        PaymentReceiptDTO receipt = new PaymentReceiptDTO();
-        List<PaymentReceiptDTO.SourceDocumentDTO> sourceDocuments = new ArrayList<>();
-        PaymentReceiptDTO.SourceDocumentDTO sourceDoc = new PaymentReceiptDTO.SourceDocumentDTO();
-        sourceDoc.setLineNo(1);
-        sourceDoc.setCreditAmount(amountPaid);
-
-        PaymentReceiptDTO.SourceDocumentIDDTO sourceDocId = new PaymentReceiptDTO.SourceDocumentIDDTO();
-        sourceDocId.setOriginatingON(source.getNumero());
-        sourceDocId.setDocumentDate(source.getDataEmissao().format(DATE_FORMATTER));
-        sourceDoc.setSourceDocumentID(sourceDocId);
-        sourceDocuments.add(sourceDoc);
-        receipt.setSourceDocuments(sourceDocuments);
-        return receipt;
     }
 
     /**
