@@ -478,6 +478,55 @@ public class FaturaService {
         return faturaRepository.save(fatura);
     }
 
+    /**
+     * Consulta o estado fiscal directamente pelo número do documento quando
+     * não existe requestID local (por exemplo, uma falha de rede após o envio).
+     * Só actualiza o estado local quando a AGT confirma explicitamente V ou P.
+     * Erros ou respostas ambíguas ficam para reconciliação manual: nunca reenvia
+     * automaticamente um documento cujo resultado remoto é desconhecido.
+     */
+    @Transactional
+    public com.fasterxml.jackson.databind.JsonNode consultarFacturaAgt(Long faturaId) {
+        Fatura fatura = faturaRepository.findById(faturaId)
+            .orElseThrow(() -> new IllegalArgumentException("Factura não encontrada: " + faturaId));
+        if (fatura.getNumero() == null || fatura.getNumero().isBlank()
+                || fatura.getStatus() == StatusFatura.RASCUNHO) {
+            throw new IllegalStateException(
+                "A consulta fiscal exige um documento emitido com número definitivo.");
+        }
+
+        com.fasterxml.jackson.databind.JsonNode response =
+            agtElectronicInvoiceService.consultarFactura(fatura.getNumero());
+        if (response == null || response.isNull() || response.isMissingNode()) {
+            throw new IllegalStateException("A AGT não devolveu dados para a factura consultada.");
+        }
+
+        com.fasterxml.jackson.databind.JsonNode statusResult = response.findValue("statusFEResult");
+        if (statusResult == null && response.has("validationStatus")) {
+            statusResult = response;
+        }
+        if (statusResult == null || statusResult.isNull()) {
+            // Inclui E93/documento desconhecido e respostas com erros de chamada:
+            // não concluir que o documento não existe nem reenviar automaticamente.
+            return response;
+        }
+
+        String numeroDevolvido = statusResult.path("documentNo").asText("");
+        if (!numeroDevolvido.isBlank() && !fatura.getNumero().equals(numeroDevolvido)) {
+            throw new IllegalStateException(
+                "A AGT devolveu o documento '" + numeroDevolvido
+                + "', diferente do documento consultado '" + fatura.getNumero() + "'.");
+        }
+
+        String validationStatus = statusResult.path("validationStatus").asText("");
+        if ("V".equalsIgnoreCase(validationStatus) || "P".equalsIgnoreCase(validationStatus)) {
+            fatura.setAgtSubmissionStatus("SUCCESS");
+            fatura.setAgtSubmissionDate(LocalDateTime.now());
+            faturaRepository.save(fatura);
+        }
+        return response;
+    }
+
     private void processarEmissao(Fatura fatura) {
         if (fatura.getStatus() != StatusFatura.RASCUNHO) {
             throw new IllegalStateException(
