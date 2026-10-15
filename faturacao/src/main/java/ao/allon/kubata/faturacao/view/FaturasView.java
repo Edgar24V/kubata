@@ -5,6 +5,7 @@ import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.Cliente;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
+import ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason;
 import ao.allon.kubata.faturacao.domain.enums.EstadoDocumento;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.ClienteService;
@@ -505,6 +506,7 @@ public class FaturasView extends BorderPane {
                     case "PENDING" -> "⏳";
                     case "SUCCESS" -> "✓";
                     case "FAILED" -> "✗";
+                    case "SIMULATED" -> "≈";
                     default -> "-";
                 };
             });
@@ -526,6 +528,7 @@ public class FaturasView extends BorderPane {
                             case "PENDING" -> "Pendente";
                             case "SUCCESS" -> "Validado: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
                             case "FAILED" -> "Falhou";
+                            case "SIMULATED" -> "Modo de simulação — não submetida nem validada pela AGT";
                             default -> "Não submetido";
                         };
                         setTooltip(new Tooltip(tooltipText));
@@ -534,6 +537,7 @@ public class FaturasView extends BorderPane {
                             case "PENDING" -> setTextFill(Color.ORANGE);
                             case "SUCCESS" -> setTextFill(Color.GREEN);
                             case "FAILED" -> setTextFill(Color.RED);
+                            case "SIMULATED" -> setTextFill(Color.GRAY);
                             default -> setTextFill(Color.BLACK);
                         }
                     }
@@ -845,42 +849,64 @@ public class FaturasView extends BorderPane {
     private void cancelarFatura() {
         Fatura f = getSelectedFatura();
         if (f == null) {
-            AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura.");
+            AlertUtils.showWarningAlert("Aviso", "Selecione um documento.");
             return;
         }
 
+        boolean rascunho = f.getStatus() == StatusFatura.RASCUNHO;
         TextField txtMotivo = new TextField();
-        txtMotivo.setPromptText("Motivo do cancelamento");
+        txtMotivo.setPromptText("Motivo detalhado da anulação");
+        ComboBox<DocumentCancelReason> cbMotivoFiscal = new ComboBox<>();
+        cbMotivoFiscal.getItems().setAll(DocumentCancelReason.values());
+        cbMotivoFiscal.setPromptText("Seleccione o motivo fiscal");
+        cbMotivoFiscal.setMaxWidth(Double.MAX_VALUE);
+
+        VBox conteudo = rascunho
+                ? new VBox(10, new Label("O documento ainda é um rascunho e será descartado sem uma anulação fiscal."))
+                : new VBox(10, new Label("Motivo detalhado:"), txtMotivo,
+                        new Label("Motivo fiscal obrigatório:"), cbMotivoFiscal);
 
         modalService.create()
-            .title("Cancelar Fatura")
-            .content(new VBox(10, new Label("Informe o motivo:"), txtMotivo))
+            .title(rascunho ? "Descartar Rascunho" : "Anular Documento Fiscal")
+            .content(conteudo)
             .autoSize()
             .withConfirmButton("Confirmar", () -> {
                 String motivo = txtMotivo.getText();
-                if (motivo == null || motivo.trim().isEmpty()) {
-                    AlertUtils.showWarningAlert("Motivo Obrigatório", "Informe o motivo.");
+                DocumentCancelReason motivoFiscal = cbMotivoFiscal.getValue();
+                if (!rascunho && (motivo == null || motivo.trim().isEmpty())) {
+                    AlertUtils.showWarningAlert("Motivo Obrigatório", "Informe o motivo detalhado da anulação.");
                     return false;
                 }
-                
-                String loadingId = loadingService.showLoading("Cancelando fatura...", LoadingScreen.LoadingStyle.SPINNER);
-                
+                if (!rascunho && motivoFiscal == null) {
+                    AlertUtils.showWarningAlert("Motivo Fiscal Obrigatório", "Seleccione um dos motivos fiscais disponíveis.");
+                    return false;
+                }
+
+                String loadingId = loadingService.showLoading(
+                        rascunho ? "A descartar rascunho..." : "A anular documento...",
+                        LoadingScreen.LoadingStyle.SPINNER);
+
                 new Thread(() -> {
                     try {
-                        faturaService.cancelarFatura(f.getId(), motivo);
+                        if (rascunho) {
+                            faturaService.descartarRascunho(f.getId());
+                        } else {
+                            faturaService.cancelarFatura(f.getId(), motivo, motivoFiscal);
+                        }
                         Platform.runLater(() -> {
                             loadData();
                             refreshKPIs();
                         });
                     } catch (Exception ex) {
-                        Platform.runLater(() -> AlertUtils.showExceptionAlert("Erro", "Não foi possível cancelar.", ex));
+                        Platform.runLater(() -> AlertUtils.showExceptionAlert("Erro",
+                                "Não foi possível concluir a operação.", ex));
                     } finally {
                         Platform.runLater(() -> loadingService.hideLoading(loadingId));
                     }
                 }).start();
                 return true;
             })
-            .withCancelButton("Cancelar")
+            .withCancelButton("Voltar")
             .buildAndShow();
     }
 
