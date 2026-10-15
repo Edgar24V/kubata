@@ -1339,7 +1339,7 @@ public class FaturaService {
         if (faturaId == null || faturaId <= 0) {
             throw new IllegalArgumentException("Seleccione uma factura original válida.");
         }
-        Fatura original = faturaRepository.findByIdWithItensForCreditNote(faturaId)
+        Fatura original = faturaRepository.findByIdWithItens(faturaId)
                 .orElseThrow(() -> new IllegalArgumentException("Factura original não encontrada."));
         validarOriginalParaNotaCredito(original);
         if (original.getItens() == null || original.getItens().isEmpty()) {
