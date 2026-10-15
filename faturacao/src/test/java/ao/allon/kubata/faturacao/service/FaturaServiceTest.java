@@ -71,7 +71,7 @@ class FaturaServiceTest {
         Cliente cliente = new Cliente();
         cliente.setId(20L);
         cliente.setNome("Cliente de Teste, Lda.");
-        cliente.setNif("5412345678");
+        cliente.setNif("5412345670");
         cliente.setTipo(TipoCliente.EMPRESA);
         fatura.setCliente(cliente);
 
