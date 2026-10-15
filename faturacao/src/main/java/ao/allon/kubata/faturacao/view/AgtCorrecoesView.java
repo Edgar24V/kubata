@@ -4,6 +4,7 @@ import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
+import ao.allon.kubata.faturacao.domain.enums.TaxExemptionCode;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.SerieService;
 import ao.allon.kubata.faturacao.ui.modal.ModalService;
@@ -30,6 +31,7 @@ public class AgtCorrecoesView extends VBox {
     private Label lblStatusSequencia;
     private TextArea txtLog;
     private ComboBox<Serie> cbSerie;
+    private ComboBox<TaxExemptionCode> cbCodigoIsencao;
 
     public AgtCorrecoesView(FaturaService faturaService, SerieService serieService, ModalService modalService) {
         this.faturaService = faturaService;
@@ -84,13 +86,18 @@ public class AgtCorrecoesView extends VBox {
         VBox body = new VBox(15);
         body.setPadding(new Insets(15));
 
-        Label desc = new Label("Corrigir itens isentos (IVA 0%) sem código de isenção.\n" +
-            "Atribui M00 (Regime Simplificado) aos itens afetados.");
+        Label desc = new Label("Preencher o código fiscal em falta nos itens com IVA a 0%.\n" +
+            "Seleccione o código de acordo com o enquadramento fiscal confirmado. Só rascunhos são alterados; documentos emitidos ou pagos permanecem imutáveis.");
         desc.setWrapText(true);
         desc.getStyleClass().add(Styles.TEXT_SMALL);
 
         TextField txtProduto = new TextField();
         txtProduto.setPromptText("Nome do produto (ex: Bolacha Lulu) - deixe vazio para todos");
+
+        cbCodigoIsencao = new ComboBox<>();
+        cbCodigoIsencao.getItems().setAll(TaxExemptionCode.values());
+        cbCodigoIsencao.setPromptText("Código de isenção fiscal (obrigatório)");
+        cbCodigoIsencao.setMaxWidth(Double.MAX_VALUE);
 
         lblStatusIsencao = new Label("Clique para verificar...");
         lblStatusIsencao.getStyleClass().add(Styles.TEXT_MUTED);
@@ -107,7 +114,7 @@ public class AgtCorrecoesView extends VBox {
 
         HBox buttons = new HBox(10, btnVerificar, btnCorrigir);
 
-        body.getChildren().addAll(desc, txtProduto, lblStatusIsencao, buttons);
+        body.getChildren().addAll(desc, txtProduto, cbCodigoIsencao, lblStatusIsencao, buttons);
         card.setBody(body);
 
         return card;
@@ -169,7 +176,8 @@ public class AgtCorrecoesView extends VBox {
                 // Usar método transacional do serviço
                 int count = faturaService.contarItensSemCodigoIsencao();
                 
-                lblStatusIsencao.setText("Encontrados: " + count + " itens sem código de isenção");
+                lblStatusIsencao.setText("Encontrados: " + count
+                        + " itens sem código. Apenas rascunhos podem ser corrigidos.");
                 if (count > 0) {
                     lblStatusIsencao.getStyleClass().removeAll(Styles.TEXT_MUTED);
                     lblStatusIsencao.getStyleClass().add(Styles.WARNING);
@@ -183,28 +191,37 @@ public class AgtCorrecoesView extends VBox {
     }
 
     private void corrigirItensIsencao(String descricaoProduto) {
-        String produto = descricaoProduto != null && !descricaoProduto.trim().isEmpty() 
-            ? descricaoProduto.trim() 
+        TaxExemptionCode codigo = cbCodigoIsencao.getValue();
+        if (codigo == null) {
+            AlertUtils.showWarning("Código obrigatório",
+                    "Seleccione o código de isenção correcto após confirmar o enquadramento fiscal.");
+            return;
+        }
+
+        String produto = descricaoProduto != null && !descricaoProduto.trim().isEmpty()
+            ? descricaoProduto.trim()
             : null;
-        
-        String mensagem = produto != null 
-            ? "Corrigir itens '" + produto + "' sem código de isenção?"
-            : "Corrigir TODOS os itens sem código de isenção?";
+
+        String mensagem = produto != null
+            ? "Corrigir rascunhos com itens '" + produto + "' sem código de isenção?"
+            : "Corrigir rascunhos com itens sem código de isenção?";
 
         modalService.create()
-            .title("Confirmar Correção")
-            .content(new Label(mensagem + "\n\nSerá atribuído o código M00 (Regime Simplificado)."))
+            .title("Confirmar Correção Fiscal")
+            .content(new Label(mensagem + "\n\nCódigo escolhido: " + codigo
+                    + "\n\nSó os documentos em RASCUNHO serão alterados. Documentos emitidos ou pagos não serão modificados."))
             .autoSize()
             .withConfirmButton("Confirmar", () -> {
                 Platform.runLater(() -> {
                     try {
-                        log("Iniciando correção...");
-                        int corrigidos = faturaService.corrigirItensSemCodigoIsencao(produto);
-                        log("Correção concluída. Itens corrigidos: " + corrigidos);
-                        lblStatusIsencao.setText("Corrigidos: " + corrigidos + " itens");
+                        log("Iniciando correção fiscal de rascunhos com código " + codigo.getCode() + "...");
+                        int corrigidos = faturaService.corrigirItensSemCodigoIsencao(produto, codigo);
+                        log("Correção concluída. Linhas corrigidas em rascunhos: " + corrigidos);
+                        lblStatusIsencao.setText("Rascunhos corrigidos: " + corrigidos + " linhas");
                         lblStatusIsencao.getStyleClass().removeAll(Styles.WARNING);
                         lblStatusIsencao.getStyleClass().add(Styles.SUCCESS);
-                        AlertUtils.showSuccess("Sucesso", corrigidos + " itens corrigidos!");
+                        AlertUtils.showSuccess("Sucesso", corrigidos
+                                + " linhas corrigidas em rascunhos. Confirme os códigos com o responsável fiscal.");
                     } catch (Exception e) {
                         log("Erro na correção: " + e.getMessage());
                         AlertUtils.showError("Erro", e.getMessage());
