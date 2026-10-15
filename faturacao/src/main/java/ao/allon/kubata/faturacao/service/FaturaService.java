@@ -335,13 +335,23 @@ public class FaturaService {
             throw new IllegalStateException("O tipo deste documento não pode ser submetido como factura à AGT.");
         }
         String estadoActual = fatura.getAgtSubmissionStatus();
-        if ("SUBMITTED".equalsIgnoreCase(estadoActual) || "SUCCESS".equalsIgnoreCase(estadoActual)
-                || "REJECTED".equalsIgnoreCase(estadoActual) || "FAILED".equalsIgnoreCase(estadoActual)) {
+        if ("PENDING".equalsIgnoreCase(estadoActual)
+                || "SUBMITTED".equalsIgnoreCase(estadoActual)
+                || "SUCCESS".equalsIgnoreCase(estadoActual)
+                || "REJECTED".equalsIgnoreCase(estadoActual)
+                || "FAILED".equalsIgnoreCase(estadoActual)) {
             throw new IllegalStateException(
-                "Este documento já foi submetido, validado, rejeitado ou tem estado de transmissão incerto. "
-                + "Não reenvie o mesmo número; consulte o requestID se existir ou emita uma correção com nova numeração.");
+                "Este documento já está em submissão, foi submetido, validado, rejeitado ou tem estado de transmissão incerto. "
+                + "Não reenvie o mesmo número; consulte o requestID se existir ou emita uma correcção com nova numeração.");
         }
         agtElectronicInvoiceService.assertReadyForFiscalEmission();
+
+        // Reserva a tentativa na mesma transacção antes de iniciar qualquer chamada remota.
+        // O estado PENDING e o @Version de Fatura evitam cliques repetidos e duas transacções
+        // concorrentes a submeterem o mesmo número fiscal.
+        fatura.setAgtSubmissionStatus("PENDING");
+        fatura.setAgtSubmissionDate(LocalDateTime.now());
+        faturaRepository.save(fatura);
 
         CompletableFuture<AGTResponseDTO> result = new CompletableFuture<>();
         Runnable submit = () -> {
