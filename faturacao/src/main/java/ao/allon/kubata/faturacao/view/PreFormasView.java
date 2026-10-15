@@ -557,7 +557,13 @@ public class PreFormasView extends VBox {
                     try {
                         String motivo = txtMotivo.getText();
                         if (motivo == null || motivo.isEmpty()) return false;
-                        faturaService.cancelarFatura(f.getId(), motivo);
+                        if (f.getStatus() == StatusFatura.RASCUNHO) {
+                            faturaService.descartarRascunho(f.getId());
+                        } else {
+                            var motivoFiscal = ao.allon.kubata.faturacao.ui.util.FaturaCancellationUtils.escolherMotivoFiscal();
+                            if (motivoFiscal.isEmpty()) return false;
+                            faturaService.cancelarFatura(f.getId(), motivo, motivoFiscal.get());
+                        }
                         refreshAsync();
                         return true;
                     } catch (Exception ex) {
