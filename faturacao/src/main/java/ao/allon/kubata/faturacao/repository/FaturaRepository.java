@@ -1,9 +1,11 @@
 package ao.allon.kubata.faturacao.repository;
 
 import ao.allon.kubata.faturacao.domain.Fatura;
+import jakarta.persistence.LockModeType;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -62,6 +64,15 @@ public interface FaturaRepository extends JpaRepository<Fatura, Long> {
 
     @Query("SELECT f FROM Fatura f JOIN FETCH f.itens WHERE f.id = :id")
     Optional<Fatura> findByIdWithItens(@Param("id") Long id);
+
+    /**
+     * Força incremento optimista da versão do documento original ao preparar
+     * uma nota de crédito. Duas correcções concorrentes sobre a mesma factura
+     * não podem confirmar-se simultaneamente.
+     */
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    @Query("SELECT f FROM Fatura f JOIN FETCH f.itens WHERE f.id = :id")
+    Optional<Fatura> findByIdWithItensForCreditNote(@Param("id") Long id);
 
     long countByFaturaReferenciaIdAndTipoDocumentoIn(Long faturaReferenciaId, Collection<TipoDocumento> tipos);
 
