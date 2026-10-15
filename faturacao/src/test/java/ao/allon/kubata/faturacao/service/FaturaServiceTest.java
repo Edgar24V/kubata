@@ -177,6 +177,10 @@ class FaturaServiceTest {
     @Test
     void emitirNotaCredito_DeveDevolverEstoqueESemAlterarFacturaOriginal() {
         fatura.setStatus(StatusFatura.EMITIDA);
+        // O fluxo de nota de crédito exige linhas persistidas e usa uma leitura
+        // versionada para impedir créditos concorrentes da mesma factura.
+        fatura.getItens().get(0).setId(11L);
+        when(faturaRepository.findByIdWithItensForCreditNote(1L)).thenReturn(Optional.of(fatura));
         fatura.setObservacoes("Observação original imutável");
         Serie serieNc = new Serie("2026-NC", TipoDocumento.NOTA_CREDITO, LocalDate.now().getYear());
         serieNc.setId(3L);
