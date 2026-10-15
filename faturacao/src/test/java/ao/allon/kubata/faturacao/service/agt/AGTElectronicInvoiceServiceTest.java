@@ -98,6 +98,44 @@ class AGTElectronicInvoiceServiceTest {
     }
 
     @Test
+    void directInvoiceConsultationMustSignRequestAndUseBasicAuth() {
+        JWSDigitalSignatureService signer = mock(JWSDigitalSignatureService.class);
+        when(signer.signJwsPayload(any())).thenReturn("signed-jws");
+        AGTElectronicInvoiceService service =
+            new AGTElectronicInvoiceService(new AGTInvoiceMapperService(signer), signer);
+
+        ReflectionTestUtils.setField(service, "agtApiEnabled", true);
+        ReflectionTestUtils.setField(service, "agtApiUrl", "https://sifphml.minfin.gov.ao/sigt/fe/v1");
+        ReflectionTestUtils.setField(service, "agtApiUsername", "agt-user");
+        ReflectionTestUtils.setField(service, "agtApiPassword", "agt-pass");
+        ReflectionTestUtils.setField(service, "softwareValidationNumber", "FE/TEST/001");
+        ReflectionTestUtils.setField(service, "emitterNif", "5000000000");
+        ReflectionTestUtils.setField(service, "emitterCompanyName", "Kubata Teste");
+
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(service, "restTemplate");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        String expectedAuthorization = "Basic " + Base64.getEncoder().encodeToString(
+            "agt-user:agt-pass".getBytes(StandardCharsets.UTF_8));
+
+        server.expect(requestTo("https://sifphml.minfin.gov.ao/sigt/fe/v1/consultarFactura"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(header("Authorization", expectedAuthorization))
+            .andExpect(jsonPath("$.schemaVersion").value("2.0"))
+            .andExpect(jsonPath("$.invoiceNo").value("FT 2026/001"))
+            .andExpect(jsonPath("$.jwsSignature").value("signed-jws"))
+            .andRespond(withSuccess(
+                "{\"statusFEResult\":{\"documentNo\":\"FT 2026/001\",\"validationStatus\":\"V\",\"documents\":[]}}",
+                MediaType.APPLICATION_JSON));
+
+        com.fasterxml.jackson.databind.JsonNode response = service.consultarFactura("FT 2026/001");
+
+        assertEquals("V", response.path("statusFEResult").path("validationStatus").asText());
+        server.verify();
+        verify(signer).assertProductionReady();
+        verify(signer, org.mockito.Mockito.times(2)).signJwsPayload(any());
+    }
+
+    @Test
     void registrationMustRejectMoreThanThirtyDocuments() {
         AGTElectronicInvoiceService service = createService(true);
         List<Fatura> documents = IntStream.range(0, 31).mapToObj(i -> new Fatura()).toList();
