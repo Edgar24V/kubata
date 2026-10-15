@@ -82,8 +82,11 @@ public class AGTElectronicInvoiceService {
                 || softwareValidationNumber.toUpperCase(java.util.Locale.ROOT).contains("PLACEHOLDER")) {
             throw new IllegalStateException("O número de validação/certificação do software AGT não está configurado.");
         }
-        if (!signatureService.isConfigured()) {
-            throw new IllegalStateException("Configure o certificado/chave de assinatura autorizado antes de emitir.");
+        try {
+            signatureService.getPrivateKeyForAgtHash();
+        } catch (Exception ex) {
+            throw new IllegalStateException(
+                    "Configure um certificado PKCS#12 real, protegido por palavra-passe, para assinatura fiscal RSA antes de emitir.", ex);
         }
     }
 
