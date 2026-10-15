@@ -1159,9 +1159,11 @@ public class FaturaService {
                 && proForma.getTipoDocumento() != TipoDocumento.ORCAMENTO) {
             throw new IllegalArgumentException("O documento não é uma Pro-forma ou Orçamento");
         }
-        if (proForma.getStatus() == StatusFatura.PROCESSADA) {
+        if (proForma.getStatus() != StatusFatura.RASCUNHO
+                && proForma.getStatus() != StatusFatura.EMITIDA) {
             throw new IllegalStateException(
-                    "Este documento já foi convertido. Não é permitido gerar uma segunda factura.");
+                    "Só é possível converter uma proforma/orçamento em rascunho ou emitido; estado actual: "
+                    + proForma.getStatus());
         }
         if (proForma.getCliente() == null) {
             throw new IllegalStateException(
