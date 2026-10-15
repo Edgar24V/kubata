@@ -1,6 +1,7 @@
 package ao.allon.kubata.faturacao.service;
 
 import ao.allon.kubata.faturacao.domain.Cliente;
+import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Serie;
@@ -29,10 +30,13 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1173,53 +1177,195 @@ public class FaturaService {
         return novaFatura;
     }
 
+    /**
+     * Credita o saldo ainda não creditado de todas as linhas da factura original.
+     * Ao contrário da implementação antiga, nunca emite uma segunda nota pelo
+     * valor total já creditado.
+     */
     @Transactional
     public Fatura emitirNotaCredito(Long faturaId, String motivo) {
-        Fatura faturaOriginal = faturaRepository.findById(faturaId)
-                .orElseThrow(() -> new IllegalArgumentException("Fatura original não encontrada"));
+        Fatura original = carregarOriginalParaNotaCredito(faturaId);
+        validarOriginalParaNotaCredito(original);
+        Map<Long, BigDecimal> jaCreditado = obterQuantidadesJaCreditadas(original);
+        List<NotaCreditoItemRequest> saldo = new ArrayList<>();
+        for (ItemFatura item : original.getItens()) {
+            if (item.getId() == null) {
+                throw new IllegalStateException("A factura original contém uma linha sem ID persistido.");
+            }
+            BigDecimal disponivel = quantidadeComercial(item)
+                    .subtract(jaCreditado.getOrDefault(item.getId(), BigDecimal.ZERO))
+                    .setScale(3, RoundingMode.HALF_UP);
+            if (disponivel.signum() < 0) {
+                throw new IllegalStateException("As notas de crédito existentes excedem a quantidade da linha "
+                        + item.getId() + ". É necessária reconciliação manual.");
+            }
+            if (disponivel.signum() > 0) {
+                saldo.add(new NotaCreditoItemRequest(item.getId(), disponivel));
+            }
+        }
+        if (saldo.isEmpty()) {
+            throw new IllegalStateException("A factura original já foi totalmente creditada.");
+        }
+        return emitirNotaCreditoPreparada(original, motivo, saldo, jaCreditado);
+    }
 
-        if (faturaOriginal.getStatus() != StatusFatura.EMITIDA && faturaOriginal.getStatus() != StatusFatura.PAGA) {
-             throw new IllegalStateException("A fatura original deve estar emitida ou paga");
+    /**
+     * Emite uma nota de crédito parcial para linhas e quantidades explícitas.
+     * Cada linha fica ligada à linha original, para auditoria e controlo do saldo
+     * ainda passível de crédito.
+     */
+    @Transactional
+    public Fatura emitirNotaCredito(Long faturaId, String motivo,
+                                    List<NotaCreditoItemRequest> itensParaCreditar) {
+        Fatura original = carregarOriginalParaNotaCredito(faturaId);
+        validarOriginalParaNotaCredito(original);
+        Map<Long, BigDecimal> jaCreditado = obterQuantidadesJaCreditadas(original);
+        return emitirNotaCreditoPreparada(original, motivo, itensParaCreditar, jaCreditado);
+    }
+
+    private Fatura carregarOriginalParaNotaCredito(Long faturaId) {
+        return faturaRepository.findByIdWithItensForCreditNote(faturaId)
+                .orElseThrow(() -> new IllegalArgumentException("Factura original não encontrada"));
+    }
+
+    private void validarOriginalParaNotaCredito(Fatura original) {
+        if (original.getStatus() != StatusFatura.EMITIDA && original.getStatus() != StatusFatura.PAGA) {
+            throw new IllegalStateException("A factura original deve estar emitida ou paga.");
+        }
+        TipoDocumento tipo = original.getTipoDocumento();
+        if (tipo != TipoDocumento.FATURA
+                && tipo != TipoDocumento.FATURA_RECIBO
+                && tipo != TipoDocumento.VENDA_A_DINHEIRO
+                && tipo != TipoDocumento.NOTA_DEBITO
+                && tipo != TipoDocumento.AUTO_FATURA) {
+            throw new IllegalStateException("Este tipo de documento não admite nota de crédito neste fluxo.");
+        }
+    }
+
+    private Map<Long, BigDecimal> obterQuantidadesJaCreditadas(Fatura original) {
+        Map<Long, BigDecimal> quantidades = new java.util.LinkedHashMap<>();
+        List<Fatura> notas = faturaRepository.findByFaturaReferenciaIdAndTipoDocumentoInOrderByDataEmissaoAsc(
+                original.getId(), List.of(TipoDocumento.NOTA_CREDITO));
+        if (notas == null) return quantidades;
+
+        for (Fatura nota : notas) {
+            if (nota.getStatus() == StatusFatura.RASCUNHO
+                    || nota.getStatus() == StatusFatura.CANCELADA) {
+                continue;
+            }
+            for (ItemFatura linhaCredito : nota.getItens()) {
+                ItemFatura origem = linhaCredito.getItemReferencia();
+                if (origem == null || origem.getId() == null) {
+                    throw new IllegalStateException("Já existe uma nota de crédito (" + nota.getNumero()
+                            + ") sem referência de linha. Para evitar crédito duplicado, reconcilie esse documento "
+                            + "antes de emitir novas notas de crédito.");
+                }
+                quantidades.merge(origem.getId(), quantidadeComercial(linhaCredito),
+                        (a, b) -> a.add(b).setScale(3, RoundingMode.HALF_UP));
+            }
+        }
+        return quantidades;
+    }
+
+    private Fatura emitirNotaCreditoPreparada(Fatura original, String motivo,
+                                              List<NotaCreditoItemRequest> pedidos,
+                                              Map<Long, BigDecimal> jaCreditado) {
+        if (pedidos == null || pedidos.isEmpty()) {
+            throw new IllegalArgumentException("Seleccione pelo menos uma linha e quantidade para creditar.");
         }
 
-        // Criar Nota de Crédito
+        Map<Long, ItemFatura> linhasOriginais = new java.util.LinkedHashMap<>();
+        for (ItemFatura item : original.getItens()) {
+            if (item.getId() != null) linhasOriginais.put(item.getId(), item);
+        }
+
+        Set<Long> linhasPedido = new HashSet<>();
+        List<ItemFatura> linhasCredito = new ArrayList<>();
+        for (NotaCreditoItemRequest pedido : pedidos) {
+            if (pedido == null) {
+                throw new IllegalArgumentException("A lista de linhas da nota de crédito contém uma entrada vazia.");
+            }
+            Long linhaId = pedido.itemOriginalId();
+            if (!linhasPedido.add(linhaId)) {
+                throw new IllegalArgumentException("A linha " + linhaId + " foi seleccionada mais de uma vez.");
+            }
+
+            ItemFatura origem = linhasOriginais.get(linhaId);
+            if (origem == null) {
+                throw new IllegalArgumentException("A linha " + linhaId
+                        + " não pertence à factura original seleccionada.");
+            }
+
+            BigDecimal quantidade = pedido.quantidade().setScale(3, RoundingMode.UNNECESSARY);
+            if (quantidade.signum() <= 0) {
+                throw new IllegalArgumentException("A quantidade a creditar deve ser maior que zero.");
+            }
+            if (origem.getProduto() != null && quantidade.stripTrailingZeros().scale() > 0) {
+                throw new IllegalArgumentException("A devolução parcial de stock exige unidades inteiras; "
+                        + "a linha " + linhaId + " está ligada a um artigo com stock inteiro.");
+            }
+
+            BigDecimal disponivel = quantidadeComercial(origem)
+                    .subtract(jaCreditado.getOrDefault(linhaId, BigDecimal.ZERO))
+                    .setScale(3, RoundingMode.HALF_UP);
+            if (disponivel.signum() < 0) {
+                throw new IllegalStateException("As notas de crédito existentes excedem a quantidade da linha "
+                        + linhaId + ". É necessária reconciliação manual.");
+            }
+            if (quantidade.compareTo(disponivel) > 0) {
+                throw new IllegalArgumentException("A quantidade a creditar (" + quantidade.toPlainString()
+                        + ") excede o saldo (" + disponivel.toPlainString() + ") da linha " + linhaId + ".");
+            }
+            linhasCredito.add(copiarLinhaParaCredito(origem, quantidade));
+        }
+
         Fatura notaCredito = new Fatura();
         notaCredito.setTipoDocumento(TipoDocumento.NOTA_CREDITO);
-        notaCredito.setCliente(faturaOriginal.getCliente());
-        notaCredito.setFaturaReferencia(faturaOriginal);
-        notaCredito.setMotivoCancelamento(motivo); // Usando campo motivo para retificação
+        notaCredito.setCliente(original.getCliente());
+        notaCredito.setFaturaReferencia(original);
+        notaCredito.setMotivoCancelamento(motivo);
         notaCredito.setDataEmissao(LocalDate.now());
         notaCredito.setDataVencimento(LocalDate.now());
         notaCredito.setStatus(StatusFatura.RASCUNHO);
-        notaCredito.setObservacoes("Nota de Crédito referente à factura " + faturaOriginal.getNumero()
+        notaCredito.setObservacoes("Nota de Crédito referente à factura " + original.getNumero()
                 + (motivo != null && !motivo.isBlank() ? ": " + motivo : ""));
 
-        // Definir Série de Nota de Crédito
         Serie serieNC = serieService.findPadrao(TipoDocumento.NOTA_CREDITO)
                 .orElseGet(() -> serieService.criarSeriePadrao(TipoDocumento.NOTA_CREDITO));
         notaCredito.setSerie(serieNC);
-
-        // Copiar itens (com valores negativos ou positivos? 
-        // Em NC, normalmente os valores são positivos no documento, mas o efeito contabilístico é inverso.
-        // O SAF-T espera valores positivos. O tipo de documento "NC" define a operação.)
-        for (ItemFatura item : faturaOriginal.getItens()) {
-            ItemFatura novoItem = new ItemFatura();
-            novoItem.setProduto(item.getProduto());
-            novoItem.setDescricao(item.getDescricao());
-            novoItem.setQuantidade(item.getQuantidade());
-            novoItem.setPrecoUnitario(item.getPrecoUnitario());
-            novoItem.setTaxaIva(item.getTaxaIva());
-            novoItem.setDesconto(item.getDesconto());
-            novoItem.setCodigoIsencao(item.getCodigoIsencao());
-            novoItem.setMotivoIsencao(item.getMotivoIsencao());
-            notaCredito.addItem(novoItem);
+        for (ItemFatura linha : linhasCredito) {
+            preencherDadosFiscais(linha);
+            notaCredito.addItem(linha);
         }
 
         notaCredito = salvar(notaCredito);
         processarEmissao(notaCredito);
-
-        // O documento emitido permanece imutável. A relação fiscal fica em faturaReferencia.
         return notaCredito;
+    }
+
+    private ItemFatura copiarLinhaParaCredito(ItemFatura origem, BigDecimal quantidade) {
+        ItemFatura linha = new ItemFatura();
+        linha.setItemReferencia(origem);
+        linha.setProduto(origem.getProduto());
+        linha.setDescricao(origem.getDescricao());
+        linha.setQuantidade(Math.max(1, quantidade.setScale(0, RoundingMode.HALF_UP).intValue()));
+        linha.setQuantidadeDecimal(quantidade.setScale(3, RoundingMode.UNNECESSARY));
+        linha.setPrecoUnitario(origem.getPrecoUnitario());
+        linha.setTaxaIva(origem.getTaxaIva());
+        linha.setDesconto(origem.getDesconto());
+        linha.setCodigoIsencao(origem.getCodigoIsencao());
+        linha.setMotivoIsencao(origem.getMotivoIsencao());
+        linha.setPesoUnitario(origem.getPesoUnitario());
+        linha.setLote(origem.getLote());
+        return linha;
+    }
+
+    private BigDecimal quantidadeComercial(ItemFatura item) {
+        BigDecimal quantidade = item.getQuantidadeDecimal();
+        if (quantidade == null) {
+            quantidade = BigDecimal.valueOf(item.getQuantidade() == null ? 0 : item.getQuantidade());
+        }
+        return quantidade.setScale(3, RoundingMode.HALF_UP);
     }
 
     @Transactional
