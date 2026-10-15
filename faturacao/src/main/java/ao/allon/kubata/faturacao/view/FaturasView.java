@@ -1766,6 +1766,9 @@ public class FaturasView extends BorderPane {
             Fatura fatura,
             com.fasterxml.jackson.databind.JsonNode response) {
         com.fasterxml.jackson.databind.JsonNode result = response.findValue("statusFEResult");
+        if (result == null) {
+            result = response.findValue("statusResult");
+        }
         if (result == null && response.has("documentNo")) {
             result = response;
         }
