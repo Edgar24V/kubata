@@ -37,6 +37,13 @@ class FaturaSchemaValidationTest {
     }
 
     @Test
+    void shouldPersistDiscountPercentageInInvoiceLines() throws SQLException {
+        Set<String> columns = readColumns("itens_fatura");
+
+        assertThat(columns).contains("desconto_percentual");
+    }
+
+    @Test
     void shouldKeepSharedCoreUserEntityCompatibleWithStandaloneFaturacaoSchema() throws SQLException {
         Set<String> columns = readColumns("users");
 
