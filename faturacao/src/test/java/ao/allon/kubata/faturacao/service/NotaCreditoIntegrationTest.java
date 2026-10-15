@@ -74,6 +74,7 @@ class NotaCreditoIntegrationTest {
         item.setQuantidade(1);
         item.setPrecoUnitario(new BigDecimal("1000.00"));
         item.setPercentualIva(new BigDecimal("14.00"));
+        item.setId(110L); // Linha persistida: a NC referencia esta linha para limitar créditos.
         faturaOriginal.addItem(item);
         
         // Mock Serie NC
@@ -84,6 +85,8 @@ class NotaCreditoIntegrationTest {
         serieNC.setAtiva(true);
         
         when(faturaRepository.findById(10L)).thenReturn(Optional.of(faturaOriginal));
+        // A consulta dedicada aplica bloqueio optimista na factura que está a ser creditada.
+        when(faturaRepository.findByIdWithItensForCreditNote(10L)).thenReturn(Optional.of(faturaOriginal));
         when(serieService.findPadrao(TipoDocumento.NOTA_CREDITO)).thenReturn(Optional.of(serieNC));
         when(serieService.getProximoNumero(serieNC)).thenReturn(1L);
         when(faturaRepository.save(any(Fatura.class))).thenAnswer(i -> {
