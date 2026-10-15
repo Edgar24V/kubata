@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @ActiveProfiles("test-pg")
@@ -49,9 +50,8 @@ class PostgresMigrationTest {
         String sqlProdutoInvalido = "INSERT INTO produtos (nome, codigo_barra, preco_unitario, categoria_id, active, created_at) "
                 + "VALUES ('Tablet PG', 'PG987654', 300.00, 99999, TRUE, CURRENT_TIMESTAMP)";
 
-        assertTrue(org.springframework.dao.DataIntegrityViolationException.class.isAssignableFrom(
-                assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
-                        () -> jdbcTemplate.update(sqlProdutoInvalido)).getClass()),
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                () -> jdbcTemplate.update(sqlProdutoInvalido),
                 "Deve rejeitar uma categoria inexistente");
     }
 
