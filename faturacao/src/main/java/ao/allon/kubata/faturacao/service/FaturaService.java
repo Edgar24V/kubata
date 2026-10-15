@@ -599,8 +599,12 @@ public class FaturaService {
             }
             
             serieService.atualizarHashAnterior(serie, assinatura);
-            
-            // A JWS oficial da AGT é criada no mapeador após formar o payload do schema.
+
+            // Em produção, validar o payload AGT completo antes de mover stock ou
+            // lançar contabilidade. A transmissão remota ocorre só depois do commit.
+            if (requiresAgtSubmission(tipo) && agtElectronicInvoiceService.isProductionReadinessEnforced()) {
+                agtElectronicInvoiceService.validateInvoiceForFiscalSubmission(fatura);
+            }
             
         } catch (Exception e) {
             throw new IllegalStateException("Erro ao gerar assinatura: " + e.getMessage(), e);
