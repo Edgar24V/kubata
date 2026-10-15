@@ -93,6 +93,7 @@ class DevolucaoServiceTest {
 
     @Test
     void criarSolicitacao_DeveRejeitarLinhaQueNaoPertenceAFactura() {
+        devolucao.setId(null);
         when(faturaService.findByIdWithItens(10L)).thenReturn(Optional.of(faturaOrigem));
         ItemFatura forjada = new ItemFatura();
         forjada.setId(999L);
@@ -104,7 +105,38 @@ class DevolucaoServiceTest {
     }
 
     @Test
+    void criarSolicitacao_DeveReservarQuantidadesDePedidosEmAberto() {
+        devolucao.setId(null);
+        devolucao.getItens().get(0).setQuantidade(2);
+
+        Devolucao existente = new Devolucao();
+        existente.setId(99L);
+        existente.setFaturaOrigem(faturaOrigem);
+        existente.setStatus(StatusDevolucao.APROVADA);
+        ItemDevolucao reservada = new ItemDevolucao();
+        reservada.setItemFaturaOrigem(faturaOrigem.getItens().get(0));
+        reservada.setProduto(faturaOrigem.getItens().get(0).getProduto());
+        reservada.setQuantidade(4);
+        reservada.setValorUnitario(new BigDecimal("12.50"));
+        existente.addItem(reservada);
+        when(devolucaoRepository.findOpenByFaturaOrigem(eq(10L), anyList()))
+                .thenReturn(List.of(existente));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> devolucaoService.criarSolicitacao(devolucao));
+        verify(devolucaoRepository, never()).save(any(Devolucao.class));
+    }
+
+    @Test
+    void criarSolicitacao_DeveRejeitarRegistoComIdFornecidoPeloCliente() {
+        assertThrows(IllegalArgumentException.class,
+                () -> devolucaoService.criarSolicitacao(devolucao));
+        verify(devolucaoRepository, never()).save(any(Devolucao.class));
+    }
+
+    @Test
     void criarSolicitacao_DeveGerarNumeroEDefinirStatusPendente() {
+        devolucao.setId(null);
         when(devolucaoRepository.save(any(Devolucao.class))).thenAnswer(i -> i.getArgument(0));
 
         Devolucao criada = devolucaoService.criarSolicitacao(devolucao);
