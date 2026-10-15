@@ -166,20 +166,43 @@ public class SerieService {
 
     @Transactional(readOnly = true)
     public List<Long> verificarGaps(Serie serie) {
-        List<Long> gaps = new ArrayList<>();
-        if (serie.getUltimoNumero() == 0) return gaps;
-        
-        List<Long> numerosExistentes = faturaRepository.findAllNumerosSequenciaisBySerie(serie);
-        
-        long expected = 1;
-        for (Long numero : numerosExistentes) {
-            while (expected < numero) {
-                gaps.add(expected);
-                expected++;
-            }
-            expected++;
+        if (serie == null) {
+            throw new IllegalArgumentException("Seleccione a série que pretende auditar.");
         }
-        
+
+        List<Long> gaps = new ArrayList<>();
+        long ultimoNumero = serie.getUltimoNumero() == null ? 0L : serie.getUltimoNumero();
+        long primeiroNumero = serie.isAutorizadaAgt()
+                ? serie.getAgtFirstDocumentNumber()
+                : 1L;
+        if (ultimoNumero < primeiroNumero) {
+            return gaps;
+        }
+
+        List<Long> numerosExistentes = faturaRepository.findAllNumerosSequenciaisBySerie(serie);
+        if (numerosExistentes == null) {
+            numerosExistentes = List.of();
+        }
+
+        long esperado = primeiroNumero;
+        for (Long numero : numerosExistentes.stream()
+                .filter(n -> n != null && n >= primeiroNumero && n <= ultimoNumero)
+                .distinct()
+                .sorted()
+                .toList()) {
+            while (esperado < numero && esperado <= ultimoNumero) {
+                gaps.add(esperado++);
+            }
+            if (numero >= esperado) {
+                esperado = numero + 1L;
+            }
+        }
+
+        // Também detectar lacunas no fim da série causadas por falhas depois
+        // da reserva do número e antes da persistência do documento.
+        while (esperado <= ultimoNumero) {
+            gaps.add(esperado++);
+        }
         return gaps;
     }
 
@@ -249,69 +272,26 @@ public class SerieService {
     }
 
     /**
-     * Gera documentos "filler" (NULOS) para preencher gaps na sequência.
-     * Conforme SAF-T AO: documentos reservados mantêm integridade da numeração.
-     * 
-     * @param serie Série com gaps
-     * @param gaps Lista de números ausentes
-     * @return Lista de faturas filler criadas
+     * A criação retroactiva de documentos fiscais NULOS para preencher lacunas
+     * é bloqueada: pode falsificar a data e a causa da ausência, atribuir um
+     * cliente fictício e alterar a sequência fiscal sem evidência auditável.
+     * A reconciliação deve partir dos registos originais e do procedimento
+     * fiscal/AGT aplicável. Este método fica como guarda de compatibilidade.
      */
     @Transactional
     public List<Fatura> gerarDocumentosFiller(Serie serie, List<Long> gaps) {
-        List<Fatura> fillers = new ArrayList<>();
-        
-        // Buscar cliente genérico ou criar referência interna
-        Cliente clienteGenerico = clienteRepository.findByNif("999999999")
-                .orElseGet(() -> {
-                    Cliente c = new Cliente();
-                    c.setNome("CLIENTE INTERNO");
-                    c.setNif("999999999");
-                    return clienteRepository.save(c);
-                });
-        
-        TipoDocumento tipo = serie.getTipoDocumento();
-        
-        for (Long numeroGap : gaps) {
-            Fatura filler = new Fatura();
-            filler.setSerie(serie);
-            filler.setNumeroSequencial(numeroGap);
-            filler.setNumero(String.format("%s %s/%d", tipo.getCodigo(), serie.getDesignacao(), numeroGap));
-            filler.setTipoDocumento(tipo);
-            filler.setCliente(clienteGenerico);
-            filler.setDataEmissao(LocalDate.now());
-            filler.setDataVencimento(LocalDate.now());
-            filler.setStatus(StatusFatura.NULA);
-            filler.setSystemEntryDate(LocalDateTime.now());
-            filler.setTotal(BigDecimal.ZERO);
-            filler.setIva(BigDecimal.ZERO);
-            filler.setTotalRetencao(BigDecimal.ZERO);
-            filler.setObservacoes("Documento reservado para completar sequência (SAF-T AO)");
-            
-            // Adicionar item dummy com valor zero
-            ItemFatura item = new ItemFatura();
-            item.setDescricao("Item reservado");
-            item.setQuantidade(1);
-            item.setPrecoUnitario(BigDecimal.ZERO);
-            item.setTaxaIva(BigDecimal.ZERO);
-            item.setSubtotal(BigDecimal.ZERO);
-            item.setValorIva(BigDecimal.ZERO);
-            item.setTotal(BigDecimal.ZERO);
-            filler.addItem(item);
-            
-            filler = faturaRepository.save(filler);
-            fillers.add(filler);
-            
-            // Atualizar último número da série se necessário
-            if (numeroGap > serie.getUltimoNumero()) {
-                serie.setUltimoNumero(numeroGap);
-            }
+        if (serie == null) {
+            throw new IllegalArgumentException("A série é obrigatória para reconciliar a sequência.");
         }
-        
-        if (!fillers.isEmpty()) {
-            serieRepository.save(serie);
+        if (gaps == null || gaps.isEmpty()) {
+            return List.of();
         }
-        
-        return fillers;
+
+        throw new IllegalStateException(
+                "Não é permitido criar documentos fiscais NULOS automaticamente para preencher lacunas. "
+                + "A numeração da série " + serie.getDesignacao()
+                + " requer reconciliação com registos de auditoria e o procedimento fiscal aplicável. "
+                + "Nenhum documento ou cliente foi criado.");
     }
 
     /**
