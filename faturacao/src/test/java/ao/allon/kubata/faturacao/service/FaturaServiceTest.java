@@ -11,6 +11,8 @@ import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TaxExemptionCode;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
@@ -25,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -234,12 +237,42 @@ class FaturaServiceTest {
         when(serieService.findPadrao(TipoDocumento.NOTA_CREDITO)).thenReturn(Optional.of(serieNc));
         when(serieService.getProximoNumero(serieNc)).thenReturn(1L);
 
-        Fatura res = faturaService.emitirNotaCredito(1L, "Devolução parcial");
+        LocalDateTime dataConhecimento = LocalDateTime.now().minusMinutes(1);
+        Fatura res = faturaService.emitirNotaCredito(
+                1L,
+                "Devolução parcial",
+                FinalidadeNotaCredito.RECTIFICACAO,
+                MeioConhecimentoAdquirente.CORREIO_ELECTRONICO,
+                "E-mail de confirmação de devolução, referência NC-TEST-001",
+                dataConhecimento,
+                List.of(new ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest(
+                        11L, new BigDecimal("2"))));
 
         assertTrue(res.getObservacoes().contains("Nota de Crédito"));
+        assertTrue(res.getObservacoes().contains("FT202600001"));
+        assertTrue(res.getObservacoes().contains("NC-TEST-001"));
+        assertEquals(FinalidadeNotaCredito.RECTIFICACAO, res.getFinalidadeNotaCredito());
+        assertEquals(MeioConhecimentoAdquirente.CORREIO_ELECTRONICO, res.getMeioConhecimentoAdquirente());
+        assertEquals("Devolução parcial", res.getMotivoNotaCredito());
+        assertEquals(dataConhecimento, res.getDataConhecimentoAdquirente());
         assertEquals("Observação original imutável", fatura.getObservacoes());
         verify(faturaRepository, never()).save(same(fatura));
         verify(produtoService, times(1)).registarEntrada(eq(10L), eq(2), anyString());
+    }
+
+    @Test
+    void emitirNotaCredito_DeveExigirProvaDoConhecimentoDoAdquirenteAntesDeCarregarFactura() {
+        assertThrows(IllegalArgumentException.class, () -> faturaService.emitirNotaCredito(
+                1L,
+                "Rectificação de valor",
+                FinalidadeNotaCredito.RECTIFICACAO,
+                MeioConhecimentoAdquirente.CORREIO_ELECTRONICO,
+                "   ",
+                LocalDateTime.now().minusMinutes(1),
+                List.of(new ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest(
+                        11L, BigDecimal.ONE))));
+
+        verify(faturaRepository, never()).findByIdWithItensForCreditNote(1L);
     }
 
     @Test
