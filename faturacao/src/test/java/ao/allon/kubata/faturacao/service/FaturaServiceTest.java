@@ -15,6 +15,7 @@ import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
 import ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService;
+import ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -101,6 +103,22 @@ class FaturaServiceTest {
         assertEquals(StatusFatura.RASCUNHO, fatura.getStatus());
         verify(faturaRepository, never()).save(any(Fatura.class));
         verify(signatureService, never()).getPrivateKeyForFiscalHash();
+    }
+
+    @Test
+    void emitirFatura_RejeicaoAgtDeveFicarDistintaDeFalhaDeTransporte() {
+        AGTResponseDTO resposta = new AGTResponseDTO();
+        resposta.setStatus("REJECTED");
+        resposta.setRequestID("req-rejeitado-1");
+        resposta.setErrorList(List.of(new AGTResponseDTO.AGTErrorEntryDTO()));
+        when(agtElectronicInvoiceService.submitInvoiceAsync(any(Fatura.class)))
+                .thenReturn(CompletableFuture.completedFuture(resposta));
+
+        Fatura res = faturaService.emitirFatura(1L);
+
+        assertEquals("REJECTED", res.getAgtSubmissionStatus());
+        assertEquals("req-rejeitado-1", res.getAgtRequestId());
+        verify(faturaRepository, atLeastOnce()).save(any(Fatura.class));
     }
 
     @Test
