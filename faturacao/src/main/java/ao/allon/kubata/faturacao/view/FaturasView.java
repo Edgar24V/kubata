@@ -1014,6 +1014,12 @@ public class FaturasView extends BorderPane {
                     return false;
                 }
 
+                FinalidadeNotaCredito finalidade = finalidadeField.getValue();
+                MeioConhecimentoAdquirente meioConhecimento = meioField.getValue();
+                String motivoValidado = motivo.trim();
+                String comprovativoValidado = comprovativo.trim();
+                LocalDate dataConhecimentoValidada = dataConhecimento;
+
                 String loadingId = loadingService.showLoading(
                         "A validar e emitir nota de crédito...", LoadingScreen.LoadingStyle.SPINNER);
                 new Thread(() -> {
@@ -1040,11 +1046,11 @@ public class FaturasView extends BorderPane {
                         }
                         faturaService.emitirNotaCredito(
                                 original.getId(),
-                                motivo.trim(),
-                                finalidadeField.getValue(),
-                                meioField.getValue(),
-                                comprovativo.trim(),
-                                dataConhecimento.atStartOfDay(),
+                                motivoValidado,
+                                finalidade,
+                                meioConhecimento,
+                                comprovativoValidado,
+                                dataConhecimentoValidada.atStartOfDay(),
                                 linhas);
                         Platform.runLater(() -> {
                             loadData();
