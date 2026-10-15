@@ -128,8 +128,8 @@ public class AgtCorrecoesView extends VBox {
         VBox body = new VBox(15);
         body.setPadding(new Insets(15));
 
-        Label desc = new Label("Verificar e corrigir gaps na numeração de documentos.\n" +
-            "Gera documentos 'NULOS' para preencher quebras de sequência.");
+        Label desc = new Label("Auditar lacunas na numeração fiscal da série.\n" +
+            "O Kubata não cria documentos NULOS retroactivos automaticamente; as lacunas exigem reconciliação com registos e procedimento fiscal aplicável.");
         desc.setWrapText(true);
         desc.getStyleClass().add(Styles.TEXT_SMALL);
 
@@ -146,10 +146,10 @@ public class AgtCorrecoesView extends VBox {
         btnVerificar.getStyleClass().add(Styles.BUTTON_OUTLINED);
         btnVerificar.setOnAction(e -> verificarGaps());
 
-        Button btnCorrigir = new Button("Gerar Fillers");
-        btnCorrigir.setGraphic(new FontIcon(Feather.PLUS));
-        btnCorrigir.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.ACCENT);
-        btnCorrigir.setOnAction(e -> gerarFillers());
+        Button btnCorrigir = new Button("Ver Procedimento");
+        btnCorrigir.setGraphic(new FontIcon(Feather.INFO));
+        btnCorrigir.getStyleClass().add(Styles.BUTTON_OUTLINED);
+        btnCorrigir.setOnAction(e -> mostrarProcedimentoGaps());
 
         HBox buttons = new HBox(10, btnVerificar, btnCorrigir);
 
@@ -263,50 +263,48 @@ public class AgtCorrecoesView extends VBox {
         });
     }
 
-    private void gerarFillers() {
+    private void mostrarProcedimentoGaps() {
         Serie serie = cbSerie.getValue();
         if (serie == null) {
             AlertUtils.showWarning("Atenção", "Selecione uma série primeiro.");
             return;
         }
 
-        List<Long> gaps = serieService.verificarGaps(serie);
-        if (gaps.isEmpty()) {
-            AlertUtils.showSuccess("Informação", "Não há gaps para corrigir nesta série.");
-            return;
-        }
+        try {
+            List<Long> gaps = serieService.verificarGaps(serie);
+            if (gaps.isEmpty()) {
+                AlertUtils.showSuccess("Sequência correcta", "Não foram encontradas lacunas até ao último número reservado.");
+                return;
+            }
 
-        modalService.create()
-            .title("Confirmar Geração de Fillers")
-            .content(new Label(
-                "Serão gerados " + gaps.size() + " documentos 'NULOS' para preencher gaps.\n" +
-                "Série: " + serie.getDesignacao() + "\n" +
-                "Números: " + gaps + "\n\n" +
-                "Documentos nulos mantêm a integridade da sequência sem afetar valores."
-            ))
-            .autoSize()
-            .withConfirmButton("Gerar Fillers", () -> {
-                Platform.runLater(() -> {
-                    try {
-                        log("Gerando fillers para série " + serie.getDesignacao() + "...");
-                        List<Fatura> fillers = serieService.gerarDocumentosFiller(serie, gaps);
-                        log("Gerados " + fillers.size() + " documentos filler:");
-                        for (Fatura f : fillers) {
-                            log("  - " + f.getNumero() + " (Status: " + f.getStatus() + ")");
-                        }
-                        lblStatusSequencia.setText("✓ " + fillers.size() + " fillers gerados com sucesso");
-                        lblStatusSequencia.getStyleClass().removeAll(Styles.WARNING);
-                        lblStatusSequencia.getStyleClass().add(Styles.SUCCESS);
-                        AlertUtils.showSuccess("Sucesso", fillers.size() + " documentos filler gerados!");
-                    } catch (Exception e) {
-                        log("Erro ao gerar fillers: " + e.getMessage());
-                        AlertUtils.showError("Erro", e.getMessage());
-                    }
-                });
-                return true;
-            })
-            .withCancelButton("Cancelar")
-            .buildAndShow();
+            String numeros = gaps.size() > 100
+                    ? gaps.subList(0, 100) + " ... (mais " + (gaps.size() - 100) + ")"
+                    : gaps.toString();
+            modalService.create()
+                .title("Reconciliação de Numeração Fiscal")
+                .content(new Label(
+                    "Série: " + serie.getDesignacao() + "\n"
+                    + "Lacunas detectadas: " + gaps.size() + "\n"
+                    + "Números: " + numeros + "\n\n"
+                    + "Não serão criadas facturas fictícias nem documentos NULOS retroactivos. "
+                    + "Confirme os registos de emissão, auditoria, falhas de persistência e documentos anulados. "
+                    + "Registe a causa e siga o procedimento fiscal aplicável com o responsável fiscal/AGT antes de alterar qualquer registo."
+                ))
+                .autoSize()
+                .withConfirmButton("Entendi", () -> {
+                    log("Lacunas de sequência detectadas na série " + serie.getDesignacao()
+                            + ": " + gaps + ". Não foram criados documentos.");
+                    lblStatusSequencia.setText("Reconciliação pendente: " + gaps.size() + " lacunas");
+                    lblStatusSequencia.getStyleClass().removeAll(Styles.SUCCESS, Styles.TEXT_MUTED);
+                    lblStatusSequencia.getStyleClass().add(Styles.WARNING);
+                    return true;
+                })
+                .withCancelButton("Fechar")
+                .buildAndShow();
+        } catch (Exception e) {
+            log("Erro ao auditar a sequência: " + e.getMessage());
+            AlertUtils.showError("Erro ao auditar", e.getMessage());
+        }
     }
 
     private void log(String mensagem) {
