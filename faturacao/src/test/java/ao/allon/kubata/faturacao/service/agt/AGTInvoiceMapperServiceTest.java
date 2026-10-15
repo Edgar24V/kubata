@@ -6,6 +6,7 @@ import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ao.allon.kubata.faturacao.service.agt.dto.DocumentDTO;
+import ao.allon.kubata.faturacao.service.agt.dto.PaymentReceiptDTO;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
