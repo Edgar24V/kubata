@@ -401,7 +401,10 @@ public class FaturaService {
                 null
             );
             
-            String assinatura = agtService.generateDocumentHash(agtData, HashUtils.getPrivateKey());
+            java.security.PrivateKey chaveFiscal = agtElectronicInvoiceService.isRealIntegrationEnabled()
+                    ? signatureService.getPrivateKeyForAgtHash()
+                    : HashUtils.getPrivateKey();
+            String assinatura = agtService.generateDocumentHash(agtData, chaveFiscal);
             fatura.setHash(assinatura);
             
             // Marca de validação: 4 caracteres nas posições 1ª, 11ª, 21ª, 31ª (Anexo I, ponto 6-b)
