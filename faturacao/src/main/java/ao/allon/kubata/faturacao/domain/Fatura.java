@@ -6,6 +6,8 @@ import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.domain.enums.DocumentStatus;
 import ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -104,6 +106,23 @@ public class Fatura extends BaseEntity {
 
     @Column(name = "motivo_cancelamento")
     private String motivoCancelamento;
+
+    @Column(name = "motivo_nota_credito", columnDefinition = "TEXT")
+    private String motivoNotaCredito;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "finalidade_nota_credito", length = 20)
+    private FinalidadeNotaCredito finalidadeNotaCredito;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meio_conhecimento_adquirente", length = 30)
+    private MeioConhecimentoAdquirente meioConhecimentoAdquirente;
+
+    @Column(name = "comprovativo_conhecimento_adquirente", length = 1000)
+    private String comprovativoConhecimentoAdquirente;
+
+    @Column(name = "data_conhecimento_adquirente")
+    private LocalDateTime dataConhecimentoAdquirente;
 
     @Column(name = "data_cancelamento")
     private LocalDateTime dataCancelamento;
@@ -404,6 +423,46 @@ public class Fatura extends BaseEntity {
 
     public void setMotivoCancelamento(String motivoCancelamento) {
         this.motivoCancelamento = motivoCancelamento;
+    }
+
+    public String getMotivoNotaCredito() {
+        return motivoNotaCredito;
+    }
+
+    public void setMotivoNotaCredito(String motivoNotaCredito) {
+        this.motivoNotaCredito = motivoNotaCredito;
+    }
+
+    public FinalidadeNotaCredito getFinalidadeNotaCredito() {
+        return finalidadeNotaCredito;
+    }
+
+    public void setFinalidadeNotaCredito(FinalidadeNotaCredito finalidadeNotaCredito) {
+        this.finalidadeNotaCredito = finalidadeNotaCredito;
+    }
+
+    public MeioConhecimentoAdquirente getMeioConhecimentoAdquirente() {
+        return meioConhecimentoAdquirente;
+    }
+
+    public void setMeioConhecimentoAdquirente(MeioConhecimentoAdquirente meioConhecimentoAdquirente) {
+        this.meioConhecimentoAdquirente = meioConhecimentoAdquirente;
+    }
+
+    public String getComprovativoConhecimentoAdquirente() {
+        return comprovativoConhecimentoAdquirente;
+    }
+
+    public void setComprovativoConhecimentoAdquirente(String comprovativoConhecimentoAdquirente) {
+        this.comprovativoConhecimentoAdquirente = comprovativoConhecimentoAdquirente;
+    }
+
+    public LocalDateTime getDataConhecimentoAdquirente() {
+        return dataConhecimentoAdquirente;
+    }
+
+    public void setDataConhecimentoAdquirente(LocalDateTime dataConhecimentoAdquirente) {
+        this.dataConhecimentoAdquirente = dataConhecimentoAdquirente;
     }
 
     public LocalDateTime getDataCancelamento() {
