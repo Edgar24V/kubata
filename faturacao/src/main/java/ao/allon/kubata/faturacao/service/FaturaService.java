@@ -756,9 +756,20 @@ public class FaturaService {
                         && "SIMULATED".equalsIgnoreCase(response.getStatus())) {
                     guardarEstadoSubmissao(fatura, "SIMULATED", null);
                 } else if (response != null
+                        && ("REJECTED".equalsIgnoreCase(response.getStatus())
+                            || (response.getErrorList() != null && !response.getErrorList().isEmpty())
+                            || (response.getRequestErrorList() != null && !response.getRequestErrorList().isEmpty()))) {
+                    // Uma rejeição da API é diferente de uma falha de transporte:
+                    // guardar o estado accionável e o requestID, quando existir.
+                    guardarEstadoSubmissao(fatura, "REJECTED", response.getRequestID());
+                } else if (response != null
+                        && "FAILED".equalsIgnoreCase(response.getStatus())) {
+                    guardarEstadoSubmissao(fatura, "FAILED", response.getRequestID());
+                } else if (response != null
                         && response.getRequestID() != null
                         && !response.getRequestID().isBlank()
-                        && (response.getErrorList() == null || response.getErrorList().isEmpty())) {
+                        && (response.getErrorList() == null || response.getErrorList().isEmpty())
+                        && (response.getRequestErrorList() == null || response.getRequestErrorList().isEmpty())) {
                     guardarEstadoSubmissao(fatura, "SUBMITTED", response.getRequestID());
                 } else {
                     guardarEstadoSubmissao(fatura, "FAILED", null);
