@@ -30,7 +30,23 @@ public interface FaturaRepository extends JpaRepository<Fatura, Long> {
     List<Fatura> findByClienteId(Long clienteId);
     List<Fatura> findByStatus(StatusFatura status);
     List<Fatura> findByTipoDocumento(TipoDocumento tipo);
-    
+
+    /**
+     * Facturas para iniciar devoluções, com as linhas e produtos já carregados
+     * para a UI não depender de uma sessão JPA depois de sair do serviço.
+     */
+    @EntityGraph(attributePaths = {"cliente", "itens", "itens.produto", "serie"})
+    @Query("""
+        SELECT DISTINCT f FROM Fatura f
+        WHERE f.cliente.id = :clienteId
+          AND f.status IN :statuses
+          AND f.tipoDocumento IN :tipos
+        ORDER BY f.dataEmissao DESC
+        """)
+    List<Fatura> findEligibleForReturn(@Param("clienteId") Long clienteId,
+                                       @Param("statuses") List<StatusFatura> statuses,
+                                       @Param("tipos") List<TipoDocumento> tipos);
+
     @Query("SELECT f.numeroSequencial FROM Fatura f WHERE f.serie = :serie ORDER BY f.numeroSequencial ASC")
     List<Long> findAllNumerosSequenciaisBySerie(@Param("serie") Serie serie);
     
