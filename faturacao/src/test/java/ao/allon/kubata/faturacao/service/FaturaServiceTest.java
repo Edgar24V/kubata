@@ -93,6 +93,17 @@ class FaturaServiceTest {
     }
 
     @Test
+    void emitirFatura_ProducaoDeveExigirOperadorAutenticado() {
+        when(agtElectronicInvoiceService.isProductionReadinessEnforced()).thenReturn(true);
+
+        assertThrows(IllegalStateException.class, () -> faturaService.emitirFatura(1L));
+
+        assertEquals(StatusFatura.RASCUNHO, fatura.getStatus());
+        verify(faturaRepository, never()).save(any(Fatura.class));
+        verify(signatureService, never()).getPrivateKeyForFiscalHash();
+    }
+
+    @Test
     void emitirFatura_DeveBaixarEstoqueESetarStatusEmitida() {
         Fatura res = faturaService.emitirFatura(1L);
         assertEquals(StatusFatura.EMITIDA, res.getStatus());
