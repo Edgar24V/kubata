@@ -747,7 +747,7 @@ public class FaturaService {
         
         // 4. Movimentar Estoque baseado no Tipo de Documento
         for (ItemFatura item : fatura.getItens()) {
-            if (item.getProduto() != null) {
+            if (item.getProduto() != null && !item.getProduto().isServico()) {
                  Long prodId = item.getProduto().getId();
                  if (tipo == TipoDocumento.FATURA || tipo == TipoDocumento.FATURA_RECIBO
                         || tipo == TipoDocumento.VENDA_A_DINHEIRO || tipo == TipoDocumento.GUIA_REMESSA) {
