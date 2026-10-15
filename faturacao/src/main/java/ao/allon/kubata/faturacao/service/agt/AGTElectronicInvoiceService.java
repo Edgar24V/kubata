@@ -273,7 +273,7 @@ public class AGTElectronicInvoiceService {
 
             Map<String, Object> softwareInfo = new LinkedHashMap<>();
             softwareInfo.put("softwareInfoDetail", softwareDetail);
-            softwareInfo.put("jwsSoftwareSignature", signatureService.signJwsPayload(softwareDetail));
+            softwareInfo.put("jwsSoftwareSignature", signatureService.signSoftwareJwsPayload(softwareDetail));
 
             Map<String, Object> statusRequest = new LinkedHashMap<>();
             statusRequest.put("schemaVersion", "2.0");
@@ -343,7 +343,7 @@ public class AGTElectronicInvoiceService {
 
             Map<String, Object> softwareInfo = new LinkedHashMap<>();
             softwareInfo.put("softwareInfoDetail", softwareDetail);
-            softwareInfo.put("jwsSoftwareSignature", signatureService.signJwsPayload(softwareDetail));
+            softwareInfo.put("jwsSoftwareSignature", signatureService.signSoftwareJwsPayload(softwareDetail));
 
             // A AGT chama ao campo do pedido invoiceNo, mas a assinatura usa documentNo.
             Map<String, Object> signedRequest = new LinkedHashMap<>();
@@ -440,7 +440,7 @@ public class AGTElectronicInvoiceService {
 
             Map<String, Object> softwareInfo = new LinkedHashMap<>();
             softwareInfo.put("softwareInfoDetail", softwareDetail);
-            softwareInfo.put("jwsSoftwareSignature", signatureService.signJwsPayload(softwareDetail));
+            softwareInfo.put("jwsSoftwareSignature", signatureService.signSoftwareJwsPayload(softwareDetail));
 
             // A assinatura abrange os campos da solicitação fiscal e usa a mesma
             // representação de valores que será transmitida no envelope.
