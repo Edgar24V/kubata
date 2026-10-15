@@ -1219,44 +1219,56 @@ public class FaturaService {
     public Fatura converterEncomendaEmFatura(Long encomendaId, TipoDocumento destino) {
         Fatura encomenda = faturaRepository.findById(encomendaId)
                 .orElseThrow(() -> new IllegalArgumentException("Encomenda não encontrada"));
-        
+
         if (encomenda.getTipoDocumento() != TipoDocumento.ENCOMENDA) {
-            throw new IllegalArgumentException("O documento selecionado não é uma Encomenda");
+            throw new IllegalArgumentException("O documento seleccionado não é uma Encomenda.");
         }
-
-        if (encomenda.getStatus() == StatusFatura.PROCESSADA) {
-             throw new IllegalStateException("Esta encomenda já foi processada/convertida.");
+        if (encomenda.getStatus() != StatusFatura.RASCUNHO
+                && encomenda.getStatus() != StatusFatura.EMITIDA) {
+            throw new IllegalStateException(
+                    "Só é possível converter uma encomenda em rascunho ou emitida; estado actual: "
+                    + encomenda.getStatus());
         }
-
         if (destino != TipoDocumento.FATURA && destino != TipoDocumento.FATURA_RECIBO) {
-             throw new IllegalArgumentException("Tipo de destino inválido. Permitido apenas Fatura ou Fatura/Recibo.");
+            throw new IllegalArgumentException(
+                    "Tipo de destino inválido. Permitido apenas Factura ou Factura/Recibo.");
+        }
+        if (encomenda.getCliente() == null) {
+            throw new IllegalStateException("A encomenda não tem cliente associado.");
+        }
+        if (encomenda.getItens() == null || encomenda.getItens().isEmpty()) {
+            throw new IllegalStateException("A encomenda não contém linhas para facturar.");
         }
 
         Fatura novaFatura = new Fatura();
         novaFatura.setTipoDocumento(destino);
         novaFatura.setCliente(encomenda.getCliente());
+        novaFatura.setFaturaReferencia(encomenda);
         novaFatura.setDataEmissao(LocalDate.now());
         novaFatura.setDataVencimento(LocalDate.now().plusDays(30));
         novaFatura.setStatus(StatusFatura.RASCUNHO);
         novaFatura.setMetodoPagamento(encomenda.getMetodoPagamento());
         novaFatura.setObservacoes("Convertido da Encomenda " + encomenda.getNumero());
-        
+
+        // Preservar valores acordados na encomenda; não reler o preço actual do catálogo.
         for (ItemFatura item : encomenda.getItens()) {
             ItemFatura novoItem = new ItemFatura();
             novoItem.setProduto(item.getProduto());
             novoItem.setDescricao(item.getDescricao());
             novoItem.setQuantidade(item.getQuantidade());
+            novoItem.setQuantidadeDecimal(item.getQuantidadeDecimal());
             novoItem.setPrecoUnitario(item.getPrecoUnitario());
             novoItem.setTaxaIva(item.getTaxaIva());
             novoItem.setDesconto(item.getDesconto());
             novoItem.setCodigoIsencao(item.getCodigoIsencao());
             novoItem.setMotivoIsencao(item.getMotivoIsencao());
+            novoItem.setLote(item.getLote());
+            novoItem.setPesoUnitario(item.getPesoUnitario());
             novaFatura.addItem(novoItem);
         }
-        
-        novaFatura = salvar(novaFatura);
 
-        // Marcar Encomenda como Processada
+        // A factura e a alteração da encomenda são atómicas na mesma transacção.
+        novaFatura = salvar(novaFatura);
         encomenda.setStatus(StatusFatura.PROCESSADA);
         faturaRepository.save(encomenda);
 
