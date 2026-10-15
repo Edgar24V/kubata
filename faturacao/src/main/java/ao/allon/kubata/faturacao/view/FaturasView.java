@@ -1024,28 +1024,10 @@ public class FaturasView extends BorderPane {
                         "A validar e emitir nota de crédito...", LoadingScreen.LoadingStyle.SPINNER);
                 new Thread(() -> {
                     try {
-                        Fatura original = faturaService.findFaturaParaImpressao(seleccionada.getId())
-                                .orElseThrow(() -> new IllegalStateException("Factura original não encontrada."));
-                        if (original.getItens() == null || original.getItens().isEmpty()) {
-                            throw new IllegalStateException("A factura original não contém linhas para creditar.");
-                        }
-                        java.util.List<NotaCreditoItemRequest> linhas = new java.util.ArrayList<>();
-                        for (ao.allon.kubata.faturacao.domain.ItemFatura item : original.getItens()) {
-                            if (item.getId() == null) {
-                                throw new IllegalStateException(
-                                        "A factura contém uma linha sem ID persistido. Reconcilie-a antes de emitir a Nota de Crédito.");
-                            }
-                            BigDecimal quantidade = item.getQuantidadeDecimal() != null
-                                    ? item.getQuantidadeDecimal()
-                                    : BigDecimal.valueOf(item.getQuantidade() == null ? 0 : item.getQuantidade());
-                            if (quantidade.signum() <= 0) {
-                                throw new IllegalStateException(
-                                        "A factura contém uma quantidade inválida. Não foi possível emitir a Nota de Crédito.");
-                            }
-                            linhas.add(new NotaCreditoItemRequest(item.getId(), quantidade));
-                        }
+                        java.util.List<NotaCreditoItemRequest> linhas =
+                                faturaService.obterLinhasDisponiveisParaAnulacao(seleccionada.getId());
                         faturaService.emitirNotaCredito(
-                                original.getId(),
+                                seleccionada.getId(),
                                 motivoValidado,
                                 finalidade,
                                 meioConhecimento,
