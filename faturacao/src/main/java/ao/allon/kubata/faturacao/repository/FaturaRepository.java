@@ -1,9 +1,11 @@
 package ao.allon.kubata.faturacao.repository;
 
 import ao.allon.kubata.faturacao.domain.Fatura;
+import jakarta.persistence.LockModeType;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -34,6 +36,10 @@ public interface FaturaRepository extends JpaRepository<Fatura, Long> {
     
     @Query("SELECT f FROM Fatura f WHERE f.dataEmissao BETWEEN :startDate AND :endDate")
     List<Fatura> findByDataEmissaoBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT f FROM Fatura f WHERE f.id = :id")
+    Optional<Fatura> findByIdForUpdate(@Param("id") Long id);
 
     @Query("SELECT DISTINCT f FROM Fatura f LEFT JOIN FETCH f.itens WHERE f.dataEmissao BETWEEN :startDate AND :endDate")
     List<Fatura> findByDataEmissaoBetweenWithItens(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
