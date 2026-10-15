@@ -66,7 +66,10 @@ class NotaCreditoIntegrationTest {
         faturaOriginal.setTipoDocumento(TipoDocumento.FATURA);
         faturaOriginal.setStatus(StatusFatura.EMITIDA);
         faturaOriginal.setNumero("FT 2024/10");
-        faturaOriginal.setCliente(new Cliente());
+        Cliente cliente = new Cliente();
+        cliente.setNome("Consumidor Final");
+        cliente.setNif("999999999");
+        faturaOriginal.setCliente(cliente);
         faturaOriginal.setTotal(new BigDecimal("1000.00"));
         
         ItemFatura item = new ItemFatura();
