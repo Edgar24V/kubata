@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ReciboService {
@@ -121,7 +122,9 @@ public class ReciboService {
         }
 
         Recibo recibo = new Recibo();
-        recibo.setNumero(gerarNumeroRecibo());
+        // A reserva temporária é única mesmo quando há pagamentos simultâneos
+        // em facturas diferentes. O número final usa o ID atribuído pela BD.
+        recibo.setNumero("TMP-" + UUID.randomUUID());
         recibo.setFatura(fatura);
         recibo.setDataRecebimento(LocalDate.now());
         recibo.setValor(valorRecebido);
@@ -129,7 +132,12 @@ public class ReciboService {
         recibo.setReferencia(referencia);
         recibo.setObservacoes(observacoes);
 
-        Recibo salvo = reciboRepository.save(recibo);
+        Recibo salvo = reciboRepository.saveAndFlush(recibo);
+        if (salvo.getId() == null) {
+            throw new IllegalStateException("A base de dados não atribuiu um ID ao recibo; numeração cancelada.");
+        }
+        salvo.setNumero(gerarNumeroRecibo(salvo.getId(), salvo.getDataRecebimento()));
+        salvo = reciboRepository.save(salvo);
 
         // Não engolir falhas contabilísticas em produção: a transacção tem de
         // falhar em conjunto, evitando recibos persistidos sem o movimento financeiro.
@@ -184,13 +192,18 @@ public class ReciboService {
     }
 
     /**
-     * A numeração por contagem mantém compatibilidade com os dados existentes.
-     * Em instalações com emissão concorrente, a sequência deve ser migrada para
-     * uma série documental transaccional antes de tratar este recibo como fiscal.
+     * O ID atribuído pela BD torna o número único entre transacções concorrentes
+     * e em ambientes com várias instâncias da aplicação. Não usar COUNT(*) + 1:
+     * pagamentos de facturas distintas podem ser registados em paralelo.
+     *
+     * Este é o número do recibo financeiro interno; documentos fiscais RC enviados
+     * à AGT continuam a usar Fatura + SerieService e a respectiva série autorizada.
      */
-    private String gerarNumeroRecibo() {
-        int year = LocalDate.now().getYear();
-        long count = reciboRepository.count();
-        return String.format("RC%d%06d", year, count + 1);
+    private String gerarNumeroRecibo(Long reciboId, LocalDate dataRecebimento) {
+        if (reciboId == null || reciboId <= 0) {
+            throw new IllegalArgumentException("O ID persistido do recibo é obrigatório para a numeração.");
+        }
+        int year = (dataRecebimento != null ? dataRecebimento : LocalDate.now()).getYear();
+        return String.format("RC%d%06d", year, reciboId);
     }
 }
