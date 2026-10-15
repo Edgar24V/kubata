@@ -23,6 +23,22 @@ class JWSDigitalSignatureServiceTest {
     }
 
     @Test
+    void productionModeMustRequireSeparateSoftwareProducerCertificate() {
+        JWSDigitalSignatureService service = new JWSDigitalSignatureService();
+        ReflectionTestUtils.setField(service, "signatureType", "RSA_SHA256");
+        ReflectionTestUtils.setField(service, "certificatePath", "file:///secrets/taxpayer.p12");
+        ReflectionTestUtils.setField(service, "certificatePassword", "taxpayer-secret");
+        ReflectionTestUtils.setField(service, "softwareCertificatePath", "");
+        ReflectionTestUtils.setField(service, "softwareCertificatePassword", "");
+        ReflectionTestUtils.setField(service, "allowDevelopmentSignatures", false);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class, service::assertProductionReady);
+
+        assertTrue(exception.getMessage().contains("produtor do software"));
+    }
+
+    @Test
     void productionModeMustRejectMissingCertificateInsteadOfReturningFakeJws() {
         JWSDigitalSignatureService service = new JWSDigitalSignatureService();
         ReflectionTestUtils.setField(service, "signatureType", "RSA_SHA256");
