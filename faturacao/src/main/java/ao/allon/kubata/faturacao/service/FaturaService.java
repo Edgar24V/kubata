@@ -357,6 +357,22 @@ public class FaturaService {
             return;
         }
 
+        // Num documento fiscal real, não inventar um NIF de consumidor final quando falta
+        // a identificação do adquirente. O NIF 999999999 só pode ser usado para consumidor final.
+        String nifClienteInformado = fatura.getCliente().getNif();
+        if (nifClienteInformado == null || nifClienteInformado.isBlank()
+                || !nifClienteInformado.trim().matches("[0-9 .-]+")) {
+            throw new IllegalArgumentException("O NIF do adquirente é obrigatório e deve conter apenas dígitos/separadores.");
+        }
+        String nifCliente = AngolaValidationUtils.normalizeNif(nifClienteInformado);
+        if (!AngolaValidationUtils.isValidNif(nifCliente)) {
+            throw new IllegalArgumentException("NIF do adquirente inválido: " + AngolaValidationUtils.validateNifMessage(nifCliente));
+        }
+        if ("999999999".equals(nifCliente)
+                && fatura.getCliente().getTipo() == ao.allon.kubata.faturacao.domain.enums.TipoCliente.EMPRESA) {
+            throw new IllegalArgumentException("O NIF de consumidor final não pode ser usado para um cliente do tipo empresa.");
+        }
+
         // Se a integração real estiver activada, bloquear antes de consumir o número da série.
         agtElectronicInvoiceService.validarConfiguracaoProducaoAntesEmissao();
 
