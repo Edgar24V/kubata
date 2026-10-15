@@ -129,7 +129,10 @@ public class DevolucaoService {
                     if (linha.getItemFaturaOrigem() == null
                             || linha.getItemFaturaOrigem().getId() == null
                             || linha.getQuantidade() == null) {
-                        continue; // devolução legada sem referência: requer reconciliação manual
+                        throw new IllegalStateException(
+                                "A devolução aberta " + existente.getNumero()
+                                + " é anterior ao controlo por linha da factura e não tem referência fiscal completa. "
+                                + "Reconcilie-a antes de criar novos pedidos para evitar crédito duplicado.");
                     }
                     reservadas.merge(linha.getItemFaturaOrigem().getId(),
                             BigDecimal.valueOf(linha.getQuantidade()), BigDecimal::add);
