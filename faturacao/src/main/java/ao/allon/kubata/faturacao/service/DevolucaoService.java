@@ -62,6 +62,10 @@ public class DevolucaoService {
         if (devolucao == null) {
             throw new IllegalArgumentException("A solicitação de devolução é obrigatória.");
         }
+        if (devolucao.getId() != null) {
+            throw new IllegalArgumentException(
+                    "Uma nova solicitação não pode conter um ID já persistido.");
+        }
         if (devolucao.getItens() == null || devolucao.getItens().isEmpty()) {
             throw new IllegalArgumentException("A devolução deve conter pelo menos uma linha da factura original.");
         }
