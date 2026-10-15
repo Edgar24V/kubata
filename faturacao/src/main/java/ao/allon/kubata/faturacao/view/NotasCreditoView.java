@@ -5,6 +5,7 @@ import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.faturacao.domain.Cliente;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
+import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.service.FaturaService;
@@ -16,6 +17,10 @@ import atlantafx.base.controls.Card;
 import atlantafx.base.controls.CustomTextField;
 import atlantafx.base.theme.Styles;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -23,6 +28,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.util.converter.BigDecimalStringConverter;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.feather.Feather;
 import net.sf.jasperreports.engine.JasperPrint;
@@ -394,71 +402,164 @@ public class NotasCreditoView extends BorderPane {
         root.setPadding(new Insets(10));
         Label titulo = new Label("Nova Nota de Crédito");
         titulo.getStyleClass().add(Styles.TITLE_4);
-        
-        Label lblInfo = new Label("Selecione a fatura para anular total ou parcialmente.");
+
+        Label lblInfo = new Label(
+                "Seleccione as linhas e quantidades a creditar. O saldo exclui quantidades já creditadas; "
+                + "o servidor volta a validar o saldo antes de emitir.");
         lblInfo.getStyleClass().add(Styles.TEXT_MUTED);
+        lblInfo.setWrapText(true);
 
         ComboBox<Fatura> cbFaturaRef = new ComboBox<>();
-        cbFaturaRef.setPromptText("Fatura de referência");
+        cbFaturaRef.setPromptText("Factura de referência");
         cbFaturaRef.setMaxWidth(Double.MAX_VALUE);
-        
-        // Carrega faturas elegíveis para NC (Emitidas ou Pagas)
+
         List<Fatura> base = faturaService.findAll().stream()
-                .filter(f -> f.getTipoDocumento() == TipoDocumento.FATURA || f.getTipoDocumento() == TipoDocumento.FATURA_RECIBO)
+                .filter(f -> f.getTipoDocumento() == TipoDocumento.FATURA
+                        || f.getTipoDocumento() == TipoDocumento.FATURA_RECIBO
+                        || f.getTipoDocumento() == TipoDocumento.VENDA_A_DINHEIRO
+                        || f.getTipoDocumento() == TipoDocumento.AUTO_FATURA)
                 .filter(f -> f.getStatus() == StatusFatura.EMITIDA || f.getStatus() == StatusFatura.PAGA)
                 .collect(Collectors.toList());
-        
+
         cbFaturaRef.setItems(FXCollections.observableArrayList(base));
         cbFaturaRef.setCellFactory(list -> new ListCell<>() {
-            @Override protected void updateItem(Fatura f, boolean empty) {
+            @Override
+            protected void updateItem(Fatura f, boolean empty) {
                 super.updateItem(f, empty);
-                setText(empty || f == null ? "" : f.getNumero() + " • " + (f.getCliente() != null ? f.getCliente().getNome() : "") + " (" + String.format("Kz %.2f", f.getTotal()) + ")");
+                setText(empty || f == null ? "" : textoFactura(f));
             }
         });
         cbFaturaRef.setButtonCell(new ListCell<>() {
-            @Override protected void updateItem(Fatura f, boolean empty) {
+            @Override
+            protected void updateItem(Fatura f, boolean empty) {
                 super.updateItem(f, empty);
-                setText(empty || f == null ? "" : f.getNumero() + " • " + (f.getCliente() != null ? f.getCliente().getNome() : "") + " (" + String.format("Kz %.2f", f.getTotal()) + ")");
+                setText(empty || f == null ? "" : textoFactura(f));
             }
         });
 
         TextArea txtMotivo = new TextArea();
-        txtMotivo.setPromptText("Motivo da anulação/crédito (Obrigatório)");
+        txtMotivo.setPromptText("Motivo da nota de crédito (obrigatório)");
         txtMotivo.setPrefRowCount(3);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        grid.addRow(0, new Label("Fatura Original"), cbFaturaRef);
+        ColumnConstraints labels = new ColumnConstraints();
+        labels.setMinWidth(105);
+        ColumnConstraints fields = new ColumnConstraints();
+        fields.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(labels, fields);
+        grid.addRow(0, new Label("Factura original"), cbFaturaRef);
         grid.addRow(1, new Label("Motivo"), txtMotivo);
 
-        // Preview dos itens da fatura selecionada (informativo)
-        TableView<ItemFatura> tvPreview = new TableView<>();
-        tvPreview.setPlaceholder(new Label("Selecione uma fatura para ver os itens"));
+        TableView<LinhaCreditoViewModel> tvPreview = new TableView<>();
+        tvPreview.setEditable(true);
+        tvPreview.setPlaceholder(new Label("Seleccione uma factura para ver o saldo por linha."));
         tvPreview.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
-        tvPreview.setMaxHeight(150);
-        
-        TableColumn<ItemFatura, String> cDesc = new TableColumn<>("Descrição");
-        cDesc.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("descricao"));
-        TableColumn<ItemFatura, Integer> cQtd = new TableColumn<>("Qtd");
-        cQtd.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("quantidade"));
-        TableColumn<ItemFatura, BigDecimal> cTot = new TableColumn<>("Total");
-        cTot.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("total"));
-        
-        tvPreview.getColumns().setAll(cDesc, cQtd, cTot);
-        
-        cbFaturaRef.valueProperty().addListener((o, ov, nv) -> {
-            if (nv != null) {
-                 // Necessário carregar itens para exibir
-                 faturaService.findFaturaParaImpressao(nv.getId()).ifPresent(full -> {
-                     tvPreview.getItems().setAll(full.getItens());
-                 });
-            } else {
-                tvPreview.getItems().clear();
+        tvPreview.setPrefHeight(250);
+        tvPreview.setMinHeight(180);
+
+        TableColumn<LinhaCreditoViewModel, Boolean> cSelecionar = new TableColumn<>("Creditar");
+        cSelecionar.setCellValueFactory(data -> data.getValue().selecionadaProperty());
+        cSelecionar.setCellFactory(CheckBoxTableCell.forTableColumn(cSelecionar));
+        cSelecionar.setEditable(true);
+        cSelecionar.setMinWidth(80);
+        cSelecionar.setMaxWidth(90);
+
+        TableColumn<LinhaCreditoViewModel, String> cDesc = new TableColumn<>("Descrição");
+        cDesc.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                descricaoLinha(data.getValue().linhaOriginal())));
+
+        TableColumn<LinhaCreditoViewModel, BigDecimal> cFaturada = new TableColumn<>("Facturado");
+        cFaturada.setCellValueFactory(data ->
+                new SimpleObjectProperty<>(quantidadeComercialView(data.getValue().linhaOriginal())));
+        cFaturada.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(BigDecimal item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.stripTrailingZeros().toPlainString());
             }
         });
 
-        VBox content = new VBox(10, titulo, lblInfo, grid, new Label("Itens da Fatura Original:"), tvPreview);
+        TableColumn<LinhaCreditoViewModel, BigDecimal> cDisponivel = new TableColumn<>("Saldo");
+        cDisponivel.setCellValueFactory(data ->
+                new SimpleObjectProperty<>(data.getValue().quantidadeDisponivel()));
+        cDisponivel.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(BigDecimal item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.stripTrailingZeros().toPlainString());
+            }
+        });
+
+        TableColumn<LinhaCreditoViewModel, BigDecimal> cQtdCredito = new TableColumn<>("Qtd. a creditar");
+        cQtdCredito.setCellValueFactory(data -> data.getValue().quantidadeCreditoProperty());
+        cQtdCredito.setCellFactory(TextFieldTableCell.forTableColumn(new BigDecimalStringConverter()));
+        cQtdCredito.setEditable(true);
+        cQtdCredito.setOnEditCommit(event -> {
+            LinhaCreditoViewModel linha = event.getRowValue();
+            BigDecimal quantidade = event.getNewValue();
+            if (quantidade == null || quantidade.signum() <= 0
+                    || quantidade.stripTrailingZeros().scale() > 3
+                    || quantidade.compareTo(linha.quantidadeDisponivel()) > 0) {
+                AlertUtils.showWarningAlert("Quantidade inválida",
+                        "A quantidade deve ser positiva, ter no máximo 3 casas decimais e não exceder o saldo "
+                        + linha.quantidadeDisponivel().stripTrailingZeros().toPlainString() + ".");
+                linha.setQuantidadeCredito(event.getOldValue());
+                tvPreview.refresh();
+                return;
+            }
+            linha.setQuantidadeCredito(quantidade);
+        });
+
+        TableColumn<LinhaCreditoViewModel, BigDecimal> cTotal = new TableColumn<>("Total original");
+        cTotal.setCellValueFactory(data ->
+                new SimpleObjectProperty<>(data.getValue().linhaOriginal().getTotal()));
+        cTotal.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(BigDecimal item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : currencyFormat.format(item));
+                if (!empty && item != null) setAlignment(Pos.CENTER_RIGHT);
+            }
+        });
+
+        tvPreview.getColumns().setAll(cSelecionar, cDesc, cFaturada, cDisponivel, cQtdCredito, cTotal);
+
+        Label lblSaldo = new Label("O saldo das linhas será carregado após seleccionar uma factura.");
+        lblSaldo.getStyleClass().add(Styles.TEXT_MUTED);
+        cbFaturaRef.valueProperty().addListener((o, anterior, seleccionada) -> {
+            tvPreview.getItems().clear();
+            if (seleccionada == null) {
+                lblSaldo.setText("Seleccione uma factura para consultar o saldo.");
+                return;
+            }
+            try {
+                Fatura completa = faturaService.findFaturaParaImpressao(seleccionada.getId())
+                        .orElseThrow(() -> new IllegalStateException("Factura original não encontrada."));
+                java.util.Map<Long, BigDecimal> disponiveis =
+                        faturaService.buscarQuantidadesDisponiveisParaNotaCredito(seleccionada.getId());
+                List<LinhaCreditoViewModel> linhas = new ArrayList<>();
+                for (ItemFatura item : completa.getItens()) {
+                    if (item.getId() == null) continue;
+                    BigDecimal saldo = disponiveis.get(item.getId());
+                    if (saldo == null || saldo.signum() <= 0) continue;
+                    linhas.add(new LinhaCreditoViewModel(item, saldo));
+                }
+                tvPreview.getItems().setAll(linhas);
+                lblSaldo.setText(linhas.isEmpty()
+                        ? "Esta factura já não tem quantidades disponíveis para crédito."
+                        : "Linhas disponíveis: " + linhas.size()
+                        + ". Edite a quantidade e desmarque as linhas que não pretende creditar.");
+            } catch (Exception ex) {
+                tvPreview.getItems().clear();
+                lblSaldo.setText("Não foi possível calcular o saldo desta factura.");
+                AlertUtils.showExceptionAlert("Erro", "Falha ao carregar linhas disponíveis para crédito.", ex);
+            }
+        });
+
+        VBox content = new VBox(10, titulo, lblInfo, grid,
+                new Label("Linhas e quantidades disponíveis:"), tvPreview, lblSaldo);
         content.setPadding(new Insets(8));
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
@@ -471,20 +572,36 @@ public class NotasCreditoView extends BorderPane {
                     try {
                         Fatura ref = cbFaturaRef.getValue();
                         if (ref == null) {
-                            AlertUtils.showWarningAlert("Atenção", "Selecione a fatura original.");
+                            AlertUtils.showWarningAlert("Atenção", "Seleccione a factura original.");
                             return false;
                         }
                         String motivo = txtMotivo.getText();
                         if (motivo == null || motivo.isBlank()) {
-                            AlertUtils.showWarningAlert("Atenção", "O motivo é obrigatório para Notas de Crédito.");
+                            AlertUtils.showWarningAlert("Atenção", "O motivo é obrigatório para notas de crédito.");
                             return false;
                         }
-                        
-                        // Emitir Nota de Crédito Total (anula a fatura inteira)
-                        // TODO: Implementar NC Parcial se necessário no futuro
-                        Fatura nc = faturaService.emitirNotaCredito(ref.getId(), motivo);
-                        
-                        AlertUtils.showInfoAlert("Sucesso", "Nota de Crédito emitida: " + nc.getNumero());
+
+                        List<NotaCreditoItemRequest> itens = new ArrayList<>();
+                        for (LinhaCreditoViewModel linha : tvPreview.getItems()) {
+                            if (!linha.isSelecionada()) continue;
+                            BigDecimal quantidade = linha.quantidadeCredito();
+                            if (quantidade == null || quantidade.signum() <= 0
+                                    || quantidade.compareTo(linha.quantidadeDisponivel()) > 0) {
+                                AlertUtils.showWarningAlert("Quantidade inválida",
+                                        "Revise as quantidades seleccionadas antes de emitir.");
+                                return false;
+                            }
+                            itens.add(new NotaCreditoItemRequest(linha.linhaOriginal().getId(), quantidade));
+                        }
+                        if (itens.isEmpty()) {
+                            AlertUtils.showWarningAlert("Nenhuma linha seleccionada",
+                                    "Seleccione pelo menos uma linha para creditar.");
+                            return false;
+                        }
+
+                        Fatura nc = faturaService.emitirNotaCredito(ref.getId(), motivo, itens);
+                        AlertUtils.showInfoAlert("Sucesso",
+                                "Nota de Crédito " + nc.getNumero() + " emitida para " + itens.size() + " linha(s).");
                         refreshAsync();
                         return true;
                     } catch (Exception ex) {
@@ -494,6 +611,25 @@ public class NotasCreditoView extends BorderPane {
                 })
                 .withCancelButton("Cancelar")
                 .buildAndShow();
+    }
+
+    private String textoFactura(Fatura fatura) {
+        String total = fatura.getTotal() == null ? "—" : currencyFormat.format(fatura.getTotal());
+        String cliente = fatura.getCliente() == null ? "" : fatura.getCliente().getNome();
+        return fatura.getNumero() + " • " + cliente + " (" + total + ")";
+    }
+
+    private String descricaoLinha(ItemFatura linha) {
+        String descricao = linha.getDescricao();
+        if ((descricao == null || descricao.isBlank()) && linha.getProduto() != null) {
+            descricao = linha.getProduto().getNome();
+        }
+        return descricao == null ? "" : descricao;
+    }
+
+    private BigDecimal quantidadeComercialView(ItemFatura linha) {
+        if (linha.getQuantidadeDecimal() != null) return linha.getQuantidadeDecimal();
+        return BigDecimal.valueOf(linha.getQuantidade() == null ? 0 : linha.getQuantidade());
     }
 
     private void handleImprimir() {
@@ -545,4 +681,45 @@ public class NotasCreditoView extends BorderPane {
                 .withCancelButton("Fechar")
                 .buildAndShow();
     }
+    private static final class LinhaCreditoViewModel {
+        private final ItemFatura linhaOriginal;
+        private final BigDecimal quantidadeDisponivel;
+        private final BooleanProperty selecionada = new SimpleBooleanProperty(true);
+        private final ObjectProperty<BigDecimal> quantidadeCredito;
+
+        private LinhaCreditoViewModel(ItemFatura linhaOriginal, BigDecimal quantidadeDisponivel) {
+            this.linhaOriginal = linhaOriginal;
+            this.quantidadeDisponivel = quantidadeDisponivel;
+            this.quantidadeCredito = new SimpleObjectProperty<>(quantidadeDisponivel);
+        }
+
+        private ItemFatura linhaOriginal() {
+            return linhaOriginal;
+        }
+
+        private BigDecimal quantidadeDisponivel() {
+            return quantidadeDisponivel;
+        }
+
+        private BooleanProperty selecionadaProperty() {
+            return selecionada;
+        }
+
+        private boolean isSelecionada() {
+            return selecionada.get();
+        }
+
+        private ObjectProperty<BigDecimal> quantidadeCreditoProperty() {
+            return quantidadeCredito;
+        }
+
+        private BigDecimal quantidadeCredito() {
+            return quantidadeCredito.get();
+        }
+
+        private void setQuantidadeCredito(BigDecimal quantidade) {
+            quantidadeCredito.set(quantidade);
+        }
+    }
+
 }
