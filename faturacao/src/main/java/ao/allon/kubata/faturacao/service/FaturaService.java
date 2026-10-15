@@ -159,6 +159,17 @@ public class FaturaService {
     public List<Fatura> findAll() {
         return faturaRepository.findAll();
     }
+
+    @Transactional(readOnly = true)
+    public List<Fatura> findFaturasParaDevolucao(Long clienteId) {
+        if (clienteId == null || clienteId <= 0) {
+            throw new IllegalArgumentException("Seleccione um cliente válido para consultar facturas devolvíveis.");
+        }
+        return faturaRepository.findEligibleForReturn(
+                clienteId,
+                List.of(StatusFatura.EMITIDA, StatusFatura.PAGA),
+                List.of(TipoDocumento.FATURA, TipoDocumento.FATURA_RECIBO, TipoDocumento.VENDA_A_DINHEIRO));
+    }
     
     public BigDecimal getVendasMesAtual() {
         LocalDate inicio = YearMonth.now().atDay(1);
