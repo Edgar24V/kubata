@@ -499,6 +499,19 @@ public class AGTElectronicInvoiceService {
         return enforceProductionReadiness;
     }
 
+    /**
+     * Valida e prepara localmente o contrato fiscal que será transmitido à AGT,
+     * sem efectuar chamadas de rede. Executar dentro da transacção da emissão
+     * impede que erros conhecidos de payload consumam stock ou diário.
+     */
+    public void validateInvoiceForFiscalSubmission(Fatura fatura) {
+        if (fatura == null) {
+            throw new IllegalArgumentException("O documento de facturação é obrigatório.");
+        }
+        assertReadyForFiscalEmission();
+        mapperService.createSubmissionRequest(Collections.singletonList(fatura));
+    }
+
     public void assertReadyForFiscalEmission() {
         if (!enforceProductionReadiness) return;
         List<String> errors = new ArrayList<>();
