@@ -1153,40 +1153,60 @@ public class FaturaService {
     @Transactional
     public Fatura converterProFormaEmFatura(Long proFormaId) {
         Fatura proForma = faturaRepository.findById(proFormaId)
-                .orElseThrow(() -> new IllegalArgumentException("Pro-forma não encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException("Pro-forma/orçamento não encontrado"));
 
-        if (proForma.getTipoDocumento() != TipoDocumento.PRO_FORMA && proForma.getTipoDocumento() != TipoDocumento.ORCAMENTO) {
-             throw new IllegalArgumentException("O documento não é uma Pro-forma ou Orçamento");
+        if (proForma.getTipoDocumento() != TipoDocumento.PRO_FORMA
+                && proForma.getTipoDocumento() != TipoDocumento.ORCAMENTO) {
+            throw new IllegalArgumentException("O documento não é uma Pro-forma ou Orçamento");
+        }
+        if (proForma.getStatus() == StatusFatura.PROCESSADA) {
+            throw new IllegalStateException(
+                    "Este documento já foi convertido. Não é permitido gerar uma segunda factura.");
+        }
+        if (proForma.getCliente() == null) {
+            throw new IllegalStateException(
+                    "A conversão foi bloqueada: o documento de origem não tem cliente associado.");
+        }
+        if (proForma.getItens() == null || proForma.getItens().isEmpty()) {
+            throw new IllegalStateException(
+                    "A conversão foi bloqueada: o documento de origem não tem linhas.");
         }
 
-        // Criar nova Fatura baseada na Pro-forma
+        // Criar uma nova factura rascunho e manter o documento de origem para auditoria.
         Fatura novaFatura = new Fatura();
+        novaFatura.setTipoDocumento(TipoDocumento.FATURA);
         novaFatura.setCliente(proForma.getCliente());
+        novaFatura.setFaturaReferencia(proForma);
         novaFatura.setDataEmissao(LocalDate.now());
         novaFatura.setDataVencimento(LocalDate.now().plusDays(30));
         novaFatura.setStatus(StatusFatura.RASCUNHO);
         novaFatura.setMetodoPagamento(proForma.getMetodoPagamento());
         novaFatura.setObservacoes("Convertido de " + proForma.getNumero());
-        
-        // Copiar itens
+
+        // Preservar os dados comerciais e fiscais da linha original.
         for (ItemFatura item : proForma.getItens()) {
             ItemFatura novoItem = new ItemFatura();
             novoItem.setProduto(item.getProduto());
             novoItem.setDescricao(item.getDescricao());
             novoItem.setQuantidade(item.getQuantidade());
+            novoItem.setQuantidadeDecimal(item.getQuantidadeDecimal());
             novoItem.setPrecoUnitario(item.getPrecoUnitario());
             novoItem.setTaxaIva(item.getTaxaIva());
             novoItem.setDesconto(item.getDesconto());
             novoItem.setCodigoIsencao(item.getCodigoIsencao());
             novoItem.setMotivoIsencao(item.getMotivoIsencao());
-            novaFatura.addItem(novoItem);
+            novoItem.setLote(item.getLote());
+            novoItem.setPesoUnitario(item.getPesoUnitario());
+            novoFatura.addItem(novoItem);
         }
 
         novaFatura = salvar(novaFatura);
-        
-        // Opcional: Marcar Pro-forma como processada/fechada se houver status para isso
-        // proForma.setStatus(StatusFatura.PROCESSADA); // Se existir
-        
+
+        // A conversão e a marcação da origem ocorrem na mesma transacção:
+        // se a factura nova não for gravada, a origem permanece disponível.
+        proForma.setStatus(StatusFatura.PROCESSADA);
+        faturaRepository.save(proForma);
+
         return novaFatura;
     }
 
