@@ -5,6 +5,7 @@ import ao.allon.kubata.core.repository.PlanoContaRepository;
 import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.Recibo;
+import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.repository.ReciboRepository;
@@ -50,11 +51,20 @@ public class ReciboService {
 
     @Transactional
     public Recibo registrar(Long faturaId, BigDecimal valor, String referencia, String observacoes) {
+        return registrar(faturaId, valor, referencia, observacoes, MetodoPagamento.DINHEIRO);
+    }
+
+    @Transactional
+    public Recibo registrar(Long faturaId, BigDecimal valor, String referencia,
+                            String observacoes, MetodoPagamento metodoPagamento) {
         if (faturaId == null) {
             throw new IllegalArgumentException("A factura é obrigatória.");
         }
         if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("O valor recebido deve ser superior a zero.");
+        }
+        if (metodoPagamento == null) {
+            throw new IllegalArgumentException("A forma de pagamento é obrigatória.");
         }
 
         Fatura fatura = faturaRepository.findByIdForUpdate(faturaId)
@@ -83,6 +93,7 @@ public class ReciboService {
         r.setNumero("PENDENTE-" + UUID.randomUUID());
         r.setFatura(fatura);
         r.setValor(valor);
+        r.setMetodoPagamento(metodoPagamento);
         r.setReferencia(referencia);
         r.setObservacoes(observacoes);
         Recibo salvo = reciboRepository.save(r);
