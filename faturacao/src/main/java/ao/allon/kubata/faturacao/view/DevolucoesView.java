@@ -4,6 +4,8 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.faturacao.domain.Devolucao;
 import ao.allon.kubata.faturacao.domain.enums.StatusDevolucao;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import ao.allon.kubata.faturacao.service.DevolucaoService;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.JasperReportService;
@@ -29,6 +31,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import org.kordamp.ikonli.feather.Feather;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 import java.util.List;
@@ -456,15 +459,61 @@ public class DevolucoesView extends VBox {
             return;
         }
 
+        ComboBox<FinalidadeNotaCredito> cbFinalidade = new ComboBox<>(
+                FXCollections.observableArrayList(FinalidadeNotaCredito.values()));
+        cbFinalidade.setPromptText("Anulação ou rectificação");
+        cbFinalidade.setMaxWidth(Double.MAX_VALUE);
+
+        ComboBox<MeioConhecimentoAdquirente> cbMeio = new ComboBox<>(
+                FXCollections.observableArrayList(MeioConhecimentoAdquirente.values()));
+        cbMeio.setPromptText("Meio de conhecimento do adquirente");
+        cbMeio.setMaxWidth(Double.MAX_VALUE);
+
+        TextArea txtMotivoNC = new TextArea();
+        txtMotivoNC.setPromptText("Motivo concreto da nota de crédito (obrigatório)");
+        txtMotivoNC.setPrefRowCount(2);
+
+        TextArea txtComprovativo = new TextArea();
+        txtComprovativo.setPromptText(
+                "Referência verificável de e-mail/carta, assinatura com nome e NIF, carimbo ou outro documento");
+        txtComprovativo.setPrefRowCount(2);
+
+        DatePicker dpConhecimento = new DatePicker(LocalDate.now());
+        dpConhecimento.setMaxWidth(Double.MAX_VALUE);
+
+        VBox content = new VBox(10,
+                new Label("A nota de crédito exige finalidade, motivo e prova verificável de que o adquirente tomou conhecimento."),
+                new Label("Finalidade legal"), cbFinalidade,
+                new Label("Motivo da nota de crédito"), txtMotivoNC,
+                new Label("Meio de conhecimento"), cbMeio,
+                new Label("Comprovativo / referência da prova"), txtComprovativo,
+                new Label("Data em que o adquirente tomou conhecimento"), dpConhecimento);
+
         modalService.create()
-                .title("Processar Devolução")
-                .content(new Label("Confirma o processamento? Isso irá gerar uma Nota de Crédito e atualizar o estoque."))
-                .autoSize()
-                .withConfirmButton("Confirmar", () -> {
+                .title("Processar Devolução " + selected.getNumero())
+                .content(content)
+                .dynamicSize()
+                .withConfirmButton("Gerar Nota de Crédito", () -> {
                     try {
-                        devolucaoService.processarDevolucao(selected.getId());
+                        if (cbFinalidade.getValue() == null || cbMeio.getValue() == null
+                                || txtMotivoNC.getText() == null || txtMotivoNC.getText().isBlank()
+                                || txtComprovativo.getText() == null || txtComprovativo.getText().isBlank()
+                                || dpConhecimento.getValue() == null
+                                || dpConhecimento.getValue().isAfter(LocalDate.now())) {
+                            AlertUtils.showWarningAlert("Dados obrigatórios",
+                                    "Preencha finalidade, motivo, meio, comprovativo e uma data válida do conhecimento do adquirente.");
+                            return false;
+                        }
+                        devolucaoService.processarDevolucao(
+                                selected.getId(),
+                                cbFinalidade.getValue(),
+                                cbMeio.getValue(),
+                                txtMotivoNC.getText().trim(),
+                                txtComprovativo.getText().trim(),
+                                dpConhecimento.getValue().atStartOfDay());
                         refreshAsync();
-                        AlertUtils.showInfoAlert("Sucesso", "Devolução processada e Nota de Crédito gerada.");
+                        AlertUtils.showInfoAlert("Sucesso",
+                                "Devolução processada. A finalidade, o motivo e a evidência do adquirente foram guardados na Nota de Crédito.");
                         return true;
                     } catch (Exception ex) {
                         AlertUtils.showExceptionAlert("Erro", "Falha ao processar devolução.", ex);
