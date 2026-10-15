@@ -1460,11 +1460,19 @@ public class FaturaService {
         }
 
         Map<Long, ItemFatura> linhasOriginais = new java.util.LinkedHashMap<>();
+        if (original.getItens() == null || original.getItens().isEmpty()) {
+            throw new IllegalStateException("A factura original não contém linhas persistidas para creditar.");
+        }
         for (ItemFatura item : original.getItens()) {
             if (item.getId() != null) linhasOriginais.put(item.getId(), item);
         }
+        if (linhasOriginais.size() != original.getItens().size()) {
+            throw new IllegalStateException(
+                    "A factura original contém linhas sem ID persistido. Reconcilie o documento antes de emitir uma nota de crédito.");
+        }
 
         Set<Long> linhasPedido = new HashSet<>();
+        Map<Long, BigDecimal> quantidadesPedidas = new HashMap<>();
         List<ItemFatura> linhasCredito = new ArrayList<>();
         for (NotaCreditoItemRequest pedido : pedidos) {
             if (pedido == null) {
@@ -1501,7 +1509,32 @@ public class FaturaService {
                 throw new IllegalArgumentException("A quantidade a creditar (" + quantidade.toPlainString()
                         + ") excede o saldo (" + disponivel.toPlainString() + ") da linha " + linhaId + ".");
             }
+            quantidadesPedidas.put(linhaId, quantidade);
             linhasCredito.add(copiarLinhaParaCredito(origem, quantidade));
+        }
+
+        // Anulação significa anular todo o saldo ainda não creditado do documento,
+        // não apenas uma linha ou quantidade parcial. A interface não é a fronteira
+        // de segurança: esta regra é aplicada no serviço para todos os chamadores.
+        if (finalidade == FinalidadeNotaCredito.ANULACAO) {
+            for (Map.Entry<Long, ItemFatura> entry : linhasOriginais.entrySet()) {
+                Long linhaId = entry.getKey();
+                BigDecimal saldo = quantidadeComercial(entry.getValue())
+                        .subtract(jaCreditado.getOrDefault(linhaId, BigDecimal.ZERO))
+                        .setScale(3, RoundingMode.HALF_UP);
+                BigDecimal pedida = quantidadesPedidas.getOrDefault(linhaId, BigDecimal.ZERO)
+                        .setScale(3, RoundingMode.HALF_UP);
+                if (saldo.signum() > 0 && pedida.compareTo(saldo) != 0) {
+                    throw new IllegalArgumentException(
+                            "Uma nota de crédito por anulação deve cobrir todo o saldo de cada linha. "
+                            + "Linha " + linhaId + ": saldo " + saldo.toPlainString()
+                            + ", quantidade indicada " + pedida.toPlainString() + ".");
+                }
+                if (saldo.signum() == 0 && pedida.signum() > 0) {
+                    throw new IllegalArgumentException(
+                            "A linha " + linhaId + " já foi integralmente creditada e não pode ser anulada novamente.");
+                }
+            }
         }
 
         Fatura notaCredito = new Fatura();
