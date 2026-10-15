@@ -8,6 +8,8 @@ import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.JasperReportService;
 import ao.allon.kubata.faturacao.ui.modal.ModalService;
@@ -437,9 +439,27 @@ public class NotasCreditoView extends BorderPane {
             }
         });
 
+        ComboBox<FinalidadeNotaCredito> cbFinalidade = new ComboBox<>(
+                FXCollections.observableArrayList(FinalidadeNotaCredito.values()));
+        cbFinalidade.setPromptText("Anulação ou rectificação");
+        cbFinalidade.setMaxWidth(Double.MAX_VALUE);
+
         TextArea txtMotivo = new TextArea();
-        txtMotivo.setPromptText("Motivo da nota de crédito (obrigatório)");
+        txtMotivo.setPromptText("Motivo concreto da anulação/rectificação (obrigatório)");
         txtMotivo.setPrefRowCount(3);
+
+        ComboBox<MeioConhecimentoAdquirente> cbMeioConhecimento = new ComboBox<>(
+                FXCollections.observableArrayList(MeioConhecimentoAdquirente.values()));
+        cbMeioConhecimento.setPromptText("Como o adquirente tomou conhecimento");
+        cbMeioConhecimento.setMaxWidth(Double.MAX_VALUE);
+
+        TextArea txtComprovativo = new TextArea();
+        txtComprovativo.setPromptText(
+                "Referência verificável do e-mail/carta, nome e NIF assinados, carimbo ou outra prova (obrigatório)");
+        txtComprovativo.setPrefRowCount(2);
+
+        DatePicker dpDataConhecimento = new DatePicker(LocalDate.now());
+        dpDataConhecimento.setMaxWidth(Double.MAX_VALUE);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -450,7 +470,11 @@ public class NotasCreditoView extends BorderPane {
         fields.setHgrow(Priority.ALWAYS);
         grid.getColumnConstraints().addAll(labels, fields);
         grid.addRow(0, new Label("Factura original"), cbFaturaRef);
-        grid.addRow(1, new Label("Motivo"), txtMotivo);
+        grid.addRow(1, new Label("Finalidade"), cbFinalidade);
+        grid.addRow(2, new Label("Motivo"), txtMotivo);
+        grid.addRow(3, new Label("Conhecimento"), cbMeioConhecimento);
+        grid.addRow(4, new Label("Comprovativo"), txtComprovativo);
+        grid.addRow(5, new Label("Data de conhecimento"), dpDataConhecimento);
 
         TableView<LinhaCreditoViewModel> tvPreview = new TableView<>();
         tvPreview.setEditable(true);
@@ -580,6 +604,25 @@ public class NotasCreditoView extends BorderPane {
                             AlertUtils.showWarningAlert("Atenção", "O motivo é obrigatório para notas de crédito.");
                             return false;
                         }
+                        if (cbFinalidade.getValue() == null) {
+                            AlertUtils.showWarningAlert("Atenção", "Seleccione anulação ou rectificação.");
+                            return false;
+                        }
+                        if (cbMeioConhecimento.getValue() == null) {
+                            AlertUtils.showWarningAlert("Atenção", "Indique como o adquirente tomou conhecimento.");
+                            return false;
+                        }
+                        String comprovativo = txtComprovativo.getText();
+                        if (comprovativo == null || comprovativo.isBlank()) {
+                            AlertUtils.showWarningAlert("Atenção", "O comprovativo do conhecimento do adquirente é obrigatório.");
+                            return false;
+                        }
+                        if (dpDataConhecimento.getValue() == null
+                                || dpDataConhecimento.getValue().isAfter(LocalDate.now())) {
+                            AlertUtils.showWarningAlert("Data inválida",
+                                    "Seleccione uma data válida, não futura, para o conhecimento do adquirente.");
+                            return false;
+                        }
 
                         List<NotaCreditoItemRequest> itens = new ArrayList<>();
                         for (LinhaCreditoViewModel linha : tvPreview.getItems()) {
@@ -599,9 +642,17 @@ public class NotasCreditoView extends BorderPane {
                             return false;
                         }
 
-                        Fatura nc = faturaService.emitirNotaCredito(ref.getId(), motivo, itens);
+                        Fatura nc = faturaService.emitirNotaCredito(
+                                ref.getId(),
+                                motivo.trim(),
+                                cbFinalidade.getValue(),
+                                cbMeioConhecimento.getValue(),
+                                comprovativo.trim(),
+                                dpDataConhecimento.getValue().atStartOfDay(),
+                                itens);
                         AlertUtils.showInfoAlert("Sucesso",
-                                "Nota de Crédito " + nc.getNumero() + " emitida para " + itens.size() + " linha(s).");
+                                "Nota de Crédito " + nc.getNumero() + " emitida para " + itens.size()
+                                + " linha(s). A finalidade, o motivo e o comprovativo ficaram registados no documento.");
                         refreshAsync();
                         return true;
                     } catch (Exception ex) {
