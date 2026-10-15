@@ -8,6 +8,7 @@ import ao.allon.kubata.faturacao.domain.Recibo;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
+import ao.allon.kubata.faturacao.enums.UnidadeMedida;
 import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TaxExemptionCode;
@@ -132,6 +133,31 @@ class FaturaServiceTest {
         // A emissão persiste o documento e o callback assíncrono pode persistir
         // novamente o estado da submissão AGT (SUBMITTED/FAILED/SIMULATED).
         verify(faturaRepository, atLeastOnce()).save(any(Fatura.class));
+    }
+
+    @Test
+    void emitirFatura_DeveBloquearQuantidadeFracionariaComStockInteiro() {
+        fatura.getItens().get(0).setQuantidadeDecimal(new BigDecimal("2.50"));
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> faturaService.emitirFatura(1L));
+
+        assertTrue(exception.getMessage().contains("unidades inteiras"));
+        verify(produtoService, never()).registarSaida(eq(10L), anyInt(), anyString());
+        verify(serieService, never()).getProximoNumero(any(Serie.class));
+    }
+
+    @Test
+    void emitirFatura_DevePermitirQuantidadeFracionariaParaServicoSemMovimentarStock() {
+        fatura.getItens().get(0).getProduto().setUnidadeMedida(UnidadeMedida.SERVICO);
+        fatura.getItens().get(0).setQuantidadeDecimal(new BigDecimal("2.50"));
+
+        Fatura emitida = faturaService.emitirFatura(1L);
+
+        assertEquals(StatusFatura.EMITIDA, emitida.getStatus());
+        verify(produtoService, never()).registarSaida(eq(10L), anyInt(), anyString());
+        verify(produtoService, never()).registarEntrada(eq(10L), anyInt(), anyString());
     }
 
     @Test
