@@ -506,7 +506,8 @@ public class FaturaService {
         }
 
         com.fasterxml.jackson.databind.JsonNode statusResult = response.findValue("statusFEResult");
-        if (statusResult == null && response.has("validationStatus")) {
+        if (statusResult == null
+                && (response.has("validationStatus") || response.has("documentNo"))) {
             statusResult = response;
         }
         if (statusResult == null || statusResult.isNull()) {
