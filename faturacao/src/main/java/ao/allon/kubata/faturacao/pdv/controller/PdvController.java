@@ -1206,7 +1206,13 @@ public class PdvController {
 
     public void cancelarVenda(Fatura fatura, String motivo) {
          try {
-             faturaService.cancelarFatura(fatura.getId(), motivo);
+             if (fatura.getStatus() == StatusFatura.RASCUNHO) {
+                 faturaService.descartarRascunho(fatura.getId());
+             } else {
+                 var motivoFiscal = ao.allon.kubata.faturacao.ui.util.FaturaCancellationUtils.escolherMotivoFiscal();
+                 if (motivoFiscal.isEmpty()) return;
+                 faturaService.cancelarFatura(fatura.getId(), motivo, motivoFiscal.get());
+             }
              AlertUtils.showSuccessNotification("Venda cancelada com sucesso.");
              if (onMetricsChanged != null) onMetricsChanged.run();
          } catch (Exception e) {
