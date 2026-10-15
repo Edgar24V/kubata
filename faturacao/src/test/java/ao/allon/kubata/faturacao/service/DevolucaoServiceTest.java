@@ -4,6 +4,9 @@ import ao.allon.kubata.faturacao.domain.Cliente;
 import ao.allon.kubata.faturacao.domain.Devolucao;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.ItemDevolucao;
+import ao.allon.kubata.faturacao.domain.ItemFatura;
+import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
+import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.domain.enums.StatusDevolucao;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
@@ -18,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,6 +56,20 @@ class DevolucaoServiceTest {
         faturaOrigem.setId(10L);
         faturaOrigem.setNumero("FT2026/1");
         faturaOrigem.setStatus(StatusFatura.EMITIDA);
+        faturaOrigem.setTipoDocumento(TipoDocumento.FATURA);
+        faturaOrigem.setCliente(cliente);
+
+        Produto produtoOriginal = new Produto();
+        produtoOriginal.setId(22L);
+        produtoOriginal.setNome("Artigo original");
+        ItemFatura linhaOriginal = new ItemFatura();
+        linhaOriginal.setId(100L);
+        linhaOriginal.setProduto(produtoOriginal);
+        linhaOriginal.setDescricao("Artigo original");
+        linhaOriginal.setQuantidade(5);
+        linhaOriginal.setPrecoUnitario(new BigDecimal("12.50"));
+        linhaOriginal.setTaxaIva(new BigDecimal("14.00"));
+        faturaOrigem.addItem(linhaOriginal);
 
         devolucao = new Devolucao();
         devolucao.setId(1L);
@@ -60,13 +78,29 @@ class DevolucaoServiceTest {
         devolucao.setStatus(StatusDevolucao.PENDENTE);
         
         ItemDevolucao item = new ItemDevolucao();
-        item.setProduto(new Produto());
+        item.setItemFaturaOrigem(linhaOriginal);
+        item.setProduto(produtoOriginal);
         item.setQuantidade(1);
-        item.setValorUnitario(BigDecimal.TEN);
+        item.setValorUnitario(new BigDecimal("12.50"));
         item.calculateTotal();
         devolucao.addItem(item);
 
         lenient().when(sessionManager.getCurrentUser()).thenReturn("admin");
+        lenient().when(faturaService.findByIdWithItens(10L)).thenReturn(Optional.of(faturaOrigem));
+        lenient().when(devolucaoRepository.findOpenByFaturaOrigem(
+                eq(10L), anyList())).thenReturn(List.of());
+    }
+
+    @Test
+    void criarSolicitacao_DeveRejeitarLinhaQueNaoPertenceAFactura() {
+        when(faturaService.findByIdWithItens(10L)).thenReturn(Optional.of(faturaOrigem));
+        ItemFatura forjada = new ItemFatura();
+        forjada.setId(999L);
+        devolucao.getItens().get(0).setItemFaturaOrigem(forjada);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> devolucaoService.criarSolicitacao(devolucao));
+        verify(devolucaoRepository, never()).save(any(Devolucao.class));
     }
 
     @Test
@@ -112,13 +146,16 @@ class DevolucaoServiceTest {
         
         Fatura ncSimulada = new Fatura();
         ncSimulada.setId(50L);
-        when(faturaService.emitirNotaCredito(eq(10L), anyString())).thenReturn(ncSimulada);
+        when(faturaService.emitirNotaCredito(eq(10L), anyString(), anyList())).thenReturn(ncSimulada);
 
         Devolucao processada = devolucaoService.processarDevolucao(1L);
 
         assertEquals(StatusDevolucao.CONCLUIDA, processada.getStatus());
         assertNotNull(processada.getNotaCredito());
         assertNotNull(processada.getDataConclusao());
-        verify(faturaService).emitirNotaCredito(eq(10L), contains("Devolução"));
+        verify(faturaService).emitirNotaCredito(eq(10L), contains("Devolução"),
+                argThat(linhas -> linhas.size() == 1
+                        && linhas.get(0).itemOriginalId().equals(100L)
+                        && linhas.get(0).quantidade().compareTo(BigDecimal.ONE) == 0));
     }
 }
