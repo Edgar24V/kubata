@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ReciboService {
@@ -49,25 +50,61 @@ public class ReciboService {
 
     @Transactional
     public Recibo registrar(Long faturaId, BigDecimal valor, String referencia, String observacoes) {
-        if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Valor inválido");
+        if (faturaId == null) {
+            throw new IllegalArgumentException("A factura é obrigatória.");
         }
-        Fatura fatura = faturaRepository.findById(faturaId)
-                .orElseThrow(() -> new IllegalArgumentException("Fatura não encontrada"));
+        if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("O valor recebido deve ser superior a zero.");
+        }
+
+        Fatura fatura = faturaRepository.findByIdForUpdate(faturaId)
+                .orElseThrow(() -> new IllegalArgumentException("Factura não encontrada."));
+
+        if (fatura.getStatus() != ao.allon.kubata.faturacao.domain.enums.StatusFatura.EMITIDA) {
+            throw new IllegalStateException(
+                    "Só é possível receber pagamentos de facturas emitidas com saldo em aberto.");
+        }
+        if (fatura.getTotal() == null || fatura.getTotal().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("A factura não tem um total válido para cobrança.");
+        }
+
+        BigDecimal recebidoAnterior = totalRecebidoFatura(faturaId);
+        if (recebidoAnterior == null) recebidoAnterior = BigDecimal.ZERO;
+        BigDecimal saldo = fatura.getTotal().subtract(recebidoAnterior);
+        if (saldo.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("A factura já está totalmente liquidada.");
+        }
+        if (valor.compareTo(saldo) > 0) {
+            throw new IllegalArgumentException(
+                    "O valor excede o saldo em aberto de " + saldo.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " AKZ.");
+        }
+
         Recibo r = new Recibo();
-        r.setNumero(gerarNumeroRecibo());
+        r.setNumero("PENDENTE-" + UUID.randomUUID());
         r.setFatura(fatura);
         r.setValor(valor);
         r.setReferencia(referencia);
         r.setObservacoes(observacoes);
         Recibo salvo = reciboRepository.save(r);
-        
+
+        // O ID persistido fornece uma sequência interna única sem depender de COUNT()+1,
+        // que gera colisões quando há recibos concorrentes ou registos inactivos.
+        salvo.setNumero(String.format(java.util.Locale.ROOT, "RC%d%08d",
+                java.time.LocalDate.now().getYear(), salvo.getId()));
+        salvo = reciboRepository.save(salvo);
+
+        BigDecimal totalRecebido = recebidoAnterior.add(valor);
+        if (totalRecebido.compareTo(fatura.getTotal()) == 0) {
+            fatura.setStatus(ao.allon.kubata.faturacao.domain.enums.StatusFatura.PAGA);
+        }
+        faturaRepository.save(fatura);
+
         try {
             lancarNaContabilidade(salvo);
         } catch (Exception e) {
              System.err.println("Erro ao lançar recibo na contabilidade: " + e.getMessage());
         }
-        
+
         return salvo;
     }
 
@@ -97,9 +134,5 @@ public class ReciboService {
         );
     }
 
-    private String gerarNumeroRecibo() {
-        int year = LocalDate.now().getYear();
-        long count = reciboRepository.count();
-        return String.format("RC%d%06d", year, count + 1);
-    }
+
 }
