@@ -34,6 +34,7 @@
 	<parameter name="FATURA_SUBTOTAL" class="java.lang.String"/>
 	<parameter name="FATURA_IVA" class="java.lang.String"/>
 	<parameter name="FATURA_TOTAL" class="java.lang.String"/>
+	<parameter name="FATURA_NOTA_CREDITO_INFO" class="java.lang.String"/>
 	<parameter name="FATURA_HASH" class="java.lang.String"/>
 	<parameter name="PROGRAMA_VALIDADO_NO" class="java.lang.String"/>
 	<parameter name="JWS_DOCUMENT_SIGNATURE" class="java.lang.String"/>
@@ -507,19 +508,34 @@
 				</graphicElement>
 			</line>
 			
+			<textField textAdjust="StretchHeight">
+				<reportElement x="0" y="108" width="330" height="46" uuid="9a25d5ed-1e84-4f22-81bd-09cc7aef9111">
+					<printWhenExpression><![CDATA[$P{FATURA_NOTA_CREDITO_INFO} != null && !$P{FATURA_NOTA_CREDITO_INFO}.trim().isEmpty()]]></printWhenExpression>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font size="7" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{FATURA_NOTA_CREDITO_INFO}]]></textFieldExpression>
+			</textField>
 			<staticText>
-				<reportElement x="0" y="110" width="100" height="15" uuid="90123456-7890-1234-5678-123456789012"/>
+				<reportElement x="0" y="110" width="100" height="15" uuid="90123456-7890-1234-5678-123456789012">
+					<printWhenExpression><![CDATA[$P{FATURA_NOTA_CREDITO_INFO} == null || $P{FATURA_NOTA_CREDITO_INFO}.trim().isEmpty()]]></printWhenExpression>
+				</reportElement>
 				<textElement>
 					<font isBold="true"/>
 				</textElement>
 				<text><![CDATA[Dados Bancários:]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="0" y="125" width="250" height="15" uuid="01234567-8901-2345-6789-234567890123"/>
+				<reportElement x="0" y="125" width="250" height="15" uuid="01234567-8901-2345-6789-234567890123">
+					<printWhenExpression><![CDATA[$P{FATURA_NOTA_CREDITO_INFO} == null || $P{FATURA_NOTA_CREDITO_INFO}.trim().isEmpty()]]></printWhenExpression>
+				</reportElement>
 				<textFieldExpression><![CDATA[($P{BANCO_NOME_1} != null ? $P{BANCO_NOME_1} + ": " + $P{BANCO_IBAN_1} : "")]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="0" y="140" width="250" height="15" uuid="12345678-9012-3456-7890-345678901234"/>
+				<reportElement x="0" y="140" width="250" height="15" uuid="12345678-9012-3456-7890-345678901234">
+					<printWhenExpression><![CDATA[$P{FATURA_NOTA_CREDITO_INFO} == null || $P{FATURA_NOTA_CREDITO_INFO}.trim().isEmpty()]]></printWhenExpression>
+				</reportElement>
 				<textFieldExpression><![CDATA[($P{BANCO_NOME_2} != null ? $P{BANCO_NOME_2} + ": " + $P{BANCO_IBAN_2} : "")]]></textFieldExpression>
 			</textField>
 		</band>
