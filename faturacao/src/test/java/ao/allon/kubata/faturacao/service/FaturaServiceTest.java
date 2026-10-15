@@ -171,7 +171,7 @@ class FaturaServiceTest {
         Fatura notaCredito = faturaService.emitirNotaCredito(1L, "Devolução por defeito");
 
         assertEquals(TipoDocumento.NOTA_CREDITO, notaCredito.getTipoDocumento());
-        assertTrue(notaCredito.getObservacoes().contains("Nota de Crédito"));
+        assertTrue(notaCredito.getObservacoes().contains("Referente à fatura"));
         verify(produtoService).registarEntrada(eq(10L), eq(2), contains("Emissão"));
     }
 }
