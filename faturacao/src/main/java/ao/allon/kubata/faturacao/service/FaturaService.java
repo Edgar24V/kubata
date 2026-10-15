@@ -506,6 +506,10 @@ public class FaturaService {
         }
 
         com.fasterxml.jackson.databind.JsonNode statusResult = response.findValue("statusFEResult");
+        if (statusResult == null) {
+            // A documentação AGT descreve também o envelope statusResult.
+            statusResult = response.findValue("statusResult");
+        }
         if (statusResult == null
                 && (response.has("validationStatus") || response.has("documentNo"))) {
             statusResult = response;
