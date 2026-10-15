@@ -308,6 +308,89 @@ public class AGTElectronicInvoiceService {
     }
 
     /**
+     * Consulta directamente na AGT uma factura pelo número fiscal.
+     *
+     * Este caminho serve para reconciliação quando uma tentativa de transmissão
+     * terminou sem requestID (por exemplo, timeout após a AGT receber o pedido).
+     * A resposta é devolvida sem inventar um estado: o chamador só pode concluir
+     * que o documento é válido quando a AGT devolve validationStatus V ou P.
+     */
+    public JsonNode consultarFactura(String numeroDocumento) {
+        if (!agtApiEnabled) {
+            throw new IllegalStateException(
+                "A consulta directa de facturas exige a integração oficial AGT activa.");
+        }
+        if (numeroDocumento == null || numeroDocumento.isBlank() || numeroDocumento.length() > 60) {
+            throw new IllegalArgumentException("O número fiscal da factura é obrigatório e deve ter até 60 caracteres.");
+        }
+
+        validarCredenciaisAgt();
+        signatureService.assertProductionReady();
+        if (softwareValidationNumber == null || softwareValidationNumber.isBlank()) {
+            throw new IllegalStateException("O número de validação do software AGT está em falta.");
+        }
+        if (emitterNif == null || emitterNif.isBlank() || emitterCompanyName == null || emitterCompanyName.isBlank()) {
+            throw new IllegalStateException("O NIF e a denominação legal do emitente são obrigatórios.");
+        }
+
+        try {
+            int signatureVersionValue = signatureVersion == null ? 1 : signatureVersion;
+            Map<String, Object> softwareDetail = new LinkedHashMap<>();
+            softwareDetail.put("productId", productId);
+            softwareDetail.put("productVersion", productVersion);
+            softwareDetail.put("softwareValidationNumber", softwareValidationNumber);
+            softwareDetail.put("signatureVersion", signatureVersionValue);
+
+            Map<String, Object> softwareInfo = new LinkedHashMap<>();
+            softwareInfo.put("softwareInfoDetail", softwareDetail);
+            softwareInfo.put("jwsSoftwareSignature", signatureService.signJwsPayload(softwareDetail));
+
+            // A AGT chama ao campo do pedido invoiceNo, mas a assinatura usa documentNo.
+            Map<String, Object> signedRequest = new LinkedHashMap<>();
+            signedRequest.put("taxRegistrationNumber", emitterNif);
+            signedRequest.put("documentNo", numeroDocumento);
+
+            Map<String, Object> request = new LinkedHashMap<>();
+            request.put("schemaVersion", "2.0");
+            request.put("submissionUUID", UUID.randomUUID().toString());
+            request.put("taxRegistrationNumber", emitterNif);
+            request.put("submissionTimeStamp", Instant.now().atOffset(ZoneOffset.UTC)
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+            request.put("softwareInfo", softwareInfo);
+            request.put("jwsSignature", signatureService.signJwsPayload(signedRequest));
+            request.put("invoiceNo", numeroDocumento);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setBasicAuth(agtApiUsername, agtApiPassword, StandardCharsets.UTF_8);
+
+            ResponseEntity<JsonNode> response = restTemplate.exchange(
+                normalizarBaseUrl() + "/consultarFactura",
+                HttpMethod.POST,
+                new HttpEntity<>(request, headers),
+                JsonNode.class
+            );
+            if (response.getBody() == null) {
+                throw new IllegalStateException("A AGT devolveu uma resposta vazia ao consultar a factura.");
+            }
+            return response.getBody();
+        } catch (HttpStatusCodeException httpError) {
+            try {
+                JsonNode errorBody = objectMapper.readTree(httpError.getResponseBodyAsString());
+                if (errorBody != null) return errorBody;
+            } catch (Exception parseError) {
+                httpError.addSuppressed(parseError);
+            }
+            throw new IllegalStateException(
+                "Falha HTTP ao consultar a factura na AGT: " + httpError.getStatusCode().value(), httpError);
+        } catch (Exception e) {
+            if (e instanceof IllegalStateException stateException) throw stateException;
+            throw new IllegalStateException("Não foi possível consultar a factura na AGT.", e);
+        }
+    }
+
+    /**
      * Solicita à AGT uma série fiscal electrónica e devolve exclusivamente a
      * autorização recebida no serviço oficial. Nunca gera códigos nem intervalos
      * fictícios quando a API está desactivada ou em modo de simulação.
