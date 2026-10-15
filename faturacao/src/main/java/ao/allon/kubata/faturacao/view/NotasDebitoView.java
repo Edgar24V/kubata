@@ -526,7 +526,13 @@ public class NotasDebitoView extends BorderPane {
                     try {
                         String m = motivo.getText();
                         if (m == null || m.isBlank()) return false;
-                        faturaService.cancelarFatura(f.getId(), m);
+                        if (f.getStatus() == StatusFatura.RASCUNHO) {
+                            faturaService.descartarRascunho(f.getId());
+                        } else {
+                            var motivoFiscal = ao.allon.kubata.faturacao.ui.util.FaturaCancellationUtils.escolherMotivoFiscal();
+                            if (motivoFiscal.isEmpty()) return false;
+                            faturaService.cancelarFatura(f.getId(), m, motivoFiscal.get());
+                        }
                         refreshAsync();
                         return true;
                     } catch (Exception ex) {
