@@ -132,6 +132,21 @@ class FaturaServiceTest {
     }
 
     @Test
+    void emitirVendaADinheiro_DeveBaixarEstoqueEMarcarPaga() {
+        fatura.setTipoDocumento(TipoDocumento.VENDA_A_DINHEIRO);
+        Serie serieVenda = new Serie("2026-TV", TipoDocumento.VENDA_A_DINHEIRO, LocalDate.now().getYear());
+        serieVenda.setId(4L);
+        serieVenda.setUltimoNumero(0L);
+        when(serieService.findPadrao(TipoDocumento.VENDA_A_DINHEIRO)).thenReturn(Optional.of(serieVenda));
+        when(serieService.getProximoNumero(serieVenda)).thenReturn(1L);
+
+        Fatura res = faturaService.emitirFatura(1L);
+
+        assertEquals(StatusFatura.PAGA, res.getStatus());
+        verify(produtoService, times(1)).registarSaida(eq(10L), eq(2), anyString());
+    }
+
+    @Test
     void submeterAgtManualmente_DeveBloquearDocumentoJaPendenteParaEvitarDuplicacao() {
         fatura.setTipoDocumento(TipoDocumento.FATURA);
         fatura.setAgtSubmissionStatus("PENDING");
