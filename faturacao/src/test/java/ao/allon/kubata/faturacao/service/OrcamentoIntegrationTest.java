@@ -82,7 +82,13 @@ class OrcamentoIntegrationTest {
         orcamento.setTipoDocumento(TipoDocumento.ORCAMENTO);
         orcamento.setStatus(StatusFatura.RASCUNHO);
         orcamento.setCliente(new Cliente());
-        
+        ItemFatura linha = new ItemFatura();
+        linha.setDescricao("Serviço de consultoria");
+        linha.setQuantidade(1);
+        linha.setPrecoUnitario(new BigDecimal("1000.00"));
+        linha.setTaxaIva(new BigDecimal("14.00"));
+        orcamento.addItem(linha);
+
         Serie serieOrcamento = new Serie();
         serieOrcamento.setTipoDocumento(TipoDocumento.ORCAMENTO);
         serieOrcamento.setDesignacao("2024");
