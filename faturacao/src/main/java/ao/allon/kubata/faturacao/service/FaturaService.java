@@ -583,6 +583,51 @@ public class FaturaService {
                         + ". Não arredondámos o valor automaticamente para evitar divergência fiscal. "
                         + "Use uma quantidade inteira ou configure o artigo como serviço quando aplicável.");
             }
+            validarComposicaoDeStock(item.getProduto(), quantidade, new HashSet<>());
+        }
+    }
+
+    /**
+     * O movimento de stock legado converte quantidades de componentes para int.
+     * Validar recursivamente a ficha técnica antes de emitir, evitando perder
+     * quantidades fraccionárias ou entrar em recursão infinita por fichas cíclicas.
+     */
+    private void validarComposicaoDeStock(
+            ao.allon.kubata.faturacao.domain.Produto produto,
+            BigDecimal quantidadeProduto,
+            Set<Long> cadeia) {
+        if (produto == null || produto.isServico() || !produto.hasFichaTecnica()) {
+            return;
+        }
+
+        Long produtoId = produto.getId();
+        if (produtoId != null && !cadeia.add(produtoId)) {
+            throw new IllegalStateException(
+                    "Emissão bloqueada: foi detectada uma referência circular na ficha técnica do artigo '"
+                    + produto.getNome() + "'. Corrija a composição antes de movimentar stock.");
+        }
+
+        for (ao.allon.kubata.faturacao.domain.FichaTecnicaItem componente
+                : produto.getFichaTecnica().getItens()) {
+            if (componente == null || componente.getQuantidade() == null
+                    || componente.getQuantidade().signum() <= 0) {
+                throw new IllegalStateException(
+                        "Emissão bloqueada: a ficha técnica de '" + produto.getNome()
+                        + "' contém uma quantidade de componente inválida.");
+            }
+            ao.allon.kubata.faturacao.domain.Produto artigoComponente = componente.getProduto();
+            if (artigoComponente == null || artigoComponente.isServico()) {
+                continue;
+            }
+
+            BigDecimal quantidadeComponente = componente.getQuantidade().multiply(quantidadeProduto);
+            if (quantidadeComponente.stripTrailingZeros().scale() > 0) {
+                throw new IllegalStateException(
+                        "Emissão bloqueada: a ficha técnica de '" + produto.getNome()
+                        + "' exige " + quantidadeComponente.toPlainString() + " unidades fraccionárias de '"
+                        + artigoComponente.getNome() + "', mas o stock desse artigo só suporta unidades inteiras.");
+            }
+            validarComposicaoDeStock(artigoComponente, quantidadeComponente, new HashSet<>(cadeia));
         }
     }
 
