@@ -53,7 +53,7 @@ public class ProFormaModuleTest {
 
         when(agtElectronicInvoiceService.submitInvoiceAsync(any())).thenReturn(CompletableFuture.completedFuture(new ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO()));
 
-        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager);
+        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager, mock(ReciboService.class), mock(AgtSubmissionStatusService.class));
     }
 
     @Test

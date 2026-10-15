@@ -19,6 +19,8 @@ import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.JWSDigitalSignatureService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,8 +50,10 @@ public class FaturaService {
     private final ContabilidadeService contabilidadeService;
     private final PlanoContaRepository planoContaRepository;
     private final SessionManager sessionManager;
+    private final ReciboService reciboService;
+    private final AgtSubmissionStatusService agtSubmissionStatusService;
 
-    public FaturaService(FaturaRepository faturaRepository, ItemFaturaRepository itemFaturaRepository, ProdutoService produtoService, SerieService serieService, AGTService agtService, AGTElectronicInvoiceService agtElectronicInvoiceService, JWSDigitalSignatureService signatureService, ContabilidadeService contabilidadeService, PlanoContaRepository planoContaRepository, SessionManager sessionManager) {
+    public FaturaService(FaturaRepository faturaRepository, ItemFaturaRepository itemFaturaRepository, ProdutoService produtoService, SerieService serieService, AGTService agtService, AGTElectronicInvoiceService agtElectronicInvoiceService, JWSDigitalSignatureService signatureService, ContabilidadeService contabilidadeService, PlanoContaRepository planoContaRepository, SessionManager sessionManager, ReciboService reciboService, AgtSubmissionStatusService agtSubmissionStatusService) {
         this.faturaRepository = faturaRepository;
         this.itemFaturaRepository = itemFaturaRepository;
         this.produtoService = produtoService;
@@ -60,6 +64,8 @@ public class FaturaService {
         this.contabilidadeService = contabilidadeService;
         this.planoContaRepository = planoContaRepository;
         this.sessionManager = sessionManager;
+        this.reciboService = reciboService;
+        this.agtSubmissionStatusService = agtSubmissionStatusService;
     }
 
     public Optional<Fatura> findById(Long id) {
@@ -202,13 +208,16 @@ public class FaturaService {
     public Fatura salvar(Fatura fatura) {
         if (fatura.getId() != null) {
             Fatura existente = faturaRepository.findById(fatura.getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Fatura não encontrada"));
-            
-            // Regra de Imutabilidade AGT: Não permitir alteração de documentos assinados
-            if (existente.getStatus() == StatusFatura.EMITIDA || existente.getStatus() == StatusFatura.PAGA || existente.getStatus() == StatusFatura.CANCELADA) {
-                if (existente.getHash() != null && !existente.getHash().isEmpty()) {
-                    throw new IllegalStateException("Regra de Integridade AGT: Documentos assinados não podem ser alterados.");
-                }
+                    .orElseThrow(() -> new IllegalArgumentException("Factura não encontrada."));
+
+            // Um documento deixa de ser editável logo que sai de rascunho.
+            // A imutabilidade não pode depender da existência de um hash local.
+            if (existente.getStatus() != StatusFatura.RASCUNHO) {
+                throw new IllegalStateException(
+                        "Só é possível editar documentos em rascunho. Para corrigir um documento emitido, emita a nota de crédito/débito adequada.");
+            }
+            if (existente.getHash() != null && !existente.getHash().isBlank()) {
+                throw new IllegalStateException("Um documento com hash não pode voltar a ser editado.");
             }
         }
 
@@ -290,9 +299,85 @@ public class FaturaService {
     }
 
     private void processarEmissao(Fatura fatura) {
-        if (fatura.getStatus() == StatusFatura.EMITIDA) {
-            throw new IllegalStateException("A fatura já foi emitida ou processada");
+        if (fatura.getStatus() != StatusFatura.RASCUNHO) {
+            throw new IllegalStateException("Só é possível emitir documentos que estejam em rascunho.");
         }
+        if (fatura.getCliente() == null) {
+            throw new IllegalArgumentException("Seleccione um cliente antes de emitir o documento.");
+        }
+        if (fatura.getItens() == null || fatura.getItens().isEmpty()) {
+            throw new IllegalArgumentException("O documento deve conter pelo menos uma linha.");
+        }
+        for (ItemFatura item : fatura.getItens()) {
+            if (item == null || item.getDescricao() == null || item.getDescricao().isBlank()) {
+                throw new IllegalArgumentException("Todas as linhas devem ter uma descrição.");
+            }
+            if (item.getQuantidade() == null || item.getQuantidade() <= 0) {
+                throw new IllegalArgumentException("A quantidade de cada linha deve ser superior a zero.");
+            }
+            if (item.getPrecoUnitario() == null || item.getPrecoUnitario().compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("O preço unitário não pode ser nulo ou negativo.");
+            }
+            if (item.getTaxaIva() == null || item.getTaxaIva().compareTo(BigDecimal.ZERO) < 0
+                    || item.getTaxaIva().compareTo(new BigDecimal("100")) > 0) {
+                throw new IllegalArgumentException("A taxa de IVA deve estar entre 0% e 100%.");
+            }
+        }
+        fatura.recalculateTotals();
+        boolean guiaSemValorComercial = fatura.getTipoDocumento() == TipoDocumento.GUIA_REMESSA
+                || fatura.getTipoDocumento() == TipoDocumento.GUIA_TRANSPORTE;
+        if (fatura.getTotal() == null || fatura.getTotal().compareTo(BigDecimal.ZERO) < 0
+                || (!guiaSemValorComercial && fatura.getTotal().compareTo(BigDecimal.ZERO) == 0)) {
+            throw new IllegalArgumentException("O total do documento deve ser superior a zero, excepto em guias sem valor comercial.");
+        }
+
+        // Orçamentos, encomendas e pró-formas podem ser emitidos comercialmente,
+        // mas nunca passam pelo fluxo fiscal, não são enviados à AGT e não movem stock.
+        if (fatura.getTipoDocumento() == TipoDocumento.ORCAMENTO
+                || fatura.getTipoDocumento() == TipoDocumento.PRO_FORMA
+                || fatura.getTipoDocumento() == TipoDocumento.ENCOMENDA) {
+            Serie serieComercial = fatura.getSerie();
+            if (serieComercial == null) {
+                serieComercial = serieService.findPadrao(fatura.getTipoDocumento())
+                        .orElseGet(() -> serieService.criarSeriePadrao(fatura.getTipoDocumento()));
+                fatura.setSerie(serieComercial);
+            }
+            if (serieComercial.getTipoDocumento() != fatura.getTipoDocumento()) {
+                throw new IllegalArgumentException("A série seleccionada não pertence ao tipo do documento comercial.");
+            }
+            if (fatura.getNumeroSequencial() == null) {
+                Long sequencial = serieService.getProximoNumero(serieComercial);
+                fatura.setNumeroSequencial(sequencial);
+                fatura.setNumero(String.format("%s %s/%d",
+                        fatura.getTipoDocumento().getCodigo(), serieComercial.getDesignacao(), sequencial));
+            }
+            fatura.setDataEmissao(LocalDate.now());
+            fatura.setSystemEntryDate(LocalDateTime.now());
+            fatura.setStatus(StatusFatura.EMITIDA);
+            fatura.setAgtSubmissionStatus("NOT_APPLICABLE");
+            fatura.setAgtValidationCode(null);
+            fatura.setAgtSubmissionDate(null);
+            return;
+        }
+
+        // Num documento fiscal real, não inventar um NIF de consumidor final quando falta
+        // a identificação do adquirente. O NIF 999999999 só pode ser usado para consumidor final.
+        String nifClienteInformado = fatura.getCliente().getNif();
+        if (nifClienteInformado == null || nifClienteInformado.isBlank()
+                || !nifClienteInformado.trim().matches("[0-9 .-]+")) {
+            throw new IllegalArgumentException("O NIF do adquirente é obrigatório e deve conter apenas dígitos/separadores.");
+        }
+        String nifCliente = AngolaValidationUtils.normalizeNif(nifClienteInformado);
+        if (!AngolaValidationUtils.isValidNif(nifCliente)) {
+            throw new IllegalArgumentException("NIF do adquirente inválido: " + AngolaValidationUtils.validateNifMessage(nifCliente));
+        }
+        if ("999999999".equals(nifCliente)
+                && fatura.getCliente().getTipo() == ao.allon.kubata.faturacao.domain.enums.TipoCliente.EMPRESA) {
+            throw new IllegalArgumentException("O NIF de consumidor final não pode ser usado para um cliente do tipo empresa.");
+        }
+
+        // Se a integração real estiver activada, bloquear antes de consumir o número da série.
+        agtElectronicInvoiceService.validarConfiguracaoProducaoAntesEmissao();
 
         // Operador/Usuário responsável (para impressão/SAF-T/AGT)
         try {
@@ -322,9 +407,12 @@ public class FaturaService {
         Serie serie = fatura.getSerie();
         TipoDocumento tipo = serie.getTipoDocumento();
         
-        // Garantir consistência
+        // Não corrigir silenciosamente o tipo fiscal para caber numa série incompatível.
         if (fatura.getTipoDocumento() != tipo) {
-            fatura.setTipoDocumento(tipo);
+            throw new IllegalArgumentException(
+                    "A série seleccionada pertence ao tipo " + tipo.getCodigo()
+                            + " e não pode emitir um documento do tipo "
+                            + fatura.getTipoDocumento().getCodigo() + ".");
         }
         
         // 2. Garantir Número Sequencial se não tiver
@@ -356,7 +444,10 @@ public class FaturaService {
                 null
             );
             
-            String assinatura = agtService.generateDocumentHash(agtData, HashUtils.getPrivateKey());
+            java.security.PrivateKey chaveFiscal = agtElectronicInvoiceService.isRealIntegrationEnabled()
+                    ? signatureService.getPrivateKeyForAgtHash()
+                    : HashUtils.getPrivateKey();
+            String assinatura = agtService.generateDocumentHash(agtData, chaveFiscal);
             fatura.setHash(assinatura);
             
             // Marca de validação: 4 caracteres nas posições 1ª, 11ª, 21ª, 31ª (Anexo I, ponto 6-b)
@@ -385,8 +476,11 @@ public class FaturaService {
                 );
                 fatura.setJwsDocumentSignature(jwsSignature);
             } catch (Exception e) {
-                System.err.println("Aviso: Falha ao gerar assinatura JWS: " + e.getMessage());
-                // Não interromper emissão, mas logar o erro
+                if (agtElectronicInvoiceService.isRealIntegrationEnabled()) {
+                    throw new IllegalStateException(
+                            "Não foi possível assinar o documento. A emissão foi interrompida para proteger a integridade fiscal.", e);
+                }
+                System.err.println("Aviso: assinatura JWS de desenvolvimento indisponível: " + e.getMessage());
             }
             
         } catch (Exception e) {
@@ -397,7 +491,8 @@ public class FaturaService {
         for (ItemFatura item : fatura.getItens()) {
             if (item.getProduto() != null) {
                  Long prodId = item.getProduto().getId();
-                 if (tipo == TipoDocumento.FATURA || tipo == TipoDocumento.FATURA_RECIBO || tipo == TipoDocumento.GUIA_REMESSA) {
+                 if (tipo == TipoDocumento.FATURA || tipo == TipoDocumento.FATURA_RECIBO
+                         || tipo == TipoDocumento.VENDA_A_DINHEIRO || tipo == TipoDocumento.GUIA_REMESSA) {
                      produtoService.registarSaida(prodId, item.getQuantidade(), "Emissão " + tipo.getDescricao() + " " + fatura.getNumero());
                  } else if (tipo == TipoDocumento.NOTA_CREDITO) {
                      produtoService.registarEntrada(prodId, item.getQuantidade(), "Emissão " + tipo.getDescricao() + " " + fatura.getNumero());
@@ -411,25 +506,15 @@ public class FaturaService {
             fatura.setStatus(StatusFatura.EMITIDA);
         }
         
-        // 5. Faturação Eletrónica (Comunicação em Tempo Real AGT)
-        fatura.setAgtSubmissionStatus("PENDING");
-        agtElectronicInvoiceService.submitInvoiceAsync(fatura)
-            .thenAccept(response -> {
-                if (response != null && response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
-                    String validationCode = response.getValidationResults().get(0).getValidationCode();
-                    fatura.setAgtValidationCode(validationCode);
-                    fatura.setAgtSubmissionStatus("SUCCESS");
-                    fatura.setAgtSubmissionDate(LocalDateTime.now());
-                    faturaRepository.save(fatura);
-                    System.out.println("Submissão eletrónica AGT concluída: " + validationCode);
-                }
-            })
-            .exceptionally(ex -> {
-                fatura.setAgtSubmissionStatus("FAILED");
-                faturaRepository.save(fatura);
-                System.err.println("Erro na submissão eletrónica AGT: " + ex.getMessage());
-                return null;
-            });
+        // 5. Integração AGT. Não apresentar respostas simuladas como validações reais.
+        if (agtElectronicInvoiceService.isRealIntegrationEnabled()) {
+            fatura.setAgtSubmissionStatus("PENDING");
+            agendarSubmissaoAgtAposCommit(fatura);
+        } else {
+            fatura.setAgtSubmissionStatus("SIMULATED");
+            fatura.setAgtValidationCode(null);
+            fatura.setAgtSubmissionDate(null);
+        }
         
         // Integrar com Contabilidade (após emissão bem sucedida)
         try {
@@ -668,54 +753,97 @@ public class FaturaService {
     @Transactional
     public void cancelarFatura(Long id, String motivo, DocumentCancelReason reason) {
         Fatura fatura = faturaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Fatura não encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException("Factura não encontrada."));
 
         if (fatura.getStatus() == StatusFatura.CANCELADA) {
-            throw new IllegalStateException("A fatura já está cancelada.");
+            throw new IllegalStateException("A factura já está anulada.");
+        }
+        if (fatura.getStatus() == StatusFatura.RASCUNHO) {
+            throw new IllegalStateException("Um rascunho não é um documento fiscal emitido. Elimine-o/abandone-o sem o registar como anulado.");
+        }
+        if (fatura.getStatus() != StatusFatura.EMITIDA && fatura.getStatus() != StatusFatura.PAGA) {
+            throw new IllegalStateException("Só é possível anular documentos emitidos ou pagos.");
+        }
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("O motivo da anulação é obrigatório.");
+        }
+        if (reason == null) {
+            throw new IllegalArgumentException("Seleccione um motivo fiscal válido para a anulação.");
         }
 
-        // AGT Compliance: Não permitir cancelar faturas rascunho sem assinatura se o objetivo for anulação fiscal
-        // Faturas EMITIDAS/PAGAS requerem anulação formal
         fatura.setStatus(StatusFatura.CANCELADA);
         fatura.setDocumentStatus(DocumentStatus.ANULADO);
-        fatura.setDocumentCancelReason(reason != null ? reason : DocumentCancelReason.INCORRETA_IDENTIFICACAO);
-        fatura.setMotivoCancelamento(motivo);
+        fatura.setDocumentCancelReason(reason);
+        fatura.setMotivoCancelamento(motivo.trim());
         fatura.setDataCancelamento(LocalDateTime.now());
-        faturaRepository.save(fatura);
-        
-        // Estornar estoque se necessário
+
+        // Reverter stock apenas depois de confirmar que o documento foi emitido e
+        // apenas para tipos que movimentaram stock na emissão original.
         for (ItemFatura item : fatura.getItens()) {
-            if (item.getProduto() != null) {
-                produtoService.registarEntrada(item.getProduto().getId(), item.getQuantidade(), "Cancelamento Fatura " + fatura.getNumero());
+            if (item.getProduto() == null) continue;
+            Long produtoId = item.getProduto().getId();
+            if (fatura.getTipoDocumento() == TipoDocumento.FATURA
+                    || fatura.getTipoDocumento() == TipoDocumento.FATURA_RECIBO
+                    || fatura.getTipoDocumento() == TipoDocumento.VENDA_A_DINHEIRO
+                    || fatura.getTipoDocumento() == TipoDocumento.GUIA_REMESSA) {
+                produtoService.registarEntrada(produtoId, item.getQuantidade(),
+                        "Estorno de stock por anulação " + fatura.getNumero());
+            } else if (fatura.getTipoDocumento() == TipoDocumento.NOTA_CREDITO) {
+                produtoService.registarSaida(produtoId, item.getQuantidade(),
+                        "Estorno de stock por anulação " + fatura.getNumero());
             }
         }
-        
-        // AGT Compliance: Submeter anulação à AGT
-        agtElectronicInvoiceService.submitInvoiceAsync(fatura);
+
+        if (agtElectronicInvoiceService.isRealIntegrationEnabled()) {
+            fatura.setAgtSubmissionStatus("PENDING");
+        } else {
+            fatura.setAgtSubmissionStatus("SIMULATED");
+            fatura.setAgtValidationCode(null);
+            fatura.setAgtSubmissionDate(null);
+        }
+        faturaRepository.save(fatura);
+
+        if (agtElectronicInvoiceService.isRealIntegrationEnabled()) {
+            agendarAnulacaoAgtAposCommit(fatura, reason);
+        }
     }
-    
+
+    @Transactional
+    public void descartarRascunho(Long id) {
+        Fatura fatura = faturaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
+        if (fatura.getStatus() != StatusFatura.RASCUNHO) {
+            throw new IllegalStateException("Só é possível descartar documentos em rascunho.");
+        }
+        if (fatura.getHash() != null && !fatura.getHash().isBlank()) {
+            throw new IllegalStateException("Um rascunho com hash não pode ser descartado automaticamente.");
+        }
+        faturaRepository.delete(fatura);
+    }
+
+    /**
+     * Compatibilidade protegida: rascunhos são descartados; documentos fiscais
+     * emitidos exigem que o chamador forneça o motivo legal explicitamente.
+     */
     @Transactional
     public void cancelarFatura(Long id, String motivo) {
-        cancelarFatura(id, motivo, DocumentCancelReason.INCORRETA_IDENTIFICACAO);
+        Fatura fatura = faturaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
+        if (fatura.getStatus() == StatusFatura.RASCUNHO) {
+            descartarRascunho(id);
+            return;
+        }
+        throw new IllegalArgumentException(
+                "A anulação fiscal exige a selecção explícita do motivo I (incorreta identificação) ou N (não enviado ao adquirente).");
     }
     
     @Transactional
     public Fatura registrarRecebimento(Long faturaId, BigDecimal valorRecebido, String referencia) {
-        Fatura fatura = faturaRepository.findById(faturaId)
-                .orElseThrow(() -> new IllegalArgumentException("Fatura não encontrada"));
-        if (fatura.getStatus() == StatusFatura.CANCELADA) {
-            throw new IllegalStateException("Não é possível registrar recebimento de fatura cancelada");
-        }
-        if (valorRecebido == null || valorRecebido.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Valor recebido inválido");
-        }
-        if (valorRecebido.compareTo(fatura.getTotal()) >= 0) {
-            fatura.setStatus(StatusFatura.PAGA);
-        }
-        String obs = fatura.getObservacoes();
-        String extra = "Recebimento: " + valorRecebido + (referencia != null ? " (" + referencia + ")" : "");
-        fatura.setObservacoes(obs == null || obs.isEmpty() ? extra : (obs + " | " + extra));
-        return faturaRepository.save(fatura);
+        // Os recebimentos devem existir como recibos persistidos; não basta anexar
+        // uma linha de texto às observações da factura.
+        reciboService.registrar(faturaId, valorRecebido, referencia, null);
+        return faturaRepository.findById(faturaId)
+                .orElseThrow(() -> new IllegalArgumentException("Factura não encontrada após o registo do recibo."));
     }
     
     @Transactional
@@ -726,10 +854,14 @@ public class FaturaService {
         if (proForma.getTipoDocumento() != TipoDocumento.PRO_FORMA && proForma.getTipoDocumento() != TipoDocumento.ORCAMENTO) {
              throw new IllegalArgumentException("O documento não é uma Pro-forma ou Orçamento");
         }
+        if (proForma.getStatus() == StatusFatura.PROCESSADA) {
+            throw new IllegalStateException("Este documento comercial já foi convertido e não pode ser convertido novamente.");
+        }
 
         // Criar nova Fatura baseada na Pro-forma
         Fatura novaFatura = new Fatura();
         novaFatura.setCliente(proForma.getCliente());
+        novaFatura.setFaturaReferencia(proForma);
         novaFatura.setDataEmissao(LocalDate.now());
         novaFatura.setDataVencimento(LocalDate.now().plusDays(30));
         novaFatura.setStatus(StatusFatura.RASCUNHO);
@@ -751,10 +883,11 @@ public class FaturaService {
         }
 
         novaFatura = salvar(novaFatura);
-        
-        // Opcional: Marcar Pro-forma como processada/fechada se houver status para isso
-        // proForma.setStatus(StatusFatura.PROCESSADA); // Se existir
-        
+
+        // Bloqueia conversões repetidas para evitar facturas duplicadas originadas do mesmo documento.
+        proForma.setStatus(StatusFatura.PROCESSADA);
+        faturaRepository.save(proForma);
+
         return novaFatura;
     }
 
@@ -822,6 +955,7 @@ public class FaturaService {
 
         // Criar Nota de Crédito
         Fatura notaCredito = new Fatura();
+        notaCredito.setTipoDocumento(TipoDocumento.NOTA_CREDITO);
         notaCredito.setCliente(faturaOriginal.getCliente());
         notaCredito.setFaturaReferencia(faturaOriginal);
         notaCredito.setMotivoCancelamento(motivo); // Usando campo motivo para retificação
@@ -871,7 +1005,12 @@ public class FaturaService {
         Fatura faturaOriginal = faturaRepository.findById(faturaId)
                 .orElseThrow(() -> new IllegalArgumentException("Fatura original não encontrada"));
 
+        if (itensAdicionais == null || itensAdicionais.isEmpty()) {
+            throw new IllegalArgumentException("A nota de débito deve conter pelo menos uma linha.");
+        }
+
         Fatura notaDebito = new Fatura();
+        notaDebito.setTipoDocumento(TipoDocumento.NOTA_DEBITO);
         notaDebito.setCliente(faturaOriginal.getCliente());
         notaDebito.setFaturaReferencia(faturaOriginal);
         notaDebito.setMotivoCancelamento(motivo);
@@ -900,6 +1039,86 @@ public class FaturaService {
         faturaRepository.save(faturaOriginal);
 
         return notaDebito;
+    }
+
+
+    private void agendarSubmissaoAgtAposCommit(Fatura fatura) {
+        Long faturaId = fatura.getId();
+        if (faturaId == null) {
+            throw new IllegalStateException("A factura tem de ser persistida antes da submissão à AGT.");
+        }
+        Runnable enviar = () -> {
+            try {
+                agtElectronicInvoiceService.submitInvoiceAsync(fatura).whenComplete((response, error) -> {
+                    if (error != null || response == null) {
+                        agtSubmissionStatusService.atualizarEstado(faturaId, "FAILED", null);
+                        return;
+                    }
+
+                    String estado = "SUBMITTED";
+                    String codigo = null;
+                    if (response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
+                        var resultado = response.getValidationResults().get(0);
+                        codigo = resultado.getValidationCode();
+                        String estadoValidacao = resultado.getStatus();
+                        if ("SUCCESS".equalsIgnoreCase(estadoValidacao)
+                                || "VALIDATED".equalsIgnoreCase(estadoValidacao)) {
+                            estado = "SUCCESS";
+                        } else if ("FAILED".equalsIgnoreCase(estadoValidacao)
+                                || "REJECTED".equalsIgnoreCase(estadoValidacao)) {
+                            estado = "FAILED";
+                        }
+                    } else if ("FAILED".equalsIgnoreCase(response.getStatus())
+                            || "REJECTED".equalsIgnoreCase(response.getStatus())) {
+                        estado = "FAILED";
+                    }
+                    agtSubmissionStatusService.atualizarEstado(faturaId, estado, codigo);
+                });
+            } catch (Exception ex) {
+                agtSubmissionStatusService.atualizarEstado(faturaId, "FAILED", null);
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    enviar.run();
+                }
+            });
+        } else {
+            enviar.run();
+        }
+    }
+
+    private void agendarAnulacaoAgtAposCommit(Fatura fatura, DocumentCancelReason reason) {
+        Long faturaId = fatura.getId();
+        Runnable anular = () -> {
+            try {
+                agtElectronicInvoiceService.cancelInvoice(fatura, reason).whenComplete((response, error) -> {
+                    if (error != null || response == null
+                            || "FAILED".equalsIgnoreCase(response.getStatus())
+                            || "REJECTED".equalsIgnoreCase(response.getStatus())) {
+                        agtSubmissionStatusService.atualizarEstado(faturaId, "FAILED", null);
+                    } else {
+                        agtSubmissionStatusService.atualizarEstado(faturaId, "SUBMITTED", null);
+                    }
+                });
+            } catch (Exception ex) {
+                agtSubmissionStatusService.atualizarEstado(faturaId, "FAILED", null);
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    anular.run();
+                }
+            });
+        } else {
+            anular.run();
+        }
     }
 
     /**

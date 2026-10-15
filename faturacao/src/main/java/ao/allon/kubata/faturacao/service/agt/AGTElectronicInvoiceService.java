@@ -31,11 +31,20 @@ public class AGTElectronicInvoiceService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${agt.api.url:https://api.agt.minfin.gov.ao/v1}")
+    @Value("${agt.api.url:}")
     private String agtApiUrl;
 
     @Value("${agt.api.enabled:false}")
     private boolean agtApiEnabled;
+
+    @Value("${agt.api.key:}")
+    private String agtApiKey;
+
+    @Value("${agt.software.validation-number:}")
+    private String softwareValidationNumber;
+
+    @Value("${agt.emitter.nif:}")
+    private String emitterNif;
 
     public AGTElectronicInvoiceService(AGTInvoiceMapperService mapperService, JWSDigitalSignatureService signatureService) {
         this.mapperService = mapperService;
@@ -43,6 +52,42 @@ public class AGTElectronicInvoiceService {
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper()
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+
+    public boolean isRealIntegrationEnabled() {
+        return agtApiEnabled;
+    }
+
+    /**
+     * Valida a configuração necessária antes de consumir um número fiscal.
+     * Os valores de desenvolvimento e placeholders nunca são aceites com a API activa.
+     */
+    public void validarConfiguracaoProducaoAntesEmissao() {
+        if (!agtApiEnabled) {
+            return;
+        }
+        if (agtApiUrl == null || !agtApiUrl.startsWith("https://")) {
+            throw new IllegalStateException("A URL da API AGT tem de usar HTTPS.");
+        }
+        if (agtApiKey == null || agtApiKey.isBlank()
+                || agtApiKey.toUpperCase(java.util.Locale.ROOT).contains("PLACEHOLDER")
+                || agtApiKey.toUpperCase(java.util.Locale.ROOT).contains("SEU_API_KEY")) {
+            throw new IllegalStateException("Configure KUBATA_AGT_API_KEY com uma chave real antes de emitir.");
+        }
+        if (emitterNif == null || !emitterNif.matches("\\d{9,10}")
+                || emitterNif.startsWith("999")) {
+            throw new IllegalStateException("Configure agt.emitter.nif com o NIF fiscal real do emitente.");
+        }
+        if (softwareValidationNumber == null || softwareValidationNumber.isBlank()
+                || softwareValidationNumber.toUpperCase(java.util.Locale.ROOT).contains("PLACEHOLDER")) {
+            throw new IllegalStateException("O número de validação/certificação do software AGT não está configurado.");
+        }
+        try {
+            signatureService.getPrivateKeyForAgtHash();
+        } catch (Exception ex) {
+            throw new IllegalStateException(
+                    "Configure um certificado PKCS#12 real, protegido por palavra-passe, para assinatura fiscal RSA antes de emitir.", ex);
+        }
     }
 
     /**
@@ -66,6 +111,7 @@ public class AGTElectronicInvoiceService {
         }
 
         try {
+            validarConfiguracaoProducaoAntesEmissao();
             AGTInvoiceSubmissionRequest request = mapperService.createSubmissionRequest(faturas);
             String jsonPayload = objectMapper.writeValueAsString(request);
 
@@ -115,7 +161,9 @@ public class AGTElectronicInvoiceService {
         // Atualizar status do documento
         fatura.setDocumentStatus(DocumentStatus.ANULADO);
         fatura.setDocumentCancelReason(reason);
-        fatura.setMotivoCancelamento(reason.getDescricao());
+        if (fatura.getMotivoCancelamento() == null || fatura.getMotivoCancelamento().isBlank()) {
+            fatura.setMotivoCancelamento(reason.getDescricao());
+        }
         fatura.setDataCancelamento(LocalDateTime.now());
 
         return submitInvoiceAsync(fatura);
@@ -204,8 +252,10 @@ public class AGTElectronicInvoiceService {
                 fatura.getHash()
             );
         } catch (Exception e) {
-            // Fallback para desenvolvimento
-            return "JWS_PLACEHOLDER_" + UUID.randomUUID().toString().substring(0, 20);
+            if (agtApiEnabled) {
+                throw new IllegalStateException("Falha ao gerar a assinatura digital do documento.", e);
+            }
+            throw new IllegalStateException("A assinatura de desenvolvimento falhou; o documento não foi assinado.", e);
         }
     }
 
@@ -214,22 +264,23 @@ public class AGTElectronicInvoiceService {
      */
     private AGTResponseDTO createSimulatedResponse(List<Fatura> faturas) {
         AGTResponseDTO response = new AGTResponseDTO();
-        response.setStatus("ACCEPTED");
-        response.setMessage("Documentos recebidos para processamento (modo simulação)");
-        response.setSubmissionId(UUID.randomUUID().toString());
+        response.setStatus("SIMULATED");
+        response.setMessage("MODO DE SIMULAÇÃO: estes documentos NÃO foram submetidos nem validados pela AGT.");
+        response.setSubmissionId(null);
 
         List<AGTResponseDTO.ValidationResultDTO> results = new java.util.ArrayList<>();
         for (Fatura fatura : faturas) {
             AGTResponseDTO.ValidationResultDTO result = new AGTResponseDTO.ValidationResultDTO();
             result.setDocumentNo(fatura.getNumero());
-            result.setStatus("PENDING");
-            result.setValidationCode("AGT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-            result.setValidationDate(LocalDateTime.now().toString());
+            result.setStatus("SIMULATED");
+            result.setValidationCode(null);
+            result.setValidationDate(null);
             results.add(result);
 
-            // Atualizar fatura com status de submissão
-            fatura.setAgtSubmissionStatus("PENDING");
-            fatura.setAgtSubmissionDate(LocalDateTime.now());
+            // Não fabricar códigos de validação que possam ser confundidos com códigos AGT reais.
+            fatura.setAgtSubmissionStatus("SIMULATED");
+            fatura.setAgtValidationCode(null);
+            fatura.setAgtSubmissionDate(null);
         }
         response.setValidationResults(results);
 
@@ -238,15 +289,15 @@ public class AGTElectronicInvoiceService {
 
     private AGTResponseDTO createSimulatedConsultationResponse(String validationCode) {
         AGTResponseDTO response = new AGTResponseDTO();
-        response.setStatus("SUCCESS");
-        response.setMessage("Documento validado com sucesso (modo simulação)");
-        response.setSubmissionId(validationCode);
+        response.setStatus("SIMULATED");
+        response.setMessage("SIMULAÇÃO: a consulta à AGT não foi realizada e o documento não foi validado.");
+        response.setSubmissionId(null);
         return response;
     }
 
     private String getApiKey() {
-        // TODO: Implementar recuperação segura da API Key
-        return "API_KEY_PLACEHOLDER";
+        validarConfiguracaoProducaoAntesEmissao();
+        return agtApiKey;
     }
 
     /**

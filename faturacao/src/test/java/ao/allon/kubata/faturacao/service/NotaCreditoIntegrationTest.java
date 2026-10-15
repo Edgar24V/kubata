@@ -55,7 +55,7 @@ class NotaCreditoIntegrationTest {
         // Mock default async behavior for AGTElectronicInvoiceService
         when(agtElectronicInvoiceService.submitInvoiceAsync(any())).thenReturn(java.util.concurrent.CompletableFuture.completedFuture(new ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO()));
 
-        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager);
+        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager, mock(ReciboService.class), mock(AgtSubmissionStatusService.class));
     }
 
     @Test
@@ -66,7 +66,10 @@ class NotaCreditoIntegrationTest {
         faturaOriginal.setTipoDocumento(TipoDocumento.FATURA);
         faturaOriginal.setStatus(StatusFatura.EMITIDA);
         faturaOriginal.setNumero("FT 2024/10");
-        faturaOriginal.setCliente(new Cliente());
+        Cliente cliente = new Cliente();
+        cliente.setNome("Consumidor Final");
+        cliente.setNif("999999999");
+        faturaOriginal.setCliente(cliente);
         faturaOriginal.setTotal(new BigDecimal("1000.00"));
         
         ItemFatura item = new ItemFatura();

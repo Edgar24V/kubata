@@ -56,7 +56,7 @@ public class FaturaServiceNotaDebitoTest {
         // Mock default async behavior for AGTElectronicInvoiceService
         when(agtElectronicInvoiceService.submitInvoiceAsync(any())).thenReturn(java.util.concurrent.CompletableFuture.completedFuture(new ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO()));
 
-        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager);
+        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager, mock(ReciboService.class), mock(AgtSubmissionStatusService.class));
     }
 
     @Test
@@ -71,8 +71,10 @@ public class FaturaServiceNotaDebitoTest {
         faturaOriginal.setStatus(StatusFatura.EMITIDA);
         faturaOriginal.setDataEmissao(LocalDate.now());
         when(faturaRepository.findById(1L)).thenReturn(Optional.of(faturaOriginal));
-        Serie serie = new Serie();
+        Serie serie = new Serie("2026", TipoDocumento.NOTA_DEBITO, LocalDate.now().getYear());
+        serie.setId(8L);
         when(serieService.findPadrao(TipoDocumento.NOTA_DEBITO)).thenReturn(Optional.of(serie));
+        when(serieService.getProximoNumero(serie)).thenReturn(1L);
         when(faturaRepository.save(ArgumentMatchers.any(Fatura.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ItemFatura it = new ItemFatura();

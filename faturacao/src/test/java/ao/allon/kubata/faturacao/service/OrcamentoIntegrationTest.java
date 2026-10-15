@@ -57,7 +57,7 @@ class OrcamentoIntegrationTest {
         // Mock default async behavior for AGTElectronicInvoiceService
         when(agtElectronicInvoiceService.submitInvoiceAsync(any())).thenReturn(java.util.concurrent.CompletableFuture.completedFuture(new ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO()));
 
-        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager);
+        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager, mock(ReciboService.class), mock(AgtSubmissionStatusService.class));
     }
 
     @Test
@@ -82,7 +82,13 @@ class OrcamentoIntegrationTest {
         orcamento.setTipoDocumento(TipoDocumento.ORCAMENTO);
         orcamento.setStatus(StatusFatura.RASCUNHO);
         orcamento.setCliente(new Cliente());
-        
+        ItemFatura linha = new ItemFatura();
+        linha.setDescricao("Serviço de consultoria");
+        linha.setQuantidade(1);
+        linha.setPrecoUnitario(new BigDecimal("1000.00"));
+        linha.setTaxaIva(new BigDecimal("14.00"));
+        orcamento.addItem(linha);
+
         Serie serieOrcamento = new Serie();
         serieOrcamento.setTipoDocumento(TipoDocumento.ORCAMENTO);
         serieOrcamento.setDesignacao("2024");

@@ -114,10 +114,14 @@ public class SerieService {
             throw new IllegalStateException("A série pertence ao ano " + s.getAno() + " e não pode ser usada em " + anoAtual + ". Crie uma nova série para o ano corrente.");
         }
         
-        Long proximo = s.getUltimoNumero() + 1;
-        s.setUltimoNumero(proximo);
-        serieRepository.save(s);
-        return proximo;
+        int actualizadas = serieRepository.incrementarNumeroAtomico(s.getId(), anoAtual);
+        if (actualizadas != 1) {
+            throw new IllegalStateException(
+                    "Não foi possível reservar um número único para a série. Confirme o estado e o exercício da série.");
+        }
+        Serie serieActualizada = serieRepository.findById(s.getId())
+                .orElseThrow(() -> new IllegalStateException("Série não encontrada depois da reserva do número."));
+        return serieActualizada.getUltimoNumero();
     }
     
     @Transactional
