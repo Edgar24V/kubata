@@ -547,14 +547,27 @@ public class FaturaService {
             agtElectronicInvoiceService.assertReadyForFiscalEmission();
         }
 
-        // Operador/Usuário responsável (para impressão/SAF-T/AGT)
+        // Registar o operador responsável para auditoria. Em emissão fiscal de produção,
+        // não aceitar silenciosamente documentos emitidos por uma sessão anónima.
+        boolean emissaoFiscalProducao = agtElectronicInvoiceService != null
+                && agtElectronicInvoiceService.isProductionReadinessEnforced()
+                && requiresAgtSubmission(fatura.getTipoDocumento());
         try {
             if (fatura.getUsuario() == null && sessionManager != null) {
                 ao.allon.kubata.faturacao.domain.Usuario fu = sessionManager.getUsuario();
                 if (fu != null) fatura.setUsuario(fu);
             }
-        } catch (Exception ignore) {
-            // não interromper emissão
+        } catch (Exception ex) {
+            if (emissaoFiscalProducao) {
+                throw new IllegalStateException(
+                        "Emissão fiscal bloqueada: não foi possível identificar o operador responsável. "
+                        + "Inicie uma sessão autenticada antes de emitir.", ex);
+            }
+            log.warn("Não foi possível obter o utilizador responsável pelo documento.", ex);
+        }
+        if (emissaoFiscalProducao && fatura.getUsuario() == null) {
+            throw new IllegalStateException(
+                    "Emissão fiscal bloqueada: o documento tem de ficar associado ao operador autenticado.");
         }
 
         if (fatura.getTipoDocumento() == TipoDocumento.GUIA_REMESSA || fatura.getTipoDocumento() == TipoDocumento.GUIA_TRANSPORTE) {
