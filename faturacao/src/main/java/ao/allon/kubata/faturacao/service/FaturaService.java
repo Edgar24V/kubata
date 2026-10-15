@@ -1199,7 +1199,7 @@ public class FaturaService {
             novoItem.setMotivoIsencao(item.getMotivoIsencao());
             novoItem.setLote(item.getLote());
             novoItem.setPesoUnitario(item.getPesoUnitario());
-            novoFatura.addItem(novoItem);
+            novaFatura.addItem(novoItem);
         }
 
         novaFatura = salvar(novaFatura);
