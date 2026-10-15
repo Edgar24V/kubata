@@ -84,7 +84,7 @@ public class PaymentReceiptDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class SourceDocumentIDDTO {
         
-        @JsonProperty("originatingON")
+        @JsonProperty("OriginatingON")
         private String originatingON;
         
         @JsonProperty("documentDate")
