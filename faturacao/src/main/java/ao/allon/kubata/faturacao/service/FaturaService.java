@@ -1327,6 +1327,51 @@ public class FaturaService {
      * do adquirente; esses factos nunca podem ser inventados pelo serviço.
      */
     @Deprecated
+    /**
+     * Devolve as quantidades ainda disponíveis para uma anulação integral.
+     * É usado pela UI para montar a nota sem voltar a creditar quantidades já
+     * cobertas por notas de crédito anteriores. A emissão volta a calcular o
+     * saldo dentro da sua própria transacção, pelo que este método não substitui
+     * as validações concorrentes na operação de emissão.
+     */
+    @Transactional(readOnly = true)
+    public List<NotaCreditoItemRequest> obterLinhasDisponiveisParaAnulacao(Long faturaId) {
+        if (faturaId == null || faturaId <= 0) {
+            throw new IllegalArgumentException("Seleccione uma factura original válida.");
+        }
+        Fatura original = faturaRepository.findByIdWithItensForCreditNote(faturaId)
+                .orElseThrow(() -> new IllegalArgumentException("Factura original não encontrada."));
+        validarOriginalParaNotaCredito(original);
+        if (original.getItens() == null || original.getItens().isEmpty()) {
+            throw new IllegalStateException("A factura original não contém linhas para anular.");
+        }
+
+        Map<Long, BigDecimal> jaCreditado = obterQuantidadesJaCreditadas(original);
+        List<NotaCreditoItemRequest> disponiveis = new ArrayList<>();
+        for (ItemFatura item : original.getItens()) {
+            if (item.getId() == null) {
+                throw new IllegalStateException(
+                        "A factura original contém uma linha sem ID persistido. Reconcilie-a antes da anulação.");
+            }
+            BigDecimal saldo = quantidadeComercial(item)
+                    .subtract(jaCreditado.getOrDefault(item.getId(), BigDecimal.ZERO))
+                    .setScale(3, RoundingMode.HALF_UP);
+            if (saldo.signum() < 0) {
+                throw new IllegalStateException(
+                        "As notas de crédito existentes excedem a quantidade facturada na linha " + item.getId()
+                        + ". É necessária reconciliação manual.");
+            }
+            if (saldo.signum() > 0) {
+                disponiveis.add(new NotaCreditoItemRequest(item.getId(), saldo));
+            }
+        }
+        if (disponiveis.isEmpty()) {
+            throw new IllegalStateException(
+                    "A factura já foi integralmente creditada. Não é possível emitir outra nota de crédito por anulação.");
+        }
+        return List.copyOf(disponiveis);
+    }
+
     @Transactional
     public Fatura emitirNotaCredito(Long faturaId, String motivo) {
         throw new IllegalArgumentException(
