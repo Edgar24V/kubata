@@ -17,12 +17,14 @@ Definir os valores no gestor de segredos/ambiente do servidor; nunca no reposit�
 - `KUBATA_AGT_EMITTER_NIF=<NIF real da empresa emitente>`
 - `KUBATA_AGT_EMITTER_COMPANY_NAME=<denominação legal registada>`
 - `KUBATA_AGT_SIGNATURE_TYPE=RSA_SHA256`
-- `KUBATA_AGT_CERTIFICATE_PATH=<caminho protegido para o certificado PKCS#12>`
+- `KUBATA_AGT_CERTIFICATE_PATH=<caminho protegido para o certificado PKCS#12 fiscal do contribuinte>`
 - `KUBATA_AGT_CERTIFICATE_PASSWORD=<palavra-passe obtida do gestor de segredos>`
+- `KUBATA_AGT_SOFTWARE_CERTIFICATE_PATH=<caminho protegido para o PKCS#12 do produtor do software>`
+- `KUBATA_AGT_SOFTWARE_CERTIFICATE_PASSWORD=<palavra-passe obtida do gestor de segredos>`
 - `KUBATA_AGT_ALLOW_DEV_SIGNATURES=false`
 - `KUBATA_AGT_SIMULATION_ENABLED=false`
 
-O certificado/chave usado para assinar os hashes fiscais e os payloads JWS deve corresponder à chave registada/aceite no processo AGT do software. Não reutilizar chaves de desenvolvimento nem criar chaves automaticamente em produção.
+O certificado fiscal do contribuinte e o certificado do produtor do software são configurações e chaves privadas distintas: o segundo assina `jwsSoftwareSignature`; o primeiro assina os payloads JWS fiscais do contribuinte e é usado no cálculo de hash conforme a implementação do módulo. O Kubata falha em produção se ambos não estiverem configurados com chaves públicas diferentes. Confirmar com a AGT que cada certificado e respectivo uso estão registados/aceites no processo de validação do software. Não reutilizar chaves de desenvolvimento nem criar chaves automaticamente em produção.
 
 ## Critérios obrigatórios antes de emissão real
 
