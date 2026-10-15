@@ -510,8 +510,14 @@ public class GuiasTransporteView extends VBox {
                 "Confirma cancelar a Guia " + (f.getNumero() != null ? f.getNumero() : "") + "?");
         if (!confirm) return;
         try {
-            String motivo = "Cancelada pela gestão de Guias de Transporte";
-            faturaService.cancelarFatura(f.getId(), motivo);
+            if (f.getStatus() == StatusFatura.RASCUNHO) {
+                faturaService.descartarRascunho(f.getId());
+            } else {
+                var motivoFiscal = ao.allon.kubata.faturacao.ui.util.FaturaCancellationUtils.escolherMotivoFiscal();
+                if (motivoFiscal.isEmpty()) return;
+                String motivo = "Anulação fiscal: " + motivoFiscal.get().getDescricao();
+                faturaService.cancelarFatura(f.getId(), motivo, motivoFiscal.get());
+            }
             AlertUtils.showInfoAlert("Sucesso", "Guia cancelada com sucesso.");
             refreshAsync();
         } catch (Exception ex) {
