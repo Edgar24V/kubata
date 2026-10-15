@@ -147,6 +147,48 @@ class OrcamentoIntegrationTest {
     }
 
     @Test
+    void deveConverterEncomendaEmFaturaPreservandoDetalhes() {
+        Fatura encomenda = new Fatura();
+        encomenda.setId(5L);
+        encomenda.setNumero("EC 2026/5");
+        encomenda.setTipoDocumento(TipoDocumento.ENCOMENDA);
+        encomenda.setStatus(StatusFatura.EMITIDA);
+        encomenda.setCliente(new Cliente());
+
+        ItemFatura item = new ItemFatura();
+        item.setDescricao("Serviço contratado");
+        item.setQuantidade(2);
+        item.setQuantidadeDecimal(new BigDecimal("2.500"));
+        item.setPrecoUnitario(new BigDecimal("250.00"));
+        item.setTaxaIva(new BigDecimal("14"));
+        item.setDesconto(new BigDecimal("10"));
+        item.setCodigoIsencao(null);
+        item.setMotivoIsencao(null);
+        item.setLote("CONTRATO-52");
+        item.setPesoUnitario(new BigDecimal("3.50"));
+        encomenda.addItem(item);
+
+        when(faturaRepository.findById(5L)).thenReturn(Optional.of(encomenda));
+        when(faturaRepository.save(any(Fatura.class))).thenAnswer(i -> {
+            Fatura f = i.getArgument(0);
+            if (f.getId() == null) f.setId(6L);
+            return f;
+        });
+
+        Fatura factura = faturaService.converterEncomendaEmFatura(5L, TipoDocumento.FATURA);
+
+        assertEquals(TipoDocumento.FATURA, factura.getTipoDocumento());
+        assertEquals(encomenda, factura.getFaturaReferencia());
+        assertEquals(StatusFatura.PROCESSADA, encomenda.getStatus());
+        assertEquals(1, factura.getItens().size());
+        ItemFatura linha = factura.getItens().get(0);
+        assertEquals(0, new BigDecimal("2.500").compareTo(linha.getQuantidadeDecimal()));
+        assertEquals(0, new BigDecimal("10").compareTo(linha.getDesconto()));
+        assertEquals("CONTRATO-52", linha.getLote());
+        assertEquals(0, new BigDecimal("3.50").compareTo(linha.getPesoUnitario()));
+    }
+
+    @Test
     void naoDeveConverterEncomendaCanceladaEmFatura() {
         Fatura encomenda = new Fatura();
         encomenda.setId(3L);
