@@ -10,10 +10,10 @@ import java.util.List;
 public class AGTInvoiceSubmissionRequest {
     
     @JsonProperty("schemaVersion")
-    private String schemaVersion = "1.0";
+    private String schemaVersion = "2.0";
     
-    @JsonProperty("submissionGUID")
-    private String submissionGUID;
+    @JsonProperty("submissionUUID")
+    private String submissionUUID;
     
     @JsonProperty("taxRegistrationNumber")
     private String taxRegistrationNumber;
@@ -32,10 +32,10 @@ public class AGTInvoiceSubmissionRequest {
     
     public AGTInvoiceSubmissionRequest() {}
     
-    public AGTInvoiceSubmissionRequest(String submissionGUID, String taxRegistrationNumber, 
+    public AGTInvoiceSubmissionRequest(String submissionUUID, String taxRegistrationNumber, 
                                      String submissionTimeStamp, SoftwareInfo softwareInfo,
                                      List<DocumentDTO> documents) {
-        this.submissionGUID = submissionGUID;
+        this.submissionUUID = submissionUUID;
         this.taxRegistrationNumber = taxRegistrationNumber;
         this.submissionTimeStamp = submissionTimeStamp;
         this.softwareInfo = softwareInfo;
@@ -52,12 +52,12 @@ public class AGTInvoiceSubmissionRequest {
         this.schemaVersion = schemaVersion;
     }
     
-    public String getSubmissionGUID() {
-        return submissionGUID;
+    public String getSubmissionUUID() {
+        return submissionUUID;
     }
     
-    public void setSubmissionGUID(String submissionGUID) {
-        this.submissionGUID = submissionGUID;
+    public void setSubmissionUUID(String submissionUUID) {
+        this.submissionUUID = submissionUUID;
     }
     
     public String getTaxRegistrationNumber() {
@@ -148,12 +148,20 @@ public class AGTInvoiceSubmissionRequest {
         @JsonProperty("softwareValidationNumber")
         private String softwareValidationNumber;
         
+        @JsonProperty("signatureVersion")
+        private Integer signatureVersion = 1;
+
         public SoftwareInfoDetail() {}
-        
+
         public SoftwareInfoDetail(String productId, String productVersion, String softwareValidationNumber) {
+            this(productId, productVersion, softwareValidationNumber, 1);
+        }
+
+        public SoftwareInfoDetail(String productId, String productVersion, String softwareValidationNumber, Integer signatureVersion) {
             this.productId = productId;
             this.productVersion = productVersion;
             this.softwareValidationNumber = softwareValidationNumber;
+            this.signatureVersion = signatureVersion == null ? 1 : signatureVersion;
         }
         
         public String getProductId() {
@@ -178,6 +186,14 @@ public class AGTInvoiceSubmissionRequest {
         
         public void setSoftwareValidationNumber(String softwareValidationNumber) {
             this.softwareValidationNumber = softwareValidationNumber;
+        }
+
+        public Integer getSignatureVersion() {
+            return signatureVersion;
+        }
+
+        public void setSignatureVersion(Integer signatureVersion) {
+            this.signatureVersion = signatureVersion;
         }
     }
 }

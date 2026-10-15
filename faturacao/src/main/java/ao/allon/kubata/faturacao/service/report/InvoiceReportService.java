@@ -113,7 +113,7 @@ public class InvoiceReportService {
 
         String nifEmpresa = empresa.getNif() != null ? empresa.getNif() : "999999999";
         String qrContent = agtService.formatQRCodeData(nifEmpresa, agtData);
-        BufferedImage qrCodeImage = barcodeService.generateBarcode(qrContent, BarcodeTypeEnum.QR_CODE, 200, 200);
+        BufferedImage qrCodeImage = barcodeService.generateAGTQRCode(qrContent, 350);
 
         // 3. Parâmetros do Relatório
         Map<String, Object> parameters = new HashMap<>();

@@ -38,7 +38,7 @@ public class NovaDevolucaoView extends BorderPane {
     private ComboBox<Fatura> cbFaturaOrigem;
     private TextArea txtMotivo;
     
-    private ComboBox<Produto> cbProduto;
+    private ComboBox<ItemFatura> cbLinhaOrigem;
     private TextField txtQuantidade;
     private TextArea txtMotivoItem;
     private TableView<ItemDevolucao> tabelaItens;
@@ -83,9 +83,12 @@ public class NovaDevolucaoView extends BorderPane {
         cbFaturaOrigem.setMaxWidth(Double.MAX_VALUE);
         cbFaturaOrigem.setDisable(true);
         cbFaturaOrigem.setConverter(new StringConverter<>() {
-            @Override public String toString(Fatura f) { return f != null ? f.getNumero() + " (" + f.getDataEmissao() + ")" : ""; }
+            @Override public String toString(Fatura f) {
+                return f != null ? f.getNumero() + " (" + f.getDataEmissao() + ")" : "";
+            }
             @Override public Fatura fromString(String s) { return null; }
         });
+        cbFaturaOrigem.setOnAction(e -> carregarLinhasDaFatura());
         
         txtMotivo = new TextArea();
         txtMotivo.setPromptText("Descreva o motivo geral da devolução...");
@@ -103,13 +106,24 @@ public class NovaDevolucaoView extends BorderPane {
         HBox inputLine = new HBox(10);
         inputLine.setAlignment(Pos.BOTTOM_LEFT);
         
-        cbProduto = new ComboBox<>();
-        cbProduto.setPromptText("Selecione o Produto");
-        cbProduto.setPrefWidth(200);
-        cbProduto.setItems(FXCollections.observableArrayList(produtoService.findAll())); // Idealmente filtrar pelos itens da fatura selecionada
-        cbProduto.setConverter(new StringConverter<>() {
-            @Override public String toString(Produto p) { return p != null ? p.getNome() : ""; }
-            @Override public Produto fromString(String s) { return null; }
+        cbLinhaOrigem = new ComboBox<>();
+        cbLinhaOrigem.setPromptText("Seleccione uma linha da factura de origem");
+        cbLinhaOrigem.setPrefWidth(320);
+        cbLinhaOrigem.setDisable(true);
+        cbLinhaOrigem.setConverter(new StringConverter<>() {
+            @Override public String toString(ItemFatura item) {
+                if (item == null) return "";
+                String descricao = item.getDescricao();
+                if ((descricao == null || descricao.isBlank()) && item.getProduto() != null) {
+                    descricao = item.getProduto().getNome();
+                }
+                BigDecimal quantidade = item.getQuantidadeDecimal() != null
+                        ? item.getQuantidadeDecimal()
+                        : BigDecimal.valueOf(item.getQuantidade() == null ? 0 : item.getQuantidade());
+                return String.valueOf(descricao) + " · facturado: " + quantidade.toPlainString()
+                        + " · preço: " + (item.getPrecoUnitario() == null ? "0,00" : item.getPrecoUnitario().toPlainString());
+            }
+            @Override public ItemFatura fromString(String s) { return null; }
         });
         
         txtQuantidade = new TextField("1");
@@ -118,7 +132,7 @@ public class NovaDevolucaoView extends BorderPane {
         Button btnAdd = new Button("", IconUtils.icon(Feather.PLUS, IconUtils.SIZE_SMALL));
         btnAdd.setOnAction(e -> adicionarItem());
         
-        inputLine.getChildren().addAll(new Label("Produto"), cbProduto, new Label("Qtd"), txtQuantidade, btnAdd);
+        inputLine.getChildren().addAll(new Label("Linha facturada"), cbLinhaOrigem, new Label("Qtd a devolver"), txtQuantidade, btnAdd);
         
         txtMotivoItem = new TextArea();
         txtMotivoItem.setPromptText("Motivo específico do item (opcional)");
@@ -177,59 +191,132 @@ public class NovaDevolucaoView extends BorderPane {
     }
     
     private void carregarFaturasDoCliente() {
-        Cliente c = cbCliente.getValue();
-        if (c != null) {
-            // Buscar faturas emitidas do cliente (simplificado)
-            // Idealmente: faturaService.findByClienteAndStatus(c.getId(), StatusFatura.EMITIDA)
-            List<Fatura> faturas = faturaService.findAll().stream()
-                    .filter(f -> f.getCliente().getId().equals(c.getId()) && f.getStatus() == ao.allon.kubata.faturacao.domain.enums.StatusFatura.EMITIDA)
-                    .toList();
-            cbFaturaOrigem.setItems(FXCollections.observableArrayList(faturas));
-            cbFaturaOrigem.setDisable(false);
-        } else {
-            cbFaturaOrigem.getItems().clear();
+        Cliente cliente = cbCliente.getValue();
+        cbFaturaOrigem.setValue(null);
+        cbFaturaOrigem.getItems().clear();
+        limparLinhasDevolucao();
+
+        if (cliente == null || cliente.getId() == null) {
             cbFaturaOrigem.setDisable(true);
-        }
-    }
-    
-    private void adicionarItem() {
-        Produto p = cbProduto.getValue();
-        if (p == null) return;
-        
-        int qtd;
-        try {
-            qtd = Integer.parseInt(txtQuantidade.getText());
-            if (qtd <= 0) throw new NumberFormatException();
-        } catch (Exception e) {
-            AlertUtils.showWarningAlert("Qtd", "Quantidade inválida");
             return;
         }
-        
+
+        try {
+            List<Fatura> faturas = faturaService.findFaturasParaDevolucao(cliente.getId());
+            cbFaturaOrigem.setItems(FXCollections.observableArrayList(faturas));
+            cbFaturaOrigem.setDisable(false);
+            if (faturas.isEmpty()) {
+                AlertUtils.showInfoAlert("Sem facturas elegíveis",
+                        "Este cliente não tem facturas emitidas/pagas elegíveis para devolução.");
+            }
+        } catch (Exception e) {
+            cbFaturaOrigem.setDisable(true);
+            AlertUtils.showExceptionAlert("Erro", "Não foi possível carregar as facturas do cliente.", e);
+        }
+    }
+
+    private void carregarLinhasDaFatura() {
+        Fatura fatura = cbFaturaOrigem.getValue();
+        limparLinhasDevolucao();
+        if (fatura == null || fatura.getItens() == null) {
+            cbLinhaOrigem.getItems().clear();
+            cbLinhaOrigem.setDisable(true);
+            return;
+        }
+
+        List<ItemFatura> linhas = fatura.getItens().stream()
+                .filter(item -> item.getId() != null && item.getProduto() != null
+                        && item.getProduto().getId() != null)
+                .filter(item -> {
+                    BigDecimal quantidade = item.getQuantidadeDecimal() != null
+                            ? item.getQuantidadeDecimal()
+                            : BigDecimal.valueOf(item.getQuantidade() == null ? 0 : item.getQuantidade());
+                    return quantidade.compareTo(BigDecimal.ZERO) > 0;
+                })
+                .toList();
+        cbLinhaOrigem.setItems(FXCollections.observableArrayList(linhas));
+        cbLinhaOrigem.setDisable(linhas.isEmpty());
+        if (linhas.isEmpty()) {
+            AlertUtils.showWarningAlert("Sem linhas devolvíveis",
+                    "A factura seleccionada não contém linhas persistidas ligadas a artigos de stock.");
+        }
+    }
+
+    private void limparLinhasDevolucao() {
+        itensObservable.clear();
+        devolucaoAtual.getItens().clear();
+        if (cbLinhaOrigem != null) {
+            cbLinhaOrigem.setValue(null);
+        }
+    }
+
+    private void adicionarItem() {
+        ItemFatura linha = cbLinhaOrigem.getValue();
+        if (linha == null || linha.getProduto() == null) {
+            AlertUtils.showWarningAlert("Linha obrigatória",
+                    "Seleccione uma linha de artigo da factura original.");
+            return;
+        }
+        Long linhaId = linha.getId();
+        if (itensObservable.stream().anyMatch(existing ->
+                existing.getItemFaturaOrigem() != null
+                        && linhaId.equals(existing.getItemFaturaOrigem().getId()))) {
+            AlertUtils.showWarningAlert("Linha repetida",
+                    "A linha já foi adicionada. Remova-a e adicione novamente com a quantidade correcta.");
+            return;
+        }
+
+        int quantidade;
+        try {
+            quantidade = Integer.parseInt(txtQuantidade.getText());
+            if (quantidade <= 0) throw new NumberFormatException();
+        } catch (Exception e) {
+            AlertUtils.showWarningAlert("Quantidade inválida",
+                    "Introduza uma quantidade inteira maior que zero.");
+            return;
+        }
+
+        BigDecimal faturado = linha.getQuantidadeDecimal() != null
+                ? linha.getQuantidadeDecimal()
+                : BigDecimal.valueOf(linha.getQuantidade() == null ? 0 : linha.getQuantidade());
+        if (BigDecimal.valueOf(quantidade).compareTo(faturado) > 0) {
+            AlertUtils.showWarningAlert("Quantidade excedida",
+                    "A quantidade a devolver não pode exceder a quantidade da linha original: "
+                    + faturado.toPlainString() + ".");
+            return;
+        }
+
         ItemDevolucao item = new ItemDevolucao();
-        item.setProduto(p);
-        item.setQuantidade(qtd);
+        item.setItemFaturaOrigem(linha);
+        item.setProduto(linha.getProduto());
+        item.setQuantidade(quantidade);
         item.setMotivoItem(txtMotivoItem.getText());
-        item.setValorUnitario(p.getPrecoUnitario()); // Simplificação: usar preço atual. Ideal: preço da fatura.
+        item.setValorUnitario(linha.getPrecoUnitario());
         item.calculateTotal();
-        
+
         devolucaoAtual.addItem(item);
         itensObservable.add(item);
-        
-        cbProduto.setValue(null);
+
+        cbLinhaOrigem.setValue(null);
         txtQuantidade.setText("1");
         txtMotivoItem.clear();
     }
     
     private void salvar() {
         if (cbCliente.getValue() == null) {
-            AlertUtils.showWarningAlert("Erro", "Selecione o cliente.");
+            AlertUtils.showWarningAlert("Erro", "Seleccione o cliente.");
+            return;
+        }
+        if (cbFaturaOrigem.getValue() == null) {
+            AlertUtils.showWarningAlert("Factura obrigatória",
+                    "Seleccione a factura original da qual os artigos foram devolvidos.");
             return;
         }
         if (itensObservable.isEmpty()) {
-            AlertUtils.showWarningAlert("Erro", "Adicione pelo menos um item.");
+            AlertUtils.showWarningAlert("Erro", "Adicione pelo menos uma linha da factura original.");
             return;
         }
-        
+
         devolucaoAtual.setCliente(cbCliente.getValue());
         devolucaoAtual.setFaturaOrigem(cbFaturaOrigem.getValue());
         devolucaoAtual.setMotivoSolicitacao(txtMotivo.getText());

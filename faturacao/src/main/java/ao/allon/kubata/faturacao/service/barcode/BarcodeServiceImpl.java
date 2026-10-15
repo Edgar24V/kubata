@@ -78,8 +78,10 @@ public class BarcodeServiceImpl implements BarcodeService {
 
         switch (type) {
             case QR_CODE:
-                hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H); // Alta correcao para documentos fiscais
-                hints.put(EncodeHintType.MARGIN, 1); // Margem minima
+                // A AGT especifica QR Code Model 2, codificação UTF-8 e nível M.
+                // A versão é escolhida automaticamente para que a URL de consulta AGT caiba.
+                hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
+                hints.put(EncodeHintType.MARGIN, 4);
                 return new QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, width, height, hints);
             
             case EAN_13:

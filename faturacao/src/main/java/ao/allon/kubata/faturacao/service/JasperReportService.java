@@ -306,6 +306,33 @@ public class JasperReportService {
             params.put("EAC_CODE", fatura.getEacCode() != null ? fatura.getEacCode() : "");
             params.put("JWS_DOCUMENT_SIGNATURE", fatura.getJwsDocumentSignature() != null ? fatura.getJwsDocumentSignature() : "");
 
+            // Informação fiscal adicional da nota de crédito. A cópia impressa
+            // deve permitir identificar a factura original, finalidade, motivo
+            // e prova/data de conhecimento do adquirente.
+            String infoNotaCredito = "";
+            if (fatura.getTipoDocumento() == TipoDocumento.NOTA_CREDITO) {
+                String finalidadeNC = fatura.getFinalidadeNotaCredito() != null
+                        ? fatura.getFinalidadeNotaCredito().getDescricao()
+                        : "Não registada (documento histórico)";
+                String origemNC = fatura.getFaturaReferencia() != null
+                        && fatura.getFaturaReferencia().getNumero() != null
+                        ? fatura.getFaturaReferencia().getNumero() : "Não identificada";
+                String motivoNC = fatura.getMotivoNotaCredito() != null
+                        ? fatura.getMotivoNotaCredito() : "";
+                String meioNC = fatura.getMeioConhecimentoAdquirente() != null
+                        ? fatura.getMeioConhecimentoAdquirente().getDescricao() : "Não registado";
+                String provaNC = fatura.getComprovativoConhecimentoAdquirente() != null
+                        ? fatura.getComprovativoConhecimentoAdquirente() : "Não registada";
+                String dataNC = fatura.getDataConhecimentoAdquirente() != null
+                        ? fatura.getDataConhecimentoAdquirente().toLocalDate().toString() : "Não registada";
+                infoNotaCredito = "FINALIDADE: " + finalidadeNC
+                        + "\nFACTURA ORIGINAL: " + origemNC
+                        + "\nMOTIVO: " + motivoNC
+                        + "\nCONHECIMENTO DO ADQUIRENTE: " + meioNC + " — " + dataNC
+                        + "\nCOMPROVATIVO: " + provaNC;
+            }
+            params.put("FATURA_NOTA_CREDITO_INFO", infoNotaCredito);
+
             // RETIFICADO (conforme recomendação AGT): documento original mantém estado SAF-T,
             // e a retificação é indicada pela existência de NC/ND de referência.
             try {

@@ -6,6 +6,7 @@ import ao.allon.kubata.faturacao.domain.Cliente;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.Recibo;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
+import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.service.ClienteService;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.ReciboService;
@@ -323,8 +324,14 @@ public class ContasReceberView extends BorderPane {
                     if (valor.compareTo(BigDecimal.ZERO) <= 0 || valor.compareTo(aberto) > 0) {
                         throw new IllegalArgumentException("Valor inválido");
                     }
-                    reciboService.registrar(fatura.getId(), valor, txtReferencia.getText(), txtObs.getText());
-                    faturaService.registrarRecebimento(fatura.getId(), valor, txtReferencia.getText());
+                    String formaSelecionada = cbForma.getValue();
+                    MetodoPagamento metodo = switch (formaSelecionada == null ? "" : formaSelecionada) {
+                        case "Transferência" -> MetodoPagamento.TRANSFERENCIA_BANCARIA;
+                        case "POS" -> MetodoPagamento.CARTAO_POS;
+                        case "Cheque" -> MetodoPagamento.CHEQUE;
+                        default -> MetodoPagamento.DINHEIRO;
+                    };
+                    reciboService.registrar(fatura.getId(), valor, txtReferencia.getText(), txtObs.getText(), metodo);
                     AlertUtils.showInfoAlert("Sucesso", "Recebimento registado.");
                     refreshData();
                     return true;

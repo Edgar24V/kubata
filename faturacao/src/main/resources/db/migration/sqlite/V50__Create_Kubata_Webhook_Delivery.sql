@@ -1,4 +1,5 @@
--- Infraestrutura persistente para entrega confiável de Webhooks Kubata
+-- Infraestrutura persistente para entrega confiável de Webhooks Kubata.
+-- V50: versão corrigida para evitar colisão com V30__AGT_Compliance_Updates.
 
 CREATE TABLE IF NOT EXISTS kubata_webhook_delivery (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

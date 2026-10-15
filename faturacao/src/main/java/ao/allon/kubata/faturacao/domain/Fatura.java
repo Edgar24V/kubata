@@ -6,6 +6,8 @@ import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.domain.enums.DocumentStatus;
 import ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -75,6 +77,17 @@ public class Fatura extends BaseEntity {
     @Column(nullable = false)
     private BigDecimal total = BigDecimal.ZERO;
 
+    /**
+     * Total acumulado dos recibos activos. É persistido para permitir controlo
+     * optimista das liquidações concorrentes, evitando sobre-recebimentos.
+     */
+    @Column(name = "valor_recebido", nullable = false, precision = 18, scale = 2)
+    private BigDecimal valorRecebido = BigDecimal.ZERO;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "total_retencao", nullable = false)
     private BigDecimal totalRetencao = BigDecimal.ZERO;
 
@@ -93,6 +106,23 @@ public class Fatura extends BaseEntity {
 
     @Column(name = "motivo_cancelamento")
     private String motivoCancelamento;
+
+    @Column(name = "motivo_nota_credito", columnDefinition = "TEXT")
+    private String motivoNotaCredito;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "finalidade_nota_credito", length = 20)
+    private FinalidadeNotaCredito finalidadeNotaCredito;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meio_conhecimento_adquirente", length = 30)
+    private MeioConhecimentoAdquirente meioConhecimentoAdquirente;
+
+    @Column(name = "comprovativo_conhecimento_adquirente", length = 1000)
+    private String comprovativoConhecimentoAdquirente;
+
+    @Column(name = "data_conhecimento_adquirente")
+    private LocalDateTime dataConhecimentoAdquirente;
 
     @Column(name = "data_cancelamento")
     private LocalDateTime dataCancelamento;
@@ -115,7 +145,7 @@ public class Fatura extends BaseEntity {
     @Column(name = "rejected_document_no", length = 60)
     private String rejectedDocumentNo;
 
-    @Column(name = "jws_document_signature", length = 256)
+    @Column(name = "jws_document_signature", length = 2048)
     private String jwsDocumentSignature;
 
     @Column(name = "customer_country", nullable = false, length = 2)
@@ -146,6 +176,9 @@ public class Fatura extends BaseEntity {
     @Column(name = "agt_validation_code")
     private String agtValidationCode;
 
+    @Column(name = "agt_request_id", length = 15)
+    private String agtRequestId;
+
     @Column(name = "agt_submission_status")
     private String agtSubmissionStatus; // PENDING, SUCCESS, FAILED
 
@@ -170,6 +203,20 @@ public class Fatura extends BaseEntity {
 
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
+    }
+
+    /**
+     * Os rascunhos podem ser descartados. Documentos fiscais que saíram de
+     * RASCUNHO devem permanecer no histórico auditável; correcções são feitas
+     * por documentos próprios, nunca por eliminação lógica do original.
+     */
+    @PreRemove
+    void validarEliminacaoFiscal() {
+        if (status != StatusFatura.RASCUNHO) {
+            throw new IllegalStateException(
+                "Um documento que saiu de RASCUNHO não pode ser eliminado. "
+                + "Preserve o histórico fiscal e utilize o fluxo correctivo aplicável.");
+        }
     }
 
     @Override
@@ -318,6 +365,18 @@ public class Fatura extends BaseEntity {
         this.total = total;
     }
 
+    public BigDecimal getValorRecebido() {
+        return valorRecebido != null ? valorRecebido : BigDecimal.ZERO;
+    }
+
+    public void setValorRecebido(BigDecimal valorRecebido) {
+        this.valorRecebido = valorRecebido != null ? valorRecebido : BigDecimal.ZERO;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
     public BigDecimal getTotalRetencao() {
         return totalRetencao;
     }
@@ -364,6 +423,46 @@ public class Fatura extends BaseEntity {
 
     public void setMotivoCancelamento(String motivoCancelamento) {
         this.motivoCancelamento = motivoCancelamento;
+    }
+
+    public String getMotivoNotaCredito() {
+        return motivoNotaCredito;
+    }
+
+    public void setMotivoNotaCredito(String motivoNotaCredito) {
+        this.motivoNotaCredito = motivoNotaCredito;
+    }
+
+    public FinalidadeNotaCredito getFinalidadeNotaCredito() {
+        return finalidadeNotaCredito;
+    }
+
+    public void setFinalidadeNotaCredito(FinalidadeNotaCredito finalidadeNotaCredito) {
+        this.finalidadeNotaCredito = finalidadeNotaCredito;
+    }
+
+    public MeioConhecimentoAdquirente getMeioConhecimentoAdquirente() {
+        return meioConhecimentoAdquirente;
+    }
+
+    public void setMeioConhecimentoAdquirente(MeioConhecimentoAdquirente meioConhecimentoAdquirente) {
+        this.meioConhecimentoAdquirente = meioConhecimentoAdquirente;
+    }
+
+    public String getComprovativoConhecimentoAdquirente() {
+        return comprovativoConhecimentoAdquirente;
+    }
+
+    public void setComprovativoConhecimentoAdquirente(String comprovativoConhecimentoAdquirente) {
+        this.comprovativoConhecimentoAdquirente = comprovativoConhecimentoAdquirente;
+    }
+
+    public LocalDateTime getDataConhecimentoAdquirente() {
+        return dataConhecimentoAdquirente;
+    }
+
+    public void setDataConhecimentoAdquirente(LocalDateTime dataConhecimentoAdquirente) {
+        this.dataConhecimentoAdquirente = dataConhecimentoAdquirente;
     }
 
     public LocalDateTime getDataCancelamento() {
@@ -630,4 +729,12 @@ public class Fatura extends BaseEntity {
     public String toString() {
         return "Fatura{id=" + getId() + ", numero='" + numero + "', status=" + status + ", total=" + total + "}";
     }
+    public String getAgtRequestId() {
+        return agtRequestId;
+    }
+
+    public void setAgtRequestId(String agtRequestId) {
+        this.agtRequestId = agtRequestId;
+    }
+
 }

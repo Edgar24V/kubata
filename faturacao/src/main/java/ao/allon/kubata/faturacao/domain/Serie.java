@@ -41,6 +41,31 @@ public class Serie {
     @Column(name = "hash_anterior", length = 512)
     private String hashAnterior = "";
 
+    @Column(name = "agt_series_code", length = 60)
+    private String agtSeriesCode;
+
+    @Column(name = "establishment_number", length = 200)
+    private String establishmentNumber;
+
+    @Column(name = "series_contingency_indicator", length = 1)
+    private String seriesContingencyIndicator;
+
+    @Column(name = "agt_authorized_quantity")
+    private Long agtAuthorizedQuantity;
+
+    @Column(name = "agt_first_document_number")
+    private Long agtFirstDocumentNumber;
+
+    @Column(name = "agt_last_document_number")
+    private Long agtLastDocumentNumber;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
+
     public Serie() {
     }
 
@@ -132,8 +157,36 @@ public class Serie {
     }
     
     public String getCodigoSerie() {
-        return tipoDocumento.getCodigo() + " " + designacao;
+        return codigoDocumentoFiscal() + " " + designacao;
     }
+
+    /** Código de documento usado na numeração fiscal electrónica AGT. */
+    public String codigoDocumentoFiscal() {
+        if (tipoDocumento == TipoDocumento.VENDA_A_DINHEIRO) return "TV";
+        return tipoDocumento.getCodigo();
+    }
+
+    public boolean isAutorizadaAgt() {
+        return agtSeriesCode != null && !agtSeriesCode.isBlank()
+            && agtFirstDocumentNumber != null && agtFirstDocumentNumber > 0
+            && agtLastDocumentNumber != null && agtLastDocumentNumber >= agtFirstDocumentNumber
+            && agtAuthorizedQuantity != null && agtAuthorizedQuantity > 0
+            && establishmentNumber != null && !establishmentNumber.isBlank()
+            && ("N".equals(seriesContingencyIndicator) || "C".equals(seriesContingencyIndicator));
+    }
+
+    public String getAgtSeriesCode() { return agtSeriesCode; }
+    public void setAgtSeriesCode(String value) { this.agtSeriesCode = value; }
+    public String getEstablishmentNumber() { return establishmentNumber; }
+    public void setEstablishmentNumber(String value) { this.establishmentNumber = value; }
+    public String getSeriesContingencyIndicator() { return seriesContingencyIndicator; }
+    public void setSeriesContingencyIndicator(String value) { this.seriesContingencyIndicator = value; }
+    public Long getAgtAuthorizedQuantity() { return agtAuthorizedQuantity; }
+    public void setAgtAuthorizedQuantity(Long value) { this.agtAuthorizedQuantity = value; }
+    public Long getAgtFirstDocumentNumber() { return agtFirstDocumentNumber; }
+    public void setAgtFirstDocumentNumber(Long value) { this.agtFirstDocumentNumber = value; }
+    public Long getAgtLastDocumentNumber() { return agtLastDocumentNumber; }
+    public void setAgtLastDocumentNumber(Long value) { this.agtLastDocumentNumber = value; }
 
     @Override
     public boolean equals(Object o) {

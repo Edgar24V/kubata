@@ -4,6 +4,7 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.faturacao.domain.Recibo;
 import ao.allon.kubata.faturacao.domain.Fatura;
+import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.service.ReciboService;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.SessionManager;
@@ -37,6 +38,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import javafx.stage.FileChooser;
+import javafx.util.StringConverter;
 
 public class RecibosView extends BorderPane {
 
@@ -277,6 +279,11 @@ public class RecibosView extends BorderPane {
         });
         colValor.setMinWidth(120);
 
+        TableColumn<Recibo, String> colMetodo = new TableColumn<>("Método");
+        colMetodo.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(
+            metodoLabel(cell.getValue().getMetodoPagamento())));
+        colMetodo.setMinWidth(150);
+
         TableColumn<Recibo, String> colReferencia = new TableColumn<>("Referência");
         colReferencia.setCellValueFactory(new PropertyValueFactory<>("referencia"));
         colReferencia.setMinWidth(150);
@@ -304,7 +311,7 @@ public class RecibosView extends BorderPane {
             }
         });
 
-        t.getColumns().addAll(colId, colNumero, colData, colFatura, colCliente, colValor, colReferencia, colAcoes);
+        t.getColumns().addAll(colId, colNumero, colData, colFatura, colCliente, colValor, colMetodo, colReferencia, colAcoes);
 
         t.setRowFactory(tv -> {
             TableRow<Recibo> row = new TableRow<>();
@@ -482,6 +489,25 @@ public class RecibosView extends BorderPane {
         faturaId.setPromptText("ID da Fatura");
         TextField valor = new TextField();
         valor.setPromptText("Valor recebido");
+        ComboBox<MetodoPagamento> metodo = new ComboBox<>(FXCollections.observableArrayList(
+                MetodoPagamento.DINHEIRO,
+                MetodoPagamento.TRANSFERENCIA_BANCARIA,
+                MetodoPagamento.CARTAO_POS,
+                MetodoPagamento.CHEQUE,
+                MetodoPagamento.MOBILE_MONEY));
+        metodo.setMaxWidth(Double.MAX_VALUE);
+        metodo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(MetodoPagamento value) {
+                return metodoLabel(value);
+            }
+
+            @Override
+            public MetodoPagamento fromString(String value) {
+                return null;
+            }
+        });
+        metodo.getSelectionModel().select(MetodoPagamento.DINHEIRO);
         TextField referencia = new TextField();
         referencia.setPromptText("Referência (opcional)");
         TextArea obs = new TextArea();
@@ -489,8 +515,9 @@ public class RecibosView extends BorderPane {
         obs.setPrefRowCount(3);
 
         VBox content = new VBox(8, 
-            new Label("Fatura ID"), faturaId, 
-            new Label("Valor"), valor, 
+            new Label("Fatura ID"), faturaId,
+            new Label("Valor"), valor,
+            new Label("Método de pagamento"), metodo,
             new Label("Referência"), referencia, 
             new Label("Observações"), obs
         );
@@ -504,7 +531,7 @@ public class RecibosView extends BorderPane {
                 try {
                     Long id = Long.parseLong(faturaId.getText());
                     BigDecimal v = new BigDecimal(valor.getText().replace(",", "."));
-                    reciboService.registrar(id, v, referencia.getText(), obs.getText());
+                    reciboService.registrar(id, v, referencia.getText(), obs.getText(), metodo.getValue());
                     loadData();
                     return true;
                 } catch (Exception ex) {
@@ -514,6 +541,18 @@ public class RecibosView extends BorderPane {
             })
             .withCancelButton("Cancelar")
             .buildAndShow();
+    }
+
+    private String metodoLabel(MetodoPagamento metodo) {
+        if (metodo == null) return "-";
+        return switch (metodo) {
+            case DINHEIRO -> "Dinheiro";
+            case TRANSFERENCIA_BANCARIA -> "Transferência bancária";
+            case CARTAO_POS -> "Cartão POS";
+            case CHEQUE -> "Cheque";
+            case MOBILE_MONEY -> "Mobile Money";
+            case MISTO -> "Misto";
+        };
     }
 
     private void exportarCSV() {

@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ConnectionCallback;
+import org.springframework.dao.DataAccessException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,47 +23,57 @@ public class FlywayMigrationTest {
 
     @Test
     public void testMigrationSuccess() {
-        // Verifica se o Flyway aplicou todas as migrações (Versão atual deve ser pelo menos 1)
-        assertTrue(flyway.info().current().getVersion().compareTo(org.flywaydb.core.api.MigrationVersion.fromVersion("1")) >= 0, 
-            "A versão atual do banco deve ser pelo menos 1 após as migrações");
+        assertTrue(flyway.info().current().getVersion()
+                .compareTo(org.flywaydb.core.api.MigrationVersion.fromVersion("1")) >= 0,
+                "A versão actual do banco deve ser pelo menos 1 após as migrações");
 
-        // Verifica se a tabela users (antiga usuarios) existe
-        Integer countUsuarios = jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM users", Integer.class);
-        assertNotNull(countUsuarios, "A tabela users deve existir");
-        
-        // Verifica se a tabela impostos foi criada
-        Integer countImpostos = jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM impostos", Integer.class);
+        Integer countUsers = jdbcTemplate.queryForObject("SELECT count(*) FROM users", Integer.class);
+        assertNotNull(countUsers, "A tabela users deve existir");
+
+        Integer countImpostos = jdbcTemplate.queryForObject("SELECT count(*) FROM impostos", Integer.class);
         assertNotNull(countImpostos, "A tabela impostos deve existir");
 
-        // Verifica se a tabela auditoria_logs foi criada
-        Integer countLogs = jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM auditoria_logs", Integer.class);
+        Integer countLogs = jdbcTemplate.queryForObject("SELECT count(*) FROM auditoria_logs", Integer.class);
         assertNotNull(countLogs, "A tabela auditoria_logs deve existir");
     }
 
     @Test
+    public void testReturnLineStoresReferenceToOriginalInvoiceLine() {
+        assertDoesNotThrow(() -> jdbcTemplate.queryForList(
+                "SELECT item_fatura_origem_id FROM itens_devolucao WHERE 1 = 0"),
+                "A migração deve adicionar a referência da linha original às devoluções.");
+    }
+
+    @Test
     public void testReferentialIntegrity() {
-        // 1. Inserir Categoria (Parent)
-        String sqlCategoria = "INSERT INTO categorias (nome, active, created_at) VALUES ('Eletrônicos', 1, CURRENT_TIMESTAMP)";
+        // Os testes de migração correm com SQLite neste perfil; o perfil test-pg usa H2.
+        // Cada motor tem o seu comando de activação de chaves estrangeiras.
+        String databaseProduct = jdbcTemplate.execute(
+                (ConnectionCallback<String>) connection -> connection.getMetaData().getDatabaseProductName());
+        if (databaseProduct != null && databaseProduct.toLowerCase(java.util.Locale.ROOT).contains("sqlite")) {
+            jdbcTemplate.execute("PRAGMA foreign_keys = ON");
+        } else {
+            jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY TRUE");
+        }
+
+        String sqlCategoria = "INSERT INTO categorias (nome, active, created_at) VALUES ('Eletrônicos', TRUE, CURRENT_TIMESTAMP)";
         jdbcTemplate.update(sqlCategoria);
-        Long categoriaId = jdbcTemplate.queryForObject("SELECT id FROM categorias WHERE nome = 'Eletrônicos'", Long.class);
+        Long categoriaId = jdbcTemplate.queryForObject(
+                "SELECT id FROM categorias WHERE nome = 'Eletrônicos'", Long.class);
 
-        // 2. Inserir Produto com FK válida (Child)
-        String sqlProduto = "INSERT INTO produtos (nome, codigo_barra, preco_unitario, categoria_id, active, created_at) " +
-                           "VALUES ('Smartphone', '123456789', 500.00, ?, 1, CURRENT_TIMESTAMP)";
+        String sqlProduto = "INSERT INTO produtos (nome, codigo_barra, preco_unitario, categoria_id, active, created_at) "
+                + "VALUES ('Smartphone', '123456789', 500.00, ?, TRUE, CURRENT_TIMESTAMP)";
         jdbcTemplate.update(sqlProduto, categoriaId);
-        
-        Integer countProdutos = jdbcTemplate.queryForObject("SELECT count(*) FROM produtos WHERE codigo_barra = '123456789'", Integer.class);
-        assertEquals(1, countProdutos, "Produto deve ser inserido com sucesso");
 
-        // 3. Tentar inserir Produto com FK inválida (deve falhar)
-        String sqlProdutoInvalido = "INSERT INTO produtos (nome, codigo_barra, preco_unitario, categoria_id, active, created_at) " +
-                                   "VALUES ('Tablet', '987654321', 300.00, 99999, 1, CURRENT_TIMESTAMP)";
-        
-        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> {
-            jdbcTemplate.update(sqlProdutoInvalido);
-        }, "Deve lançar exceção ao usar FK inexistente");
+        Integer countProdutos = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM produtos WHERE codigo_barra = '123456789'", Integer.class);
+        assertEquals(1, countProdutos, "Produto com FK válida deve ser inserido com sucesso");
+
+        String sqlProdutoInvalido = "INSERT INTO produtos (nome, codigo_barra, preco_unitario, categoria_id, active, created_at) "
+                + "VALUES ('Tablet', '987654321', 300.00, 99999, TRUE, CURRENT_TIMESTAMP)";
+
+        assertThrows(DataAccessException.class,
+                () -> jdbcTemplate.update(sqlProdutoInvalido),
+                "Deve lançar excepção ao usar FK inexistente");
     }
 }

@@ -1,6 +1,7 @@
 package ao.allon.kubata.faturacao.service.agt.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 
 /**
@@ -20,6 +21,27 @@ public class AGTResponseDTO {
     
     @JsonProperty("validationResults")
     private List<ValidationResultDTO> validationResults;
+
+    @JsonProperty("requestID")
+    private String requestID;
+
+    @JsonProperty("errorList")
+    private List<AGTErrorEntryDTO> errorList;
+
+    @JsonProperty("resultCode")
+    private String resultCode;
+
+    @JsonProperty("taxRegistrationNumber")
+    private String taxRegistrationNumber;
+
+    @JsonProperty("documentStatusList")
+    private List<DocumentStatusDTO> documentStatusList;
+
+    @JsonProperty("requestErrorList")
+    private List<AGTErrorEntryDTO> requestErrorList;
+
+    @JsonProperty("successRequestID")
+    private String successRequestID;
     
     public AGTResponseDTO() {}
     
@@ -55,6 +77,21 @@ public class AGTResponseDTO {
     public void setValidationResults(List<ValidationResultDTO> validationResults) {
         this.validationResults = validationResults;
     }
+
+    public String getRequestID() { return requestID; }
+    public void setRequestID(String requestID) { this.requestID = requestID; }
+    public List<AGTErrorEntryDTO> getErrorList() { return errorList; }
+    public void setErrorList(List<AGTErrorEntryDTO> errorList) { this.errorList = errorList; }
+    public String getResultCode() { return resultCode; }
+    public void setResultCode(String resultCode) { this.resultCode = resultCode; }
+    public String getTaxRegistrationNumber() { return taxRegistrationNumber; }
+    public void setTaxRegistrationNumber(String taxRegistrationNumber) { this.taxRegistrationNumber = taxRegistrationNumber; }
+    public List<DocumentStatusDTO> getDocumentStatusList() { return documentStatusList; }
+    public void setDocumentStatusList(List<DocumentStatusDTO> documentStatusList) { this.documentStatusList = documentStatusList; }
+    public List<AGTErrorEntryDTO> getRequestErrorList() { return requestErrorList; }
+    public void setRequestErrorList(List<AGTErrorEntryDTO> requestErrorList) { this.requestErrorList = requestErrorList; }
+    public String getSuccessRequestID() { return successRequestID; }
+    public void setSuccessRequestID(String successRequestID) { this.successRequestID = successRequestID; }
     
     /**
      * Resultado de validação individual por documento
@@ -159,4 +196,41 @@ public class AGTResponseDTO {
             this.message = message;
         }
     }
+
+    /** Estrutura de erro utilizada nos serviços oficiais de registo/consulta da AGT. */
+    public static class AGTErrorEntryDTO {
+        @JsonProperty("errorCode")
+        @JsonAlias("idError")
+        private String errorCode;
+        @JsonProperty("errorDescription")
+        @JsonAlias("descriptionError")
+        private String errorDescription;
+        @JsonProperty("documentNo")
+        private String documentNo;
+
+        public String getDocumentNo() { return documentNo; }
+        public void setDocumentNo(String documentNo) { this.documentNo = documentNo; }
+        public String getErrorCode() { return errorCode; }
+        public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
+        public String getErrorDescription() { return errorDescription; }
+        public void setErrorDescription(String errorDescription) { this.errorDescription = errorDescription; }
+    }
+
+    /** Estado oficial devolvido pela consulta posterior do pedido de registo. */
+    public static class DocumentStatusDTO {
+        @JsonProperty("documentNo")
+        private String documentNo;
+        @JsonProperty("documentStatus")
+        private String documentStatus;
+        @JsonProperty("errorList")
+        private List<AGTErrorEntryDTO> errorList;
+
+        public String getDocumentNo() { return documentNo; }
+        public void setDocumentNo(String documentNo) { this.documentNo = documentNo; }
+        public String getDocumentStatus() { return documentStatus; }
+        public void setDocumentStatus(String documentStatus) { this.documentStatus = documentStatus; }
+        public List<AGTErrorEntryDTO> getErrorList() { return errorList; }
+        public void setErrorList(List<AGTErrorEntryDTO> errorList) { this.errorList = errorList; }
+    }
+
 }

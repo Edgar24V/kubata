@@ -2,6 +2,8 @@ package ao.allon.kubata.faturacao.domain;
 
 import ao.allon.kubata.core.domain.BaseEntity;
 import ao.allon.kubata.faturacao.domain.enums.StatusDevolucao;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -40,6 +42,23 @@ public class Devolucao extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String parecerAnalise;
+
+    @Column(name = "motivo_nota_credito", columnDefinition = "TEXT")
+    private String motivoNotaCredito;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "finalidade_nota_credito", length = 20)
+    private FinalidadeNotaCredito finalidadeNotaCredito;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meio_conhecimento_adquirente", length = 30)
+    private MeioConhecimentoAdquirente meioConhecimentoAdquirente;
+
+    @Column(name = "comprovativo_conhecimento_adquirente", length = 1000)
+    private String comprovativoConhecimentoAdquirente;
+
+    @Column(name = "data_conhecimento_adquirente")
+    private LocalDateTime dataConhecimentoAdquirente;
 
     @OneToMany(mappedBy = "devolucao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemDevolucao> itens = new ArrayList<>();
@@ -132,6 +151,46 @@ public class Devolucao extends BaseEntity {
 
     public void setParecerAnalise(String parecerAnalise) {
         this.parecerAnalise = parecerAnalise;
+    }
+
+    public String getMotivoNotaCredito() {
+        return motivoNotaCredito;
+    }
+
+    public void setMotivoNotaCredito(String motivoNotaCredito) {
+        this.motivoNotaCredito = motivoNotaCredito;
+    }
+
+    public FinalidadeNotaCredito getFinalidadeNotaCredito() {
+        return finalidadeNotaCredito;
+    }
+
+    public void setFinalidadeNotaCredito(FinalidadeNotaCredito finalidadeNotaCredito) {
+        this.finalidadeNotaCredito = finalidadeNotaCredito;
+    }
+
+    public MeioConhecimentoAdquirente getMeioConhecimentoAdquirente() {
+        return meioConhecimentoAdquirente;
+    }
+
+    public void setMeioConhecimentoAdquirente(MeioConhecimentoAdquirente meioConhecimentoAdquirente) {
+        this.meioConhecimentoAdquirente = meioConhecimentoAdquirente;
+    }
+
+    public String getComprovativoConhecimentoAdquirente() {
+        return comprovativoConhecimentoAdquirente;
+    }
+
+    public void setComprovativoConhecimentoAdquirente(String comprovativoConhecimentoAdquirente) {
+        this.comprovativoConhecimentoAdquirente = comprovativoConhecimentoAdquirente;
+    }
+
+    public LocalDateTime getDataConhecimentoAdquirente() {
+        return dataConhecimentoAdquirente;
+    }
+
+    public void setDataConhecimentoAdquirente(LocalDateTime dataConhecimentoAdquirente) {
+        this.dataConhecimentoAdquirente = dataConhecimentoAdquirente;
     }
 
     public List<ItemDevolucao> getItens() {

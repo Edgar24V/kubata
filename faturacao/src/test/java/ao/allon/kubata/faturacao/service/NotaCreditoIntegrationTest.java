@@ -8,6 +8,8 @@ import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.repository.ItemFaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
@@ -19,6 +21,7 @@ import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -73,6 +76,8 @@ class NotaCreditoIntegrationTest {
         item.setDescricao("Serviço");
         item.setQuantidade(1);
         item.setPrecoUnitario(new BigDecimal("1000.00"));
+        item.setPercentualIva(new BigDecimal("14.00"));
+        item.setId(110L); // Linha persistida: a NC referencia esta linha para limitar créditos.
         faturaOriginal.addItem(item);
         
         // Mock Serie NC
@@ -83,6 +88,8 @@ class NotaCreditoIntegrationTest {
         serieNC.setAtiva(true);
         
         when(faturaRepository.findById(10L)).thenReturn(Optional.of(faturaOriginal));
+        // A consulta dedicada aplica bloqueio optimista na factura que está a ser creditada.
+        when(faturaRepository.findByIdWithItensForCreditNote(10L)).thenReturn(Optional.of(faturaOriginal));
         when(serieService.findPadrao(TipoDocumento.NOTA_CREDITO)).thenReturn(Optional.of(serieNC));
         when(serieService.getProximoNumero(serieNC)).thenReturn(1L);
         when(faturaRepository.save(any(Fatura.class))).thenAnswer(i -> {
@@ -91,20 +98,35 @@ class NotaCreditoIntegrationTest {
             return f;
         });
 
-        // Ação: Emitir NC
-        Fatura nc = faturaService.emitirNotaCredito(10L, "Devolução de mercadoria");
+        // Ação: Emitir NC com prova concreta e data de conhecimento do adquirente.
+        LocalDateTime dataConhecimento = LocalDateTime.now().minusDays(1);
+        Fatura nc = faturaService.emitirNotaCredito(
+                10L,
+                "Devolução de mercadoria",
+                FinalidadeNotaCredito.RECTIFICACAO,
+                MeioConhecimentoAdquirente.CORREIO_ELECTRONICO,
+                "E-mail de confirmação de devolução, referência NC-INT-001",
+                dataConhecimento,
+                java.util.List.of(new ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest(
+                        110L, BigDecimal.ONE)));
         
         // Verificação
         assertNotNull(nc);
         assertEquals(TipoDocumento.NOTA_CREDITO, nc.getTipoDocumento());
         assertEquals(StatusFatura.EMITIDA, nc.getStatus());
         assertEquals(faturaOriginal, nc.getFaturaReferencia());
-        assertEquals("Devolução de mercadoria", nc.getMotivoCancelamento()); // O campo motivoCancelamento é usado para motivo da NC
+        assertEquals("Devolução de mercadoria", nc.getMotivoCancelamento()); // Compatibilidade com histórico.
+        assertEquals("Devolução de mercadoria", nc.getMotivoNotaCredito());
+        assertEquals(FinalidadeNotaCredito.RECTIFICACAO, nc.getFinalidadeNotaCredito());
+        assertEquals(MeioConhecimentoAdquirente.CORREIO_ELECTRONICO, nc.getMeioConhecimentoAdquirente());
+        assertEquals("E-mail de confirmação de devolução, referência NC-INT-001",
+                nc.getComprovativoConhecimentoAdquirente());
+        assertEquals(dataConhecimento, nc.getDataConhecimentoAdquirente());
         assertEquals(1, nc.getItens().size());
         assertEquals("Serviço", nc.getItens().get(0).getDescricao());
         
         // Verifica se houve entrada de estoque (já que é devolução/crédito)
-        verify(produtoService, times(0)).registarSaida(any(), any(), any()); // Não deve sair
+        verify(produtoService, times(0)).registarSaida(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyString()); // Não deve sair
         // Nota: O teste unitário de FaturaService.processarEmissao chama registarEntrada para NC
         // Como processarEmissao é privado e chamado internamente, verificamos o efeito colateral se possível
         // Mas como produto é null no item mockado acima, não chama. Se adicionarmos produto:

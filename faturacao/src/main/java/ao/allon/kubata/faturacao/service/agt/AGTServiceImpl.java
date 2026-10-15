@@ -7,6 +7,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.time.format.DateTimeFormatter;
+import java.math.RoundingMode;
 import java.util.Base64;
 import java.util.logging.Logger;
 
@@ -29,15 +30,12 @@ public class AGTServiceImpl implements AGTService {
         
         String previousHash = (data.previousHash() != null && !data.previousHash().isEmpty()) ? data.previousHash() : "";
         
-        String contentToSign = String.format(java.util.Locale.US, "%s;%s;%s;%.2f;%s",
-                data.invoiceDate().format(DATE_FORMATTER),
-                data.systemEntryDate().format(DATETIME_FORMATTER),
-                data.invoiceNo(),
-                data.totalAmount().doubleValue(),
-                previousHash);
-        
-        // Log para auditoria/debug da string a assinar (CRÍTICO para validação AGT)
-        logger.info("AGT Signing String: [" + contentToSign + "]");
+        String total = data.totalAmount().setScale(2, RoundingMode.HALF_UP).toPlainString();
+        String contentToSign = data.invoiceDate().format(DATE_FORMATTER) + ";"
+                + data.systemEntryDate().format(DATETIME_FORMATTER) + ";"
+                + data.invoiceNo() + ";" + total + ";" + previousHash;
+
+        // Não registar em log o conteúdo fiscal usado na assinatura.
 
         Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
         signature.initSign(privateKey);
@@ -56,23 +54,28 @@ public class AGTServiceImpl implements AGTService {
 
     @Override
     public String formatQRCodeData(String emitterTaxID, AGTInvoiceData data) {
-        // Formato obrigatório AGT (conforme prompt): 
-        // NIF_Emitente;NIF_Cliente;TipoDoc;NumDoc;Data;Total;Hash
-        
-        String tipoDoc = "FT"; // Padrão
-        String numDoc = data.invoiceNo();
-        if (numDoc != null && numDoc.contains(" ")) {
-            tipoDoc = numDoc.substring(0, numDoc.indexOf(' ')).trim();
+        /*
+         * O QR Code impresso deve abrir a consulta pública da factura da AGT.
+         * Especificação oficial:
+         * https://portaldoparceiro.minfin.gov.ao/doc-agt/doc-agt/2/qrcode.html
+         * Os espaços do número documental são codificados como %20.
+         */
+        if (emitterTaxID == null || emitterTaxID.isBlank()) {
+            throw new IllegalArgumentException("O NIF do emitente é obrigatório para gerar o QR Code AGT.");
+        }
+        if (data == null || data.invoiceNo() == null || data.invoiceNo().isBlank()) {
+            throw new IllegalArgumentException("O número do documento é obrigatório para gerar o QR Code AGT.");
         }
 
-        return String.format(java.util.Locale.US, "%s;%s;%s;%s;%s;%.2f;%s",
-                emitterTaxID,
-                (data.customerTaxID() != null && !data.customerTaxID().isEmpty()) ? data.customerTaxID() : "000000000",
-                tipoDoc,
-                numDoc,
-                data.invoiceDate().format(DATE_FORMATTER),
-                data.totalAmount().doubleValue(),
-                data.hash() != null ? data.hash() : "");
+        String nifEmitente = emitterTaxID.replaceAll("\\D", "");
+        if (nifEmitente.isBlank()) {
+            throw new IllegalArgumentException("O NIF do emitente não contém dígitos válidos.");
+        }
+        String documento = java.net.URLEncoder.encode(data.invoiceNo().trim(), StandardCharsets.UTF_8)
+                .replace("+", "%20")
+                .replace("%2F", "/");
+        return "https://quiosqueagt.minfin.gov.ao/facturacao-eletronica/consultar-fe"
+                + "?emissor=" + nifEmitente + "&document=" + documento;
     }
 
     @Override
@@ -80,12 +83,10 @@ public class AGTServiceImpl implements AGTService {
         try {
             String previousHash = (data.previousHash() != null && !data.previousHash().isEmpty()) ? data.previousHash() : "";
             
-            String contentToVerify = String.format(java.util.Locale.US, "%s;%s;%s;%.2f;%s",
-                    data.invoiceDate().format(DATE_FORMATTER),
-                    data.systemEntryDate().format(DATETIME_FORMATTER),
-                    data.invoiceNo(),
-                    data.totalAmount().doubleValue(),
-                    previousHash);
+            String total = data.totalAmount().setScale(2, RoundingMode.HALF_UP).toPlainString();
+            String contentToVerify = data.invoiceDate().format(DATE_FORMATTER) + ";"
+                    + data.systemEntryDate().format(DATETIME_FORMATTER) + ";"
+                    + data.invoiceNo() + ";" + total + ";" + previousHash;
 
             Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
             signature.initVerify(publicKey);

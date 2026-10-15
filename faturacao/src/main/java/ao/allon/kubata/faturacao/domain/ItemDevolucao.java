@@ -18,6 +18,15 @@ public class ItemDevolucao extends BaseEntity {
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
+    /**
+     * Linha exacta da factura que originou a devolução. Nullable para preservar
+     * registos legados; novas solicitações comerciais devem preencher a referência.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_fatura_origem_id",
+            foreignKey = @ForeignKey(name = "fk_item_devolucao_fatura_origem"))
+    private ItemFatura itemFaturaOrigem;
+
     @NotNull
     @Min(value = 1)
     @Column(nullable = false)
@@ -46,6 +55,14 @@ public class ItemDevolucao extends BaseEntity {
 
     public void setProduto(Produto produto) {
         this.produto = produto;
+    }
+
+    public ItemFatura getItemFaturaOrigem() {
+        return itemFaturaOrigem;
+    }
+
+    public void setItemFaturaOrigem(ItemFatura itemFaturaOrigem) {
+        this.itemFaturaOrigem = itemFaturaOrigem;
     }
 
     public Integer getQuantidade() {

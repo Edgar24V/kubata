@@ -72,7 +72,12 @@ public class FaturaServiceNotaDebitoTest {
         faturaOriginal.setDataEmissao(LocalDate.now());
         when(faturaRepository.findById(1L)).thenReturn(Optional.of(faturaOriginal));
         Serie serie = new Serie();
+        serie.setTipoDocumento(TipoDocumento.NOTA_DEBITO);
+        serie.setDesignacao(String.valueOf(LocalDate.now().getYear()));
+        serie.setAno(LocalDate.now().getYear());
+        serie.setAtiva(true);
         when(serieService.findPadrao(TipoDocumento.NOTA_DEBITO)).thenReturn(Optional.of(serie));
+        when(serieService.getProximoNumero(serie)).thenReturn(1L);
         when(faturaRepository.save(ArgumentMatchers.any(Fatura.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ItemFatura it = new ItemFatura();
@@ -87,7 +92,60 @@ public class FaturaServiceNotaDebitoTest {
 
         assertNotNull(nd);
         assertEquals(TipoDocumento.NOTA_DEBITO, nd.getTipoDocumento());
+        assertEquals(faturaOriginal, nd.getFaturaReferencia());
         assertEquals(1, nd.getItens().size());
         assertEquals("Diferença de preço", nd.getItens().get(0).getDescricao());
+    }
+
+    @Test
+    void naoDeveEmitirNotaDebitoSobreRascunho() {
+        Fatura origem = new Fatura();
+        origem.setId(2L);
+        origem.setTipoDocumento(TipoDocumento.FATURA);
+        origem.setStatus(StatusFatura.RASCUNHO);
+        origem.setCliente(new Cliente());
+        when(faturaRepository.findById(2L)).thenReturn(Optional.of(origem));
+
+        ItemFatura item = new ItemFatura();
+        item.setDescricao("Acréscimo");
+        item.setQuantidade(1);
+        item.setPrecoUnitario(new BigDecimal("10.00"));
+
+        assertThrows(IllegalStateException.class,
+                () -> faturaService.emitirNotaDebito(2L, "Ajuste", List.of(item)));
+        verify(faturaRepository, never()).save(any(Fatura.class));
+    }
+
+    @Test
+    void naoDeveEmitirNotaDebitoSemLinhas() {
+        Fatura origem = new Fatura();
+        origem.setId(3L);
+        origem.setTipoDocumento(TipoDocumento.FATURA);
+        origem.setStatus(StatusFatura.EMITIDA);
+        origem.setCliente(new Cliente());
+        when(faturaRepository.findById(3L)).thenReturn(Optional.of(origem));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> faturaService.emitirNotaDebito(3L, "Ajuste", List.of()));
+        verify(faturaRepository, never()).save(any(Fatura.class));
+    }
+
+    @Test
+    void naoDeveEmitirNotaDebitoSemMotivo() {
+        Fatura origem = new Fatura();
+        origem.setId(4L);
+        origem.setTipoDocumento(TipoDocumento.FATURA);
+        origem.setStatus(StatusFatura.EMITIDA);
+        origem.setCliente(new Cliente());
+        when(faturaRepository.findById(4L)).thenReturn(Optional.of(origem));
+
+        ItemFatura item = new ItemFatura();
+        item.setDescricao("Acréscimo");
+        item.setQuantidade(1);
+        item.setPrecoUnitario(new BigDecimal("10.00"));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> faturaService.emitirNotaDebito(4L, "  ", List.of(item)));
+        verify(faturaRepository, never()).save(any(Fatura.class));
     }
 }

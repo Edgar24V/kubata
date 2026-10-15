@@ -39,10 +39,10 @@ class BarcodeServiceTest {
 
         String formatted = agtService.formatQRCodeData("123456789", data);
         
-        // Verifica se contém os elementos essenciais
-        Assertions.assertTrue(formatted.contains("H:HASH"));
-        Assertions.assertTrue(formatted.contains("T:1000.50"));
-        Assertions.assertTrue(formatted.contains("N:999999999"));
+        Assertions.assertEquals(
+                "https://quiosqueagt.minfin.gov.ao/facturacao-eletronica/consultar-fe"
+                        + "?emissor=123456789&document=FT%202024/1",
+                formatted);
     }
 
     @Test

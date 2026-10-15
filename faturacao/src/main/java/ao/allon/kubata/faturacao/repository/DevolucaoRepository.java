@@ -20,4 +20,18 @@ public interface DevolucaoRepository extends JpaRepository<Devolucao, Long> {
     
     @Query("SELECT d FROM Devolucao d WHERE d.cliente.id = :clienteId")
     List<Devolucao> findByCliente(@Param("clienteId") Long clienteId);
+
+    /**
+     * Carrega devoluções ainda abertas para reservar quantidades por linha
+     * antes de outra solicitação poder ser aprovada.
+     */
+    @Query("""
+        SELECT DISTINCT d FROM Devolucao d
+        LEFT JOIN FETCH d.itens i
+        LEFT JOIN FETCH i.itemFaturaOrigem
+        WHERE d.faturaOrigem.id = :faturaId
+          AND d.status IN :statuses
+        """)
+    List<Devolucao> findOpenByFaturaOrigem(@Param("faturaId") Long faturaId,
+                                          @Param("statuses") List<StatusDevolucao> statuses);
 }

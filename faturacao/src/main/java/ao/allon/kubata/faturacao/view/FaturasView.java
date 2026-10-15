@@ -6,6 +6,9 @@ import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.Cliente;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.EstadoDocumento;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
+import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.ClienteService;
 import ao.allon.kubata.faturacao.service.SessionManager;
@@ -503,8 +506,10 @@ public class FaturasView extends BorderPane {
                 if (status == null) return "-";
                 return switch (status) {
                     case "PENDING" -> "⏳";
+                    case "SUBMITTED" -> "↗";
+                    case "SIMULATED" -> "≈";
                     case "SUCCESS" -> "✓";
-                    case "FAILED" -> "✗";
+                    case "REJECTED", "FAILED" -> "✗";
                     default -> "-";
                 };
             });
@@ -522,18 +527,22 @@ public class FaturasView extends BorderPane {
                     Fatura fatura = getTableRow() != null ? getTableRow().getItem() : null;
                     if (fatura != null) {
                         String status = fatura.getAgtSubmissionStatus();
-                        String tooltipText = switch (status != null ? status : "") {
-                            case "PENDING" -> "Pendente";
-                            case "SUCCESS" -> "Validado: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
-                            case "FAILED" -> "Falhou";
+                        String safeStatus = status != null ? status : "";
+                        String tooltipText = switch (safeStatus) {
+                            case "PENDING" -> "A aguardar submissão";
+                            case "SUBMITTED" -> "Pedido recebido pela AGT; validação pendente. requestID: " + fatura.getAgtRequestId();
+                            case "SIMULATED" -> "Simulação local; não enviada nem validada pela AGT";
+                            case "SUCCESS" -> "Validada pela AGT: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
+                            case "REJECTED", "FAILED" -> "Rejeitada ou falhou; consultar detalhes técnicos";
                             default -> "Não submetido";
                         };
                         setTooltip(new Tooltip(tooltipText));
                         
-                        switch (status != null ? status : "") {
-                            case "PENDING" -> setTextFill(Color.ORANGE);
+                        switch (safeStatus) {
+                            case "PENDING", "SUBMITTED" -> setTextFill(Color.ORANGE);
+                            case "SIMULATED" -> setTextFill(Color.GRAY);
                             case "SUCCESS" -> setTextFill(Color.GREEN);
-                            case "FAILED" -> setTextFill(Color.RED);
+                            case "REJECTED", "FAILED" -> setTextFill(Color.RED);
                             default -> setTextFill(Color.BLACK);
                         }
                     }
@@ -606,7 +615,11 @@ public class FaturasView extends BorderPane {
         MenuItem miNotaCredito = new MenuItem("Nota de Crédito", IconUtils.icon(Feather.FILE_MINUS, IconUtils.SIZE_SMALL));
         miNotaCredito.setOnAction(e -> emitirNotaCredito());
 
-        ContextMenu cm = new ContextMenu(miEmitir, miCancelar, new SeparatorMenuItem(), miRecibo, miNotaCredito, new SeparatorMenuItem(), miImprimir, miEmail);
+        MenuItem miConsultarAGT = new MenuItem("Consultar estado AGT", IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL));
+        miConsultarAGT.setOnAction(e -> consultarEstadoAGT());
+
+        ContextMenu cm = new ContextMenu(miEmitir, miCancelar, new SeparatorMenuItem(), miRecibo,
+            miNotaCredito, new SeparatorMenuItem(), miConsultarAGT, new SeparatorMenuItem(), miImprimir, miEmail);
         return cm;
     }
 
@@ -945,37 +958,95 @@ public class FaturasView extends BorderPane {
     }
 
     private void emitirNotaCredito() {
-        Fatura f = getSelectedFatura();
-        if (f == null) {
-            AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura.");
+        Fatura seleccionada = getSelectedFatura();
+        if (seleccionada == null) {
+            AlertUtils.showWarningAlert("Aviso", "Seleccione uma factura.");
             return;
         }
 
-        TextField motivoField = new TextField();
-        motivoField.setPromptText("Motivo da nota de crédito");
-        VBox content = new VBox(8, new Label("Motivo"), motivoField);
+        ComboBox<FinalidadeNotaCredito> finalidadeField = new ComboBox<>(
+                FXCollections.observableArrayList(FinalidadeNotaCredito.values()));
+        finalidadeField.setValue(FinalidadeNotaCredito.ANULACAO);
+        finalidadeField.setMaxWidth(Double.MAX_VALUE);
+
+        TextArea motivoField = new TextArea();
+        motivoField.setPromptText("Motivo concreto da anulação total (obrigatório)");
+        motivoField.setPrefRowCount(3);
+
+        ComboBox<MeioConhecimentoAdquirente> meioField = new ComboBox<>(
+                FXCollections.observableArrayList(MeioConhecimentoAdquirente.values()));
+        meioField.setPromptText("Meio de conhecimento do adquirente");
+        meioField.setMaxWidth(Double.MAX_VALUE);
+
+        TextArea comprovativoField = new TextArea();
+        comprovativoField.setPromptText(
+                "Referência verificável de carta/e-mail, assinatura com nome e NIF, carimbo ou outra prova");
+        comprovativoField.setPrefRowCount(2);
+
+        DatePicker dataConhecimentoField = new DatePicker(LocalDate.now());
+        dataConhecimentoField.setMaxWidth(Double.MAX_VALUE);
+
+        VBox content = new VBox(8,
+                new Label("Finalidade"), finalidadeField,
+                new Label("Motivo concreto"), motivoField,
+                new Label("Como o adquirente tomou conhecimento"), meioField,
+                new Label("Comprovativo / referência documental"), comprovativoField,
+                new Label("Data de conhecimento do adquirente"), dataConhecimentoField);
         content.setPadding(new Insets(10));
 
         modalService.create()
-            .title("Nota de Crédito")
+            .title("Emitir Nota de Crédito")
             .content(content)
-            .autoSize()
-            .withConfirmButton("Confirmar", () -> {
-                String loadingId = loadingService.showLoading("Emitindo nota de crédito...", LoadingScreen.LoadingStyle.SPINNER);
-                
+            .dynamicSize()
+            .withConfirmButton("Emitir nota de crédito", () -> {
+                String motivo = motivoField.getText();
+                String comprovativo = comprovativoField.getText();
+                LocalDate dataConhecimento = dataConhecimentoField.getValue();
+                if (finalidadeField.getValue() == null || meioField.getValue() == null
+                        || motivo == null || motivo.isBlank()
+                        || comprovativo == null || comprovativo.isBlank()
+                        || comprovativo.trim().length() > 1000
+                        || dataConhecimento == null || dataConhecimento.isAfter(LocalDate.now())
+                        || (seleccionada.getDataEmissao() != null
+                            && dataConhecimento.isBefore(seleccionada.getDataEmissao()))) {
+                    AlertUtils.showWarningAlert("Dados obrigatórios",
+                            "Preencha finalidade, motivo, meio e comprovativo (até 1000 caracteres), com data entre a emissão da factura e hoje.");
+                    return false;
+                }
+
+                FinalidadeNotaCredito finalidade = finalidadeField.getValue();
+                MeioConhecimentoAdquirente meioConhecimento = meioField.getValue();
+                String motivoValidado = motivo.trim();
+                String comprovativoValidado = comprovativo.trim();
+                LocalDate dataConhecimentoValidada = dataConhecimento;
+
+                String loadingId = loadingService.showLoading(
+                        "A validar e emitir nota de crédito...", LoadingScreen.LoadingStyle.SPINNER);
                 new Thread(() -> {
                     try {
-                        faturaService.emitirNotaCredito(f.getId(), motivoField.getText());
+                        java.util.List<NotaCreditoItemRequest> linhas =
+                                faturaService.obterLinhasDisponiveisParaAnulacao(seleccionada.getId());
+                        faturaService.emitirNotaCredito(
+                                seleccionada.getId(),
+                                motivoValidado,
+                                finalidade,
+                                meioConhecimento,
+                                comprovativoValidado,
+                                dataConhecimentoValidada.atStartOfDay(),
+                                linhas);
                         Platform.runLater(() -> {
                             loadData();
                             refreshKPIs();
+                            AlertUtils.showInfoAlert("Sucesso",
+                                    "Nota de Crédito emitida. A factura original permanece no histórico e o documento fiscal mantém a referência.");
                         });
                     } catch (Exception ex) {
-                        Platform.runLater(() -> AlertUtils.showExceptionAlert("Erro", "Não foi possível emitir.", ex));
+                        Platform.runLater(() -> AlertUtils.showExceptionAlert(
+                                "Erro", "Não foi possível emitir a Nota de Crédito.", ex));
                     } finally {
                         Platform.runLater(() -> loadingService.hideLoading(loadingId));
                     }
-                }).start();
+                }, "kubata-emissao-nota-credito").start();
                 return true;
             })
             .withCancelButton("Cancelar")
@@ -1203,8 +1274,10 @@ public class FaturasView extends BorderPane {
                 if (status == null) return "-";
                 return switch (status) {
                     case "PENDING" -> "⏳";
+                    case "SUBMITTED" -> "↗";
+                    case "SIMULATED" -> "≈";
                     case "SUCCESS" -> "✓";
-                    case "FAILED" -> "✗";
+                    case "REJECTED", "FAILED" -> "✗";
                     default -> "-";
                 };
             });
@@ -1221,18 +1294,21 @@ public class FaturasView extends BorderPane {
                     setText(item);
                     Fatura fatura = getTableView().getItems().get(getIndex());
                     if (fatura != null) {
-                        String status = fatura.getAgtSubmissionStatus();
+                        String status = fatura.getAgtSubmissionStatus() != null ? fatura.getAgtSubmissionStatus() : "";
                         String tooltipText = switch (status) {
-                            case "PENDING" -> "Pendente";
-                            case "SUCCESS" -> "Validado: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
-                            case "FAILED" -> "Falhou";
+                            case "PENDING" -> "A aguardar submissão";
+                            case "SUBMITTED" -> "Pedido recebido pela AGT; validação pendente. requestID: " + fatura.getAgtRequestId();
+                            case "SIMULATED" -> "Simulação local; não enviada nem validada pela AGT";
+                            case "SUCCESS" -> "Validada pela AGT: " + (fatura.getAgtValidationCode() != null ? fatura.getAgtValidationCode() : "");
+                            case "REJECTED", "FAILED" -> "Rejeitada ou falhou; consultar detalhes técnicos";
                             default -> "Não submetido";
                         };
                         setTooltip(new Tooltip(tooltipText));
                         setStyle(switch (status) {
-                            case "PENDING" -> "-fx-text-fill: orange;";
+                            case "PENDING", "SUBMITTED" -> "-fx-text-fill: orange;";
+                            case "SIMULATED" -> "-fx-text-fill: gray;";
                             case "SUCCESS" -> "-fx-text-fill: green;";
-                            case "FAILED" -> "-fx-text-fill: red;";
+                            case "REJECTED", "FAILED" -> "-fx-text-fill: red;";
                             default -> "";
                         });
                     }
@@ -1628,9 +1704,11 @@ public class FaturasView extends BorderPane {
             return;
         }
 
-        // Verificar se a fatura já foi submetida
-        if ("SUCCESS".equals(f.getAgtSubmissionStatus())) {
-            AlertUtils.showWarningAlert("Aviso", "Esta fatura já foi submetida e validada pela AGT.");
+        // Não repetir um pedido já registado nem voltar a submeter uma factura validada.
+        if ("SUBMITTED".equalsIgnoreCase(f.getAgtSubmissionStatus())
+                || "SUCCESS".equalsIgnoreCase(f.getAgtSubmissionStatus())) {
+            AlertUtils.showWarningAlert("Aviso",
+                "Já existe um pedido AGT para esta factura ou a factura já foi validada. Consulte o estado antes de tentar novamente.");
             return;
         }
 
@@ -1640,15 +1718,30 @@ public class FaturasView extends BorderPane {
         if (confirmed) {
             String loadingId = loadingService.showLoading("A submeter fatura à AGT...");
 
-            agtElectronicInvoiceService.submitInvoiceAsync(f)
+            faturaService.submeterAgtManualmente(f.getId())
                 .thenAccept(response -> {
                     javafx.application.Platform.runLater(() -> {
                         loadingService.hideLoading(loadingId);
-                        if (response != null && response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
-                            String validationCode = response.getValidationResults().get(0).getValidationCode();
-                            AlertUtils.showInfoAlert("Sucesso", "Fatura submetida com sucesso!\nCódigo de validação: " + validationCode);
+                        if (response != null && "SIMULATED".equalsIgnoreCase(response.getStatus())) {
+                            AlertUtils.showWarningAlert("Simulação",
+                                "Nenhuma factura foi enviada ou validada pela AGT. Configure a integração oficial para emitir em produção.");
+                        } else if (response != null && response.getRequestID() != null
+                                && !response.getRequestID().isBlank()
+                                && (response.getErrorList() == null || response.getErrorList().isEmpty())) {
+                            AlertUtils.showInfoAlert("Pedido recebido",
+                                "A AGT recebeu o pedido, mas ainda não confirmou a validade da factura.\nrequestID: "
+                                    + response.getRequestID() + "\nUse “Consultar estado AGT” para acompanhar a validação.");
+                        } else if (response != null && response.getErrorList() != null
+                                && !response.getErrorList().isEmpty()) {
+                            String errors = response.getErrorList().stream()
+                                .map(error -> String.valueOf(error.getErrorCode()) + ": "
+                                    + String.valueOf(error.getErrorDescription()))
+                                .collect(Collectors.joining("\n"));
+                            AlertUtils.showWarningAlert("Pedido rejeitado",
+                                "A AGT não aceitou o pedido de registo:\n" + errors);
                         } else {
-                            AlertUtils.showInfoAlert("Sucesso", "Fatura submetida com sucesso!");
+                            AlertUtils.showWarningAlert("Estado indeterminado",
+                                "A resposta não confirmou o registo nem a validação fiscal. Consulte o estado técnico.");
                         }
                         refresh();
                     });
@@ -1665,107 +1758,126 @@ public class FaturasView extends BorderPane {
     }
  
     /**
-     * Cancelar/Anular fatura na AGT
+     * Consulta o resultado assíncrono da AGT sem confundir recepção com validação.
      */
-    private void cancelarAGT() {
-    Fatura f = getSelectedFatura();
-    if (f == null) {
-        AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura para cancelar na AGT.");
-        return;
-    }
-
-    // Verificar se a fatura já foi submetida
-    if (!"SUCCESS".equals(f.getAgtSubmissionStatus())) {
-        AlertUtils.showWarningAlert("Aviso", "Apenas faturas validadas pela AGT podem ser canceladas.");
-        return;
-    }
-
-    // Modal para motivo de cancelamento
-    Dialog<ButtonType> dialog = new Dialog<>();
-    dialog.setTitle("Cancelar Fatura na AGT");
-    dialog.setHeaderText("Selecione o motivo de anulação");
-
-    VBox content = new VBox(10);
-    content.setPadding(new Insets(10));
-
-    Label lblMotivo = new Label("Motivo de anulação:");
-    ComboBox<ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason> cmbMotivo = new ComboBox<>();
-    cmbMotivo.getItems().addAll(ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason.values());
-    cmbMotivo.setPromptText("Selecione o motivo");
-
-    content.getChildren().addAll(lblMotivo, cmbMotivo);
-    dialog.getDialogPane().setContent(content);
-    dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-    Optional<ButtonType> result = dialog.showAndWait();
-    if (result.isPresent() && result.get() == ButtonType.OK) {
-        if (cmbMotivo.getValue() == null) {
-            AlertUtils.showWarningAlert("Aviso", "Selecione um motivo de anulação.");
+    private void consultarEstadoAGT() {
+        Fatura f = getSelectedFatura();
+        if (f == null) {
+            AlertUtils.showWarningAlert("Aviso", "Selecione uma factura para consultar a AGT.");
+            return;
+        }
+        if (f.getAgtRequestId() == null || f.getAgtRequestId().isBlank()) {
+            // Recuperação para timeouts e respostas perdidas: consultar pelo número fiscal
+            // antes de sugerir uma nova submissão, evitando duplicar um documento já recebido.
+            String loadingId = loadingService.showLoading("A reconciliar a factura directamente na AGT...");
+            java.util.concurrent.CompletableFuture
+                .supplyAsync(() -> faturaService.consultarFacturaAgt(f.getId()))
+                .thenAccept(response -> Platform.runLater(() -> {
+                    loadingService.hideLoading(loadingId);
+                    apresentarResultadoConsultaDirecta(f, response);
+                }))
+                .exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        loadingService.hideLoading(loadingId);
+                        AlertUtils.showExceptionAlert(
+                            "Erro na consulta AGT",
+                            "Não foi possível reconciliar a factura pelo número fiscal. Não reenvie automaticamente um documento de estado desconhecido.",
+                            ex);
+                    });
+                    return null;
+                });
             return;
         }
 
-        String loadingId = loadingService.showLoading("A cancelar fatura na AGT...");
-
-        agtElectronicInvoiceService.cancelInvoice(f, cmbMotivo.getValue())
-            .thenAccept(response -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    AlertUtils.showInfoAlert("Sucesso", "Fatura cancelada na AGT com sucesso!");
-                    refresh();
-                });
-            })
+        String loadingId = loadingService.showLoading("A consultar o estado da factura na AGT...");
+        java.util.concurrent.CompletableFuture
+            .supplyAsync(() -> faturaService.actualizarEstadoAgt(f.getId()))
+            .thenAccept(updated -> Platform.runLater(() -> {
+                loadingService.hideLoading(loadingId);
+                String status = updated.getAgtSubmissionStatus();
+                if ("SUCCESS".equalsIgnoreCase(status)) {
+                    AlertUtils.showInfoAlert("Factura validada",
+                        "A AGT confirmou a validade da factura " + updated.getNumero() + ".");
+                } else if ("REJECTED".equalsIgnoreCase(status)) {
+                    AlertUtils.showWarningAlert("Factura inválida",
+                        "A AGT rejeitou a factura. Consulte os erros devolvidos no relatório técnico antes de emitir uma correcção.");
+                } else if ("SIMULATED".equalsIgnoreCase(status)) {
+                    AlertUtils.showWarningAlert("Simulação",
+                        "O estado não foi consultado na AGT; o módulo está em modo de simulação.");
+                } else {
+                    AlertUtils.showInfoAlert("Validação pendente",
+                        "A AGT ainda não concluiu o processamento do pedido. O estado continua pendente.");
+                }
+                refresh();
+            }))
             .exceptionally(ex -> {
-                javafx.application.Platform.runLater(() -> {
+                Platform.runLater(() -> {
                     loadingService.hideLoading(loadingId);
-                    AlertUtils.showExceptionAlert("Erro", "Falha ao cancelar fatura na AGT", ex);
+                    AlertUtils.showExceptionAlert("Erro", "Não foi possível consultar o estado na AGT.", ex);
                 });
                 return null;
             });
     }
+
+    /**
+     * Apresenta a resposta da consulta directa AGT sem transformar um erro de consulta
+     * num documento rejeitado ou válido. A penalização P permanece explícita.
+     */
+    private void apresentarResultadoConsultaDirecta(
+            Fatura fatura,
+            com.fasterxml.jackson.databind.JsonNode response) {
+        com.fasterxml.jackson.databind.JsonNode result = response.findValue("statusFEResult");
+        if (result == null) {
+            result = response.findValue("statusResult");
+        }
+        if (result == null && response.has("documentNo")) {
+            result = response;
+        }
+
+        String validationStatus = result == null ? "" : result.path("validationStatus").asText("");
+        if ("V".equalsIgnoreCase(validationStatus)) {
+            AlertUtils.showInfoAlert("Factura validada pela AGT",
+                "A AGT confirmou a factura " + fatura.getNumero() + ". O resultado foi reconciliado sem reenviar o documento.");
+        } else if ("P".equalsIgnoreCase(validationStatus)) {
+            AlertUtils.showWarningAlert("Factura válida com penalização",
+                "A AGT devolveu o estado P para " + fatura.getNumero()
+                    + " (válida com penalização). Consulte o detalhe fiscal da resposta e valide o tratamento com o responsável fiscal.");
+        } else {
+            AlertUtils.showWarningAlert("Consulta AGT sem resultado conclusivo",
+                "A consulta não confirmou validação nem rejeição. Nenhuma nova submissão foi feita.\n\nResposta AGT:\n"
+                    + response.toPrettyString());
+        }
+        refresh();
+    }
+
+    /**
+     * Cancelar/Anular fatura na AGT
+     */
+    private void cancelarAGT() {
+    AlertUtils.showWarningAlert(
+        "Anulação fiscal indisponível",
+        "O Kubata ainda não concluiu a integração específica com o endpoint oficial AGT anularFactura. "
+            + "Nenhuma alteração foi feita e a factura não foi anulada. Não volte a emitir o mesmo documento; "
+            + "siga o procedimento fiscal autorizado enquanto a integração é homologada.");
 }
 
 /**
  * Corrigir documento rejeitado na AGT
  */
 private void corrigirAGT() {
-        Fatura f = getSelectedFatura();
-        if (f == null) {
-            AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura para corrigir.");
-            return;
-        }
-
-        if (!"FAILED".equals(f.getAgtSubmissionStatus())) {
-            AlertUtils.showWarningAlert("Aviso", "Apenas faturas rejeitadas podem ser corrigidas.");
-            return;
-        }
-
-        boolean confirmed = AlertUtils.showConfirmation("Corrigir Fatura na AGT",
-            "Deseja submeter a correção da fatura " + f.getNumero() + " à AGT?\n\n" +
-            "Documento rejeitado: " + (f.getRejectedDocumentNo() != null ? f.getRejectedDocumentNo() : "N/A"));
-
-        if (confirmed) {
-            String loadingId = loadingService.showLoading("A submeter correção à AGT...");
-
-        agtElectronicInvoiceService.submitCorrection(f, f.getRejectedDocumentNo())
-            .thenAccept(response -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    if (response != null && response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
-                        String validationCode = response.getValidationResults().get(0).getValidationCode();
-                        AlertUtils.showInfoAlert("Sucesso", "Correção submetida com sucesso!\nCódigo: " + validationCode);
-                    } else {
-                        AlertUtils.showInfoAlert("Sucesso", "Correção submetida com sucesso!");
-                    }
-                    refresh();
-                });
-            })
-            .exceptionally(ex -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    AlertUtils.showExceptionAlert("Erro", "Falha ao submeter correção", ex);
-                });
-                return null;
-            });
+    Fatura f = getSelectedFatura();
+    if (f == null) {
+        AlertUtils.showWarningAlert("Aviso", "Selecione uma factura rejeitada.");
+        return;
     }
+    if (!"REJECTED".equalsIgnoreCase(f.getAgtSubmissionStatus())
+            && !"FAILED".equalsIgnoreCase(f.getAgtSubmissionStatus())) {
+        AlertUtils.showWarningAlert("Aviso", "Só documentos rejeitados podem originar uma correcção.");
+        return;
+    }
+    AlertUtils.showWarningAlert(
+        "Correção fiscal indisponível",
+        "Uma correção AGT tem de ser um documento novo, com novo número sequencial e referência ao documento rejeitado. "
+            + "O ecrã actual ainda não cria esse novo documento; nada foi enviado à AGT.");
 }
 }

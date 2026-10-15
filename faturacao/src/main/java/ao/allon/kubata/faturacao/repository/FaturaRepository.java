@@ -1,9 +1,11 @@
 package ao.allon.kubata.faturacao.repository;
 
 import ao.allon.kubata.faturacao.domain.Fatura;
+import jakarta.persistence.LockModeType;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,7 +30,23 @@ public interface FaturaRepository extends JpaRepository<Fatura, Long> {
     List<Fatura> findByClienteId(Long clienteId);
     List<Fatura> findByStatus(StatusFatura status);
     List<Fatura> findByTipoDocumento(TipoDocumento tipo);
-    
+
+    /**
+     * Facturas para iniciar devoluções, com as linhas e produtos já carregados
+     * para a UI não depender de uma sessão JPA depois de sair do serviço.
+     */
+    @EntityGraph(attributePaths = {"cliente", "itens", "itens.produto", "serie"})
+    @Query("""
+        SELECT DISTINCT f FROM Fatura f
+        WHERE f.cliente.id = :clienteId
+          AND f.status IN :statuses
+          AND f.tipoDocumento IN :tipos
+        ORDER BY f.dataEmissao DESC
+        """)
+    List<Fatura> findEligibleForReturn(@Param("clienteId") Long clienteId,
+                                       @Param("statuses") List<StatusFatura> statuses,
+                                       @Param("tipos") List<TipoDocumento> tipos);
+
     @Query("SELECT f.numeroSequencial FROM Fatura f WHERE f.serie = :serie ORDER BY f.numeroSequencial ASC")
     List<Long> findAllNumerosSequenciaisBySerie(@Param("serie") Serie serie);
     
@@ -62,6 +80,15 @@ public interface FaturaRepository extends JpaRepository<Fatura, Long> {
 
     @Query("SELECT f FROM Fatura f JOIN FETCH f.itens WHERE f.id = :id")
     Optional<Fatura> findByIdWithItens(@Param("id") Long id);
+
+    /**
+     * Força incremento optimista da versão do documento original ao preparar
+     * uma nota de crédito. Duas correcções concorrentes sobre a mesma factura
+     * não podem confirmar-se simultaneamente.
+     */
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    @Query("SELECT f FROM Fatura f JOIN FETCH f.itens WHERE f.id = :id")
+    Optional<Fatura> findByIdWithItensForCreditNote(@Param("id") Long id);
 
     long countByFaturaReferenciaIdAndTipoDocumentoIn(Long faturaReferenciaId, Collection<TipoDocumento> tipos);
 
