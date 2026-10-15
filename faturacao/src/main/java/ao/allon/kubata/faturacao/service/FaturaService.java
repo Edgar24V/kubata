@@ -766,8 +766,32 @@ public class FaturaService {
     }
 
     @Transactional
+    public void descartarRascunho(Long id) {
+        Fatura fatura = faturaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
+        if (fatura.getStatus() != StatusFatura.RASCUNHO) {
+            throw new IllegalStateException("Só é possível descartar documentos em rascunho.");
+        }
+        if (fatura.getHash() != null && !fatura.getHash().isBlank()) {
+            throw new IllegalStateException("Um rascunho com hash não pode ser descartado automaticamente.");
+        }
+        faturaRepository.delete(fatura);
+    }
+
+    /**
+     * Compatibilidade protegida: rascunhos são descartados; documentos fiscais
+     * emitidos exigem que o chamador forneça o motivo legal explicitamente.
+     */
+    @Transactional
     public void cancelarFatura(Long id, String motivo) {
-        cancelarFatura(id, motivo, null);
+        Fatura fatura = faturaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado."));
+        if (fatura.getStatus() == StatusFatura.RASCUNHO) {
+            descartarRascunho(id);
+            return;
+        }
+        throw new IllegalArgumentException(
+                "A anulação fiscal exige a selecção explícita do motivo I (incorreta identificação) ou N (não enviado ao adquirente).");
     }
     
     @Transactional
