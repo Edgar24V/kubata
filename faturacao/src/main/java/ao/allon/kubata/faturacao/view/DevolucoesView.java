@@ -498,10 +498,14 @@ public class DevolucoesView extends VBox {
                         if (cbFinalidade.getValue() == null || cbMeio.getValue() == null
                                 || txtMotivoNC.getText() == null || txtMotivoNC.getText().isBlank()
                                 || txtComprovativo.getText() == null || txtComprovativo.getText().isBlank()
+                                || txtComprovativo.getText().trim().length() > 1000
                                 || dpConhecimento.getValue() == null
-                                || dpConhecimento.getValue().isAfter(LocalDate.now())) {
+                                || dpConhecimento.getValue().isAfter(LocalDate.now())
+                                || (selected.getFaturaOrigem() != null
+                                    && selected.getFaturaOrigem().getDataEmissao() != null
+                                    && dpConhecimento.getValue().isBefore(selected.getFaturaOrigem().getDataEmissao()))) {
                             AlertUtils.showWarningAlert("Dados obrigatórios",
-                                    "Preencha finalidade, motivo, meio, comprovativo e uma data válida do conhecimento do adquirente.");
+                                    "Preencha finalidade, motivo, meio, comprovativo (até 1000 caracteres) e uma data válida a partir da emissão da factura original.");
                             return false;
                         }
                         devolucaoService.processarDevolucao(
