@@ -31,7 +31,7 @@ public class AGTElectronicInvoiceService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${agt.api.url:https://api.agt.minfin.gov.ao/v1}")
+    @Value("${agt.api.url:}")
     private String agtApiUrl;
 
     @Value("${agt.api.enabled:false}")
@@ -161,7 +161,9 @@ public class AGTElectronicInvoiceService {
         // Atualizar status do documento
         fatura.setDocumentStatus(DocumentStatus.ANULADO);
         fatura.setDocumentCancelReason(reason);
-        fatura.setMotivoCancelamento(reason.getDescricao());
+        if (fatura.getMotivoCancelamento() == null || fatura.getMotivoCancelamento().isBlank()) {
+            fatura.setMotivoCancelamento(reason.getDescricao());
+        }
         fatura.setDataCancelamento(LocalDateTime.now());
 
         return submitInvoiceAsync(fatura);
@@ -264,7 +266,7 @@ public class AGTElectronicInvoiceService {
         AGTResponseDTO response = new AGTResponseDTO();
         response.setStatus("SIMULATED");
         response.setMessage("MODO DE SIMULAÇÃO: estes documentos NÃO foram submetidos nem validados pela AGT.");
-        response.setSubmissionId(UUID.randomUUID().toString());
+        response.setSubmissionId(null);
 
         List<AGTResponseDTO.ValidationResultDTO> results = new java.util.ArrayList<>();
         for (Fatura fatura : faturas) {
@@ -287,9 +289,9 @@ public class AGTElectronicInvoiceService {
 
     private AGTResponseDTO createSimulatedConsultationResponse(String validationCode) {
         AGTResponseDTO response = new AGTResponseDTO();
-        response.setStatus("SUCCESS");
-        response.setMessage("Documento validado com sucesso (modo simulação)");
-        response.setSubmissionId(validationCode);
+        response.setStatus("SIMULATED");
+        response.setMessage("SIMULAÇÃO: a consulta à AGT não foi realizada e o documento não foi validado.");
+        response.setSubmissionId(null);
         return response;
     }
 
