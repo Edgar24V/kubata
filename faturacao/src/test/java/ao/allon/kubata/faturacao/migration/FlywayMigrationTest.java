@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ConnectionCallback;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,9 +38,15 @@ public class FlywayMigrationTest {
 
     @Test
     public void testReferentialIntegrity() {
-        // H2 permite desactivar constraints durante migrações em alguns cenários;
-        // o teste volta a activá-las explicitamente para não produzir um falso positivo.
-        jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY TRUE");
+        // Os testes de migração correm com SQLite neste perfil; o perfil test-pg usa H2.
+        // Cada motor tem o seu comando de activação de chaves estrangeiras.
+        String databaseProduct = jdbcTemplate.execute(
+                (ConnectionCallback<String>) connection -> connection.getMetaData().getDatabaseProductName());
+        if (databaseProduct != null && databaseProduct.toLowerCase(java.util.Locale.ROOT).contains("sqlite")) {
+            jdbcTemplate.execute("PRAGMA foreign_keys = ON");
+        } else {
+            jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY TRUE");
+        }
 
         String sqlCategoria = "INSERT INTO categorias (nome, active, created_at) VALUES ('Eletrônicos', TRUE, CURRENT_TIMESTAMP)";
         jdbcTemplate.update(sqlCategoria);
