@@ -28,6 +28,15 @@ public class ItemFatura extends BaseEntity {
     @JoinColumn(name = "produto_id")
     private Produto produto;
 
+    /**
+     * Linha documental da factura original que esta linha corrige (NC).
+     * NULL para linhas comerciais normais e documentos anteriores à migração.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_fatura_referencia_id",
+            foreignKey = @ForeignKey(name = "fk_itens_fatura_referencia"))
+    private ItemFatura itemReferencia;
+
     @NotBlank(message = "Descrição é obrigatória")
     @Column(nullable = false)
     private String descricao;
@@ -74,7 +83,7 @@ public class ItemFatura extends BaseEntity {
     @Column(name = "peso_total", precision = 19, scale = 2)
     private BigDecimal pesoTotal = BigDecimal.ZERO;
     
-    @Transient
+    @Column(name = "desconto_percentual", nullable = false, precision = 5, scale = 2)
     private BigDecimal descontoPercentual = BigDecimal.ZERO;
 
     @Transient
@@ -94,6 +103,14 @@ public class ItemFatura extends BaseEntity {
 
     public void setProduto(Produto produto) {
         this.produto = produto;
+    }
+
+    public ItemFatura getItemReferencia() {
+        return itemReferencia;
+    }
+
+    public void setItemReferencia(ItemFatura itemReferencia) {
+        this.itemReferencia = itemReferencia;
     }
 
     public Long getProdutoId() {
