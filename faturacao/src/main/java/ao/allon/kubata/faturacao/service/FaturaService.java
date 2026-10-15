@@ -16,6 +16,8 @@ import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason;
 import ao.allon.kubata.faturacao.domain.enums.DocumentStatus;
 import ao.allon.kubata.faturacao.domain.enums.TaxExemptionCode;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
 import ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO;
 import ao.allon.kubata.faturacao.service.agt.AGTInvoiceData;
@@ -553,6 +555,17 @@ public class FaturaService {
             throw new IllegalStateException(
                 "Só é possível emitir documentos no estado RASCUNHO. Estado actual: "
                 + fatura.getStatus());
+        }
+        if (fatura.getTipoDocumento() == TipoDocumento.NOTA_CREDITO) {
+            if (fatura.getFaturaReferencia() == null) {
+                throw new IllegalStateException(
+                        "A nota de crédito tem de identificar a factura original.");
+            }
+            validarDadosNotaCredito(fatura.getMotivoNotaCredito(), fatura.getFinalidadeNotaCredito(),
+                    fatura.getMeioConhecimentoAdquirente(),
+                    fatura.getComprovativoConhecimentoAdquirente(),
+                    fatura.getDataConhecimentoAdquirente(),
+                    fatura.getFaturaReferencia().getDataEmissao());
         }
         if (requiresAgtSubmission(fatura.getTipoDocumento())) {
             agtElectronicInvoiceService.assertReadyForFiscalEmission();
@@ -1308,45 +1321,85 @@ public class FaturaService {
         return disponiveis;
     }
 
+    /**
+     * API antiga preservada para compatibilidade binária, mas bloqueada: uma
+     * nota de crédito fiscal precisa da finalidade e da evidência de conhecimento
+     * do adquirente; esses factos nunca podem ser inventados pelo serviço.
+     */
+    @Deprecated
     @Transactional
     public Fatura emitirNotaCredito(Long faturaId, String motivo) {
-        Fatura original = carregarOriginalParaNotaCredito(faturaId);
-        validarOriginalParaNotaCredito(original);
-        Map<Long, BigDecimal> jaCreditado = obterQuantidadesJaCreditadas(original);
-        List<NotaCreditoItemRequest> saldo = new ArrayList<>();
-        for (ItemFatura item : original.getItens()) {
-            if (item.getId() == null) {
-                throw new IllegalStateException("A factura original contém uma linha sem ID persistido.");
-            }
-            BigDecimal disponivel = quantidadeComercial(item)
-                    .subtract(jaCreditado.getOrDefault(item.getId(), BigDecimal.ZERO))
-                    .setScale(3, RoundingMode.HALF_UP);
-            if (disponivel.signum() < 0) {
-                throw new IllegalStateException("As notas de crédito existentes excedem a quantidade da linha "
-                        + item.getId() + ". É necessária reconciliação manual.");
-            }
-            if (disponivel.signum() > 0) {
-                saldo.add(new NotaCreditoItemRequest(item.getId(), disponivel));
-            }
-        }
-        if (saldo.isEmpty()) {
-            throw new IllegalStateException("A factura original já foi totalmente creditada.");
-        }
-        return emitirNotaCreditoPreparada(original, motivo, saldo, jaCreditado);
+        throw new IllegalArgumentException(
+                "Para emitir uma nota de crédito, informe finalidade, meio e comprovativo do conhecimento do adquirente.");
     }
 
     /**
-     * Emite uma nota de crédito parcial para linhas e quantidades explícitas.
-     * Cada linha fica ligada à linha original, para auditoria e controlo do saldo
-     * ainda passível de crédito.
+     * API antiga preservada para compatibilidade; exige os dados fiscais da
+     * nova assinatura para poder emitir uma nota de crédito.
      */
+    @Deprecated
     @Transactional
     public Fatura emitirNotaCredito(Long faturaId, String motivo,
                                     List<NotaCreditoItemRequest> itensParaCreditar) {
+        throw new IllegalArgumentException(
+                "Para emitir uma nota de crédito, informe finalidade, meio e comprovativo do conhecimento do adquirente.");
+    }
+
+    /**
+     * Emite uma nota de crédito parcial com dados de auditoria exigidos pelo
+     * artigo 8.º do Decreto Presidencial n.º 71/25.
+     */
+    @Transactional
+    public Fatura emitirNotaCredito(Long faturaId, String motivo,
+                                    FinalidadeNotaCredito finalidade,
+                                    MeioConhecimentoAdquirente meioConhecimento,
+                                    String comprovativoConhecimento,
+                                    LocalDateTime dataConhecimento,
+                                    List<NotaCreditoItemRequest> itensParaCreditar) {
+        validarDadosNotaCredito(motivo, finalidade, meioConhecimento,
+                comprovativoConhecimento, dataConhecimento, null);
         Fatura original = carregarOriginalParaNotaCredito(faturaId);
         validarOriginalParaNotaCredito(original);
         Map<Long, BigDecimal> jaCreditado = obterQuantidadesJaCreditadas(original);
-        return emitirNotaCreditoPreparada(original, motivo, itensParaCreditar, jaCreditado);
+        return emitirNotaCreditoPreparada(original, motivo.trim(), finalidade, meioConhecimento,
+                comprovativoConhecimento.trim(), dataConhecimento, itensParaCreditar, jaCreditado);
+    }
+
+    /**
+     * Verifica os metadados legais da NC, incluindo o intervalo temporal do
+     * conhecimento do adquirente em relação à factura original.
+     */
+    private void validarDadosNotaCredito(String motivo, FinalidadeNotaCredito finalidade,
+                                         MeioConhecimentoAdquirente meioConhecimento,
+                                         String comprovativoConhecimento,
+                                         LocalDateTime dataConhecimento,
+                                         LocalDate dataFacturaOriginal) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("O motivo da nota de crédito é obrigatório.");
+        }
+        if (finalidade == null) {
+            throw new IllegalArgumentException("Seleccione se a nota de crédito é por anulação ou rectificação.");
+        }
+        if (meioConhecimento == null) {
+            throw new IllegalArgumentException("Seleccione como o adquirente tomou conhecimento da nota de crédito.");
+        }
+        if (comprovativoConhecimento == null || comprovativoConhecimento.isBlank()) {
+            throw new IllegalArgumentException(
+                    "O comprovativo do conhecimento do adquirente é obrigatório (referência de carta, e-mail, assinatura, carimbo ou outro registo).");
+        }
+        if (comprovativoConhecimento.trim().length() > 1000) {
+            throw new IllegalArgumentException("O comprovativo não pode exceder 1000 caracteres.");
+        }
+        if (dataConhecimento == null) {
+            throw new IllegalArgumentException("A data em que o adquirente tomou conhecimento é obrigatória.");
+        }
+        if (dataConhecimento.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("A data de conhecimento do adquirente não pode estar no futuro.");
+        }
+        if (dataFacturaOriginal != null && dataConhecimento.toLocalDate().isBefore(dataFacturaOriginal)) {
+            throw new IllegalArgumentException(
+                    "A data de conhecimento do adquirente não pode anteceder a emissão da factura original.");
+        }
     }
 
     private Fatura carregarOriginalParaNotaCredito(Long faturaId) {
@@ -1394,8 +1447,14 @@ public class FaturaService {
     }
 
     private Fatura emitirNotaCreditoPreparada(Fatura original, String motivo,
+                                              FinalidadeNotaCredito finalidade,
+                                              MeioConhecimentoAdquirente meioConhecimento,
+                                              String comprovativoConhecimento,
+                                              LocalDateTime dataConhecimento,
                                               List<NotaCreditoItemRequest> pedidos,
                                               Map<Long, BigDecimal> jaCreditado) {
+        validarDadosNotaCredito(motivo, finalidade, meioConhecimento, comprovativoConhecimento,
+                dataConhecimento, original.getDataEmissao());
         if (pedidos == null || pedidos.isEmpty()) {
             throw new IllegalArgumentException("Seleccione pelo menos uma linha e quantidade para creditar.");
         }
@@ -1449,12 +1508,22 @@ public class FaturaService {
         notaCredito.setTipoDocumento(TipoDocumento.NOTA_CREDITO);
         notaCredito.setCliente(original.getCliente());
         notaCredito.setFaturaReferencia(original);
-        notaCredito.setMotivoCancelamento(motivo);
+        notaCredito.setMotivoCancelamento(motivo); // compatibilidade com documentos históricos
+        notaCredito.setMotivoNotaCredito(motivo.trim());
+        notaCredito.setFinalidadeNotaCredito(finalidade);
+        notaCredito.setMeioConhecimentoAdquirente(meioConhecimento);
+        notaCredito.setComprovativoConhecimentoAdquirente(comprovativoConhecimento.trim());
+        notaCredito.setDataConhecimentoAdquirente(dataConhecimento);
         notaCredito.setDataEmissao(LocalDate.now());
         notaCredito.setDataVencimento(LocalDate.now());
         notaCredito.setStatus(StatusFatura.RASCUNHO);
-        notaCredito.setObservacoes("Nota de Crédito referente à factura " + original.getNumero()
-                + (motivo != null && !motivo.isBlank() ? ": " + motivo : ""));
+        String finalidadeTexto = finalidade == FinalidadeNotaCredito.ANULACAO ? "anulação" : "rectificação";
+        notaCredito.setObservacoes("Nota de Crédito por " + finalidadeTexto
+                + " da factura " + original.getNumero()
+                + ". Motivo: " + motivo.trim()
+                + ". Conhecimento do adquirente: " + meioConhecimento.getDescricao()
+                + ". Comprovativo: " + comprovativoConhecimento.trim()
+                + ". Data de conhecimento: " + dataConhecimento.toLocalDate() + ".");
 
         Serie serieNC = serieService.findPadrao(TipoDocumento.NOTA_CREDITO)
                 .orElseGet(() -> serieService.criarSeriePadrao(TipoDocumento.NOTA_CREDITO));
