@@ -253,6 +253,17 @@ public class AGTElectronicInvoiceService {
 
         try {
             validarCredenciaisAgt();
+            // A consulta também transporta dados fiscais assinados: não permitir
+            // HMAC/assinaturas de desenvolvimento nem credenciais fiscais incompletas.
+            signatureService.assertProductionReady();
+            if (softwareValidationNumber == null || softwareValidationNumber.isBlank()) {
+                throw new IllegalStateException("O número de validação do software AGT está em falta.");
+            }
+            if (emitterNif == null || emitterNif.isBlank()
+                    || emitterCompanyName == null || emitterCompanyName.isBlank()) {
+                throw new IllegalStateException("O NIF e a denominação legal do emitente são obrigatórios.");
+            }
+
             int signatureVersionValue = signatureVersion == null ? 1 : signatureVersion;
             Map<String, Object> softwareDetail = new LinkedHashMap<>();
             softwareDetail.put("productId", productId);
@@ -280,6 +291,10 @@ public class AGTElectronicInvoiceService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            // O endpoint protegido obterEstado exige as mesmas credenciais Basic Auth
+            // usadas em registarFactura e solicitarSerie.
+            headers.setBasicAuth(agtApiUsername, agtApiPassword, StandardCharsets.UTF_8);
             ResponseEntity<AGTResponseDTO> response = restTemplate.exchange(
                 normalizarBaseUrl() + "/obterEstado",
                 HttpMethod.POST,
