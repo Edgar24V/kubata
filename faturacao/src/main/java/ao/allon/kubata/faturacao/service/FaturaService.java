@@ -851,10 +851,14 @@ public class FaturaService {
         if (proForma.getTipoDocumento() != TipoDocumento.PRO_FORMA && proForma.getTipoDocumento() != TipoDocumento.ORCAMENTO) {
              throw new IllegalArgumentException("O documento não é uma Pro-forma ou Orçamento");
         }
+        if (proForma.getStatus() == StatusFatura.PROCESSADA) {
+            throw new IllegalStateException("Este documento comercial já foi convertido e não pode ser convertido novamente.");
+        }
 
         // Criar nova Fatura baseada na Pro-forma
         Fatura novaFatura = new Fatura();
         novaFatura.setCliente(proForma.getCliente());
+        novaFatura.setFaturaReferencia(proForma);
         novaFatura.setDataEmissao(LocalDate.now());
         novaFatura.setDataVencimento(LocalDate.now().plusDays(30));
         novaFatura.setStatus(StatusFatura.RASCUNHO);
@@ -876,10 +880,11 @@ public class FaturaService {
         }
 
         novaFatura = salvar(novaFatura);
-        
-        // Opcional: Marcar Pro-forma como processada/fechada se houver status para isso
-        // proForma.setStatus(StatusFatura.PROCESSADA); // Se existir
-        
+
+        // Bloqueia conversões repetidas para evitar facturas duplicadas originadas do mesmo documento.
+        proForma.setStatus(StatusFatura.PROCESSADA);
+        faturaRepository.save(proForma);
+
         return novaFatura;
     }
 
