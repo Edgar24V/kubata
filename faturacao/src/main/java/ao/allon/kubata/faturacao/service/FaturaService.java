@@ -324,8 +324,11 @@ public class FaturaService {
             }
         }
         fatura.recalculateTotals();
-        if (fatura.getTotal() == null || fatura.getTotal().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("O total do documento deve ser superior a zero.");
+        boolean guiaSemValorComercial = fatura.getTipoDocumento() == TipoDocumento.GUIA_REMESSA
+                || fatura.getTipoDocumento() == TipoDocumento.GUIA_TRANSPORTE;
+        if (fatura.getTotal() == null || fatura.getTotal().compareTo(BigDecimal.ZERO) < 0
+                || (!guiaSemValorComercial && fatura.getTotal().compareTo(BigDecimal.ZERO) == 0)) {
+            throw new IllegalArgumentException("O total do documento deve ser superior a zero, excepto em guias sem valor comercial.");
         }
 
         // Orçamentos, encomendas e pró-formas podem ser emitidos comercialmente,
