@@ -102,10 +102,11 @@ public class AGTInvoiceMapperService {
         if (fatura.getDataEmissao() == null || fatura.getSystemEntryDate() == null) {
             throw new IllegalStateException("Data de emissão e data de gravação são obrigatórias para a AGT.");
         }
-        // TipoDocumento.RECIBO representa RC (recibo em numerário). O contrato
-        // AGT reserva paymentReceipt para AR/RG, que ainda não são tipos explícitos
-        // no domínio do Kubata. Por isso RC é enviado como documento com linhas.
-        if (fatura.getItens() == null || fatura.getItens().isEmpty()) {
+        boolean paymentReceiptType = isPaymentReceiptType(fatura.getTipoDocumento());
+        Fatura paymentReceiptSource = null;
+        if (paymentReceiptType) {
+            paymentReceiptSource = validarDocumentoRecibo(fatura);
+        } else if (fatura.getItens() == null || fatura.getItens().isEmpty()) {
             throw new IllegalStateException("O documento deve conter linhas de artigos ou serviços para a AGT.");
         }
         DocumentDTO dto = new DocumentDTO();
@@ -157,9 +158,13 @@ public class AGTInvoiceMapperService {
         }
         dto.setCompanyName(buyerName);
         dto.setEacCode(fatura.getEacCode());
-        // RC usa linhas; paymentReceipt só deve ser emitido quando o domínio
-        // suportar explicitamente AR (aviso de cobrança/recibo) ou RG (recibo geral).
-        dto.setLines(mapLines(fatura.getItens()));
+        // No schema de produção AGT v2, AR/RG usam paymentReceipt sem lines.
+        // FT/FR/RC e os restantes documentos mantêm as linhas comerciais normais.
+        if (paymentReceiptType) {
+            dto.setPaymentReceipt(criarPaymentReceipt(paymentReceiptSource));
+        } else {
+            dto.setLines(mapLines(fatura.getItens()));
+        }
         if (fatura.getTipoDocumento() == TipoDocumento.NOTA_CREDITO
                 || fatura.getTipoDocumento() == TipoDocumento.NOTA_DEBITO) {
             Fatura source = resolveSourceDocument(fatura);
@@ -172,7 +177,10 @@ public class AGTInvoiceMapperService {
             }
             dto.setReferenceInfo(referenceInfo);
         }
-        DocumentTotalsDTO totals = mapDocumentTotals(fatura);
+        // Em AR/RG os totais fiscais correspondem aos documentos de origem
+        // regularizados, não a linhas comerciais artificiais no recibo.
+        DocumentTotalsDTO totals = mapDocumentTotals(
+            paymentReceiptType ? paymentReceiptSource : fatura);
         dto.setDocumentTotals(totals);
         Map<String, Object> signedTotals = new LinkedHashMap<>();
         signedTotals.put("taxPayable", totals.getTaxPayable());
@@ -195,11 +203,124 @@ public class AGTInvoiceMapperService {
         // FR mantém as linhas de artigos/serviços e os respectivos totais.
         
         // Retenções na fonte
-        if (fatura.getTotalRetencao() != null && fatura.getTotalRetencao().compareTo(BigDecimal.ZERO) > 0) {
-            dto.setWithholdingTaxList(createWithholdingTaxList(fatura));
+        Fatura withholdingSource = paymentReceiptType ? paymentReceiptSource : fatura;
+        if (withholdingSource.getTotalRetencao() != null
+                && withholdingSource.getTotalRetencao().compareTo(BigDecimal.ZERO) > 0) {
+            dto.setWithholdingTaxList(createWithholdingTaxList(withholdingSource));
         }
         
         return dto;
+    }
+
+    private boolean isPaymentReceiptType(TipoDocumento tipo) {
+        return tipo == TipoDocumento.AVISO_COBRANCA_RECIBO
+            || tipo == TipoDocumento.RECIBO_GERAL;
+    }
+
+    /**
+     * Os recibos AGT só podem ser construídos a partir de uma factura/nota de
+     * débito integralmente liquidada. O modelo actual não guarda alocações por
+     * linha para recebimentos parciais; nesses casos é mais seguro bloquear do
+     * que gerar um payload fiscal com valores estimados.
+     */
+    private Fatura validarDocumentoRecibo(Fatura recibo) {
+        Fatura origem = recibo.getFaturaReferencia();
+        if (origem == null) {
+            origem = recibo.getFaturaOriginal();
+        }
+        if (origem == null || origem.getId() == null
+                || origem.getNumero() == null || origem.getNumero().isBlank()
+                || origem.getDataEmissao() == null) {
+            throw new IllegalStateException(
+                "O recibo AGT exige um documento de origem persistido, numerado e datado.");
+        }
+        if (origem.getTipoDocumento() != TipoDocumento.FATURA
+                && origem.getTipoDocumento() != TipoDocumento.NOTA_DEBITO) {
+            throw new IllegalStateException(
+                "Por enquanto, o recibo AGT só pode regularizar uma factura FT ou nota de débito ND.");
+        }
+        if (origem.getStatus() != ao.allon.kubata.faturacao.domain.enums.StatusFatura.PAGA) {
+            throw new IllegalStateException(
+                "O documento de origem tem de estar integralmente liquidado antes de emitir o recibo AGT.");
+        }
+        if (origem.getItens() == null || origem.getItens().isEmpty()) {
+            throw new IllegalStateException(
+                "O documento de origem não contém linhas fiscais para detalhar o recibo AGT.");
+        }
+        if (recibo.getItens() != null && !recibo.getItens().isEmpty()) {
+            throw new IllegalStateException(
+                "Os documentos AGT AR/RG não podem conter linhas comerciais; utilize paymentReceipt.");
+        }
+        if (origem.getCliente() != null
+                && (recibo.getCliente() == null || !java.util.Objects.equals(
+                    origem.getCliente().getId(), recibo.getCliente().getId()))) {
+            throw new IllegalStateException(
+                "O cliente do recibo AGT tem de ser o mesmo do documento de origem.");
+        }
+        if (!mesmoValor(recibo.getSubtotal(), origem.getSubtotal())
+                || !mesmoValor(recibo.getIva(), origem.getIva())
+                || !mesmoValor(recibo.getTotal(), origem.getTotal())) {
+            throw new IllegalStateException(
+                "O recibo AGT tem de reconciliar exactamente os totais do documento integralmente regularizado.");
+        }
+        if (origem.getTotalRetencao() != null
+                && origem.getTotalRetencao().compareTo(BigDecimal.ZERO) > 0) {
+            throw new IllegalStateException(
+                "Recibos AGT com retenção na fonte exigem um mapeamento de liquidação próprio e ainda não são suportados.");
+        }
+        return origem;
+    }
+
+    private boolean mesmoValor(BigDecimal a, BigDecimal b) {
+        return a != null && b != null
+            && a.setScale(2, java.math.RoundingMode.HALF_UP)
+                .compareTo(b.setScale(2, java.math.RoundingMode.HALF_UP)) == 0;
+    }
+
+    /**
+     * Mapeia uma liquidação integral para o schema de produção AGT v2.
+     * Cada entrada corresponde a uma linha do documento de origem. O débito/
+     * crédito enviado é o valor líquido da linha; os impostos seguem nos totais.
+     */
+    private PaymentReceiptDTO criarPaymentReceipt(Fatura origem) {
+        PaymentReceiptDTO paymentReceipt = new PaymentReceiptDTO();
+        List<PaymentReceiptDTO.SourceDocumentDTO> sourceDocuments = new ArrayList<>();
+        BigDecimal somaLiquida = BigDecimal.ZERO;
+        int lineNumber = 1;
+
+        for (ItemFatura item : origem.getItens()) {
+            if (item == null || item.getSubtotal() == null
+                    || item.getSubtotal().compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalStateException(
+                    "O documento de origem contém uma linha sem valor líquido válido.");
+            }
+
+            BigDecimal valorLiquido = item.getSubtotal()
+                .setScale(2, java.math.RoundingMode.DOWN);
+            PaymentReceiptDTO.SourceDocumentDTO sourceDocument =
+                new PaymentReceiptDTO.SourceDocumentDTO();
+            sourceDocument.setLineNo(lineNumber++);
+
+            PaymentReceiptDTO.SourceDocumentIDDTO sourceId =
+                new PaymentReceiptDTO.SourceDocumentIDDTO();
+            sourceId.setOriginatingON(origem.getNumero());
+            sourceId.setDocumentDate(origem.getDataEmissao().format(DATE_FORMATTER));
+            sourceDocument.setSourceDocumentID(sourceId);
+
+            // A origem é uma factura/nota de débito, logo o valor é representado
+            // em creditAmount. Para notas de crédito é necessário um fluxo próprio.
+            sourceDocument.setCreditAmount(valorLiquido);
+            sourceDocuments.add(sourceDocument);
+            somaLiquida = somaLiquida.add(valorLiquido);
+        }
+
+        if (sourceDocuments.isEmpty()
+                || !mesmoValor(somaLiquida, origem.getSubtotal())) {
+            throw new IllegalStateException(
+                "As linhas do documento de origem não reconciliam com o subtotal fiscal. O recibo não foi gerado.");
+        }
+        paymentReceipt.setSourceDocuments(sourceDocuments);
+        return paymentReceipt;
     }
 
     /**
@@ -384,6 +505,8 @@ public class AGTInvoiceMapperService {
             case FATURA_RECIBO -> "FR";
             case VENDA_A_DINHEIRO -> "TV";
             case RECIBO -> "RC";
+            case AVISO_COBRANCA_RECIBO -> "AR";
+            case RECIBO_GERAL -> "RG";
             case NOTA_CREDITO -> "NC";
             case NOTA_DEBITO -> "ND";
             case AUTO_FATURA -> "AF";
