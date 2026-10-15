@@ -5,11 +5,13 @@ import ao.allon.kubata.faturacao.domain.MotivoIsencao;
 import ao.allon.kubata.faturacao.repository.ImpostoRepository;
 import ao.allon.kubata.faturacao.repository.MotivoIsencaoRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
 @Component
+@ConditionalOnProperty(name = "faturacao.data-initializer.enabled", havingValue = "true", matchIfMissing = true)
 public class ImpostoDataInitializer implements CommandLineRunner {
 
     private final ImpostoRepository impostoRepository;
