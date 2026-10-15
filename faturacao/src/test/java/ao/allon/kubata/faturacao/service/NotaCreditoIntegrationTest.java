@@ -8,6 +8,8 @@ import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.repository.ItemFaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
@@ -19,6 +21,7 @@ import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -95,15 +98,30 @@ class NotaCreditoIntegrationTest {
             return f;
         });
 
-        // Ação: Emitir NC
-        Fatura nc = faturaService.emitirNotaCredito(10L, "Devolução de mercadoria");
+        // Ação: Emitir NC com prova concreta e data de conhecimento do adquirente.
+        LocalDateTime dataConhecimento = LocalDateTime.now().minusDays(1);
+        Fatura nc = faturaService.emitirNotaCredito(
+                10L,
+                "Devolução de mercadoria",
+                FinalidadeNotaCredito.RECTIFICACAO,
+                MeioConhecimentoAdquirente.CORREIO_ELECTRONICO,
+                "E-mail de confirmação de devolução, referência NC-INT-001",
+                dataConhecimento,
+                java.util.List.of(new ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest(
+                        110L, BigDecimal.ONE)));
         
         // Verificação
         assertNotNull(nc);
         assertEquals(TipoDocumento.NOTA_CREDITO, nc.getTipoDocumento());
         assertEquals(StatusFatura.EMITIDA, nc.getStatus());
         assertEquals(faturaOriginal, nc.getFaturaReferencia());
-        assertEquals("Devolução de mercadoria", nc.getMotivoCancelamento()); // O campo motivoCancelamento é usado para motivo da NC
+        assertEquals("Devolução de mercadoria", nc.getMotivoCancelamento()); // Compatibilidade com histórico.
+        assertEquals("Devolução de mercadoria", nc.getMotivoNotaCredito());
+        assertEquals(FinalidadeNotaCredito.RECTIFICACAO, nc.getFinalidadeNotaCredito());
+        assertEquals(MeioConhecimentoAdquirente.CORREIO_ELECTRONICO, nc.getMeioConhecimentoAdquirente());
+        assertEquals("E-mail de confirmação de devolução, referência NC-INT-001",
+                nc.getComprovativoConhecimentoAdquirente());
+        assertEquals(dataConhecimento, nc.getDataConhecimentoAdquirente());
         assertEquals(1, nc.getItens().size());
         assertEquals("Serviço", nc.getItens().get(0).getDescricao());
         
