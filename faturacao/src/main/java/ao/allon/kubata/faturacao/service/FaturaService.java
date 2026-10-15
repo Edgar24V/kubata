@@ -1248,6 +1248,32 @@ public class FaturaService {
      * Ao contrário da implementação antiga, nunca emite uma segunda nota pelo
      * valor total já creditado.
      */
+    /**
+     * Quantidade ainda passível de crédito por linha, para pré-visualização na UI.
+     * A emissão volta a validar os saldos dentro da transacção fiscal.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, BigDecimal> buscarQuantidadesDisponiveisParaNotaCredito(Long faturaId) {
+        if (faturaId == null) {
+            throw new IllegalArgumentException("A factura original é obrigatória.");
+        }
+        Fatura original = faturaRepository.findByIdWithItens(faturaId)
+                .orElseThrow(() -> new IllegalArgumentException("Factura original não encontrada."));
+        validarOriginalParaNotaCredito(original);
+        Map<Long, BigDecimal> jaCreditado = obterQuantidadesJaCreditadas(original);
+        Map<Long, BigDecimal> disponiveis = new LinkedHashMap<>();
+        for (ItemFatura item : original.getItens()) {
+            if (item.getId() == null) continue;
+            BigDecimal saldo = quantidadeComercial(item)
+                    .subtract(jaCreditado.getOrDefault(item.getId(), BigDecimal.ZERO))
+                    .setScale(3, RoundingMode.HALF_UP);
+            if (saldo.signum() > 0) {
+                disponiveis.put(item.getId(), saldo);
+            }
+        }
+        return disponiveis;
+    }
+
     @Transactional
     public Fatura emitirNotaCredito(Long faturaId, String motivo) {
         Fatura original = carregarOriginalParaNotaCredito(faturaId);
