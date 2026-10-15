@@ -70,6 +70,7 @@ class AGTElectronicInvoiceServiceTest {
     void statusConsultationMustSendBasicAuthAndRequireProductionSignature() {
         JWSDigitalSignatureService signer = mock(JWSDigitalSignatureService.class);
         when(signer.signJwsPayload(any())).thenReturn("test-jws-signature");
+        when(signer.signSoftwareJwsPayload(any())).thenReturn("test-software-jws-signature");
         AGTElectronicInvoiceService service =
             new AGTElectronicInvoiceService(new AGTInvoiceMapperService(signer), signer);
 
@@ -102,6 +103,7 @@ class AGTElectronicInvoiceServiceTest {
     void directInvoiceConsultationMustSignRequestAndUseBasicAuth() {
         JWSDigitalSignatureService signer = mock(JWSDigitalSignatureService.class);
         when(signer.signJwsPayload(any())).thenReturn("signed-jws");
+        when(signer.signSoftwareJwsPayload(any())).thenReturn("signed-software-jws");
         AGTElectronicInvoiceService service =
             new AGTElectronicInvoiceService(new AGTInvoiceMapperService(signer), signer);
 
@@ -133,7 +135,8 @@ class AGTElectronicInvoiceServiceTest {
         assertEquals("V", response.path("statusFEResult").path("validationStatus").asText());
         server.verify();
         verify(signer).assertProductionReady();
-        verify(signer, org.mockito.Mockito.times(2)).signJwsPayload(any());
+        verify(signer).signJwsPayload(any());
+        verify(signer).signSoftwareJwsPayload(any());
     }
 
     @Test
