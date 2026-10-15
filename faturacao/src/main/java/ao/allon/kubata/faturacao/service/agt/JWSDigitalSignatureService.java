@@ -108,6 +108,25 @@ public class JWSDigitalSignatureService {
     }
 
     /**
+     * Obtém a chave privada do certificado configurado para assinar o hash fiscal.
+     * HMAC não pode substituir a chave RSA exigida pelo fluxo fiscal.
+     */
+    public synchronized PrivateKey getPrivateKeyForAgtHash() throws Exception {
+        if (!"RSA_SHA256".equals(signatureType)
+                || certificatePath == null || certificatePath.isBlank()
+                || certificatePassword == null || certificatePassword.isBlank()) {
+            throw new IllegalStateException("É necessário configurar um certificado PKCS#12 e RSA_SHA256 para a assinatura fiscal.");
+        }
+        if (privateKey == null) {
+            loadCertificate();
+        }
+        if (privateKey == null) {
+            throw new IllegalStateException("Não foi possível carregar a chave privada fiscal.");
+        }
+        return privateKey;
+    }
+
+    /**
      * Gera uma assinatura de desenvolvimento (não válida para produção)
      */
     private String generateDevelopmentSignature(String documentNumber, String hash) {
