@@ -6,6 +6,8 @@ import ao.allon.kubata.faturacao.domain.ItemDevolucao;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.enums.StatusDevolucao;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.repository.DevolucaoRepository;
@@ -212,8 +214,30 @@ public class DevolucaoService {
         return devolucaoRepository.save(devolucao);
     }
 
+    /**
+     * Retoma um processo de devolução usando a evidência já registada.
+     * Se não houver prova do conhecimento do adquirente, a emissão da NC
+     * falha de forma explícita; não são fabricados dados para satisfazer a regra fiscal.
+     */
     @Transactional
     public Devolucao processarDevolucao(Long id) {
+        Devolucao devolucao = devolucaoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Devolução não encontrada."));
+        return processarDevolucao(id,
+                devolucao.getFinalidadeNotaCredito(),
+                devolucao.getMeioConhecimentoAdquirente(),
+                devolucao.getMotivoNotaCredito(),
+                devolucao.getComprovativoConhecimentoAdquirente(),
+                devolucao.getDataConhecimentoAdquirente());
+    }
+
+    @Transactional
+    public Devolucao processarDevolucao(Long id,
+                                        FinalidadeNotaCredito finalidade,
+                                        MeioConhecimentoAdquirente meioConhecimento,
+                                        String motivoNotaCredito,
+                                        String comprovativoConhecimento,
+                                        LocalDateTime dataConhecimento) {
         Devolucao devolucao = devolucaoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Devolução não encontrada."));
 
@@ -224,6 +248,16 @@ public class DevolucaoService {
                 || devolucao.getItens().isEmpty()) {
             throw new IllegalStateException(
                     "A devolução aprovada não contém factura de origem e linhas para creditar.");
+        }
+        if (finalidade == null || meioConhecimento == null
+                || motivoNotaCredito == null || motivoNotaCredito.isBlank()
+                || comprovativoConhecimento == null || comprovativoConhecimento.isBlank()
+                || dataConhecimento == null) {
+            throw new IllegalArgumentException(
+                    "Para processar a devolução, informe a finalidade da nota, o motivo, o meio, a prova e a data do conhecimento do adquirente.");
+        }
+        if (dataConhecimento.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("A data de conhecimento do adquirente não pode estar no futuro.");
         }
 
         List<NotaCreditoItemRequest> linhasParaCreditar = new ArrayList<>();
@@ -238,11 +272,21 @@ public class DevolucaoService {
                     BigDecimal.valueOf(item.getQuantidade())));
         }
 
+        devolucao.setFinalidadeNotaCredito(finalidade);
+        devolucao.setMeioConhecimentoAdquirente(meioConhecimento);
+        devolucao.setMotivoNotaCredito(motivoNotaCredito.trim());
+        devolucao.setComprovativoConhecimentoAdquirente(comprovativoConhecimento.trim());
+        devolucao.setDataConhecimentoAdquirente(dataConhecimento);
+
         // A nota de crédito inclui só as quantidades aprovadas. O fluxo fiscal
         // de emissão da NC repõe o stock; não se lança uma segunda entrada aqui.
         Fatura notaCredito = faturaService.emitirNotaCredito(
                 devolucao.getFaturaOrigem().getId(),
-                "Devolução Processo " + devolucao.getNumero(),
+                motivoNotaCredito.trim(),
+                finalidade,
+                meioConhecimento,
+                comprovativoConhecimento.trim(),
+                dataConhecimento,
                 linhasParaCreditar);
 
         devolucao.setNotaCredito(notaCredito);
