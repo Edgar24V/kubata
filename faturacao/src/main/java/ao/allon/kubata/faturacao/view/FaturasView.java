@@ -1706,8 +1706,25 @@ public class FaturasView extends BorderPane {
             return;
         }
         if (f.getAgtRequestId() == null || f.getAgtRequestId().isBlank()) {
-            AlertUtils.showWarningAlert("Aviso",
-                "A factura ainda não tem requestID da AGT. Submeta-a primeiro ou consulte o estado técnico.");
+            // Recuperação para timeouts e respostas perdidas: consultar pelo número fiscal
+            // antes de sugerir uma nova submissão, evitando duplicar um documento já recebido.
+            String loadingId = loadingService.showLoading("A reconciliar a factura directamente na AGT...");
+            java.util.concurrent.CompletableFuture
+                .supplyAsync(() -> faturaService.consultarFacturaAgt(f.getId()))
+                .thenAccept(response -> Platform.runLater(() -> {
+                    loadingService.hideLoading(loadingId);
+                    apresentarResultadoConsultaDirecta(f, response);
+                }))
+                .exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        loadingService.hideLoading(loadingId);
+                        AlertUtils.showExceptionAlert(
+                            "Erro na consulta AGT",
+                            "Não foi possível reconciliar a factura pelo número fiscal. Não reenvie automaticamente um documento de estado desconhecido.",
+                            ex);
+                    });
+                    return null;
+                });
             return;
         }
 
@@ -1739,6 +1756,34 @@ public class FaturasView extends BorderPane {
                 });
                 return null;
             });
+    }
+
+    /**
+     * Apresenta a resposta da consulta directa AGT sem transformar um erro de consulta
+     * num documento rejeitado ou válido. A penalização P permanece explícita.
+     */
+    private void apresentarResultadoConsultaDirecta(
+            Fatura fatura,
+            com.fasterxml.jackson.databind.JsonNode response) {
+        com.fasterxml.jackson.databind.JsonNode result = response.findValue("statusFEResult");
+        if (result == null && response.has("documentNo")) {
+            result = response;
+        }
+
+        String validationStatus = result == null ? "" : result.path("validationStatus").asText("");
+        if ("V".equalsIgnoreCase(validationStatus)) {
+            AlertUtils.showInfoAlert("Factura validada pela AGT",
+                "A AGT confirmou a factura " + fatura.getNumero() + ". O resultado foi reconciliado sem reenviar o documento.");
+        } else if ("P".equalsIgnoreCase(validationStatus)) {
+            AlertUtils.showWarningAlert("Factura válida com penalização",
+                "A AGT devolveu o estado P para " + fatura.getNumero()
+                    + " (válida com penalização). Consulte o detalhe fiscal da resposta e valide o tratamento com o responsável fiscal.");
+        } else {
+            AlertUtils.showWarningAlert("Consulta AGT sem resultado conclusivo",
+                "A consulta não confirmou validação nem rejeição. Nenhuma nova submissão foi feita.\n\nResposta AGT:\n"
+                    + response.toPrettyString());
+        }
+        refresh();
     }
 
     /**
