@@ -29,11 +29,14 @@ public class AGTServiceImpl implements AGTService {
         
         String previousHash = (data.previousHash() != null && !data.previousHash().isEmpty()) ? data.previousHash() : "";
         
-        String contentToSign = String.format(java.util.Locale.US, "%s;%s;%s;%.2f;%s",
+        String totalFormatado = data.totalAmount()
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+                .toPlainString();
+        String contentToSign = String.join(";",
                 data.invoiceDate().format(DATE_FORMATTER),
                 data.systemEntryDate().format(DATETIME_FORMATTER),
                 data.invoiceNo(),
-                data.totalAmount().doubleValue(),
+                totalFormatado,
                 previousHash);
         
         // Log para auditoria/debug da string a assinar (CRÍTICO para validação AGT)
@@ -80,11 +83,14 @@ public class AGTServiceImpl implements AGTService {
         try {
             String previousHash = (data.previousHash() != null && !data.previousHash().isEmpty()) ? data.previousHash() : "";
             
-            String contentToVerify = String.format(java.util.Locale.US, "%s;%s;%s;%.2f;%s",
+            String totalFormatado = data.totalAmount()
+                    .setScale(2, java.math.RoundingMode.HALF_UP)
+                    .toPlainString();
+            String contentToVerify = String.join(";",
                     data.invoiceDate().format(DATE_FORMATTER),
                     data.systemEntryDate().format(DATETIME_FORMATTER),
                     data.invoiceNo(),
-                    data.totalAmount().doubleValue(),
+                    totalFormatado,
                     previousHash);
 
             Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
