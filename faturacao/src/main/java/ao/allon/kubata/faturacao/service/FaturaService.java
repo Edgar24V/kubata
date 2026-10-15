@@ -15,6 +15,7 @@ import ao.allon.kubata.core.domain.PlanoConta;
 import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason;
 import ao.allon.kubata.faturacao.domain.enums.DocumentStatus;
+import ao.allon.kubata.faturacao.domain.enums.TaxExemptionCode;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
 import ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO;
 import ao.allon.kubata.faturacao.service.agt.AGTInvoiceData;
@@ -804,49 +805,73 @@ public class FaturaService {
     }
 
     /**
-     * Corrige itens sem código de isenção atribuindo M00 (Regime Simplificado).
-     * Usado para correção em massa de documentos existentes.
-     * 
-     * @param descricaoProduto Descrição do produto (ex: "Bolacha Lulu") ou null para todos
-     * @return Número de itens corrigidos
+     * Atribuir um código de isenção exige uma escolha fiscal explícita.
+     * Nunca inferir M00 apenas porque a taxa de IVA é zero e nunca alterar
+     * documentos fiscais que já tenham saído do estado RASCUNHO.
+     *
+     * @param descricaoProduto filtro opcional pela descrição do artigo/serviço
+     * @param codigo código fiscal seleccionado pelo operador
+     * @return quantidade de linhas corrigidas em rascunhos
      */
     @Transactional
-    public int corrigirItensSemCodigoIsencao(String descricaoProduto) {
-        List<Fatura> faturas = faturaRepository.findAll();
+    public int corrigirItensSemCodigoIsencao(String descricaoProduto, TaxExemptionCode codigo) {
+        if (codigo == null) {
+            throw new IllegalArgumentException(
+                    "Seleccione explicitamente o código de isenção fiscal antes de corrigir os rascunhos.");
+        }
+
+        String filtro = descricaoProduto == null || descricaoProduto.isBlank()
+                ? null : descricaoProduto.trim().toLowerCase(java.util.Locale.ROOT);
         int corrigidos = 0;
-        
-        for (Fatura fatura : faturas) {
+
+        for (Fatura fatura : faturaRepository.findAll()) {
+            if (fatura.getStatus() != StatusFatura.RASCUNHO) {
+                continue; // documentos emitidos/pagos/cancelados são imutáveis
+            }
+
             boolean alterou = false;
             for (ItemFatura item : fatura.getItens()) {
-                // Verifica se é item isento sem código
-                if (item.getTaxaIva() != null && item.getTaxaIva().compareTo(BigDecimal.ZERO) == 0) {
-                    if (item.getCodigoIsencao() == null || item.getCodigoIsencao().trim().isEmpty()) {
-                        // Se filtro por descrição, aplicar
-                        if (descricaoProduto == null || item.getDescricao().contains(descricaoProduto)) {
-                            item.setCodigoIsencao("M00");
-                            item.setMotivoIsencao("Regime Simplificado");
-                            alterou = true;
-                            corrigidos++;
-                        }
-                    }
+                if (item.getTaxaIva() == null
+                        || item.getTaxaIva().compareTo(BigDecimal.ZERO) != 0
+                        || (item.getCodigoIsencao() != null && !item.getCodigoIsencao().isBlank())) {
+                    continue;
                 }
+                String descricao = item.getDescricao();
+                if (filtro != null && (descricao == null
+                        || !descricao.toLowerCase(java.util.Locale.ROOT).contains(filtro))) {
+                    continue;
+                }
+
+                item.setCodigoIsencao(codigo.getCode());
+                item.setMotivoIsencao(codigo.getDescription());
+                alterou = true;
+                corrigidos++;
             }
+
             if (alterou) {
                 fatura.recalculateTotals();
                 faturaRepository.save(fatura);
             }
         }
-        
+
         return corrigidos;
     }
 
     /**
-     * Sobrecarga: corrige todos os itens sem código de isenção.
-     * @return Número de itens corrigidos
+     * Compatibilidade com chamadores antigos: não escolher silenciosamente um
+     * código fiscal. O operador deve passar a opção seleccionada explicitamente.
      */
+    @Deprecated
+    @Transactional
+    public int corrigirItensSemCodigoIsencao(String descricaoProduto) {
+        throw new IllegalArgumentException(
+                "Escolha um código de isenção fiscal explícito; a aplicação já não atribui M00 automaticamente.");
+    }
+
+    @Deprecated
     @Transactional
     public int corrigirItensSemCodigoIsencao() {
-        return corrigirItensSemCodigoIsencao(null);
+        return corrigirItensSemCodigoIsencao((String) null);
     }
 
     private void lancarNaContabilidade(Fatura fatura) {
