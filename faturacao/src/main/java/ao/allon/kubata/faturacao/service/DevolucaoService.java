@@ -101,6 +101,7 @@ public class DevolucaoService {
                 throw new IllegalArgumentException("A quantidade a devolver deve ser maior que zero.");
             }
 
+            item.setDevolucao(devolucao);
             item.setItemFaturaOrigem(linhaOriginal);
             item.setProduto(linhaOriginal.getProduto());
             item.setValorUnitario(linhaOriginal.getPrecoUnitario());
