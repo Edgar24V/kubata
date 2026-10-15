@@ -551,6 +551,41 @@ public class FaturaService {
         return response;
     }
 
+    /**
+     * O ledger legado de ProdutoService/Produto.stock trabalha com unidades inteiras.
+     * Não permitir que uma quantidade fraccionária seja arredondada implicitamente
+     * durante a baixa de stock e fique diferente da quantidade fiscal da factura.
+     * Serviços (unidade SERVICO/HORA) não movimentam stock.
+     */
+    private void validarQuantidadesDeStock(Fatura fatura) {
+        if (fatura.getItens() == null) {
+            return;
+        }
+        for (ItemFatura item : fatura.getItens()) {
+            if (item == null || item.getProduto() == null || item.getProduto().isServico()) {
+                continue;
+            }
+            BigDecimal quantidade = item.getQuantidadeDecimal() != null
+                    ? item.getQuantidadeDecimal()
+                    : item.getQuantidade() != null
+                        ? BigDecimal.valueOf(item.getQuantidade())
+                        : null;
+            if (quantidade == null || quantidade.signum() <= 0) {
+                throw new IllegalStateException(
+                        "Emissão bloqueada: indique uma quantidade positiva para o artigo '"
+                        + item.getDescricao() + "'.");
+            }
+            if (quantidade.stripTrailingZeros().scale() > 0) {
+                throw new IllegalStateException(
+                        "Emissão bloqueada para o artigo '" + item.getDescricao()
+                        + "': o inventário deste módulo ainda regista stock em unidades inteiras, "
+                        + "mas a factura contém a quantidade " + quantidade.toPlainString()
+                        + ". Não arredondámos o valor automaticamente para evitar divergência fiscal. "
+                        + "Use uma quantidade inteira ou configure o artigo como serviço quando aplicável.");
+            }
+        }
+    }
+
     private void processarEmissao(Fatura fatura) {
         if (fatura.getStatus() != StatusFatura.RASCUNHO) {
             throw new IllegalStateException(
@@ -601,6 +636,9 @@ public class FaturaService {
         
         // VALIDAÇÃO AGT: Itens isentos devem ter código de isenção
         validarCodigosIsencao(fatura);
+        // O stock legado é inteiro; bloquear quantidades fraccionárias antes de reservar
+        // numeração ou movimentar inventário. Artigos de serviço não têm baixa de stock.
+        validarQuantidadesDeStock(fatura);
         
         // 1. Seleccionar série. Em produção, nunca inventar uma série fiscal local.
         TipoDocumento tipoSolicitado = fatura.getTipoDocumento();
