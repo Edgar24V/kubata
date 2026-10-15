@@ -110,29 +110,52 @@ class OrcamentoIntegrationTest {
         orcamento.setStatus(StatusFatura.EMITIDA);
         orcamento.setCliente(new Cliente());
         orcamento.setNumero("ORC 2024/1");
-        
+
         ItemFatura item = new ItemFatura();
         item.setDescricao("Serviço Dev");
         item.setQuantidade(1);
+        item.setQuantidadeDecimal(new BigDecimal("1.500"));
         item.setPrecoUnitario(BigDecimal.valueOf(1000));
         item.setTaxaIva(BigDecimal.valueOf(14));
+        item.setDesconto(new BigDecimal("7.5"));
+        item.setLote("SERV-2024");
+        item.setPesoUnitario(new BigDecimal("2.25"));
         orcamento.addItem(item);
-        
+
         when(faturaRepository.findById(1L)).thenReturn(Optional.of(orcamento));
         when(faturaRepository.save(any(Fatura.class))).thenAnswer(i -> {
             Fatura f = i.getArgument(0);
             if (f.getId() == null) f.setId(2L);
             return f;
         });
-        
+
         Fatura novaFatura = faturaService.converterProFormaEmFatura(1L);
-        
+
         assertNotNull(novaFatura);
         assertEquals(StatusFatura.RASCUNHO, novaFatura.getStatus());
-        // A nova fatura deve ser do tipo FATURA (default)
         assertEquals(TipoDocumento.FATURA, novaFatura.getTipoDocumento());
         assertEquals(1, novaFatura.getItens().size());
-        assertEquals("Serviço Dev", novaFatura.getItens().get(0).getDescricao());
+        ItemFatura linha = novaFatura.getItens().get(0);
+        assertEquals("Serviço Dev", linha.getDescricao());
+        assertEquals(0, new BigDecimal("1.500").compareTo(linha.getQuantidadeDecimal()));
+        assertEquals(0, new BigDecimal("7.5").compareTo(linha.getDesconto()));
+        assertEquals("SERV-2024", linha.getLote());
+        assertEquals(0, new BigDecimal("2.25").compareTo(linha.getPesoUnitario()));
+        assertEquals(orcamento, novaFatura.getFaturaReferencia());
+        assertEquals(StatusFatura.PROCESSADA, orcamento.getStatus());
         assertTrue(novaFatura.getObservacoes().contains("Convertido de ORC 2024/1"));
+    }
+
+    @Test
+    void naoDeveConverterEncomendaCanceladaEmFatura() {
+        Fatura encomenda = new Fatura();
+        encomenda.setId(3L);
+        encomenda.setTipoDocumento(TipoDocumento.ENCOMENDA);
+        encomenda.setStatus(StatusFatura.CANCELADA);
+        when(faturaRepository.findById(3L)).thenReturn(Optional.of(encomenda));
+
+        assertThrows(IllegalStateException.class,
+                () -> faturaService.converterEncomendaEmFatura(3L));
+        verify(faturaRepository, never()).save(any(Fatura.class));
     }
 }
