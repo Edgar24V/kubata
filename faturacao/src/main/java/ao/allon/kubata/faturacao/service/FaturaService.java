@@ -686,7 +686,8 @@ public class FaturaService {
         for (ItemFatura item : fatura.getItens()) {
             if (item.getProduto() != null) {
                  Long prodId = item.getProduto().getId();
-                 if (tipo == TipoDocumento.FATURA || tipo == TipoDocumento.FATURA_RECIBO || tipo == TipoDocumento.GUIA_REMESSA) {
+                 if (tipo == TipoDocumento.FATURA || tipo == TipoDocumento.FATURA_RECIBO
+                        || tipo == TipoDocumento.VENDA_A_DINHEIRO || tipo == TipoDocumento.GUIA_REMESSA) {
                      produtoService.registarSaida(prodId, item.getQuantidade(), "Emissão " + tipo.getDescricao() + " " + fatura.getNumero());
                  } else if (tipo == TipoDocumento.NOTA_CREDITO) {
                      produtoService.registarEntrada(prodId, item.getQuantidade(), "Emissão " + tipo.getDescricao() + " " + fatura.getNumero());
