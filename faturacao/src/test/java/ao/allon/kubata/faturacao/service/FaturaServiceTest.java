@@ -10,6 +10,7 @@ import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
+import ao.allon.kubata.faturacao.domain.enums.TaxExemptionCode;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.agt.AGTService;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;
@@ -24,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -194,5 +196,41 @@ class FaturaServiceTest {
         assertEquals("Observação original imutável", fatura.getObservacoes());
         verify(faturaRepository, never()).save(same(fatura));
         verify(produtoService, times(1)).registarEntrada(eq(10L), eq(2), anyString());
+    }
+
+    @Test
+    void corrigirItensSemCodigoIsencao_DeveExigirCodigoFiscalExplicito() {
+        assertThrows(IllegalArgumentException.class,
+                () -> faturaService.corrigirItensSemCodigoIsencao((String) null));
+        verify(faturaRepository, never()).findAll();
+    }
+
+    @Test
+    void corrigirItensSemCodigoIsencao_DeveModificarApenasRascunhos() {
+        Fatura rascunho = facturaComItemIvaZero(StatusFatura.RASCUNHO, "Serviço em rascunho");
+        Fatura emitida = facturaComItemIvaZero(StatusFatura.EMITIDA, "Serviço emitido");
+        when(faturaRepository.findAll()).thenReturn(List.of(rascunho, emitida));
+
+        int corrigidos = faturaService.corrigirItensSemCodigoIsencao(null, TaxExemptionCode.M99);
+
+        assertEquals(1, corrigidos);
+        assertEquals("M99", rascunho.getItens().get(0).getCodigoIsencao());
+        assertEquals(TaxExemptionCode.M99.getDescription(), rascunho.getItens().get(0).getMotivoIsencao());
+        assertNull(emitida.getItens().get(0).getCodigoIsencao(),
+                "Um documento emitido não pode ser alterado pela correcção em massa.");
+        verify(faturaRepository, times(1)).save(rascunho);
+        verify(faturaRepository, never()).save(emitida);
+    }
+
+    private Fatura facturaComItemIvaZero(StatusFatura status, String descricao) {
+        Fatura documento = new Fatura();
+        documento.setStatus(status);
+        ItemFatura item = new ItemFatura();
+        item.setDescricao(descricao);
+        item.setQuantidade(1);
+        item.setPrecoUnitario(new BigDecimal("100.00"));
+        item.setTaxaIva(BigDecimal.ZERO);
+        documento.addItem(item);
+        return documento;
     }
 }
