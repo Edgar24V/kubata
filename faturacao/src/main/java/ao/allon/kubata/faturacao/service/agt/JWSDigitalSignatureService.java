@@ -33,12 +33,22 @@ public class JWSDigitalSignatureService {
     @Value("${agt.certificado.password:}")
     private String certificatePassword;
 
+    // A chave do produtor do software é distinta da chave fiscal do contribuinte.
+    // Os dois certificados devem ser provisionados separadamente pela entidade/AGT.
+    @Value("${agt.software.certificado.path:}")
+    private String softwareCertificatePath;
+
+    @Value("${agt.software.certificado.password:}")
+    private String softwareCertificatePassword;
+
     @Value("${agt.allow-development-signatures:true}")
     private boolean allowDevelopmentSignatures;
 
     private final ObjectMapper objectMapper;
     private PrivateKey privateKey;
     private X509Certificate certificate;
+    private PrivateKey softwarePrivateKey;
+    private X509Certificate softwareCertificate;
 
     public JWSDigitalSignatureService() {
         this.objectMapper = new ObjectMapper();
@@ -131,6 +141,47 @@ public class JWSDigitalSignatureService {
     }
 
     /**
+     * Assina apenas a identidade do produto de software. Usa um certificado
+     * próprio do produtor, diferente do certificado fiscal do contribuinte usado
+     * em signJwsPayload/signDocument. Nunca faz fallback para a chave fiscal em
+     * produção, mesmo quando a chave do produtor está em falta.
+     */
+    public String signSoftwareJwsPayload(Object payload) {
+        try {
+            if (!isSoftwareConfigured()) {
+                if (allowDevelopmentSignatures) {
+                    String json = objectMapper.writeValueAsString(payload);
+                    return generateDevelopmentSignature("SOFTWARE-PAYLOAD", sha256Prefix(json));
+                }
+                throw new IllegalStateException(
+                        "A assinatura jwsSoftwareSignature exige o certificado PKCS#12 próprio do produtor do software.");
+            }
+            if (!"RSA_SHA256".equals(signatureType)) {
+                throw new IllegalStateException("A assinatura do produtor do software exige RS256.");
+            }
+            loadSoftwareCertificate();
+            if (softwarePrivateKey == null || !"RSA".equalsIgnoreCase(softwarePrivateKey.getAlgorithm())) {
+                throw new IllegalStateException("O certificado do produtor não contém uma chave privada RSA.");
+            }
+            softwareCertificate.checkValidity();
+
+            String payloadJson = objectMapper.writeValueAsString(payload);
+            String encodedPayload = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
+            String headerJson = objectMapper.writeValueAsString(new JWSHeader("RS256", "JOSE"));
+            String encodedHeader = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
+            String signingInput = encodedHeader + "." + encodedPayload;
+            return signingInput + "." + base64UrlEncode(createRsaSignature(signingInput, softwarePrivateKey));
+        } catch (Exception e) {
+            throw new IllegalStateException("Não foi possível assinar jwsSoftwareSignature com a chave do produtor.", e);
+        }
+    }
+
+    public boolean isSoftwareConfigured() {
+        return softwareCertificatePath != null && !softwareCertificatePath.isBlank()
+                && softwareCertificatePassword != null && !softwareCertificatePassword.isBlank();
+    }
+
+    /**
      * Verifica se o serviço está configurado para assinatura real.
      */
     public boolean isConfigured() {
@@ -178,16 +229,36 @@ public class JWSDigitalSignatureService {
             throw new IllegalStateException("A produção exige KUBATA_AGT_SIGNATURE_TYPE=RSA_SHA256.");
         }
         if (!isConfigured()) {
-            throw new IllegalStateException("Certificado PKCS#12 e palavra-passe fiscal não configurados.");
+            throw new IllegalStateException("Certificado PKCS#12 e palavra-passe fiscal do contribuinte não configurados.");
+        }
+        if (!isSoftwareConfigured()) {
+            throw new IllegalStateException(
+                    "Certificado PKCS#12 e palavra-passe do produtor do software não configurados.");
+        }
+        if (certificatePath.trim().equalsIgnoreCase(softwareCertificatePath.trim())) {
+            throw new IllegalStateException(
+                    "As chaves do produtor do software e do contribuinte têm de ser provisionadas em certificados PKCS#12 distintos.");
         }
         try {
             loadCertificate();
+            loadSoftwareCertificate();
             if (certificate == null || privateKey == null) {
-                throw new IllegalStateException("O certificado não contém uma chave privada e certificado X.509.");
+                throw new IllegalStateException("O certificado fiscal do contribuinte não contém uma chave privada e certificado X.509.");
+            }
+            if (softwareCertificate == null || softwarePrivateKey == null) {
+                throw new IllegalStateException("O certificado do produtor não contém uma chave privada e certificado X.509.");
             }
             certificate.checkValidity();
-            if (!"RSA".equalsIgnoreCase(privateKey.getAlgorithm())) {
-                throw new IllegalStateException("A chave privada configurada não é RSA.");
+            softwareCertificate.checkValidity();
+            if (!"RSA".equalsIgnoreCase(privateKey.getAlgorithm())
+                    || !"RSA".equalsIgnoreCase(softwarePrivateKey.getAlgorithm())) {
+                throw new IllegalStateException("Ambas as chaves de assinatura de produção têm de ser RSA.");
+            }
+            if (java.security.MessageDigest.isEqual(
+                    certificate.getPublicKey().getEncoded(),
+                    softwareCertificate.getPublicKey().getEncoded())) {
+                throw new IllegalStateException(
+                        "O certificado do software e o certificado fiscal apresentam a mesma chave pública; configure credenciais distintas.");
             }
         } catch (Exception e) {
             throw new IllegalStateException("Certificado fiscal inválido ou inacessível.", e);
@@ -245,15 +316,21 @@ public class JWSDigitalSignatureService {
         if (privateKey == null) {
             loadCertificate();
         }
+        return createRsaSignature(signingInput, privateKey);
+    }
 
+    private byte[] createRsaSignature(String signingInput, PrivateKey key) throws Exception {
+        if (key == null) {
+            throw new IllegalStateException("A chave privada RSA não está carregada.");
+        }
         Signature signature = Signature.getInstance("SHA256withRSA");
-        signature.initSign(privateKey);
+        signature.initSign(key);
         signature.update(signingInput.getBytes(StandardCharsets.UTF_8));
         return signature.sign();
     }
 
     /**
-     * Carrega o certificado digital PKCS12
+     * Carrega o certificado digital PKCS12 do contribuinte.
      */
     private synchronized void loadCertificate() throws Exception {
         if (privateKey != null) return;
@@ -283,23 +360,54 @@ public class JWSDigitalSignatureService {
     }
 
     /**
-     * Obtém o InputStream do certificado
+     * Carrega um keystore próprio do produtor do software, sem reutilizar
+     * o estado nem a chave privada do contribuinte.
+     */
+    private synchronized void loadSoftwareCertificate() throws Exception {
+        if (softwarePrivateKey != null) return;
+        java.security.KeyStore keyStore = java.security.KeyStore.getInstance("PKCS12");
+        try (java.io.InputStream is = getCertificateInputStream(softwareCertificatePath)) {
+            keyStore.load(is, softwareCertificatePassword.toCharArray());
+        }
+        java.util.Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            if (!keyStore.isKeyEntry(alias)) continue;
+            softwarePrivateKey = (PrivateKey) keyStore.getKey(alias, softwareCertificatePassword.toCharArray());
+            Certificate cert = keyStore.getCertificate(alias);
+            if (cert instanceof X509Certificate x509) {
+                softwareCertificate = x509;
+            }
+            break;
+        }
+        if (softwarePrivateKey == null || softwareCertificate == null) {
+            throw new IllegalStateException("Não foi encontrada uma entrada PKCS#12 com chave privada e certificado X.509 do produtor.");
+        }
+    }
+
+    /**
+     * Obtém o InputStream de um certificado configurado como caminho local,
+     * URI file:// ou recurso classpath.
      */
     private java.io.InputStream getCertificateInputStream() throws Exception {
-        if (certificatePath.startsWith("classpath:")) {
-            String resourcePath = certificatePath.substring("classpath:".length());
+        return getCertificateInputStream(certificatePath);
+    }
+
+    private java.io.InputStream getCertificateInputStream(String configuredPath) throws Exception {
+        if (configuredPath.startsWith("classpath:")) {
+            String resourcePath = configuredPath.substring("classpath:".length());
             java.io.InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath);
             if (is == null) {
                 throw new IllegalStateException("Certificado não encontrado no classpath: " + resourcePath);
             }
             return is;
-        } else if (certificatePath.startsWith("file://")) {
+        } else if (configuredPath.startsWith("file://")) {
             java.nio.file.Path path = java.nio.file.Paths.get(
-                java.net.URI.create(certificatePath)
+                java.net.URI.create(configuredPath)
             );
             return java.nio.file.Files.newInputStream(path);
         } else {
-            return java.nio.file.Files.newInputStream(java.nio.file.Paths.get(certificatePath));
+            return java.nio.file.Files.newInputStream(java.nio.file.Paths.get(configuredPath));
         }
     }
 
