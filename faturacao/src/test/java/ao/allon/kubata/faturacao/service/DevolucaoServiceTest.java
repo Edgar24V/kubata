@@ -10,6 +10,8 @@ import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.domain.enums.StatusDevolucao;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
+import ao.allon.kubata.faturacao.domain.enums.FinalidadeNotaCredito;
+import ao.allon.kubata.faturacao.domain.enums.MeioConhecimentoAdquirente;
 import ao.allon.kubata.faturacao.repository.DevolucaoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -178,14 +180,29 @@ class DevolucaoServiceTest {
         
         Fatura ncSimulada = new Fatura();
         ncSimulada.setId(50L);
-        when(faturaService.emitirNotaCredito(eq(10L), anyString(), anyList())).thenReturn(ncSimulada);
+        LocalDateTime dataConhecimento = LocalDateTime.now().minusMinutes(1);
+        when(faturaService.emitirNotaCredito(
+                eq(10L), anyString(),
+                eq(FinalidadeNotaCredito.RECTIFICACAO),
+                eq(MeioConhecimentoAdquirente.CORREIO_ELECTRONICO),
+                anyString(), eq(dataConhecimento), anyList())).thenReturn(ncSimulada);
 
-        Devolucao processada = devolucaoService.processarDevolucao(1L);
+        Devolucao processada = devolucaoService.processarDevolucao(
+                1L,
+                FinalidadeNotaCredito.RECTIFICACAO,
+                MeioConhecimentoAdquirente.CORREIO_ELECTRONICO,
+                "Devolução por artigo devolvido",
+                "E-mail de confirmação de devolução, referência DEV-TEST-001",
+                dataConhecimento);
 
         assertEquals(StatusDevolucao.CONCLUIDA, processada.getStatus());
         assertNotNull(processada.getNotaCredito());
         assertNotNull(processada.getDataConclusao());
-        verify(faturaService).emitirNotaCredito(eq(10L), contains("Devolução"),
+        verify(faturaService).emitirNotaCredito(eq(10L), eq("Devolução por artigo devolvido"),
+                eq(FinalidadeNotaCredito.RECTIFICACAO),
+                eq(MeioConhecimentoAdquirente.CORREIO_ELECTRONICO),
+                eq("E-mail de confirmação de devolução, referência DEV-TEST-001"),
+                eq(dataConhecimento),
                 argThat(linhas -> linhas.size() == 1
                         && linhas.get(0).itemOriginalId().equals(100L)
                         && linhas.get(0).quantidade().compareTo(BigDecimal.ONE) == 0));
