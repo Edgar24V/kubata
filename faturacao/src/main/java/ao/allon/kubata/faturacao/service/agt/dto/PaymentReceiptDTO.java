@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Objeto paymentReceipt (Para Fatura/Recibo - FR) conforme Decreto Executivo n.º 683/25.
+ * Objeto paymentReceipt usado pelos documentos AR/RG no schema de produção AGT v2.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PaymentReceiptDTO {
@@ -84,7 +84,7 @@ public class PaymentReceiptDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class SourceDocumentIDDTO {
         
-        @JsonProperty("originatingON")
+        @JsonProperty("OriginatingON")
         private String originatingON;
         
         @JsonProperty("documentDate")

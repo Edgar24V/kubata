@@ -5,6 +5,7 @@ import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.faturacao.domain.Recibo;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
+import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import ao.allon.kubata.faturacao.service.ReciboService;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.SessionManager;
@@ -37,6 +38,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 
@@ -129,6 +135,13 @@ public class RecibosView extends BorderPane {
         boolean canRecibo = sessionManager.hasAccess("RECIBOS", "Emitir");
         btnNovo.setDisable(!canRecibo);
 
+        Button btnEmitirAgt = new Button("Recibo AGT", IconUtils.icon(Feather.FILE_TEXT, IconUtils.SIZE_SMALL));
+        btnEmitirAgt.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.ACCENT);
+        btnEmitirAgt.setTooltip(new Tooltip(
+            "Emitir AR/RG para factura liquidada numa única operação; a validação fiscal depende da AGT."));
+        btnEmitirAgt.setDisable(!canRecibo);
+        btnEmitirAgt.setOnAction(e -> emitirReciboFiscalAgt());
+
         Button btnExportar = new Button("Exportar", IconUtils.icon(Feather.DOWNLOAD, IconUtils.SIZE_SMALL));
         btnExportar.getStyleClass().addAll(Styles.BUTTON_OUTLINED);
         btnExportar.setOnAction(e -> exportarCSV());
@@ -137,7 +150,7 @@ public class RecibosView extends BorderPane {
         btnAtualizar.getStyleClass().addAll(Styles.BUTTON_OUTLINED);
         btnAtualizar.setOnAction(e -> recarregarAsync());
 
-        header.getChildren().addAll(titleBox, spacer, btnNovo, btnExportar, btnAtualizar);
+        header.getChildren().addAll(titleBox, spacer, btnNovo, btnEmitirAgt, btnExportar, btnAtualizar);
         return header;
     }
 
@@ -482,6 +495,69 @@ public class RecibosView extends BorderPane {
         lblTotalRecebidoMes.setText(String.format("Kz %,.2f", recebidoMes));
         lblTotalRecibos.setText(String.valueOf(totalRecibos));
         lblMediaRecebimento.setText(String.format("Kz %,.2f", media));
+    }
+
+    private void emitirReciboFiscalAgt() {
+        try {
+            List<Fatura> elegiveis = faturaService.listarFaturasElegiveisParaReciboAgt();
+            if (elegiveis == null || elegiveis.isEmpty()) {
+                AlertUtils.showWarningAlert("Recibo AGT indisponível",
+                    "Não existem facturas FT/ND elegíveis com uma única liquidação integral. "
+                    + "Pagamentos parciais, múltiplos ou com retenção exigem alocação fiscal própria.");
+                return;
+            }
+
+            Map<String, Fatura> porOpcao = new LinkedHashMap<>();
+            for (Fatura fatura : elegiveis) {
+                String cliente = fatura.getCliente() == null ? "Cliente" : fatura.getCliente().getNome();
+                String valor = fatura.getTotal() == null ? "0.00" : fatura.getTotal().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+                String label = fatura.getNumero() + " — " + cliente + " — Kz " + valor;
+                if (porOpcao.containsKey(label)) {
+                    label = label + " (#" + fatura.getId() + ")";
+                }
+                porOpcao.put(label, fatura);
+            }
+
+            List<String> opcoes = new ArrayList<>(porOpcao.keySet());
+            ChoiceDialog<String> facturaDialog = new ChoiceDialog<>(opcoes.get(0), opcoes);
+            facturaDialog.setTitle("Emitir recibo electrónico AGT");
+            facturaDialog.setHeaderText("Seleccione a factura integralmente liquidada");
+            facturaDialog.setContentText("Factura:");
+            Optional<String> facturaEscolhida = facturaDialog.showAndWait();
+            if (facturaEscolhida.isEmpty()) return;
+
+            ChoiceDialog<TipoDocumento> tipoDialog = new ChoiceDialog<>(
+                TipoDocumento.RECIBO_GERAL,
+                List.of(TipoDocumento.RECIBO_GERAL, TipoDocumento.AVISO_COBRANCA_RECIBO));
+            tipoDialog.setTitle("Tipo de documento fiscal");
+            tipoDialog.setHeaderText("Seleccione o tipo de recibo a enviar à AGT");
+            tipoDialog.setContentText("Tipo:");
+            Optional<TipoDocumento> tipoEscolhido = tipoDialog.showAndWait();
+            if (tipoEscolhido.isEmpty()) return;
+
+            Fatura origem = porOpcao.get(facturaEscolhida.get());
+            Alert confirmacao = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacao.setTitle("Confirmar emissão fiscal");
+            confirmacao.setHeaderText("Emitir " + tipoEscolhido.get().getCodigo() + " para " + origem.getNumero());
+            confirmacao.setContentText(
+                "Esta operação cria um documento fiscal imutável. Só é suportada uma liquidação integral "
+                + "por um único recibo interno, sem retenção. A aceitação do pedido pela API não significa "
+                + "que a AGT já validou o documento. Continuar?");
+            confirmacao.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+            if (confirmacao.showAndWait().filter(ButtonType.OK::equals).isEmpty()) return;
+
+            Fatura rascunho = faturaService.criarRascunhoReciboAgt(origem.getId(), tipoEscolhido.get());
+            Fatura emitida = faturaService.emitirFatura(rascunho.getId());
+
+            AlertUtils.showInfoAlert("Documento AGT processado",
+                "Documento " + emitida.getNumero() + " emitido localmente. Estado da submissão: "
+                + (emitida.getAgtSubmissionStatus() == null ? "PENDING" : emitida.getAgtSubmissionStatus())
+                + ". Consulte o estado de validação AGT antes de tratar o documento como fiscalmente validado.");
+            recarregarAsync();
+        } catch (Exception ex) {
+            AlertUtils.showExceptionAlert("Falha na emissão do recibo AGT",
+                "O documento não foi confirmado como validado. Verifique a mensagem de erro e o estado do documento.", ex);
+        }
     }
 
     private void showRegistrarModal() {

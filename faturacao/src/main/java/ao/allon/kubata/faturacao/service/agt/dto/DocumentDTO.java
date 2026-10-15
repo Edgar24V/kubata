@@ -6,8 +6,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Estrutura do Documento (Objeto document) conforme Decreto Executivo n.º 683/25.
- * Núcleo da Fatura (FT) ou Fatura/Recibo (FR).
+ * Estrutura do documento conforme Decreto Executivo n.º 683/25 e schema de produção AGT v2.
+ * Inclui documentos comerciais com linhas e documentos AR/RG com paymentReceipt.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DocumentDTO {

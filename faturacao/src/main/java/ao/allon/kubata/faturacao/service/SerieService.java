@@ -76,6 +76,8 @@ public class SerieService {
             case FATURA_RECIBO -> "FR";
             case VENDA_A_DINHEIRO -> "TV";
             case RECIBO -> "RC";
+            case AVISO_COBRANCA_RECIBO -> "AR";
+            case RECIBO_GERAL -> "RG";
             case NOTA_CREDITO -> "NC";
             case NOTA_DEBITO -> "ND";
             case AUTO_FATURA -> "AF";

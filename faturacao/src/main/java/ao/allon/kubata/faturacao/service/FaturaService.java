@@ -4,6 +4,7 @@ import ao.allon.kubata.faturacao.domain.Cliente;
 import ao.allon.kubata.faturacao.dto.NotaCreditoItemRequest;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
+import ao.allon.kubata.faturacao.domain.Recibo;
 import ao.allon.kubata.faturacao.domain.Serie;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
@@ -104,6 +105,155 @@ public class FaturaService {
 
     public Optional<Fatura> findById(Long id) {
         return faturaRepository.findById(id);
+    }
+
+    /**
+     * Documentos de origem elegíveis para um recibo electrónico AGT neste
+     * primeiro fluxo: FT/ND pagos numa única liquidação integral, sem retenção.
+     * Pagamentos parciais/múltiplos não são inferidos sem alocação fiscal por linha.
+     */
+    @Transactional(readOnly = true)
+    public List<Fatura> listarFaturasElegiveisParaReciboAgt() {
+        if (reciboService == null) return List.of();
+        return faturaRepository.findByStatus(StatusFatura.PAGA).stream()
+            .filter(this::tipoSuportadoParaReciboAgt)
+            .filter(this::pagamentoUnicoIntegral)
+            .filter(f -> faturaRepository
+                .findByFaturaReferenciaIdAndTipoDocumentoInOrderByDataEmissaoAsc(
+                    f.getId(), List.of(TipoDocumento.AVISO_COBRANCA_RECIBO, TipoDocumento.RECIBO_GERAL))
+                .stream().noneMatch(doc -> doc.getStatus() != StatusFatura.RASCUNHO))
+            .toList();
+    }
+
+    /**
+     * Cria (ou devolve) o rascunho do documento fiscal AR/RG ligado a uma
+     * liquidação interna persistida. A emissão é recusada se o pagamento não
+     * cobrir exactamente o total numa única operação.
+     */
+    @Transactional
+    public Fatura criarRascunhoReciboAgt(Long faturaOrigemId, TipoDocumento tipoRecibo) {
+        if (!tipoDocumentoReciboAgt(tipoRecibo)) {
+            throw new IllegalArgumentException("Seleccione um tipo de recibo AGT AR ou RG.");
+        }
+        if (reciboService == null) {
+            throw new IllegalStateException("O serviço de recibos não está disponível para validar a liquidação.");
+        }
+
+        Fatura origem = faturaRepository.findById(faturaOrigemId)
+            .orElseThrow(() -> new IllegalArgumentException("Factura de origem não encontrada."));
+        validarOrigemElegivelParaReciboAgt(origem);
+
+        List<Fatura> existentes = faturaRepository
+            .findByFaturaReferenciaIdAndTipoDocumentoInOrderByDataEmissaoAsc(
+                origem.getId(), List.of(TipoDocumento.AVISO_COBRANCA_RECIBO, TipoDocumento.RECIBO_GERAL));
+        if (!existentes.isEmpty()) {
+            Fatura rascunhoExistente = existentes.stream()
+                .filter(doc -> doc.getStatus() == StatusFatura.RASCUNHO
+                    && doc.getTipoDocumento() == tipoRecibo)
+                .findFirst().orElse(null);
+            if (rascunhoExistente != null) return rascunhoExistente;
+            throw new IllegalStateException(
+                "Já existe um recibo fiscal AGT ligado a esta factura. Reutilize o rascunho existente ou consulte o estado do documento emitido.");
+        }
+
+        Recibo reciboInterno = reciboService.findByFatura(origem.getId()).get(0);
+        Fatura documento = new Fatura();
+        documento.setTipoDocumento(tipoRecibo);
+        documento.setNumero("RASC-AGT-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase(java.util.Locale.ROOT));
+        documento.setCliente(origem.getCliente());
+        documento.setFaturaReferencia(origem);
+        documento.setDataEmissao(LocalDate.now());
+        documento.setDataVencimento(LocalDate.now());
+        documento.setStatus(StatusFatura.RASCUNHO);
+        documento.setSubtotal(origem.getSubtotal());
+        documento.setIva(origem.getIva());
+        documento.setTotal(origem.getTotal());
+        documento.setTotalRetencao(origem.getTotalRetencao() == null ? BigDecimal.ZERO : origem.getTotalRetencao());
+        documento.setMetodoPagamento(reciboInterno.getMetodoPagamento());
+        documento.setObservacoes("Documento fiscal AGT associado ao recibo interno " + reciboInterno.getNumero()
+            + "; liquidação integral da origem " + origem.getNumero());
+        return faturaRepository.save(documento);
+    }
+
+    private boolean tipoSuportadoParaReciboAgt(Fatura origem) {
+        return origem != null && (origem.getTipoDocumento() == TipoDocumento.FATURA
+            || origem.getTipoDocumento() == TipoDocumento.NOTA_DEBITO);
+    }
+
+    private boolean pagamentoUnicoIntegral(Fatura origem) {
+        if (!tipoSuportadoParaReciboAgt(origem) || origem.getId() == null
+                || origem.getStatus() != StatusFatura.PAGA
+                || origem.getTotal() == null || origem.getTotal().compareTo(BigDecimal.ZERO) <= 0
+                || (origem.getTotalRetencao() != null
+                    && origem.getTotalRetencao().compareTo(BigDecimal.ZERO) > 0)
+                || reciboService == null) {
+            return false;
+        }
+        List<Recibo> recibos = reciboService.findByFatura(origem.getId());
+        if (recibos == null || recibos.size() != 1 || recibos.get(0).getValor() == null) {
+            return false;
+        }
+        BigDecimal recebido = reciboService.totalRecebidoFatura(origem.getId());
+        return mesmoValorMonetario(recebido, origem.getTotal())
+            && mesmoValorMonetario(recibos.get(0).getValor(), origem.getTotal());
+    }
+
+    private void validarOrigemElegivelParaReciboAgt(Fatura origem) {
+        if (!tipoSuportadoParaReciboAgt(origem)) {
+            throw new IllegalStateException("O recibo AGT só pode regularizar uma factura FT ou nota de débito ND.");
+        }
+        if (origem.getStatus() != StatusFatura.PAGA) {
+            throw new IllegalStateException("A factura tem de estar integralmente liquidada antes de emitir o recibo AGT.");
+        }
+        if (origem.getTotalRetencao() != null
+                && origem.getTotalRetencao().compareTo(BigDecimal.ZERO) > 0) {
+            throw new IllegalStateException(
+                "A emissão de recibos AGT com retenção na fonte ainda exige um fluxo de liquidação próprio.");
+        }
+        if (!pagamentoUnicoIntegral(origem)) {
+            throw new IllegalStateException(
+                "Só é possível emitir AR/RG quando um único recibo interno liquida exactamente o total da factura. Pagamentos parciais/múltiplos ainda não têm alocação fiscal por linha.");
+        }
+    }
+
+    private boolean mesmoValorMonetario(BigDecimal a, BigDecimal b) {
+        return a != null && b != null
+            && a.setScale(2, RoundingMode.HALF_UP).compareTo(b.setScale(2, RoundingMode.HALF_UP)) == 0;
+    }
+
+    private boolean tipoDocumentoReciboAgt(TipoDocumento tipo) {
+        return tipo == TipoDocumento.AVISO_COBRANCA_RECIBO
+            || tipo == TipoDocumento.RECIBO_GERAL;
+    }
+
+    private void validarDocumentoReciboAgt(Fatura documento) {
+        Fatura origem = documento.getFaturaReferencia();
+        if (origem == null) {
+            throw new IllegalStateException("O documento AR/RG deve indicar a factura de origem.");
+        }
+        validarOrigemElegivelParaReciboAgt(origem);
+
+        if (documento.getCliente() == null || origem.getCliente() == null
+                || !java.util.Objects.equals(documento.getCliente().getId(), origem.getCliente().getId())) {
+            throw new IllegalStateException("O cliente do recibo AGT deve coincidir com o cliente da factura de origem.");
+        }
+        if (documento.getItens() != null && !documento.getItens().isEmpty()) {
+            throw new IllegalStateException("Documentos AGT AR/RG não podem conter linhas comerciais.");
+        }
+        if (!mesmoValorMonetario(documento.getSubtotal(), origem.getSubtotal())
+                || !mesmoValorMonetario(documento.getIva(), origem.getIva())
+                || !mesmoValorMonetario(documento.getTotal(), origem.getTotal())) {
+            throw new IllegalStateException("Os totais do recibo AGT têm de reconciliar com os da factura integralmente liquidada.");
+        }
+        List<Fatura> relacionados = faturaRepository
+            .findByFaturaReferenciaIdAndTipoDocumentoInOrderByDataEmissaoAsc(
+                origem.getId(), List.of(TipoDocumento.AVISO_COBRANCA_RECIBO, TipoDocumento.RECIBO_GERAL));
+        boolean duplicado = relacionados.stream()
+            .anyMatch(outro -> !java.util.Objects.equals(outro.getId(), documento.getId())
+                && outro.getStatus() != StatusFatura.RASCUNHO);
+        if (duplicado) {
+            throw new IllegalStateException("Já existe um recibo fiscal emitido para esta liquidação.");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -679,11 +829,16 @@ public class FaturaService {
             validarGuia(fatura);
         }
         
-        // VALIDAÇÃO AGT: Itens isentos devem ter código de isenção
-        validarCodigosIsencao(fatura);
-        // O stock legado é inteiro; bloquear quantidades fraccionárias antes de reservar
-        // numeração ou movimentar inventário. Artigos de serviço não têm baixa de stock.
-        validarQuantidadesDeStock(fatura);
+        boolean documentoReciboAgt = tipoDocumentoReciboAgt(fatura.getTipoDocumento());
+        if (documentoReciboAgt) {
+            validarDocumentoReciboAgt(fatura);
+        } else {
+            // VALIDAÇÃO AGT: Itens isentos devem ter código de isenção
+            validarCodigosIsencao(fatura);
+            // O stock legado é inteiro; bloquear quantidades fraccionárias antes de reservar
+            // numeração ou movimentar inventário. Artigos de serviço não têm baixa de stock.
+            validarQuantidadesDeStock(fatura);
+        }
         
         // 1. Seleccionar série. Em produção, nunca inventar uma série fiscal local.
         TipoDocumento tipoSolicitado = fatura.getTipoDocumento();
@@ -803,7 +958,8 @@ public class FaturaService {
             }
         }
         
-        if (tipo == TipoDocumento.FATURA_RECIBO || tipo == TipoDocumento.VENDA_A_DINHEIRO || tipo == TipoDocumento.RECIBO) {
+        if (tipo == TipoDocumento.FATURA_RECIBO || tipo == TipoDocumento.VENDA_A_DINHEIRO
+                || tipo == TipoDocumento.RECIBO || tipoDocumentoReciboAgt(tipo)) {
             fatura.setStatus(StatusFatura.PAGA);
         } else {
             fatura.setStatus(StatusFatura.EMITIDA);
@@ -819,15 +975,17 @@ public class FaturaService {
         
         // Em produção, emissão e lançamento contabilístico têm de ser atómicos.
         // Nunca declarar a operação concluída quando o diário falha.
-        try {
-            lancarNaContabilidade(fatura);
-        } catch (RuntimeException e) {
-            if (contabilidadeObrigatoria) {
-                throw new IllegalStateException(
-                        "A emissão foi interrompida porque o lançamento contabilístico falhou.", e);
+        if (!tipoDocumentoReciboAgt(tipo)) {
+            try {
+                lancarNaContabilidade(fatura);
+            } catch (RuntimeException e) {
+                if (contabilidadeObrigatoria) {
+                    throw new IllegalStateException(
+                            "A emissão foi interrompida porque o lançamento contabilístico falhou.", e);
+                }
+                log.error("Falha contabilística no documento {}. O perfil actual permite executar sem contabilidade obrigatória.",
+                        fatura.getNumero(), e);
             }
-            log.error("Falha contabilística no documento {}. O perfil actual permite executar sem contabilidade obrigatória.",
-                    fatura.getNumero(), e);
         }
     }
 
@@ -838,7 +996,8 @@ public class FaturaService {
             || tipo == TipoDocumento.RECIBO
             || tipo == TipoDocumento.NOTA_CREDITO
             || tipo == TipoDocumento.NOTA_DEBITO
-            || tipo == TipoDocumento.AUTO_FATURA;
+            || tipo == TipoDocumento.AUTO_FATURA
+            || tipoDocumentoReciboAgt(tipo);
     }
 
     /**
@@ -1015,7 +1174,8 @@ public class FaturaService {
                 || tipo == TipoDocumento.GUIA_REMESSA
                 || tipo == TipoDocumento.GUIA_TRANSPORTE
                 || tipo == TipoDocumento.DOC_CONFERENCIA
-                || tipo == TipoDocumento.OUTROS) {
+                || tipo == TipoDocumento.OUTROS
+                || tipoDocumentoReciboAgt(tipo)) {
             return; // Documentos comerciais/logísticos não representam venda contabilística concluída.
         }
 

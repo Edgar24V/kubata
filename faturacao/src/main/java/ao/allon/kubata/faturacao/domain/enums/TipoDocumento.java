@@ -5,6 +5,8 @@ public enum TipoDocumento {
     FATURA_RECIBO("FR", "Fatura/Recibo"),
     VENDA_A_DINHEIRO("VD", "Venda a Dinheiro"),
     RECIBO("RC", "Recibo"),
+    AVISO_COBRANCA_RECIBO("AR", "Aviso de Cobrança/Recibo"),
+    RECIBO_GERAL("RG", "Recibo Geral"),
     NOTA_CREDITO("NC", "Nota de Crédito"),
     NOTA_DEBITO("ND", "Nota de Débito"),
     GUIA_TRANSPORTE("GT", "Guia de Transporte"),

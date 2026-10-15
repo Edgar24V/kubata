@@ -3,6 +3,7 @@ package ao.allon.kubata.faturacao.service;
 import ao.allon.kubata.core.repository.PlanoContaRepository;
 import ao.allon.kubata.core.service.ContabilidadeService;
 import ao.allon.kubata.faturacao.domain.Fatura;
+import ao.allon.kubata.faturacao.domain.Cliente;
 import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.domain.Recibo;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
@@ -357,4 +358,61 @@ class FaturaServiceTest {
         documento.addItem(item);
         return documento;
     }
+
+    @Test
+    void criarRascunhoReciboAgtPermiteUmaLiquidacaoIntegralSemRetencao() {
+        Cliente cliente = new Cliente();
+        cliente.setId(15L);
+        fatura.setCliente(cliente);
+        fatura.setTipoDocumento(TipoDocumento.FATURA);
+        fatura.setStatus(StatusFatura.PAGA);
+        fatura.setSubtotal(new BigDecimal("100.00"));
+        fatura.setIva(new BigDecimal("14.00"));
+        fatura.setTotal(new BigDecimal("114.00"));
+        fatura.setTotalRetencao(BigDecimal.ZERO);
+
+        Recibo interno = new Recibo();
+        interno.setNumero("RC-INTERNO-001");
+        interno.setValor(new BigDecimal("114.00"));
+        interno.setMetodoPagamento(MetodoPagamento.DINHEIRO);
+        when(reciboService.findByFatura(1L)).thenReturn(List.of(interno));
+        when(reciboService.totalRecebidoFatura(1L)).thenReturn(new BigDecimal("114.00"));
+        when(faturaRepository.findByFaturaReferenciaIdAndTipoDocumentoInOrderByDataEmissaoAsc(
+                eq(1L), any())).thenReturn(List.of());
+
+        Fatura rascunho = faturaService.criarRascunhoReciboAgt(
+            1L, TipoDocumento.RECIBO_GERAL);
+
+        assertEquals(TipoDocumento.RECIBO_GERAL, rascunho.getTipoDocumento());
+        assertEquals(StatusFatura.RASCUNHO, rascunho.getStatus());
+        assertSame(fatura, rascunho.getFaturaReferencia());
+        assertSame(cliente, rascunho.getCliente());
+        assertEquals(new BigDecimal("100.00"), rascunho.getSubtotal());
+        assertEquals(new BigDecimal("14.00"), rascunho.getIva());
+        assertEquals(new BigDecimal("114.00"), rascunho.getTotal());
+        assertTrue(rascunho.getItens().isEmpty());
+        assertTrue(rascunho.getNumero().startsWith("RASC-AGT-"));
+    }
+
+    @Test
+    void criarRascunhoReciboAgtBloqueiaLiquidacoesDivididas() {
+        fatura.setTipoDocumento(TipoDocumento.FATURA);
+        fatura.setStatus(StatusFatura.PAGA);
+        fatura.setTotal(new BigDecimal("114.00"));
+        fatura.setTotalRetencao(BigDecimal.ZERO);
+
+        Recibo parcial1 = new Recibo();
+        parcial1.setValor(new BigDecimal("50.00"));
+        Recibo parcial2 = new Recibo();
+        parcial2.setValor(new BigDecimal("64.00"));
+        when(reciboService.findByFatura(1L)).thenReturn(List.of(parcial1, parcial2));
+
+        IllegalStateException error = assertThrows(
+            IllegalStateException.class,
+            () -> faturaService.criarRascunhoReciboAgt(1L, TipoDocumento.RECIBO_GERAL));
+
+        assertTrue(error.getMessage().contains("único recibo interno"));
+        verify(faturaRepository, never()).save(any(Fatura.class));
+    }
+
 }
