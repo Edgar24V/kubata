@@ -101,6 +101,19 @@ class FaturaServiceTest {
     }
 
     @Test
+    void submeterAgtManualmente_DeveBloquearDocumentoJaPendenteParaEvitarDuplicacao() {
+        fatura.setTipoDocumento(TipoDocumento.FATURA);
+        fatura.setAgtSubmissionStatus("PENDING");
+
+        assertThrows(IllegalStateException.class,
+            () -> faturaService.submeterAgtManualmente(1L));
+
+        verify(agtElectronicInvoiceService, never()).assertReadyForFiscalEmission();
+        verify(agtElectronicInvoiceService, never()).submitInvoiceAsync(any(Fatura.class));
+        verify(faturaRepository, never()).save(any(Fatura.class));
+    }
+
+    @Test
     void cancelarFatura_DeveBloquearAnulacaoFiscalSemFluxoAgtHomologado() {
         fatura.setStatus(StatusFatura.EMITIDA);
 
