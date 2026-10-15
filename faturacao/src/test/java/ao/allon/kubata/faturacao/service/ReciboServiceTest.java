@@ -59,6 +59,11 @@ class ReciboServiceTest {
         lenient().when(faturaRepository.findById(1L)).thenReturn(Optional.of(fatura));
         lenient().when(reciboRepository.sumValorByFaturaId(1L)).thenReturn(new BigDecimal("0.00"));
         lenient().when(reciboRepository.count()).thenReturn(0L);
+        lenient().when(reciboRepository.saveAndFlush(any(Recibo.class))).thenAnswer(invocation -> {
+            Recibo recibo = invocation.getArgument(0);
+            if (recibo.getId() == null) recibo.setId(1L);
+            return recibo;
+        });
         lenient().when(reciboRepository.save(any(Recibo.class))).thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(planoContaRepository.findByCodigo("45.1"))
                 .thenReturn(Optional.of(PlanoConta.builder().codigo("45.1").descricao("Caixa").movimento(true).build()));
@@ -73,7 +78,9 @@ class ReciboServiceTest {
                 MetodoPagamento.TRANSFERENCIA_BANCARIA);
 
         assertEquals(new BigDecimal("40.00"), recibo.getValor());
+        assertEquals("RC" + LocalDate.now().getYear() + "000001", recibo.getNumero());
         assertEquals(MetodoPagamento.TRANSFERENCIA_BANCARIA, recibo.getMetodoPagamento());
+        verify(reciboRepository).saveAndFlush(any(Recibo.class));
         assertEquals(new BigDecimal("40.00"), fatura.getValorRecebido());
         assertEquals(StatusFatura.EMITIDA, fatura.getStatus());
         verify(reciboRepository).save(any(Recibo.class));
