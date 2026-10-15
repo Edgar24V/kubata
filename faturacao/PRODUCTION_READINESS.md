@@ -51,7 +51,9 @@ Documentação técnica de referência: portal oficial da AGT, serviços **Regis
 
 ## CI observado nesta branch
 
-O job de teste do Administrator/dependências passou num run anterior. A compilação de reactor completa falhou antes de alcançar Faturação porque o runner recebeu HTTP 403 ao descarregar `maven-jar-plugin:3.4.2` do Maven Central. O job dedicado `mvn -B -pl faturacao -am clean test` foi acrescentado para testar especificamente este módulo; consultar o resultado mais recente em GitHub Actions. Um run externo bloqueado por dependência não equivale a compilação verde.
+No commit `b317178e1555f0a9fbd6bd330aad31f379905077`, o GitHub Actions run [#1857](https://github.com/Edgar24V/kubata/actions/runs/38744976736) terminou com sucesso: o build completo do reactor, o job dedicado `mvn -B -pl faturacao -am clean test` e os testes do Administrator/dependências passaram. Durante a validação foi corrigido o import em falta de `HashMap` e removidas duas migrações V97 redundantes: a V94 já cria e preenche `desconto_percentual` em SQLite e PostgreSQL. A UI de Contas a Receber também foi corrigida para não gravar cada pagamento duas vezes e para guardar o método escolhido.
+
+CI verde valida os testes automatizados executados no runner; não equivale a homologação fiscal. Continuam obrigatórios os testes de instalação/actualização de bases SQLite e PostgreSQL, concorrência e recuperação, bem como a homologação AGT com credenciais e certificados oficiais.
 
 ## Rotação de credenciais e histórico Git
 
