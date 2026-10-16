@@ -380,29 +380,19 @@ public final class NavigationHeader extends BorderPane {
     }
 
     private void showSwitchUserDialog() {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Trocar Usuário");
-        confirm.setHeaderText("Deseja trocar de usuário?");
-        confirm.setContentText("A sessão atual será encerrada e você retornará à tela de login.");
-
-        confirm.showAndWait().ifPresent(result -> {
-            if (result == ButtonType.OK) {
-                performLogoutToLogin();
-            }
-        });
+        AlertUtils.showConfirmationAsync(
+                "Trocar utilizador",
+                "A sessão atual será encerrada e você retornará à tela de login.",
+                this::performLogoutToLogin
+        );
     }
 
     private void performLogoutWithConfirmation() {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Encerrar Sessão");
-        confirm.setHeaderText("Deseja encerrar a sessão?");
-        confirm.setContentText("Você será desconectado e retornará à tela de login.");
-
-        confirm.showAndWait().ifPresent(result -> {
-            if (result == ButtonType.OK) {
-                performLogoutToLogin();
-            }
-        });
+        AlertUtils.showConfirmationAsync(
+                "Encerrar sessão",
+                "Você será desconectado e retornará à tela de login.",
+                this::performLogoutToLogin
+        );
     }
 
     private void performLogoutToLogin() {
