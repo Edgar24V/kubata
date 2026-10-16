@@ -2,6 +2,11 @@ package ao.allon.kubata.admin.ui.fxribbon;
 
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.admin.view.*;
+import ao.allon.kubata.financeiro.view.CaixasView;
+import ao.allon.kubata.financeiro.view.ContasBancariasView;
+import ao.allon.kubata.financeiro.view.FinanceiroDashboardView;
+import ao.allon.kubata.financeiro.view.RelatoriosFinanceirosView;
+import ao.allon.kubata.financeiro.view.TitulosFinanceirosView;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import javafx.scene.Node;
@@ -48,6 +53,7 @@ public class RibbonProgrammaticService {
         ribbon.addTab(buildGestao(opener, beanLookup));
         ribbon.addTab(buildSeguranca(opener, beanLookup));
         ribbon.addTab(buildFiscal(opener, beanLookup));
+        ribbon.addTab(buildFinanceiro(opener, beanLookup));
         ribbon.addTab(buildSistema(opener, beanLookup));
 
         if (isAdmin(user)) {
@@ -129,6 +135,46 @@ public class RibbonProgrammaticService {
         fiscal.addLargeButton(largeBtn("fiscal_agt", "Fiscal AGT", Feather.FILE_TEXT, "Configurações fiscais AGT",
                 () -> opener.open("fiscal_agt", "Fiscal AGT", () -> bl.apply(FiscalAgtView.class), true)));
         tab.addGroup(fiscal);
+
+        return tab;
+    }
+
+    private RibbonTab buildFinanceiro(TabOpener opener, Function<Class<? extends Node>, Node> bl) {
+        RibbonTab tab = new RibbonTab("Financeiro");
+
+        RibbonGroup tesouraria = new RibbonGroup("Tesouraria");
+        tesouraria.addLargeButton(largeBtn(
+                "fin_dashboard", "Visão Geral", Feather.BAR_CHART_2,
+                "Saldos, liquidez e últimos movimentos",
+                () -> opener.open("financeiro_dashboard", "Visão Geral Financeira",
+                        () -> bl.apply(FinanceiroDashboardView.class), true)));
+        tesouraria.addLargeButton(largeBtn(
+                "fin_caixas", "Caixas", Feather.CREDIT_CARD,
+                "Caixas, aberturas, entradas, saídas e livro-caixa",
+                () -> opener.open("financeiro_caixas", "Caixas e Livro de Caixa",
+                        () -> bl.apply(CaixasView.class), true)));
+        tesouraria.addLargeButton(largeBtn(
+                "fin_bancos", "Contas Bancárias", Feather.DOLLAR_SIGN,
+                "Contas bancárias, movimentos, transferências e extractos",
+                () -> opener.open("financeiro_bancos", "Contas Bancárias",
+                        () -> bl.apply(ContasBancariasView.class), true)));
+        tab.addGroup(tesouraria);
+
+        RibbonGroup compromissos = new RibbonGroup("Compromissos");
+        compromissos.addLargeButton(largeBtn(
+                "fin_titulos", "Pagar / Receber", Feather.FILE_TEXT,
+                "Títulos, vencimentos e liquidações integradas com caixa/banco",
+                () -> opener.open("financeiro_titulos", "Contas a Pagar e a Receber",
+                        () -> bl.apply(TitulosFinanceirosView.class), true)));
+        tab.addGroup(compromissos);
+
+        RibbonGroup analise = new RibbonGroup("Análise e Relatórios");
+        analise.addLargeButton(largeBtn(
+                "fin_relatorios", "Relatórios", Feather.BAR_CHART_2,
+                "Entradas, saídas e saldo líquido por período, com exportação CSV",
+                () -> opener.open("financeiro_relatorios", "Relatórios Financeiros",
+                        () -> bl.apply(RelatoriosFinanceirosView.class), true)));
+        tab.addGroup(analise);
 
         return tab;
     }

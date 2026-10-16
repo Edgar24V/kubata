@@ -14,5 +14,9 @@ public interface CaixaRepository extends JpaRepository<Caixa, Long> {
 
     List<Caixa> findByIsAtivoTrue();
 
+    Optional<Caixa> findByNomeIgnoreCase(String nome);
+
     boolean existsByNome(String nome);
+
+    boolean existsByNomeIgnoreCase(String nome);
 }

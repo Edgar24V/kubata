@@ -22,6 +22,10 @@ public class ContaBancaria extends BaseEntity {
     @Column(name = "titular", nullable = false)
     private String titular;
 
+    // Mantém compatibilidade com a coluna NOT NULL criada pelo módulo de Faturação.
+    @Column(name = "descricao", nullable = false)
+    private String descricao;
+
     @Column(nullable = false)
     private String iban;
 
@@ -59,6 +63,14 @@ public class ContaBancaria extends BaseEntity {
 
     public void setTitular(String titular) {
         this.titular = titular;
+    }
+
+    public String getDescricao() {
+        return descricao;
+    }
+
+    public void setDescricao(String descricao) {
+        this.descricao = descricao;
     }
 
     public String getIban() {

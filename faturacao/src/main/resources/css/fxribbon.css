@@ -1,0 +1,272 @@
+/*
+ * KUBATA — Ribbon 2024
+ * Layout estável e responsivo por overflow de categorias.
+ */
+
+.ribbon-bar {
+    -fx-background-color: #F7F8F7;
+    -fx-border-color: #D9DDDA;
+    -fx-border-width: 0 0 1 0;
+    -kubata-ribbon-green: #107C41;
+}
+
+.ribbon-tab-strip {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 0 9 0 9;
+    -fx-spacing: 1;
+    -fx-border-color: #E2E5E3;
+    -fx-border-width: 0 0 1 0;
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-max-height: 34px;
+}
+
+.ribbon-tab-label {
+    -fx-background-color: transparent;
+    -fx-padding: 8 14 7 14;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 12px;
+    -fx-text-fill: #3B3D3E;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+
+.ribbon-tab-label:hover {
+    -fx-background-color: #F3F5F4;
+    -fx-text-fill: #107C41;
+}
+
+.ribbon-tab-label-selected {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #107C41;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent #107C41 transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.ribbon-content-host {
+    -fx-background-color: #FFFFFF;
+    -fx-min-height: 112px;
+    -fx-pref-height: 112px;
+    -fx-max-height: 112px;
+}
+
+.ribbon-content-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.ribbon-content-scroll > .viewport {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 0;
+}
+
+.ribbon-tab-content {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 3 8 2 8;
+    -fx-spacing: 1px;
+}
+
+.ribbon-group {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent #E0E3E1 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 2 7 1 7;
+    -fx-alignment: TOP_CENTER;
+    -fx-min-width: 86px;
+    -fx-min-height: 108px;
+    -fx-pref-height: 108px;
+    -fx-max-height: 108px;
+}
+
+.ribbon-group-content {
+    -fx-min-height: 76px;
+    -fx-pref-height: 76px;
+    -fx-max-height: 76px;
+}
+
+.ribbon-column-container {
+    -fx-spacing: 2px;
+    -fx-padding: 0 2px 0 2px;
+}
+
+.ribbon-column-separator {
+    -fx-background-color: #DDE2DF;
+    -fx-min-width: 1px;
+    -fx-pref-width: 1px;
+    -fx-max-width: 1px;
+    -fx-min-height: 60px;
+    -fx-pref-height: 68px;
+    -fx-max-height: 68px;
+}
+
+.ribbon-group-title-area {
+    -fx-background-color: #F2F7F4;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D9E8DE;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-padding: 2 5 2 5;
+}
+
+.ribbon-group-title {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #4E5A53;
+    -fx-alignment: CENTER;
+    -fx-text-alignment: center;
+    -fx-wrap-text: true;
+}
+
+.ribbon-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-padding: 2px 3px 2px 3px;
+    -fx-cursor: hand;
+    -fx-font-family: "Segoe UI";
+    -fx-min-width: 0;
+}
+
+.ribbon-button:hover {
+    -fx-background-color: #F1F6F3;
+    -fx-border-color: #C8DDD0;
+}
+
+.ribbon-button:pressed {
+    -fx-background-color: #DCEDE4;
+    -fx-border-color: #107C41;
+}
+
+.ribbon-button:focused {
+    -fx-border-color: #107C41;
+}
+
+.ribbon-button:disabled {
+    -fx-opacity: 0.42;
+}
+
+.ribbon-button-selected,
+.ribbon-button-selected:hover {
+    -fx-background-color: #E5F1E9;
+    -fx-border-color: #A9CDB7;
+}
+
+.ribbon-button-tile {
+    -fx-min-width: 72px;
+    -fx-pref-width: 72px;
+    -fx-max-width: 72px;
+    -fx-min-height: 72px;
+    -fx-pref-height: 72px;
+    -fx-max-height: 72px;
+    -fx-alignment: TOP_CENTER;
+}
+
+.ribbon-tile-icon-wrap {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+    -fx-padding: 4px;
+    -fx-min-width: 40px;
+    -fx-pref-width: 40px;
+    -fx-max-width: 40px;
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+    -fx-max-height: 36px;
+}
+
+.ribbon-button-tile:hover .ribbon-tile-icon-wrap {
+    -fx-background-color: #EAF4EE;
+}
+
+.ribbon-icon-tile {
+    -fx-icon-size: 23px;
+    -fx-icon-color: #107C41;
+}
+
+.ribbon-button-text {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 10px;
+    -fx-text-fill: #303234;
+    -fx-wrap-text: true;
+}
+
+.ribbon-button-text-below {
+    -fx-text-alignment: center;
+    -fx-alignment: CENTER;
+    -fx-wrap-text: true;
+}
+
+.ribbon-button-small {
+    -fx-min-width: 106px;
+    -fx-pref-width: 106px;
+    -fx-max-width: 106px;
+    -fx-min-height: 22px;
+    -fx-pref-height: 22px;
+    -fx-max-height: 22px;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.ribbon-icon-small {
+    -fx-icon-size: 14px;
+    -fx-icon-color: #107C41;
+}
+
+/* Overflow */
+.ribbon-overflow-button {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D7DBD8;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-text-fill: #107C41;
+    -fx-font-family: "Segoe UI Symbol";
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-min-width: 30px;
+    -fx-pref-width: 30px;
+    -fx-max-width: 30px;
+    -fx-min-height: 58px;
+    -fx-pref-height: 64px;
+    -fx-max-height: 70px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.ribbon-overflow-button:hover {
+    -fx-background-color: #EAF4EE;
+    -fx-border-color: #A9CDB7;
+}
+
+.ribbon-overflow-popup {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C9CECB;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 7px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 14, 0.14, 0, 4);
+}
+
+.ribbon-overflow-popup > .ribbon-group {
+    -fx-border-color: transparent transparent #E4E7E5 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 5 7 5 7;
+}
+
+/* Compatibilidade */
+.ribbon-file-button,
+.ribbon-backstage-back,
+.ribbon-backstage-menu-item {
+    -fx-font-family: "Segoe UI";
+}
+
+.ribbon-office-bar {
+    -fx-background-color: #F7F8F7;
+}
