@@ -42,6 +42,9 @@ public class ModalManager {
     private static final Insets DEFAULT_MARGIN = new Insets(20);
     private static final Insets DEFAULT_PADDING = new Insets(20);
 
+    /** Instância activa para componentes globais e tratamento de erros sem injecção directa. */
+    private static volatile ModalManager activeInstance;
+
     /**
      * Pilha de modais activos. Cada modal recebe o seu próprio overlay,
      * permitindo que um modal filho seja aberto sem destruir o modal pai.
@@ -270,6 +273,15 @@ public class ModalManager {
 
     public ModalManager() {
         // Os overlays são criados sob demanda para suportar nesting ilimitado.
+        activeInstance = this;
+    }
+
+    public static ModalManager getActiveInstance() {
+        return activeInstance;
+    }
+
+    public boolean hasRoot() {
+        return attachedRoot != null;
     }
 
     private static FontIcon modalIcon(Feather code, int size) {
