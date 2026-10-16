@@ -1,7 +1,7 @@
 package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.ui.util.IconUtils;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.core.domain.Moeda;
 import ao.allon.kubata.core.repository.MoedaRepository;
 import javafx.application.Platform;
