@@ -303,45 +303,37 @@ public class SaftExportView extends BorderPane {
     private void previewData() {
         LocalDate inicio = dpInicio.getValue();
         LocalDate fim = dpFim.getValue();
-        
-        if (!validateDates(inicio, fim)) return;
-        
+
+        if (!validateDates(inicio, fim)) {
+            return;
+        }
+
         log("Pré-visualização: " + formatDate(inicio) + " a " + formatDate(fim));
-        
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Pré-visualização dos Dados");
-        dialog.setHeaderText("Resumo dos dados a serem exportados");
-        
-        DialogPane dialogPane = dialog.getDialogPane();
-        dialogPane.getStylesheets().add(Styles.class.getResource("/atlantafx/base/theme/cupertino-light.css").toExternalForm());
-        
+
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
         content.setPrefWidth(450);
-        
+
         GridPane infoGrid = new GridPane();
         infoGrid.setHgap(10);
         infoGrid.setVgap(8);
         infoGrid.addRow(0, new Label("Período:"), new Label(formatDate(inicio) + " a " + formatDate(fim)));
         infoGrid.addRow(1, new Label("Versão SAF-T:"), new Label("1.01_01"));
         infoGrid.addRow(2, new Label("Tipo:"), new Label("F - Faturação"));
-        
-        Label note = new Label("A exportação incluirá todos os documentos fiscais do período: faturas, notas de crédito/débito, guias de remessa e transporte.");
+
+        Label note = new Label(
+                "A exportação incluirá todos os documentos fiscais do período: faturas, notas de crédito/débito, guias de remessa e transporte."
+        );
         note.setWrapText(true);
         note.setStyle("-fx-text-fill: -color-fg-muted; -fx-font-size: 12px;");
-        
+
         content.getChildren().addAll(infoGrid, new Separator(), note);
-        dialogPane.setContent(content);
-        
-        ButtonType btnExport = new ButtonType("Exportar Agora", ButtonBar.ButtonData.OK_DONE);
-        dialogPane.getButtonTypes().addAll(btnExport, ButtonType.CANCEL);
-        
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == btnExport) Platform.runLater(this::exportar);
-            return null;
-        });
-        
-        dialog.showAndWait();
+        AlertUtils.showModalWithAction(
+                "Pré-visualização dos Dados",
+                content,
+                "Exportar Agora",
+                this::exportar
+        );
     }
 
     private void exportar() {
