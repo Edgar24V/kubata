@@ -150,17 +150,20 @@ public class FaturasController {
             FXMLLoader loader = new FXMLLoader(novaFaturaFxml.getURL());
             loader.setControllerFactory(applicationContext::getBean);
             Parent root = loader.load();
-            
-            Stage stage = new Stage();
-            stage.setTitle("Nova Fatura");
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setScene(new Scene(root));
-            stage.showAndWait();
-            
-            carregarFaturas();
-            
+
+            AlertUtils.showCustomModalWithCloseAction(
+                    "Nova Fatura",
+                    root,
+                    1000,
+                    680,
+                    this::carregarFaturas
+            );
         } catch (Exception e) {
-            AlertUtils.showExceptionAlert("Erro ao Abrir Nova Fatura", "Não foi possível carregar a tela de nova fatura.", e);
+            AlertUtils.showExceptionAlert(
+                    "Erro ao Abrir Nova Fatura",
+                    "Não foi possível carregar a tela de nova fatura.",
+                    e
+            );
         }
     }
     
