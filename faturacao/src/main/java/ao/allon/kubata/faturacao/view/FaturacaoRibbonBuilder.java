@@ -149,6 +149,8 @@ public final class FaturacaoRibbonBuilder {
                 "Configurar regras comerciais de desconto", controller::showRegrasDesconto);
         addAdmin(fiscal, "agt_correcoes", "Correções AGT", Feather.TOOL,
                 "Consultar e corrigir ocorrências AGT", controller::showAgtCorrecoes);
+        addAdmin(fiscal, "agt_comunicacao", "Comunicação AGT", Feather.UPLOAD_CLOUD,
+                "Abrir a área de comunicação com a AGT", controller::showAgtComunicacao);
         addGroup(tab, fiscal);
         publish(ribbon, tab);
     }
@@ -168,6 +170,8 @@ public final class FaturacaoRibbonBuilder {
                 "Consultar registos de auditoria", controller::showAuditoria);
         addAdmin(administracao, "logs_sistema", "Logs do Sistema", Feather.TERMINAL,
                 "Consultar logs do sistema", controller::showLogsSistema);
+        addAdmin(administracao, "licenciamento", "Licenciamento", Feather.KEY,
+                "Consultar a área de licenciamento", controller::showLicenciamento);
         add(administracao, "PERFIL", "Consultar", "perfil_utilizador", "Meu Perfil", Feather.USER,
                 "Consultar o perfil do utilizador", controller::showPerfilUsuario);
         addGroup(tab, administracao);
