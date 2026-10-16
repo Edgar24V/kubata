@@ -149,6 +149,49 @@ public final class AlertUtils {
     }
 
     /**
+     * Formulário assíncrono padrão. A validação ocorre sem fechar o modal;
+     * em caso de sucesso, o modal fecha antes da acção de gravação.
+     */
+    public static void showForm(
+            String title,
+            Node content,
+            String confirmText,
+            java.util.function.Supplier<Boolean> validator,
+            Runnable onConfirm
+    ) {
+        Platform.runLater(() -> getModalServiceOrThrow().create()
+                .title(title)
+                .content(content)
+                .dynamicSize()
+                .withCancelButton("Cancelar")
+                .withValidatedConfirmButton(
+                        confirmText == null || confirmText.isBlank() ? "Guardar" : confirmText,
+                        validator,
+                        onConfirm
+                )
+                .buildAndShow());
+    }
+
+    /** Modal com acção primária que fecha o diálogo antes de executar a acção. */
+    public static void showModalWithAction(
+            String title,
+            Node content,
+            String actionText,
+            Runnable action
+    ) {
+        Platform.runLater(() -> getModalServiceOrThrow().create()
+                .title(title)
+                .content(content)
+                .dynamicSize()
+                .withCancelButton("Fechar")
+                .withConfirmButton(
+                        actionText == null || actionText.isBlank() ? "Confirmar" : actionText,
+                        action
+                )
+                .buildAndShow());
+    }
+
+    /**
      * Confirmação não bloqueante. Evita CountDownLatch/showAndWait na thread JavaFX.
      */
     public static void showConfirmationAsync(String title, String message, Runnable onConfirm) {
