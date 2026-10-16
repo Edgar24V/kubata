@@ -1668,61 +1668,60 @@ public class FaturasView extends BorderPane {
      * Cancelar/Anular fatura na AGT
      */
     private void cancelarAGT() {
-    Fatura f = getSelectedFatura();
-    if (f == null) {
-        AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura para cancelar na AGT.");
-        return;
-    }
-
-    // Verificar se a fatura já foi submetida
-    if (!"SUCCESS".equals(f.getAgtSubmissionStatus())) {
-        AlertUtils.showWarningAlert("Aviso", "Apenas faturas validadas pela AGT podem ser canceladas.");
-        return;
-    }
-
-    // Modal para motivo de cancelamento
-    Dialog<ButtonType> dialog = new Dialog<>();
-    dialog.setTitle("Cancelar Fatura na AGT");
-    dialog.setHeaderText("Selecione o motivo de anulação");
-
-    VBox content = new VBox(10);
-    content.setPadding(new Insets(10));
-
-    Label lblMotivo = new Label("Motivo de anulação:");
-    ComboBox<ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason> cmbMotivo = new ComboBox<>();
-    cmbMotivo.getItems().addAll(ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason.values());
-    cmbMotivo.setPromptText("Selecione o motivo");
-
-    content.getChildren().addAll(lblMotivo, cmbMotivo);
-    dialog.getDialogPane().setContent(content);
-    dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-    Optional<ButtonType> result = dialog.showAndWait();
-    if (result.isPresent() && result.get() == ButtonType.OK) {
-        if (cmbMotivo.getValue() == null) {
-            AlertUtils.showWarningAlert("Aviso", "Selecione um motivo de anulação.");
+        Fatura f = getSelectedFatura();
+        if (f == null) {
+            AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura para cancelar na AGT.");
             return;
         }
 
-        String loadingId = loadingService.showLoading("A cancelar fatura na AGT...");
+        if (!"SUCCESS".equals(f.getAgtSubmissionStatus())) {
+            AlertUtils.showWarningAlert("Aviso", "Apenas faturas validadas pela AGT podem ser canceladas.");
+            return;
+        }
 
-        agtElectronicInvoiceService.cancelInvoice(f, cmbMotivo.getValue())
-            .thenAccept(response -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    AlertUtils.showInfoAlert("Sucesso", "Fatura cancelada na AGT com sucesso!");
-                    refresh();
-                });
-            })
-            .exceptionally(ex -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    AlertUtils.showExceptionAlert("Erro", "Falha ao cancelar fatura na AGT", ex);
-                });
-                return null;
-            });
+        ComboBox<ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason> cmbMotivo =
+                new ComboBox<>();
+        cmbMotivo.getItems().addAll(
+                ao.allon.kubata.faturacao.domain.enums.DocumentCancelReason.values()
+        );
+        cmbMotivo.setPromptText("Selecione o motivo");
+        cmbMotivo.setMaxWidth(Double.MAX_VALUE);
+
+        VBox content = new VBox(10,
+                new Label("Selecione o motivo de anulação da fatura " + f.getNumero() + ":"),
+                cmbMotivo
+        );
+        content.setPadding(new Insets(10));
+
+        AlertUtils.showForm(
+                "Cancelar Fatura na AGT",
+                content,
+                "Cancelar fatura",
+                () -> {
+                    if (cmbMotivo.getValue() == null) {
+                        AlertUtils.showWarningAlert("Aviso", "Selecione um motivo de anulação.");
+                        return false;
+                    }
+                    return true;
+                },
+                () -> {
+                    String loadingId = loadingService.showLoading("A cancelar fatura na AGT...");
+                    agtElectronicInvoiceService.cancelInvoice(f, cmbMotivo.getValue())
+                            .thenAccept(response -> javafx.application.Platform.runLater(() -> {
+                                loadingService.hideLoading(loadingId);
+                                AlertUtils.showSuccess("Sucesso", "Fatura cancelada na AGT com sucesso!");
+                                refresh();
+                            }))
+                            .exceptionally(ex -> {
+                                javafx.application.Platform.runLater(() -> {
+                                    loadingService.hideLoading(loadingId);
+                                    AlertUtils.showExceptionAlert("Erro", "Falha ao cancelar fatura na AGT", ex);
+                                });
+                                return null;
+                            });
+                }
+        );
     }
-}
 
 /**
  * Corrigir documento rejeitado na AGT
