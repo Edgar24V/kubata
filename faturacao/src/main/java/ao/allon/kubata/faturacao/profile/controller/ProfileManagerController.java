@@ -105,56 +105,73 @@ public class ProfileManagerController {
             existing.setPermissoes(UserProfileService.fromCsv(existingEntity.getPermissoesCsv()));
             existing.setAtividadesRecentes(UserProfileService.fromCsv(existingEntity.getAtividadesCsv()));
         }
-        Dialog<UserProfile> dlg = new Dialog<>();
-        dlg.setTitle(existing == null ? "Novo Perfil" : "Editar Perfil");
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
         TextField nome = new TextField(existing != null ? existing.getNome() : "");
         TextField email = new TextField(existing != null ? existing.getEmail() : "");
         ComboBox<UserType> tipo = new ComboBox<>(FXCollections.observableArrayList(UserType.values()));
         tipo.setValue(existing != null ? existing.getTipo() : UserType.OPERADOR);
         CheckBox ativo = new CheckBox("Ativo");
         ativo.setSelected(existing == null || existing.isAtivo());
-        VBox content = new VBox(10, new Label("Nome"), nome, new Label("Email"), email, new Label("Tipo"), tipo, ativo);
-        content.setPadding(new Insets(10));
-        dlg.getDialogPane().setContent(content);
-        dlg.setResultConverter(bt -> {
-            if (bt == ButtonType.OK) {
-                if (nome.getText().isBlank() || email.getText().isBlank()) return null;
-                UserProfile p = new UserProfile();
-                if (existingEntity != null && existingEntity.getId() != null) {
-                    p.setId(existingEntity.getId());
-                } else {
-                    p.setId(nextId());
-                }
-                p.setNome(nome.getText().trim());
-                p.setEmail(email.getText().trim());
-                p.setTipo(tipo.getValue());
-                p.setAtivo(ativo.isSelected());
-                p.setCriadoEm(p.getCriadoEm() == null ? LocalDateTime.now() : p.getCriadoEm());
-                return p;
-            }
-            return null;
-        });
-        Optional<UserProfile> result = dlg.showAndWait();
-        result.ifPresent(p -> {
-            UserProfileEntity e = existingEntity != null ? existingEntity : new UserProfileEntity();
-            if (e.getId() == null) e.setId(nextId());
-            e.setNome(p.getNome());
-            e.setEmail(p.getEmail());
-            e.setTipo(p.getTipo());
-            e.setActive(p.isAtivo());
-            e.setTelefone(p.getTelefone());
-            e.setDepartamento(p.getDepartamento());
-            e.setPermissoesCsv(UserProfileService.toCsv(p.getPermissoes()));
-            e.setAtividadesCsv(UserProfileService.toCsv(p.getAtividadesRecentes()));
-            service.save(e);
-            if (existingEntity == null) profiles.add(e);
-            applyFilters();
-        });
-    }
 
-    private long nextId() {
-        return profiles.stream().map(UserProfileEntity::getId).max(Comparator.naturalOrder()).orElse(0L) + 1;
+        VBox content = new VBox(10,
+                new Label("Nome"), nome,
+                new Label("Email"), email,
+                new Label("Tipo"), tipo,
+                ativo
+        );
+        content.setPadding(new Insets(10));
+
+        AlertUtils.showForm(
+                existingEntity == null ? "Novo Perfil" : "Editar Perfil",
+                content,
+                "Guardar",
+                () -> {
+                    if (nome.getText() == null || nome.getText().isBlank()) {
+                        AlertUtils.showWarningAlert("Validar perfil", "O nome é obrigatório.");
+                        return false;
+                    }
+                    if (email.getText() == null || email.getText().isBlank()) {
+                        AlertUtils.showWarningAlert("Validar perfil", "O email é obrigatório.");
+                        return false;
+                    }
+                    if (tipo.getValue() == null) {
+                        AlertUtils.showWarningAlert("Validar perfil", "Selecione o tipo de perfil.");
+                        return false;
+                    }
+                    return true;
+                },
+                () -> {
+                    UserProfile profile = new UserProfile();
+                    if (existingEntity != null && existingEntity.getId() != null) {
+                        profile.setId(existingEntity.getId());
+                    } else {
+                        profile.setId(nextId());
+                    }
+                    profile.setNome(nome.getText().trim());
+                    profile.setEmail(email.getText().trim());
+                    profile.setTipo(tipo.getValue());
+                    profile.setAtivo(ativo.isSelected());
+                    profile.setCriadoEm(LocalDateTime.now());
+
+                    UserProfileEntity entity = existingEntity != null ? existingEntity : new UserProfileEntity();
+                    if (entity.getId() == null) {
+                        entity.setId(nextId());
+                    }
+                    entity.setNome(profile.getNome());
+                    entity.setEmail(profile.getEmail());
+                    entity.setTipo(profile.getTipo());
+                    entity.setActive(profile.isAtivo());
+                    entity.setTelefone(profile.getTelefone());
+                    entity.setDepartamento(profile.getDepartamento());
+                    entity.setPermissoesCsv(UserProfileService.toCsv(profile.getPermissoes()));
+                    entity.setAtividadesCsv(UserProfileService.toCsv(profile.getAtividadesRecentes()));
+                    service.save(entity);
+                    if (existingEntity == null) {
+                        profiles.add(entity);
+                    }
+                    applyFilters();
+                }
+        );
     }
 
     public void handleDeleteSelected() {
