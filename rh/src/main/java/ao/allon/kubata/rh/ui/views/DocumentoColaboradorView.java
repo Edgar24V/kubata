@@ -5,7 +5,7 @@ import ao.allon.kubata.rh.domain.DocumentoColaborador;
 import ao.allon.kubata.rh.domain.Colaborador;
 import ao.allon.kubata.rh.service.DocumentoColaboradorService;
 import ao.allon.kubata.rh.service.ColaboradorService;
-import ao.allon.kubata.rh.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import net.synedra.validatorfx.Validator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
