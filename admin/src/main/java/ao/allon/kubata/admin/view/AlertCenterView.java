@@ -1,7 +1,7 @@
 package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.service.SessionManager;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.core.domain.Alerta;
 import ao.allon.kubata.core.domain.AlertaHistorico;
 import ao.allon.kubata.core.domain.User;
