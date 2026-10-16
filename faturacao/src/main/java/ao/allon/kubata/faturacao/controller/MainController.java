@@ -187,7 +187,7 @@ public class MainController {
     }
 
     public Parent createView() {
-        mainView = new MainView(this, sessionManager, empresaService);
+        mainView = new MainView(this, sessionManager, empresaService, stage);
         modalService.initialize(mainView.getRootPane());
         AlertUtils.initialize(modalService);
         showDashboard();
@@ -666,6 +666,7 @@ public class MainController {
     public void onStageReady(StageReadyEvent event) {
         try {
             this.stage = event.getStage();
+            ThemeManager.setupCustomTitleBar(this.stage);
             ThemeManager.applyTheme();
             switchToLogin();
             this.stage.setTitle(applicationTitle);
@@ -696,9 +697,16 @@ public class MainController {
     }
 
     private void switchToLogin() {
+        loginController.setStage(stage);
         Parent parent = loginController.createView();
-        Scene scene = new Scene(parent, 400, 500);
+        Scene scene = new Scene(parent, 900, 600);
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        ThemeManager.applyTheme(scene);
         stage.setScene(scene);
+        stage.setMinWidth(760);
+        stage.setMinHeight(520);
+        stage.setResizable(true);
+        stage.setMaximized(false);
         stage.centerOnScreen();
     }
 
@@ -708,10 +716,13 @@ public class MainController {
         double w = Math.max(1024, vb.getWidth() * 0.9);
         double h = Math.max(768, vb.getHeight() * 0.9);
         Scene scene = new Scene(parent, w, h);
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        ThemeManager.applyTheme(scene);
         installAccelerators(scene);
         stage.setScene(scene);
-        stage.setMinWidth(960);
-        stage.setMinHeight(600);
+        stage.setMinWidth(1024);
+        stage.setMinHeight(680);
+        stage.setResizable(true);
         stage.centerOnScreen();
         stage.setMaximized(true);
     }
