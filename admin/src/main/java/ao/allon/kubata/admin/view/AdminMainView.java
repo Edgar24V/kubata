@@ -9,7 +9,7 @@ import ao.allon.kubata.admin.ui.fxribbon.RibbonButton;
 import ao.allon.kubata.admin.ui.fxribbon.RibbonGroup;
 import ao.allon.kubata.admin.ui.fxribbon.RibbonProgrammaticService;
 import ao.allon.kubata.admin.ui.fxribbon.RibbonTab;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.User;
 import javafx.collections.ListChangeListener;
