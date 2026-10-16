@@ -322,30 +322,39 @@ public class AlertCenterView extends BorderPane {
         field(grid, 5, "Referência", referencia);
         field(grid, 6, "Responsável", responsavel);
 
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Novo alerta");
-        dialog.setHeaderText("Registar ocorrência no Alert Center");
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().getButtonTypes().addAll(
-                ButtonType.CANCEL, ButtonType.OK);
-
-        dialog.showAndWait().ifPresent(result -> {
-            if (result != ButtonType.OK) return;
-            try {
-                alertaService.criar(actor,
-                        codigo.getText(),
-                        titulo.getText(),
-                        descricao.getText(),
-                        severidade.getValue(),
-                        origem.getText(),
-                        referencia.getText(),
-                        responsavel.getValue());
-                show("Alert Center", "Alerta criado com sucesso.");
-                refresh();
-            } catch (Exception ex) {
-                showError("Novo alerta", ex);
-            }
-        });
+        modalManager.showModal(
+                grid,
+                new ModalManager.ModalConfig()
+                        .title("Novo alerta")
+                        .subtitle("Registar ocorrência no Alert Center")
+                        .icon(Feather.ALERT_TRIANGLE)
+                        .tone(ModalManager.ModalTone.INFO)
+                        .size(720, 650)
+                        .minSize(560, 500)
+                        .withConfirmButtons("Criar alerta", "Cancelar")
+                        .onConfirm(() -> {
+                            if (codigo.getText() == null || codigo.getText().isBlank()
+                                    || titulo.getText() == null || titulo.getText().isBlank()
+                                    || descricao.getText() == null || descricao.getText().isBlank()) {
+                                show("Validar alerta", "Código, título e descrição são obrigatórios.");
+                                return;
+                            }
+                            try {
+                                alertaService.criar(actor,
+                                        codigo.getText().trim(),
+                                        titulo.getText().trim(),
+                                        descricao.getText().trim(),
+                                        severidade.getValue(),
+                                        origem.getText(),
+                                        referencia.getText(),
+                                        responsavel.getValue());
+                                show("Alert Center", "Alerta criado com sucesso.");
+                                refresh();
+                            } catch (Exception ex) {
+                                showError("Novo alerta", ex);
+                            }
+                        })
+        );
     }
 
     private void transition(String title, Alerta alert, Action action) {
@@ -357,25 +366,41 @@ public class AlertCenterView extends BorderPane {
             return;
         }
 
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle(title);
-        dialog.setHeaderText(title + " · " + alert.getCodigo());
-        dialog.setContentText("Observação (opcional):");
+        TextArea note = new TextArea();
+        note.setPromptText("Observação (opcional)");
+        note.setPrefRowCount(4);
+        note.setWrapText(true);
+        VBox content = new VBox(8,
+                new Label("Alerta: " + alert.getCodigo()),
+                note
+        );
+        content.setPadding(new Insets(8));
 
-        dialog.showAndWait().ifPresent(note -> {
-            try {
-                switch (action) {
-                    case ACKNOWLEDGE -> alertaService.reconhecer(actor, alert.getId(), note);
-                    case RESOLVE -> alertaService.resolver(actor, alert.getId(), note);
-                    case IGNORE -> alertaService.ignorar(actor, alert.getId(), note);
-                    case REOPEN -> alertaService.reabrir(actor, alert.getId(), note);
-                }
-                show("Alert Center", title + " concluída.");
-                refresh();
-            } catch (Exception ex) {
-                showError(title, ex);
-            }
-        });
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title(title)
+                        .subtitle("Registar observação da alteração de estado")
+                        .icon(Feather.MESSAGE_SQUARE)
+                        .tone(ModalManager.ModalTone.INFO)
+                        .size(560, 300)
+                        .minSize(440, 240)
+                        .withConfirmButtons("Confirmar", "Cancelar")
+                        .onConfirm(() -> {
+                            try {
+                                switch (action) {
+                                    case ACKNOWLEDGE -> alertaService.reconhecer(actor, alert.getId(), note.getText());
+                                    case RESOLVE -> alertaService.resolver(actor, alert.getId(), note.getText());
+                                    case IGNORE -> alertaService.ignorar(actor, alert.getId(), note.getText());
+                                    case REOPEN -> alertaService.reabrir(actor, alert.getId(), note.getText());
+                                }
+                                show("Alert Center", title + " concluída.");
+                                refresh();
+                            } catch (Exception ex) {
+                                showError(title, ex);
+                            }
+                        })
+        );
     }
 
     private void assignResponsible() {
@@ -417,23 +442,30 @@ public class AlertCenterView extends BorderPane {
                 new Label("Observação"), note);
         box.setPadding(new Insets(6));
 
-        ButtonType assign = new ButtonType("Atribuir", ButtonBar.ButtonData.OK_DONE);
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Atribuir responsável");
-        dialog.setHeaderText(alert.getCodigo());
-        dialog.getDialogPane().setContent(box);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, assign);
-
-        dialog.showAndWait().ifPresent(result -> {
-            if (result != assign) return;
-            try {
-                alertaService.atribuirResponsavel(actor, alert.getId(), combo.getValue(), note.getText());
-                show("Alert Center", "Responsável actualizado.");
-                refresh();
-            } catch (Exception ex) {
-                showError("Responsável", ex);
-            }
-        });
+        modalManager.showModal(
+                box,
+                new ModalManager.ModalConfig()
+                        .title("Atribuir responsável")
+                        .subtitle("Alerta " + alert.getCodigo())
+                        .icon(Feather.USER_CHECK)
+                        .tone(ModalManager.ModalTone.INFO)
+                        .size(560, 380)
+                        .minSize(460, 320)
+                        .withConfirmButtons("Atribuir", "Cancelar")
+                        .onConfirm(() -> {
+                            if (combo.getValue() == null) {
+                                show("Responsável", "Seleccione um responsável antes de confirmar.");
+                                return;
+                            }
+                            try {
+                                alertaService.atribuirResponsavel(actor, alert.getId(), combo.getValue(), note.getText());
+                                show("Alert Center", "Responsável actualizado.");
+                                refresh();
+                            } catch (Exception ex) {
+                                showError("Responsável", ex);
+                            }
+                        })
+        );
     }
 
     private void showHistory() {
