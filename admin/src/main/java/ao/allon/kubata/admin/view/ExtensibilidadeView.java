@@ -3,7 +3,7 @@ package ao.allon.kubata.admin.view;
 import ao.allon.kubata.admin.extensibilidade.AplicacaoAdministrador;
 import ao.allon.kubata.admin.extensibilidade.AplicacaoConfiguravel;
 import ao.allon.kubata.admin.extensibilidade.AdministradorExtensibilidadeRegistry;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
