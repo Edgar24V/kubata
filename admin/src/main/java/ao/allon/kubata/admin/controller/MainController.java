@@ -8,9 +8,9 @@ import ao.allon.kubata.admin.view.AdminMainView;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.service.AuthService;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationContext;
@@ -147,10 +147,12 @@ public class MainController {
     }
 
     private void showAlert(String title, String content) {
-        Alert a = new Alert(Alert.AlertType.WARNING);
-        a.setTitle(title);
-        a.setHeaderText(title);
-        a.setContentText(content);
-        a.showAndWait();
+        ModalManager manager = ModalManager.getActiveInstance();
+        if (manager != null && manager.hasRoot()) {
+            manager.warning(title, content);
+        } else {
+            org.slf4j.LoggerFactory.getLogger(MainController.class)
+                    .warn("{}: {}", title, content);
+        }
     }
 }
