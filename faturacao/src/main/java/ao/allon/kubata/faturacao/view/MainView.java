@@ -229,6 +229,19 @@ public class MainView extends BorderPane {
         return overlay;
     }
 
+    /** Confirma a saída e só fecha após encerrar a sessão persistida. */
+    public void confirmApplicationClose() {
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmation.setTitle("Fechar Kubata Faturação");
+        confirmation.setHeaderText("Deseja fechar o Kubata Faturação?");
+        confirmation.setContentText("A sessão será encerrada na base de dados antes de a aplicação sair.");
+        confirmation.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK) {
+                controllerRef.closeApplication();
+            }
+        });
+    }
+
     /** Confirma antes de terminar a sessão, usado pelo cabeçalho e rodapé. */
     public void confirmLogout() {
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
