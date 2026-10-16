@@ -323,20 +323,25 @@ public class RetencaoFonteView extends BorderPane {
     }
 
     private void excluir() {
-        if (selecionado == null) return;
-        
-        boolean confirmado = AlertUtils.showConfirmation("Confirmar Exclusão",
-            "Deseja realmente excluir a retenção '" + selecionado.getCodigo() + "'?\n\nEsta ação não pode ser desfeita.");
-        
-        if (confirmado) {
-            try {
-                service.softDelete(selecionado.getId());
-                AlertUtils.showInfoAlert("Sucesso", "Retenção excluída com sucesso!");
-                loadData();
-            } catch (Exception e) {
-                AlertUtils.showError("Erro ao excluir", e.getMessage());
-            }
+        if (selecionado == null) {
+            return;
         }
+
+        RetencaoFonte selected = selecionado;
+        AlertUtils.showConfirmationAsync(
+                "Confirmar exclusão",
+                "Deseja realmente excluir a retenção '" + selected.getCodigo()
+                        + "'?\n\nEsta ação não pode ser desfeita.",
+                () -> {
+                    try {
+                        service.softDelete(selected.getId());
+                        AlertUtils.showInfoAlert("Sucesso", "Retenção excluída com sucesso!");
+                        loadData();
+                    } catch (Exception e) {
+                        AlertUtils.showError("Erro ao excluir", e.getMessage());
+                    }
+                }
+        );
     }
 
     private boolean validar() {
