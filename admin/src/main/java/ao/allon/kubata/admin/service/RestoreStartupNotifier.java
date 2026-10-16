@@ -1,7 +1,7 @@
 package ao.allon.kubata.admin.service;
 
 import ao.allon.kubata.admin.ui.StageReadyEvent;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.admin.service.job.JobManager;
 import ao.allon.kubata.core.domain.SystemLog;
 import ao.allon.kubata.core.repository.SystemLogRepository;
