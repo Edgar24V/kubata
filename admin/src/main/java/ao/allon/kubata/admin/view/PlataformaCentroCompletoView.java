@@ -2,7 +2,7 @@ package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.service.*;
 import ao.allon.kubata.admin.ui.util.IconUtils;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.admin.domain.platform.PlatformComponentHealth;
 import ao.allon.kubata.admin.domain.platform.PlatformHealthSnapshot;
 import ao.allon.kubata.admin.domain.platform.PlatformOperationSummary;
