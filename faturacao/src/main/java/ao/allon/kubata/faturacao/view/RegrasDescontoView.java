@@ -393,39 +393,55 @@ public class RegrasDescontoView extends BorderPane {
     }
 
     private void apagarSelecionado() {
-        RegraDesconto r = tabela.getSelectionModel().getSelectedItem();
-        if (r == null) return;
-        if (!AlertUtils.showConfirmationAlert("Apagar Regra", "Deseja mesmo remover esta regra?")) return;
-        try {
-            regraService.delete(r.getId());
-            auditLogService.log("DISCOUNT_RULE_DELETE", "id=" + r.getId());
-            refreshData();
-        } catch (Exception ex) {
-            ao.allon.kubata.faturacao.ui.util.AlertUtils.showExceptionAlert("Erro", "Falha ao apagar a regra.", ex);
+        RegraDesconto selected = tabela.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
         }
+        AlertUtils.showConfirmationAsync(
+                "Apagar Regra",
+                "Deseja mesmo remover esta regra?",
+                () -> {
+                    try {
+                        regraService.delete(selected.getId());
+                        auditLogService.log("DISCOUNT_RULE_DELETE", "id=" + selected.getId());
+                        refreshData();
+                    } catch (Exception ex) {
+                        AlertUtils.showExceptionAlert("Erro", "Falha ao apagar a regra.", ex);
+                    }
+                }
+        );
     }
 
     private void aprovarSelecionada() {
-        RegraDesconto r = tabela.getSelectionModel().getSelectedItem();
-        if (r == null) return;
-        if (!Boolean.TRUE.equals(r.getRequerAprovacao())) {
+        RegraDesconto selected = tabela.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        if (!Boolean.TRUE.equals(selected.getRequerAprovacao())) {
             AlertUtils.showWarningAlert("Aprovação", "Esta regra não requer aprovação.");
             return;
         }
-        if (r.getStatus() != RegraStatus.PENDENTE_APROVACAO) {
+        if (selected.getStatus() != RegraStatus.PENDENTE_APROVACAO) {
             AlertUtils.showWarningAlert("Aprovação", "Apenas regras pendentes podem ser aprovadas.");
             return;
         }
-        if (!AlertUtils.showConfirmationAlert("Aprovar Regra", "Confirma a aprovação desta regra?")) return;
-        try {
-            r.setStatus(RegraStatus.ATIVA);
-            regraService.save(r);
-            auditLogService.log("DISCOUNT_RULE_APPROVE", "id=" + r.getId());
-            refreshData();
-        } catch (Exception ex) {
-            AlertUtils.showExceptionAlert("Erro", "Falha ao aprovar a regra.", ex);
-        }
+
+        AlertUtils.showConfirmationAsync(
+                "Aprovar Regra",
+                "Confirma a aprovação desta regra?",
+                () -> {
+                    try {
+                        selected.setStatus(RegraStatus.ATIVA);
+                        regraService.save(selected);
+                        auditLogService.log("DISCOUNT_RULE_APPROVE", "id=" + selected.getId());
+                        refreshData();
+                    } catch (Exception ex) {
+                        AlertUtils.showExceptionAlert("Erro", "Falha ao aprovar a regra.", ex);
+                    }
+                }
+        );
     }
+
 
     private void aplicarFiltros() {
         filtrado.setPredicate(r -> {
