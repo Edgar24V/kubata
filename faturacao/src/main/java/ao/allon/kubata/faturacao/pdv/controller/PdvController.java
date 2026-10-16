@@ -724,8 +724,8 @@ public class PdvController {
         }
         // O diálogo agora precisa do modalService para criar modais de erro internos,
         // e de uma ação para quando ele for cancelado.
-        // A ação de cancelamento é tratada pelo próprio CustomModal, então passamos uma ação vazia.
-        final ao.allon.kubata.faturacao.ui.modal.CustomModal[] modalRef = new ao.allon.kubata.faturacao.ui.modal.CustomModal[1];
+        // O fecho passa pelo ModalManager partilhado do Core.
+        final ao.allon.kubata.faturacao.ui.modal.ModalBuilder[] modalRef = new ao.allon.kubata.faturacao.ui.modal.ModalBuilder[1];
         
         PaymentDialog dialog = new PaymentDialog(total, (pagamentos) -> {
             processarPagamento(pagamentos);
@@ -743,7 +743,7 @@ public class PdvController {
             .content(dialog)
             .autoSize();
             
-        modalRef[0] = builder.getModal();
+        modalRef[0] = builder;
         builder.buildAndShow();
     }
     
