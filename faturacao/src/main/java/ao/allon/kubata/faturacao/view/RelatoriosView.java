@@ -831,7 +831,7 @@ public class RelatoriosView extends VBox {
         );
     }
 
-    private void showImprimirDocumentoA4()    private void showImprimirDocumentoA4() {
+    private void showImprimirDocumentoA4() {
         TextField numeroField = new TextField();
         numeroField.setPromptText("FT A/1");
         VBox content = new VBox(10, new Label("Informe o número do documento (ex.: FT A/1):"), numeroField);
@@ -868,7 +868,7 @@ public class RelatoriosView extends VBox {
         }
     }
 
-    private void showImprimirDocumentoTermica()    private void showImprimirDocumentoTermica() {
+    private void showImprimirDocumentoTermica() {
         TextField numeroField = new TextField();
         numeroField.setPromptText("FT A/1");
         VBox content = new VBox(10, new Label("Informe o número do documento (ex.: FT A/1):"), numeroField);
@@ -992,7 +992,7 @@ public class RelatoriosView extends VBox {
         }
     }
 
-    private void showVendasPorDiaReport()    private void showVendasPorDiaReport() {
+    private void showVendasPorDiaReport() {
         showDateRangeDialog("Vendas por Dia", (inicio, fim) -> {
             try {
                 List<Object[]> data = faturaService.findTaxReportData(inicio, fim);
