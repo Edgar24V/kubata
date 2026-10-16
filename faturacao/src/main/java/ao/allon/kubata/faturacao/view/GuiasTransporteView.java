@@ -506,16 +506,19 @@ public class GuiasTransporteView extends VBox {
             AlertUtils.showWarningAlert("Aviso", "Selecione uma Guia.");
             return;
         }
-        boolean confirm = AlertUtils.showConfirmationAlert("Cancelar Guia",
-                "Confirma cancelar a Guia " + (f.getNumero() != null ? f.getNumero() : "") + "?");
-        if (!confirm) return;
-        try {
-            String motivo = "Cancelada pela gestão de Guias de Transporte";
-            faturaService.cancelarFatura(f.getId(), motivo);
-            AlertUtils.showInfoAlert("Sucesso", "Guia cancelada com sucesso.");
-            refreshAsync();
-        } catch (Exception ex) {
-            AlertUtils.showExceptionAlert("Erro", "Falha ao cancelar guia.", ex);
-        }
+        AlertUtils.showConfirmationAsync(
+                "Cancelar Guia",
+                "Confirma cancelar a Guia " + (f.getNumero() != null ? f.getNumero() : "") + "?",
+                () -> {
+                    try {
+                        String motivo = "Cancelada pela gestão de Guias de Transporte";
+                        faturaService.cancelarFatura(f.getId(), motivo);
+                        AlertUtils.showInfoAlert("Sucesso", "Guia cancelada com sucesso.");
+                        refreshAsync();
+                    } catch (Exception ex) {
+                        AlertUtils.showExceptionAlert("Erro", "Falha ao cancelar guia.", ex);
+                    }
+                }
+        );
     }
 }
