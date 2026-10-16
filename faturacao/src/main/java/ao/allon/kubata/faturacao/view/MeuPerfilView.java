@@ -576,11 +576,9 @@ public class MeuPerfilView extends BorderPane {
 
     private void showEditarDadosDialog() {
         User user = sessionManager.getUserObject();
-        if (user == null) return;
-
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Editar Dados Pessoais");
-        dialog.setHeaderText("Atualize suas informações");
+        if (user == null) {
+            return;
+        }
 
         CustomTextField txtNome = new CustomTextField(user.getNome());
         txtNome.setPromptText("Nome completo");
@@ -598,42 +596,48 @@ public class MeuPerfilView extends BorderPane {
         txtNif.setPromptText("NIF");
         txtNif.setLeft(IconUtils.icon(Feather.CREDIT_CARD, IconUtils.SIZE_SMALL));
 
-        VBox content = new VBox(10, 
-            new Label("Nome:"), txtNome,
-            new Label("Email:"), txtEmail,
-            new Label("Telefone:"), txtTelefone,
-            new Label("NIF:"), txtNif
+        VBox content = new VBox(10,
+                new Label("Nome:"), txtNome,
+                new Label("Email:"), txtEmail,
+                new Label("Telefone:"), txtTelefone,
+                new Label("NIF:"), txtNif
         );
         content.setPadding(new Insets(10));
 
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        AlertUtils.showForm(
+                "Editar Dados Pessoais",
+                content,
+                "Guardar",
+                () -> {
+                    if (txtNome.getText() == null || txtNome.getText().isBlank()
+                            || txtEmail.getText() == null || txtEmail.getText().isBlank()) {
+                        AlertUtils.showWarningAlert("Validar dados", "Nome e email são obrigatórios.");
+                        return false;
+                    }
+                    return true;
+                },
+                () -> {
+                    user.setNome(txtNome.getText().trim());
+                    user.setEmail(txtEmail.getText().trim());
+                    user.setTelefone(txtTelefone.getText().isBlank() ? null : txtTelefone.getText().trim());
+                    user.setNif(txtNif.getText().isBlank() ? null : txtNif.getText().trim());
 
-        dialog.showAndWait().ifPresent(result -> {
-            if (result == ButtonType.OK) {
-                user.setNome(txtNome.getText());
-                user.setEmail(txtEmail.getText());
-                user.setTelefone(txtTelefone.getText().isBlank() ? null : txtTelefone.getText());
-                user.setNif(txtNif.getText().isBlank() ? null : txtNif.getText());
-                
-                try {
-                    userRepository.save(user);
-                    AlertUtils.showInfoAlert("Sucesso", "Dados atualizados com sucesso!");
-                    refreshData();
-                } catch (Exception e) {
-                    AlertUtils.showExceptionAlert("Erro", "Erro ao atualizar dados", e);
+                    try {
+                        userRepository.save(user);
+                        AlertUtils.showSuccess("Sucesso", "Dados atualizados com sucesso!");
+                        refreshData();
+                    } catch (Exception e) {
+                        AlertUtils.showExceptionAlert("Erro", "Erro ao atualizar dados", e);
+                    }
                 }
-            }
-        });
+        );
     }
 
     private void showAlterarSenhaDialog() {
         User user = sessionManager.getUserObject();
-        if (user == null) return;
-
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Alterar Senha");
-        dialog.setHeaderText("Digite a nova senha");
+        if (user == null) {
+            return;
+        }
 
         PasswordField txtSenhaAtual = new PasswordField();
         txtSenhaAtual.setPromptText("Senha atual");
@@ -645,55 +649,63 @@ public class MeuPerfilView extends BorderPane {
         txtConfirmar.setPromptText("Confirmar nova senha");
 
         VBox content = new VBox(10,
-            new Label("Senha Atual:"), txtSenhaAtual,
-            new Label("Nova Senha:"), txtNovaSenha,
-            new Label("Confirmar:"), txtConfirmar
+                new Label("Senha atual:"), txtSenhaAtual,
+                new Label("Nova senha:"), txtNovaSenha,
+                new Label("Confirmar:"), txtConfirmar
         );
         content.setPadding(new Insets(10));
 
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        AlertUtils.showForm(
+                "Alterar senha",
+                content,
+                "Alterar senha",
+                () -> {
+                    String senhaAtual = txtSenhaAtual.getText();
+                    String novaSenha = txtNovaSenha.getText();
+                    String confirmar = txtConfirmar.getText();
 
-        dialog.showAndWait().ifPresent(result -> {
-            if (result == ButtonType.OK) {
-                String senhaAtual = txtSenhaAtual.getText();
-                String novaSenha = txtNovaSenha.getText();
-                String confirmar = txtConfirmar.getText();
-
-                if (senhaAtual.isBlank() || novaSenha.isBlank() || confirmar.isBlank()) {
-                    AlertUtils.showErrorAlert("Erro", "Todos os campos são obrigatórios.");
-                    return;
-                }
-
-                if (!novaSenha.equals(confirmar)) {
-                    AlertUtils.showErrorAlert("Erro", "As senhas não coincidem.");
-                    return;
-                }
-
-                if (novaSenha.length() < 8) {
-                    AlertUtils.showErrorAlert("Erro", "A nova senha deve ter pelo menos 8 caracteres, com maiúsculas, minúsculas e números.");
-                    return;
-                }
-
-                // Verificar senha atual
-                try {
-                    if (!passwordEncoder.matches(senhaAtual, user.getPassword())) {
-                        AlertUtils.showErrorAlert("Erro", "Senha atual incorreta.");
-                        return;
+                    if (senhaAtual.isBlank() || novaSenha.isBlank() || confirmar.isBlank()) {
+                        AlertUtils.showWarningAlert("Validar dados", "Todos os campos são obrigatórios.");
+                        return false;
                     }
-                } catch (Exception e) {
-                    AlertUtils.showExceptionAlert("Erro", "Erro ao verificar senha atual", e);
-                    return;
+                    if (!novaSenha.equals(confirmar)) {
+                        AlertUtils.showWarningAlert("Validar senha", "As senhas não coincidem.");
+                        return false;
+                    }
+                    if (novaSenha.length() < 8
+                            || novaSenha.chars().noneMatch(Character::isUpperCase)
+                            || novaSenha.chars().noneMatch(Character::isLowerCase)
+                            || novaSenha.chars().noneMatch(Character::isDigit)) {
+                        AlertUtils.showWarningAlert(
+                                "Política de senha",
+                                "A nova senha deve ter pelo menos 8 caracteres, com maiúsculas, minúsculas e números."
+                        );
+                        return false;
+                    }
+                    try {
+                        if (!passwordEncoder.matches(senhaAtual, user.getPassword())) {
+                            AlertUtils.showErrorAlert("Erro", "Senha atual incorreta.");
+                            return false;
+                        }
+                    } catch (Exception e) {
+                        AlertUtils.showExceptionAlert("Erro", "Erro ao verificar senha atual", e);
+                        return false;
+                    }
+                    return true;
+                },
+                () -> {
+                    try {
+                        passwordChangeService.changeOwnPassword(
+                                user.getId(),
+                                txtSenhaAtual.getText(),
+                                txtNovaSenha.getText()
+                        );
+                        AlertUtils.showSuccess("Sucesso", "Senha alterada com sucesso!");
+                    } catch (Exception e) {
+                        AlertUtils.showExceptionAlert("Erro", "Erro ao alterar senha", e);
+                    }
                 }
-
-                try {
-                    passwordChangeService.changeOwnPassword(user.getId(), senhaAtual, novaSenha);
-                    AlertUtils.showInfoAlert("Sucesso", "Senha alterada com sucesso!");
-                } catch (Exception e) {
-                    AlertUtils.showExceptionAlert("Erro", "Erro ao alterar senha", e);
-                }
-            }
-        });
+        );
     }
 
     // Classes auxiliares para mapeamento de informações
