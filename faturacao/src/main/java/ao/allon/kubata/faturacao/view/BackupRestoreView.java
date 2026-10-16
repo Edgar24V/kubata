@@ -301,45 +301,45 @@ public class BackupRestoreView extends VBox {
             return;
         }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Restaurar Backup");
-        confirm.setHeaderText("Confirma a restauração?");
-        confirm.setContentText("Isso substituirá todos os dados atuais pelo backup de " +
-            backup.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
-            ".\n\nATENÇÃO: Esta ação é irreversível!");
+        String backupDate = backup.getStartTime()
+                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        AlertUtils.showConfirmationAsync(
+                "Restaurar backup",
+                "Isso substituirá todos os dados atuais pelo backup de " + backupDate
+                        + ".\n\nATENÇÃO: esta ação é irreversível!",
+                () -> {
+                    lblStatus.setText("Restaurando...");
+                    progressBar.setVisible(true);
+                    progressBar.setProgress(-1);
 
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            lblStatus.setText("Restaurando...");
-            progressBar.setVisible(true);
-            progressBar.setProgress(-1);
-
-            new Thread(() -> {
-                try {
-                    backupService.restoreBackup(backup.getId(), System.getProperty("user.name"));
-                    Platform.runLater(() -> {
-                        progressBar.setVisible(false);
-                        lblStatus.setText("Concluído");
-                        loadData();
-                        
-                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                        alert.setTitle("Sucesso");
-                        alert.setHeaderText("Restauração concluída com sucesso!");
-                        alert.setContentText("O sistema precisa ser reiniciado para aplicar todas as alterações e limpar o cache de dados.\n\nO aplicativo será encerrado agora.");
-                        alert.showAndWait();
-                        
-                        Platform.exit();
-                        System.exit(0);
-                    });
-                } catch (Exception e) {
-                    Platform.runLater(() -> {
-                        progressBar.setVisible(false);
-                        lblStatus.setText("Erro");
-                        AlertUtils.showExceptionAlert("Erro", "Falha na restauração", e);
-                    });
+                    Thread worker = new Thread(() -> {
+                        try {
+                            backupService.restoreBackup(backup.getId(), System.getProperty("user.name"));
+                            Platform.runLater(() -> {
+                                progressBar.setVisible(false);
+                                lblStatus.setText("Concluído");
+                                loadData();
+                                AlertUtils.showInfoWithAction(
+                                        "Restauração concluída",
+                                        "O sistema precisa ser reiniciado para aplicar as alterações e limpar o cache. A aplicação será encerrada após confirmar.",
+                                        () -> {
+                                            Platform.exit();
+                                            System.exit(0);
+                                        }
+                                );
+                            });
+                        } catch (Exception e) {
+                            Platform.runLater(() -> {
+                                progressBar.setVisible(false);
+                                lblStatus.setText("Erro");
+                                AlertUtils.showExceptionAlert("Erro", "Falha na restauração", e);
+                            });
+                        }
+                    }, "kubata-backup-restore");
+                    worker.setDaemon(true);
+                    worker.start();
                 }
-            }).start();
-        }
+        );
     }
 
     private void downloadBackup(BackupRecord backup) {
@@ -348,21 +348,20 @@ public class BackupRestoreView extends VBox {
     }
 
     private void deleteBackup(BackupRecord backup) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Excluir Backup");
-        confirm.setHeaderText("Confirma a exclusão?");
-        confirm.setContentText("Backup de " + backup.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
-
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            try {
-                backupService.deleteBackup(backup.getId());
-                loadData();
-                AlertUtils.showInfoAlert("Sucesso", "Backup excluído com sucesso.");
-            } catch (Exception e) {
-                AlertUtils.showExceptionAlert("Erro", "Falha ao excluir backup", e);
-            }
-        }
+        AlertUtils.showConfirmationAsync(
+                "Excluir backup",
+                "Confirma a exclusão do backup de "
+                        + backup.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "?",
+                () -> {
+                    try {
+                        backupService.deleteBackup(backup.getId());
+                        loadData();
+                        AlertUtils.showSuccess("Sucesso", "Backup excluído com sucesso.");
+                    } catch (Exception e) {
+                        AlertUtils.showExceptionAlert("Erro", "Falha ao excluir backup", e);
+                    }
+                }
+        );
     }
 
     private String formatBytes(long bytes) {
