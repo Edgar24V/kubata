@@ -1,7 +1,6 @@
 package ao.allon.kubata.faturacao.pdv.view;
 
 import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
-import ao.allon.kubata.faturacao.ui.modal.CustomModal;
 import ao.allon.kubata.faturacao.ui.modal.ModalBuilder;
 import ao.allon.kubata.faturacao.ui.modal.ModalService;
 import ao.allon.kubata.faturacao.ui.util.AlertUtils;
@@ -380,7 +379,7 @@ public class PaymentDialog extends BorderPane {
     }
     
     private void openSplitPayment() {
-        final CustomModal[] splitModalRef = new CustomModal[1];
+        final ModalBuilder[] splitModalRef = new ModalBuilder[1];
         
         Runnable closeSplitAction = () -> {
             if (splitModalRef[0] != null) {
@@ -399,7 +398,7 @@ public class PaymentDialog extends BorderPane {
             .content(dialog)
             .autoSize();
             
-        splitModalRef[0] = builder.getModal();
+        splitModalRef[0] = builder;
         builder.buildAndShow();
     }
 }
