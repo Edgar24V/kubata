@@ -324,17 +324,18 @@ public class GestaoUsuariosView extends VBox {
             return;
         }
 
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Tem certeza que deseja excluir o usuário " + selected.getNome() + "?");
-        alert.showAndWait().ifPresent(bt -> {
-            if (bt == ButtonType.OK) {
-                try {
-                    acessoService.excluirUsuario(currentUser, selected);
-                    loadData();
-                } catch (Exception e) {
-                    AlertUtils.showExceptionAlert("Erro", "Erro ao excluir usuário.", e);
+        AlertUtils.showConfirmationAsync(
+                "Excluir utilizador",
+                "Tem certeza que deseja excluir o usuário " + selected.getNome() + "?",
+                () -> {
+                    try {
+                        acessoService.excluirUsuario(currentUser, selected);
+                        loadData();
+                    } catch (Exception e) {
+                        AlertUtils.showExceptionAlert("Erro", "Erro ao excluir usuário.", e);
+                    }
                 }
-            }
-        });
+        );
     }
 
     private void openAccessModal() {
