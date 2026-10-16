@@ -1783,7 +1783,7 @@ public class InventarioView extends BorderPane {
                 .autoSize()
                 .withCancelButton("Fechar");
         
-        builder.getModal().getFooter().getChildren().add(0, btnExport);
+        builder.addFooterNode(btnExport, 0);
         builder.buildAndShow();
     }
     private void showValidadesProximasDialog() {
@@ -1870,7 +1870,7 @@ public class InventarioView extends BorderPane {
                 .autoSize()
                 .withCancelButton("Fechar");
         
-        builder.getModal().getFooter().getChildren().add(0, btnExport);
+        builder.addFooterNode(btnExport, 0);
         builder.buildAndShow();
     }
     private void showDetalhesStockDialog(Produto produto) {
