@@ -1,5 +1,6 @@
 package ao.allon.kubata.admin.ui.util;
 
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import javafx.application.Platform;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,11 +40,16 @@ public class GlobalExceptionHandler {
 
     private static void showErrorDialog(Throwable throwable) {
         try {
-            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
-            alert.setTitle("Erro Inesperado");
-            alert.setHeaderText("Ocorreu um erro inesperado");
-            alert.setContentText("Detalhes: " + throwable.getMessage());
-            alert.showAndWait();
+            ModalManager manager = ModalManager.getActiveInstance();
+            if (manager != null && manager.hasRoot()) {
+                manager.showErrorModal(
+                        "Erro inesperado",
+                        "Ocorreu um erro inesperado. Os detalhes técnicos estão disponíveis abaixo.",
+                        throwable
+                );
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Failed to show error modal", ex);
         } finally {
             showingDialog.set(false);
         }
