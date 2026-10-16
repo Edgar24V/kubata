@@ -3,7 +3,7 @@ package ao.allon.kubata.rh.controller;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.service.AcessoService;
 import ao.allon.kubata.rh.ui.StageReadyEvent;
-import ao.allon.kubata.rh.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.rh.ui.util.IconUtils;
 import ao.allon.kubata.rh.ui.util.ThemeManager;
 import ao.allon.kubata.rh.ui.views.CargoView;
