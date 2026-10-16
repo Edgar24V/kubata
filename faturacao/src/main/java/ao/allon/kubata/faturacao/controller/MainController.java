@@ -727,7 +727,49 @@ public class MainController {
         stage.setMaximized(true);
     }
 
+    /**
+     * Fecha a aplicação apenas depois de confirmar o logout persistido.
+     * Em caso de falha, mantém a janela e a sessão abertas.
+     */
+    public void closeApplication() {
+        ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
+        if (user != null) {
+            try {
+                applicationContext.getBean(ao.allon.kubata.core.service.AuthService.class)
+                        .logout(user, "127.0.0.1");
+            } catch (Exception ex) {
+                showAlert(
+                        "Não foi possível encerrar a sessão",
+                        "O Kubata Faturação continuará aberto porque o encerramento da sessão "
+                                + "não foi confirmado pela base de dados.\\n\\n"
+                                + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                );
+                return;
+            }
+            sessionManager.logout();
+        }
+
+        if (stage != null) {
+            stage.close();
+        }
+    }
+
     public void performLogoutAndShowLogin() {
+        ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
+        if (user != null) {
+            try {
+                applicationContext.getBean(ao.allon.kubata.core.service.AuthService.class)
+                        .logout(user, "127.0.0.1");
+            } catch (Exception ex) {
+                showAlert(
+                        "Não foi possível encerrar a sessão",
+                        "O regresso ao login foi cancelado porque a base de dados não confirmou "
+                                + "o encerramento da sessão.\\n\\n"
+                                + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                );
+                return;
+            }
+        }
         sessionManager.logout();
         switchToLogin();
     }
