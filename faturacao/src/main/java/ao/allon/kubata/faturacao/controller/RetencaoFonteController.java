@@ -3,6 +3,7 @@ package ao.allon.kubata.faturacao.controller;
 import ao.allon.kubata.core.ui.table.TableContextMenuHelper;
 import ao.allon.kubata.faturacao.domain.RetencaoFonte;
 import ao.allon.kubata.faturacao.service.RetencaoFonteService;
+import ao.allon.kubata.faturacao.ui.util.AlertUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -158,21 +159,21 @@ public class RetencaoFonteController {
             return;
         }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmação");
-        confirm.setHeaderText("Excluir Retenção");
-        confirm.setContentText("Tem certeza que deseja excluir esta retenção?");
-
-        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-            try {
-                service.softDelete(retencaoSelecionada.getId());
-                mostrarAlerta(Alert.AlertType.INFORMATION, "Sucesso", "Retenção excluída com sucesso!");
-                limparFormulario();
-                carregarDados();
-            } catch (Exception e) {
-                mostrarAlerta(Alert.AlertType.ERROR, "Erro", "Erro ao excluir: " + e.getMessage());
-            }
-        }
+        RetencaoFonte selected = retencaoSelecionada;
+        AlertUtils.showConfirmationAsync(
+                "Excluir retenção",
+                "Tem certeza que deseja excluir esta retenção?",
+                () -> {
+                    try {
+                        service.softDelete(selected.getId());
+                        mostrarAlerta(Alert.AlertType.INFORMATION, "Sucesso", "Retenção excluída com sucesso!");
+                        limparFormulario();
+                        carregarDados();
+                    } catch (Exception e) {
+                        mostrarAlerta(Alert.AlertType.ERROR, "Erro", "Erro ao excluir: " + e.getMessage());
+                    }
+                }
+        );
     }
 
     @FXML
@@ -207,10 +208,12 @@ public class RetencaoFonteController {
     }
 
     private void mostrarAlerta(Alert.AlertType type, String title, String content) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        switch (type) {
+            case ERROR -> AlertUtils.showError(title, content);
+            case WARNING -> AlertUtils.showWarning(title, content);
+            case INFORMATION -> AlertUtils.showInfoAlert(title, content);
+            case CONFIRMATION -> AlertUtils.showConfirmationAsync(title, content, () -> {});
+            default -> AlertUtils.showInfoAlert(title, content);
+        }
     }
 }
