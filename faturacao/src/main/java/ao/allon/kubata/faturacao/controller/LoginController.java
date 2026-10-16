@@ -20,10 +20,15 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.*;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
+import javafx.stage.Stage;
+import org.kordamp.ikonli.feather.Feather;
+import org.kordamp.ikonli.javafx.FontIcon;
+import ao.allon.kubata.faturacao.ui.util.IconUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +46,9 @@ public class LoginController {
     private ProgressIndicator loadingIndicator;
     private StackPane mainContainer;
     private VBox loginCard;
+    private Stage stage;
+    private double dragOffsetX;
+    private double dragOffsetY;
 
     public LoginController(AuthService authService,
                             ApplicationEventPublisher eventPublisher,
@@ -50,19 +58,107 @@ public class LoginController {
         this.passwordChangeService = passwordChangeService;
     }
 
+    /** Define a janela que será controlada pela barra personalizada. */
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
+
     public StackPane createView() {
         mainContainer = new StackPane();
         mainContainer.setPrefSize(900, 600);
         mainContainer.getStyleClass().add("login-bg");
         mainContainer.setStyle("-fx-background-color: -color-accent-8;");
-        
+
         createBackgroundElements();
         loginCard = createLoginCard();
         StackPane.setAlignment(loginCard, Pos.CENTER);
         mainContainer.getChildren().add(loginCard);
+
+        HBox titleBar = buildLoginTitleBar();
+        StackPane.setAlignment(titleBar, Pos.TOP_CENTER);
+        mainContainer.getChildren().add(titleBar);
+        titleBar.toFront();
+
         playEntryAnimation();
-        
         return mainContainer;
+    }
+
+    private HBox buildLoginTitleBar() {
+        HBox bar = new HBox(0);
+        bar.getStyleClass().add("custom-title-bar");
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(Insets.EMPTY);
+        bar.setMinHeight(40);
+        bar.setPrefHeight(40);
+        bar.setMaxHeight(40);
+
+        FontIcon logo = IconUtils.icon(Feather.FILE_TEXT, IconUtils.SIZE_MEDIUM);
+        logo.setIconColor(Color.WHITE);
+        StackPane icon = new StackPane(logo);
+        icon.setPadding(new Insets(0, 8, 0, 14));
+
+        Label title = new Label("Kubata Faturação");
+        title.getStyleClass().add("title-bar-app-name");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button minimize = windowButton("—", "Minimizar", false);
+        Button maximize = windowButton(stage != null && stage.isMaximized() ? "❐" : "□",
+                "Maximizar / Restaurar", false);
+        Button close = windowButton("×", "Fechar", true);
+
+        minimize.setOnAction(e -> {
+            if (stage != null) stage.setIconified(true);
+        });
+        maximize.setOnAction(e -> {
+            if (stage != null) stage.setMaximized(!stage.isMaximized());
+        });
+        close.setOnAction(e -> {
+            if (stage != null) stage.close();
+        });
+        if (stage != null) {
+            stage.maximizedProperty().addListener((obs, wasMaximized, maximized) -> {
+                maximize.setText(maximized ? "❐" : "□");
+                maximize.setTooltip(new Tooltip(maximized ? "Restaurar" : "Maximizar"));
+            });
+        }
+
+        bar.getChildren().addAll(icon, title, spacer, minimize, maximize, close);
+
+        if (stage != null) {
+            bar.setOnMousePressed(e -> {
+                Object target = e.getTarget();
+                Node node = target instanceof Node n ? n : null;
+                while (node != null && node != bar) {
+                    if (node instanceof ButtonBase) return;
+                    node = node.getParent();
+                }
+                dragOffsetX = e.getScreenX() - stage.getX();
+                dragOffsetY = e.getScreenY() - stage.getY();
+            });
+            bar.setOnMouseDragged(e -> {
+                if (!stage.isMaximized() && !Double.isNaN(dragOffsetX) && !Double.isNaN(dragOffsetY)) {
+                    stage.setX(e.getScreenX() - dragOffsetX);
+                    stage.setY(e.getScreenY() - dragOffsetY);
+                }
+            });
+            bar.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2 && !(e.getTarget() instanceof ButtonBase)) {
+                    stage.setMaximized(!stage.isMaximized());
+                }
+            });
+        }
+        return bar;
+    }
+
+    private Button windowButton(String text, String tooltip, boolean close) {
+        Button button = new Button(text);
+        button.getStyleClass().add(close ? "title-bar-close-btn" : "title-bar-control-btn");
+        button.setTooltip(new Tooltip(tooltip));
+        button.setAccessibleText(tooltip);
+        button.setFocusTraversable(false);
+        return button;
     }
     
     private void createBackgroundElements() {

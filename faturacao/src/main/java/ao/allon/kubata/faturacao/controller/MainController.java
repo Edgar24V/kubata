@@ -187,7 +187,7 @@ public class MainController {
     }
 
     public Parent createView() {
-        mainView = new MainView(this, sessionManager, empresaService);
+        mainView = new MainView(this, sessionManager, empresaService, stage);
         modalService.initialize(mainView.getRootPane());
         AlertUtils.initialize(modalService);
         showDashboard();
@@ -591,6 +591,14 @@ public class MainController {
         if (notificationSink != null) notificationSink.accept("Gestão de Emails aberto");
     }
 
+    public void showAgtComunicacao() {
+        showPlaceholder("agt_comunicacao", "Comunicação AGT");
+    }
+
+    public void showLicenciamento() {
+        showPlaceholder("licenciamento", "Licenciamento");
+    }
+
     public void showAgtCorrecoes() {
         mainView.openOrFocusTab("agt_correcoes", "Correções AGT", () -> new ao.allon.kubata.faturacao.view.AgtCorrecoesView(faturaService, serieService, modalService));
         if (notificationSink != null) notificationSink.accept("Correções AGT aberto");
@@ -666,12 +674,33 @@ public class MainController {
     public void onStageReady(StageReadyEvent event) {
         try {
             this.stage = event.getStage();
+            ThemeManager.setupCustomTitleBar(this.stage);
             ThemeManager.applyTheme();
             switchToLogin();
             this.stage.setTitle(applicationTitle);
             try {
                 this.stage.setOnCloseRequest(ev -> {
-                    try { customerDisplayService.stop(); } catch (Exception ignored) {}
+                    try {
+                        customerDisplayService.stop();
+                    } catch (Exception ignored) { }
+
+                    ao.allon.kubata.core.domain.User activeUser = sessionManager.getUserObject();
+                    if (activeUser == null) {
+                        return;
+                    }
+                    try {
+                        applicationContext.getBean(ao.allon.kubata.core.service.AuthService.class)
+                                .logout(activeUser, "127.0.0.1");
+                        sessionManager.logout();
+                    } catch (Exception ex) {
+                        ev.consume();
+                        showAlert(
+                                "Não foi possível encerrar a sessão",
+                                "A aplicação continuará aberta porque a base de dados não confirmou "
+                                        + "o encerramento da sessão.\n\n"
+                                        + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                        );
+                    }
                 });
             } catch (Exception ignored) {}
             this.stage.show();
@@ -696,9 +725,16 @@ public class MainController {
     }
 
     private void switchToLogin() {
+        loginController.setStage(stage);
         Parent parent = loginController.createView();
-        Scene scene = new Scene(parent, 400, 500);
+        Scene scene = new Scene(parent, 900, 600);
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        ThemeManager.applyTheme(scene);
         stage.setScene(scene);
+        stage.setMinWidth(760);
+        stage.setMinHeight(520);
+        stage.setResizable(true);
+        stage.setMaximized(false);
         stage.centerOnScreen();
     }
 
@@ -708,15 +744,60 @@ public class MainController {
         double w = Math.max(1024, vb.getWidth() * 0.9);
         double h = Math.max(768, vb.getHeight() * 0.9);
         Scene scene = new Scene(parent, w, h);
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        ThemeManager.applyTheme(scene);
         installAccelerators(scene);
         stage.setScene(scene);
-        stage.setMinWidth(960);
-        stage.setMinHeight(600);
+        stage.setMinWidth(1024);
+        stage.setMinHeight(680);
+        stage.setResizable(true);
         stage.centerOnScreen();
         stage.setMaximized(true);
     }
 
+    /**
+     * Fecha a aplicação apenas depois de confirmar o logout persistido.
+     * Em caso de falha, mantém a janela e a sessão abertas.
+     */
+    public void closeApplication() {
+        ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
+        if (user != null) {
+            try {
+                applicationContext.getBean(ao.allon.kubata.core.service.AuthService.class)
+                        .logout(user, "127.0.0.1");
+            } catch (Exception ex) {
+                showAlert(
+                        "Não foi possível encerrar a sessão",
+                        "O Kubata Faturação continuará aberto porque o encerramento da sessão "
+                                + "não foi confirmado pela base de dados.\n\n"
+                                + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                );
+                return;
+            }
+            sessionManager.logout();
+        }
+
+        if (stage != null) {
+            stage.close();
+        }
+    }
+
     public void performLogoutAndShowLogin() {
+        ao.allon.kubata.core.domain.User user = sessionManager.getUserObject();
+        if (user != null) {
+            try {
+                applicationContext.getBean(ao.allon.kubata.core.service.AuthService.class)
+                        .logout(user, "127.0.0.1");
+            } catch (Exception ex) {
+                showAlert(
+                        "Não foi possível encerrar a sessão",
+                        "O regresso ao login foi cancelado porque a base de dados não confirmou "
+                                + "o encerramento da sessão.\n\n"
+                                + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                );
+                return;
+            }
+        }
         sessionManager.logout();
         switchToLogin();
     }
