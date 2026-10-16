@@ -2,7 +2,7 @@ package ao.allon.kubata.admin.service.job;
 
 import ao.allon.kubata.admin.service.NotificationService;
 import ao.allon.kubata.admin.service.SessionManager;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.core.service.AcessoService;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
