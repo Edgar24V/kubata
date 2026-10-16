@@ -2,7 +2,7 @@ package ao.allon.kubata.admin.controller;
 
 import ao.allon.kubata.admin.service.MaintenanceModeService;
 import ao.allon.kubata.admin.ui.event.LoginSuccessEvent;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
