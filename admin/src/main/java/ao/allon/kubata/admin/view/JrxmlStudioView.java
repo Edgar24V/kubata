@@ -1,6 +1,6 @@
 package ao.allon.kubata.admin.view;
 
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
