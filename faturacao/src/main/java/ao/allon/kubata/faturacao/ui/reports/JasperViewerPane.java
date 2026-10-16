@@ -1,5 +1,6 @@
 package ao.allon.kubata.faturacao.ui.reports;
 
+import ao.allon.kubata.faturacao.ui.util.AlertUtils;
 import atlantafx.base.theme.Styles;
 import atlantafx.base.theme.Tweaks;
 import javafx.application.Platform;
@@ -616,11 +617,7 @@ public class JasperViewerPane extends BorderPane {
     
     private void mostrarErro(String titulo, String mensagem) {
         Platform.runLater(() -> {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle(titulo);
-            alert.setHeaderText(null);
-            alert.setContentText(mensagem);
-            alert.showAndWait();
+            AlertUtils.showError(titulo, mensagem);
         });
     }
     
