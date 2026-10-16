@@ -646,9 +646,9 @@ public class MapaImpostosView extends BorderPane {
             for (LinhaIsencao i : isencoes) {
                 out.printf("%s;%s;%s%n", i.getCodigo(), i.getMotivo(), i.getBase());
             }
-            new Alert(Alert.AlertType.INFORMATION, "CSV exportado com sucesso.").showAndWait();
+            AlertUtils.showSuccess("Exportar CSV", "CSV exportado com sucesso.");
         } catch (Exception ex) {
-            new Alert(Alert.AlertType.ERROR, "Falha ao exportar CSV: " + ex.getMessage()).showAndWait();
+            AlertUtils.showError("Erro ao exportar CSV", "Falha ao exportar CSV: " + ex.getMessage());
         }
     }
 }
