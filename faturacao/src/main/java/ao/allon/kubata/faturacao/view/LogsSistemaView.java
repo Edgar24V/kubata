@@ -243,10 +243,6 @@ public class LogsSistemaView extends VBox {
 
     private void showDetails(SystemLog log) {
         try {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Detalhes do Log");
-            alert.setHeaderText(log.getLogLevel().name() + " - " + log.getCategory());
-
             VBox content = new VBox(10);
             content.setPadding(new Insets(10));
 
@@ -267,9 +263,10 @@ public class LogsSistemaView extends VBox {
                 content.getChildren().add(exceptionPane);
             }
 
-            alert.getDialogPane().setContent(content);
-            alert.getDialogPane().setPrefSize(600, 400);
-            alert.showAndWait();
+            AlertUtils.showCustomModal(
+                    "Detalhes do Log — " + log.getLogLevel().name(),
+                    content
+            );
         } catch (Exception e) {
             AlertUtils.showExceptionAlert("Erro", "Falha ao mostrar detalhes do log", e);
         }
