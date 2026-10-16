@@ -86,6 +86,7 @@ public class ModalManager {
         private int maxWidth = -1;
         private int maxHeight = -1;
         private boolean showConfirmButtons = false;
+        private final List<Node> footerNodes = new ArrayList<>();
         private String confirmText = "Confirmar";
         private String cancelText = "Cancelar";
         private String confirmStyleClass = "button-primary";
@@ -172,6 +173,33 @@ public class ModalManager {
             this.showConfirmButtons = true;
             this.confirmText = text == null ? "OK" : text;
             this.cancelText = "";
+            return this;
+        }
+
+        /** Adiciona um controlo próprio ao rodapé padronizado do modal. */
+        public ModalConfig footerNode(Node node) {
+            if (node != null) {
+                this.footerNodes.add(node);
+            }
+            return this;
+        }
+
+        /** Insere um controlo próprio na posição indicada do rodapé. */
+        public ModalConfig footerNode(Node node, int index) {
+            if (node != null) {
+                int safeIndex = Math.max(0, Math.min(index, this.footerNodes.size()));
+                this.footerNodes.add(safeIndex, node);
+            }
+            return this;
+        }
+
+        public ModalConfig width(int width) {
+            this.width = width;
+            return this;
+        }
+
+        public ModalConfig height(int height) {
+            this.height = height;
             return this;
         }
 
@@ -571,7 +599,7 @@ public class ModalManager {
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         dialogContent.getChildren().add(scrollPane);
 
-        if (config.showConfirmButtons) {
+        if (config.showConfirmButtons || !config.footerNodes.isEmpty()) {
             if (config.showFooterDivider) {
                 Separator separator = new Separator();
                 separator.getStyleClass().add("kubata-modal-separator");
@@ -974,6 +1002,11 @@ public class ModalManager {
                                             JMetroModalPane targetPane) {
         HBox buttonBox = new HBox(8);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
+
+        if (!config.footerNodes.isEmpty()) {
+            buttonBox.getChildren().setAll(config.footerNodes);
+            return buttonBox;
+        }
 
         Button confirmButton = new Button(
                 config.confirmText,
