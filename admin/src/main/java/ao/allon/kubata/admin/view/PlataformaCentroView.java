@@ -3,6 +3,7 @@ package ao.allon.kubata.admin.view;
 import ao.allon.kubata.admin.service.ModuleInstallationService;
 import ao.allon.kubata.admin.service.NotificationService;
 import ao.allon.kubata.admin.ui.util.IconUtils;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.core.domain.ModuloSistema;
 import ao.allon.kubata.core.domain.ParametroSistema;
 import ao.allon.kubata.core.module.KubataModule;
@@ -60,6 +61,7 @@ public class PlataformaCentroView extends BorderPane {
     private final ModuleInstallationService moduleInstallationService;
     private final NotificationService notificationService;
     private final ObjectProvider<Flyway> flywayProvider;
+    private final ModalManager modalManager;
 
     private final TabPane tabs = new TabPane();
 
@@ -102,7 +104,8 @@ public class PlataformaCentroView extends BorderPane {
             ModuleRegistry moduleRegistry,
             ModuleInstallationService moduleInstallationService,
             NotificationService notificationService,
-            ObjectProvider<Flyway> flywayProvider) {
+            ObjectProvider<Flyway> flywayProvider,
+            ModalManager modalManager) {
 
         this.parametroRepository = parametroRepository;
         this.moduloRepository = moduloRepository;
@@ -110,6 +113,7 @@ public class PlataformaCentroView extends BorderPane {
         this.moduleInstallationService = moduleInstallationService;
         this.notificationService = notificationService;
         this.flywayProvider = flywayProvider;
+        this.modalManager = modalManager;
 
         setPadding(Insets.EMPTY);
         getStyleClass().addAll("application-view", "kubata-infra-page");
@@ -372,10 +376,6 @@ public class PlataformaCentroView extends BorderPane {
     }
 
     private void addJobDialog() {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Nova tarefa agendada");
-        dialog.setHeaderText("Criar uma operação administrativa");
-
         ComboBox<String> type = new ComboBox<>(FXCollections.observableArrayList(
                 "VERIFICAR_ALERTAS",
                 "DIAGNOSTICO_JVM",
@@ -383,46 +383,55 @@ public class PlataformaCentroView extends BorderPane {
                 "VERIFICAR_MIGRACOES"
         ));
         type.getSelectionModel().selectFirst();
+        type.setMaxWidth(Double.MAX_VALUE);
 
         Spinner<Integer> seconds = new Spinner<>(10, 86400, 300, 10);
+        seconds.setEditable(true);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(9);
+        grid.setPadding(new Insets(10));
         grid.add(new Label("Rotina"), 0, 0);
         grid.add(type, 1, 0);
         grid.add(new Label("Intervalo (seg.)"), 0, 1);
         grid.add(seconds, 1, 1);
 
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+        modalManager.showModal(
+                grid,
+                new ModalManager.ModalConfig()
+                        .title("Nova tarefa agendada")
+                        .subtitle("Criar uma operação administrativa")
+                        .icon(Feather.CLOCK)
+                        .tone(ModalManager.ModalTone.INFO)
+                        .size(520, 280)
+                        .minSize(440, 230)
+                        .withConfirmButtons("Criar tarefa", "Cancelar")
+                        .onConfirm(() -> {
+                            String id = type.getValue();
+                            if (id == null || id.isBlank()) {
+                                notificationService.showWarning("Scheduler", "Seleccione uma rotina.");
+                                return;
+                            }
 
-        dialog.setResultConverter(button -> {
-            if (button != ButtonType.OK) {
-                return null;
-            }
+                            JobRow row = jobs.stream()
+                                    .filter(job -> job.getId().equals(id))
+                                    .findFirst()
+                                    .orElse(null);
 
-            String id = type.getValue();
-            JobRow row = jobs.stream()
-                    .filter(j -> j.getId().equals(id))
-                    .findFirst()
-                    .orElse(null);
+                            if (row == null) {
+                                row = new JobRow(id, id.replace('_', ' '), seconds.getValue(), true);
+                                jobs.add(row);
+                            } else {
+                                row.setIntervalSeconds(seconds.getValue());
+                                row.setActive(true);
+                            }
 
-            if (row == null) {
-                row = new JobRow(id, id.replace('_', ' '), seconds.getValue(), true);
-                jobs.add(row);
-            } else {
-                row.setIntervalSeconds(seconds.getValue());
-                row.setActive(true);
-            }
-
-            persistJobs();
-            scheduleJob(row);
-            jobsTable.refresh();
-            return null;
-        });
-
-        dialog.showAndWait();
+                            persistJobs();
+                            scheduleJob(row);
+                            jobsTable.refresh();
+                        })
+        );
     }
 
     private void runSelectedJob() {
