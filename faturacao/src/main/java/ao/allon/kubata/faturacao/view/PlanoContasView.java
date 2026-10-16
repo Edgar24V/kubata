@@ -454,18 +454,24 @@ public class PlanoContasView extends BorderPane {
     }
 
     private void excluir() {
-        if (currentConta == null || currentConta.getId() == null) return;
-        
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Tem certeza que deseja excluir esta conta?");
-        if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-            try {
-                service.delete(currentConta.getId());
-                loadTree();
-                limparFormulario();
-            } catch (Exception e) {
-                showAlert("Erro ao excluir: " + e.getMessage());
-            }
+        if (currentConta == null || currentConta.getId() == null) {
+            return;
         }
+
+        PlanoConta selected = currentConta;
+        AlertUtils.showConfirmationAsync(
+                "Excluir conta",
+                "Tem certeza que deseja excluir esta conta?",
+                () -> {
+                    try {
+                        service.delete(selected.getId());
+                        loadTree();
+                        limparFormulario();
+                    } catch (Exception e) {
+                        showAlert("Erro ao excluir: " + e.getMessage());
+                    }
+                }
+        );
     }
 
     private void gerarBalancete() {
