@@ -135,6 +135,50 @@ public final class AlertUtils {
         return Boolean.TRUE.equals(ref.get());
     }
 
+    /**
+     * Apresenta conteúdo JavaFX arbitrário dentro do modal partilhado do Core.
+     * Ideal para formulários, detalhes, pré-visualizações e tabelas.
+     */
+    public static void showCustomModal(String title, Node content) {
+        Platform.runLater(() -> getModalServiceOrThrow().create()
+                .title(title)
+                .content(content)
+                .dynamicSize()
+                .withCloseButton()
+                .buildAndShow());
+    }
+
+    /**
+     * Confirmação não bloqueante. Evita CountDownLatch/showAndWait na thread JavaFX.
+     */
+    public static void showConfirmationAsync(String title, String message, Runnable onConfirm) {
+        Platform.runLater(() -> getModalServiceOrThrow().create()
+                .title(title)
+                .content(buildMessageContent(
+                        icon(Feather.HELP_CIRCLE, Styles.ACCENT),
+                        "Confirmação",
+                        message,
+                        null))
+                .dynamicSize()
+                .withCancelButton("Cancelar")
+                .withConfirmButton("Confirmar", onConfirm == null ? () -> {} : onConfirm)
+                .buildAndShow());
+    }
+
+    /** Mostra uma mensagem e executa a acção apenas depois da confirmação no modal. */
+    public static void showInfoWithAction(String title, String message, Runnable onAcknowledge) {
+        Platform.runLater(() -> getModalServiceOrThrow().create()
+                .title(title)
+                .content(buildMessageContent(
+                        icon(Feather.INFO, Styles.ACCENT),
+                        null,
+                        message,
+                        null))
+                .dynamicSize()
+                .withConfirmButton("OK", onAcknowledge == null ? () -> {} : onAcknowledge)
+                .buildAndShow());
+    }
+
     public static void showInfoAlert(String title, String message) {
         showSuccess(title, message);
     }
