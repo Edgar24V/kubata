@@ -680,7 +680,27 @@ public class MainController {
             this.stage.setTitle(applicationTitle);
             try {
                 this.stage.setOnCloseRequest(ev -> {
-                    try { customerDisplayService.stop(); } catch (Exception ignored) {}
+                    try {
+                        customerDisplayService.stop();
+                    } catch (Exception ignored) { }
+
+                    ao.allon.kubata.core.domain.User activeUser = sessionManager.getUserObject();
+                    if (activeUser == null) {
+                        return;
+                    }
+                    try {
+                        applicationContext.getBean(ao.allon.kubata.core.service.AuthService.class)
+                                .logout(activeUser, "127.0.0.1");
+                        sessionManager.logout();
+                    } catch (Exception ex) {
+                        ev.consume();
+                        showAlert(
+                                "Não foi possível encerrar a sessão",
+                                "A aplicação continuará aberta porque a base de dados não confirmou "
+                                        + "o encerramento da sessão.\\n\\n"
+                                        + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                        );
+                    }
                 });
             } catch (Exception ignored) {}
             this.stage.show();
