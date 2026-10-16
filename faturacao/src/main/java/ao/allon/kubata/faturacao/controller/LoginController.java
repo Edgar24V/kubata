@@ -1,6 +1,7 @@
 package ao.allon.kubata.faturacao.controller;
 
 import ao.allon.kubata.faturacao.ui.event.LoginSuccessEvent;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
 import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
@@ -61,6 +62,7 @@ public class LoginController {
     private final AuthService authService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordChangeService passwordChangeService;
+    private final ModalManager modalManager;
     private final Preferences preferences =
             Preferences.userRoot().node(PREF_NODE);
 
@@ -91,7 +93,6 @@ public class LoginController {
     private Button maximizeButton;
     private Rectangle windowClip;
     private Stage stage;
-    private Dialog<?> activeDialog;
 
     private double normalStageX;
     private double normalStageY;
@@ -104,10 +105,12 @@ public class LoginController {
 
     public LoginController(AuthService authService,
                            ApplicationEventPublisher eventPublisher,
-                           PasswordChangeService passwordChangeService) {
+                           PasswordChangeService passwordChangeService,
+                           ModalManager modalManager) {
         this.authService = authService;
         this.eventPublisher = eventPublisher;
         this.passwordChangeService = passwordChangeService;
+        this.modalManager = modalManager;
     }
 
     /** Compatibilidade com o ciclo de inicialização do módulo Faturação. */
@@ -124,6 +127,7 @@ public class LoginController {
         StackPane root = new StackPane();
         root.setPrefSize(1120, 720);
         root.getStyleClass().add("login-container");
+        modalManager.setRoot(root);
 
         Region background = new Region();
         background.setStyle(
@@ -148,7 +152,7 @@ public class LoginController {
         root.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER
                     && !loginButton.isDisabled()
-                    && !hasOpenDialog()) {
+                    && !modalManager.hasOpenModal()) {
                 handleLogin();
             }
         });
@@ -1331,16 +1335,8 @@ public class LoginController {
     }
 
 
-    private boolean hasOpenDialog() {
-        return activeDialog != null && activeDialog.isShowing();
-    }
-
     private void hideLoginDialog() {
-        Dialog<?> dialog = activeDialog;
-        activeDialog = null;
-        if (dialog != null && dialog.isShowing()) {
-            dialog.close();
-        }
+        modalManager.hideAllModals();
     }
 
     private void showCustomDialog(
@@ -1350,34 +1346,32 @@ public class LoginController {
             double height,
             boolean showCloseButton
     ) {
-        hideLoginDialog();
-
-        Dialog<ButtonType> dialog = new Dialog<>();
-        if (stage != null) {
-            dialog.initOwner(stage);
-        }
-        dialog.setTitle(title);
-        dialog.setResizable(false);
-
-        DialogPane pane = dialog.getDialogPane();
-        pane.setContent(content);
-        pane.setPrefSize(width, height);
-        pane.setMinSize(width, height);
-        if (showCloseButton) {
-            pane.getButtonTypes().add(ButtonType.CLOSE);
-        }
-
-        activeDialog = dialog;
-        dialog.setOnHidden(event -> {
-            if (activeDialog == dialog) {
-                activeDialog = null;
-            }
-        });
-        dialog.show();
+        ModalManager.ModalConfig config = new ModalManager.ModalConfig()
+                .title(title)
+                .size((int) width, (int) height)
+                .minSize((int) Math.max(420, width - 70), (int) Math.max(300, height - 70))
+                .resizable(false)
+                .windowControls(showCloseButton)
+                .minimizable(false)
+                .maximizable(false)
+                .closeOnOverlayClick(showCloseButton)
+                .closeOnEscape(showCloseButton);
+        modalManager.showModal(content, config);
     }
 
     private void showInfoDialog(String title, Node content, double width, double height) {
-        showCustomDialog(content, title, width, height, true);
+        modalManager.showModal(
+                content,
+                new ModalManager.ModalConfig()
+                        .title(title)
+                        .icon(Feather.INFO)
+                        .tone(ModalManager.ModalTone.INFO)
+                        .size((int) width, (int) height)
+                        .minSize((int) Math.max(420, width - 70), (int) Math.max(300, height - 70))
+                        .singleButton("Fechar")
+                        .maximizable(false)
+                        .minimizable(false)
+        );
     }
 
     /** Recuperação genérica: não revela se a conta existe. */
