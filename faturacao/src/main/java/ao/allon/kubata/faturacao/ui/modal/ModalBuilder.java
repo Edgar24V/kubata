@@ -129,6 +129,30 @@ public class ModalBuilder {
         return this;
     }
 
+    /**
+     * Valida enquanto o modal permanece aberto; se válido, fecha-o e executa a acção.
+     * Útil para formulários que precisam de manter os campos visíveis em caso de erro.
+     */
+    public ModalBuilder withValidatedConfirmButton(
+            String text,
+            java.util.function.Supplier<Boolean> validator,
+            Runnable onConfirm
+    ) {
+        Button button = new Button(text);
+        button.getStyleClass().add("button-primary");
+        button.setOnAction(event -> {
+            if (validator != null && !Boolean.TRUE.equals(validator.get())) {
+                return;
+            }
+            modalService.hide();
+            if (onConfirm != null) {
+                onConfirm.run();
+            }
+        });
+        footerNodes.add(button);
+        return this;
+    }
+
     /** Acrescenta um controlo personalizado ao rodapé padrão. */
     public ModalBuilder addFooterNode(Node node) {
         if (node != null) {
