@@ -356,10 +356,15 @@ public class LicencaView extends VBox {
     }
 
     private void mostrarAlerta(Alert.AlertType tipo, String titulo, String cabecalho, String mensagem) {
-        Alert alert = new Alert(tipo);
-        alert.setTitle(titulo);
-        alert.setHeaderText(cabecalho);
-        alert.setContentText(mensagem);
-        alert.showAndWait();
+        String texto = cabecalho == null || cabecalho.isBlank()
+                ? mensagem
+                : cabecalho + "\n\n" + mensagem;
+        switch (tipo) {
+            case INFORMATION -> modalManager.info(titulo, texto);
+            case WARNING -> modalManager.warning(titulo, texto);
+            case ERROR -> modalManager.danger(titulo, texto);
+            case CONFIRMATION -> modalManager.showConfirm(titulo, texto, () -> {});
+            default -> modalManager.info(titulo, texto);
+        }
     }
 }
