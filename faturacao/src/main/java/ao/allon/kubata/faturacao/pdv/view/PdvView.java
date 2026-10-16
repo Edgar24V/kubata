@@ -712,8 +712,10 @@ public class PdvView extends BorderPane {
 
     
     private void showDiscountDialog(ItemFatura item) {
-        Dialog<java.math.BigDecimal> dlg = new Dialog<>();
-        dlg.setTitle("Desconto no Item");
+        if (item == null) {
+            return;
+        }
+
         TextField tf = new TextField("0");
         tf.setPrefWidth(240);
         VBox box = new VBox(10, new Label("Percentual de desconto (%)"), tf);
@@ -721,103 +723,108 @@ public class PdvView extends BorderPane {
         Label warn = new Label();
         warn.getStyleClass().addAll(Styles.TEXT_SMALL, Styles.DANGER);
         warn.setVisible(false);
+
         UnaryOperator<TextFormatter.Change> percFilter = change -> {
             String nt = change.getControlNewText();
-            if (nt.matches("\\d{0,3}([\\.,]\\d{0,2})?")) {
-                return change;
-            }
-            return null;
+            return nt.matches("\\d{0,3}([\\.,]\\d{0,2})?") ? change : null;
         };
         tf.setTextFormatter(new TextFormatter<>(percFilter));
+
         javafx.scene.control.Button btnPad = new javafx.scene.control.Button("Teclado");
-        btnPad.getStyleClass().add(atlantafx.base.theme.Styles.BUTTON_OUTLINED);
-        btnPad.setOnAction(e -> VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, () -> {
-            dlg.setResult(new java.math.BigDecimal(tf.getText().replace(",", ".")));
-            dlg.close();
-        }));
-        tf.focusedProperty().addListener((o, ov, nv) -> {
-            if (nv) VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, () -> {
-                dlg.setResult(new java.math.BigDecimal(tf.getText().replace(",", ".")));
-                dlg.close();
-            });
-        });
-        VBox root = new VBox(12, box, warn, btnPad);
-        root.setPadding(new Insets(10));
-        dlg.getDialogPane().setContent(root);
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
-        Node okBtn = dlg.getDialogPane().lookupButton(ButtonType.OK);
-        tf.textProperty().addListener((obs, ov, nv) -> {
-            try {
-                BigDecimal v = new BigDecimal(nv.replace(",", "."));
-                boolean invalid = v.compareTo(max) > 0 || v.compareTo(BigDecimal.ZERO) < 0;
-                warn.setText(invalid ? ("Máximo permitido: " + max + "%") : "");
-                warn.setVisible(invalid);
-                okBtn.setDisable(invalid);
-            } catch (Exception ex) {
-                okBtn.setDisable(true);
-                warn.setText("Valor inválido");
-                warn.setVisible(true);
+        btnPad.getStyleClass().add(Styles.BUTTON_OUTLINED);
+        btnPad.setOnAction(e -> VirtualKeyboardPopup.show(
+                tf,
+                VirtualKeyboardPopup.KeyboardType.NUMERIC,
+                () -> {}
+        ));
+        tf.focusedProperty().addListener((o, oldValue, focused) -> {
+            if (focused) {
+                VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, () -> {});
             }
         });
-        dlg.setResultConverter(bt -> bt == ButtonType.OK ? new java.math.BigDecimal(tf.getText().replace(",", ".")) : null);
-        dlg.showAndWait().ifPresent(p -> controller.atualizarDesconto(item, p));
+
+        VBox root = new VBox(12, box, warn, btnPad);
+        root.setPadding(new Insets(10));
+        AlertUtils.showForm(
+                "Desconto no Item",
+                root,
+                "Aplicar desconto",
+                () -> {
+                    try {
+                        BigDecimal value = new BigDecimal(tf.getText().replace(",", "."));
+                        boolean invalid = value.compareTo(max) > 0 || value.compareTo(BigDecimal.ZERO) < 0;
+                        warn.setText(invalid ? ("Máximo permitido: " + max + "%") : "");
+                        warn.setVisible(invalid);
+                        return !invalid;
+                    } catch (Exception ex) {
+                        warn.setText("Introduza um percentual válido.");
+                        warn.setVisible(true);
+                        return false;
+                    }
+                },
+                () -> controller.atualizarDesconto(
+                        item,
+                        new BigDecimal(tf.getText().replace(",", "."))
+                )
+        );
     }
 
     private void showPriceDialog(ItemFatura item) {
-        if (item == null) return;
-        Dialog<BigDecimal> dlg = new Dialog<>();
-        dlg.setTitle("Preço do Item");
-        BigDecimal current = item.getPrecoUnitario() != null ? item.getPrecoUnitario() : BigDecimal.ZERO;
+        if (item == null) {
+            return;
+        }
+
+        BigDecimal current = item.getPrecoUnitario() != null
+                ? item.getPrecoUnitario()
+                : BigDecimal.ZERO;
         TextField tf = new TextField(current.stripTrailingZeros().toPlainString());
         tf.setPrefWidth(240);
-        VBox box = new VBox(10, new Label("Preço Unitário"), tf);
+        VBox box = new VBox(10, new Label("Preço unitário"), tf);
+
         UnaryOperator<TextFormatter.Change> priceFilter = change -> {
             String nt = change.getControlNewText();
-            if (nt.matches("\\d{0,9}([\\.,]\\d{0,2})?")) return change;
-            return null;
+            return nt.matches("\\d{0,9}([\\.,]\\d{0,2})?") ? change : null;
         };
         tf.setTextFormatter(new TextFormatter<>(priceFilter));
 
         javafx.scene.control.Button btnPad = new javafx.scene.control.Button("Teclado");
-        btnPad.getStyleClass().add(atlantafx.base.theme.Styles.BUTTON_OUTLINED);
-        Runnable ok = () -> {
-            try {
-                dlg.setResult(new BigDecimal(tf.getText().replace(",", ".")));
-                dlg.close();
-            } catch (Exception ignored) {}
-        };
-        btnPad.setOnAction(e -> VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, ok));
-        tf.focusedProperty().addListener((o, ov, nv) -> {
-            if (nv) VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, ok);
+        btnPad.getStyleClass().add(Styles.BUTTON_OUTLINED);
+        Runnable keyboardSubmit = () -> {};
+        btnPad.setOnAction(e -> VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, keyboardSubmit));
+        tf.focusedProperty().addListener((o, oldValue, focused) -> {
+            if (focused) VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, keyboardSubmit);
         });
 
         VBox root = new VBox(12, box, btnPad);
         root.setPadding(new Insets(10));
-        dlg.getDialogPane().setContent(root);
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
-        dlg.setResultConverter(bt -> {
-            if (bt == ButtonType.OK) {
-                try {
-                    return new BigDecimal(tf.getText().replace(",", "."));
-                } catch (Exception ex) {
-                    return null;
-                }
-            }
-            return null;
-        });
-        dlg.showAndWait().ifPresent(v -> controller.atualizarPrecoUnitario(item, v));
+        AlertUtils.showForm(
+                "Preço do Item",
+                root,
+                "Aplicar preço",
+                () -> {
+                    try {
+                        return new BigDecimal(tf.getText().replace(",", ".")).compareTo(BigDecimal.ZERO) >= 0;
+                    } catch (Exception ex) {
+                        AlertUtils.showWarningAlert("Preço inválido", "Introduza um preço numérico válido.");
+                        return false;
+                    }
+                },
+                () -> controller.atualizarPrecoUnitario(
+                        item,
+                        new BigDecimal(tf.getText().replace(",", "."))
+                )
+        );
     }
-    
+
     private void showQuantityDialog(ItemFatura item) {
-        if (item == null) return;
+        if (item == null) {
+            return;
+        }
 
         if (isFracionavel(item)) {
-            Dialog<BigDecimal> dlg = new Dialog<>();
-            dlg.setTitle("Quantidade");
             BigDecimal current = item.getQuantidadeDecimal() != null
-                ? item.getQuantidadeDecimal()
-                : BigDecimal.valueOf(item.getQuantidade() != null ? item.getQuantidade() : 1);
-
+                    ? item.getQuantidadeDecimal()
+                    : BigDecimal.valueOf(item.getQuantidade() != null ? item.getQuantidade() : 1);
             TextField tf = new TextField(current.stripTrailingZeros().toPlainString());
             tf.setPrefWidth(240);
             String unit = unidadeLabel(item);
@@ -826,93 +833,86 @@ public class PdvView extends BorderPane {
             UnaryOperator<TextFormatter.Change> decFilter = change -> {
                 String nt = change.getControlNewText();
                 int casas = getCasasDecimais(item);
-                if (nt.matches("\\d{0,6}([\\.,]\\d{0," + casas + "})?")) return change;
-                return null;
+                return nt.matches("\\d{0,6}([\\.,]\\d{0," + casas + "})?") ? change : null;
             };
             tf.setTextFormatter(new TextFormatter<>(decFilter));
 
             javafx.scene.control.Button btnPad = new javafx.scene.control.Button("Teclado");
-            btnPad.getStyleClass().add(atlantafx.base.theme.Styles.BUTTON_OUTLINED);
-
-            Runnable ok = () -> {
-                try {
-                    dlg.setResult(new BigDecimal(tf.getText().replace(",", ".")));
-                    dlg.close();
-                } catch (Exception ignored) {}
-            };
-            btnPad.setOnAction(e -> VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, ok));
-            tf.focusedProperty().addListener((o, ov, nv) -> {
-                if (nv) VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, ok);
+            btnPad.getStyleClass().add(Styles.BUTTON_OUTLINED);
+            btnPad.setOnAction(e -> VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, () -> {}));
+            tf.focusedProperty().addListener((o, oldValue, focused) -> {
+                if (focused) VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, () -> {});
             });
 
             VBox root = new VBox(12, box, btnPad);
             root.setPadding(new Insets(10));
-            dlg.getDialogPane().setContent(root);
-            dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
-
-            dlg.setResultConverter(bt -> {
-                if (bt == ButtonType.OK) {
-                    try {
-                        return new BigDecimal(tf.getText().replace(",", "."));
-                    } catch (Exception ex) {
-                        return null;
-                    }
-                }
-                return null;
-            });
-
-        dlg.showAndWait().ifPresent(q -> controller.atualizarQuantidadeDecimal(item, q));
+            AlertUtils.showForm(
+                    "Quantidade",
+                    root,
+                    "Aplicar quantidade",
+                    () -> {
+                        try {
+                            return new BigDecimal(tf.getText().replace(",", ".")).compareTo(BigDecimal.ZERO) > 0;
+                        } catch (Exception ex) {
+                            AlertUtils.showWarningAlert("Quantidade inválida", "Introduza uma quantidade numérica válida.");
+                            return false;
+                        }
+                    },
+                    () -> controller.atualizarQuantidadeDecimal(
+                            item,
+                            new BigDecimal(tf.getText().replace(",", "."))
+                    )
+            );
             return;
         }
 
-        Dialog<Integer> dlg = new Dialog<>();
-        dlg.setTitle("Quantidade");
         TextField tf = new TextField(item.getQuantidade() != null ? item.getQuantidade().toString() : "1");
         tf.setPrefWidth(240);
         VBox box = new VBox(10, new Label("Quantidade"), tf);
         javafx.scene.control.Button btnPad = new javafx.scene.control.Button("Teclado");
-        btnPad.getStyleClass().add(atlantafx.base.theme.Styles.BUTTON_OUTLINED);
-        Runnable ok = () -> {
-            try {
-                dlg.setResult(Integer.parseInt(tf.getText().replace(",", ".")));
-                dlg.close();
-            } catch (NumberFormatException ignored) {}
-        };
-        btnPad.setOnAction(e -> VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, ok));
-        tf.focusedProperty().addListener((o, ov, nv) -> {
-            if (nv) VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, ok);
+        btnPad.getStyleClass().add(Styles.BUTTON_OUTLINED);
+        btnPad.setOnAction(e -> VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, () -> {}));
+        tf.focusedProperty().addListener((o, oldValue, focused) -> {
+            if (focused) VirtualKeyboardPopup.show(tf, VirtualKeyboardPopup.KeyboardType.NUMERIC, () -> {});
         });
+
         VBox root = new VBox(12, box, btnPad);
         root.setPadding(new Insets(10));
-        dlg.getDialogPane().setContent(root);
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
-        dlg.setResultConverter(bt -> {
-            if (bt == ButtonType.OK) {
-                try {
-                    return Integer.parseInt(tf.getText().replace(",", "."));
-                } catch (NumberFormatException ex) {
-                    return null;
-                }
-            }
-            return null;
-        });
-        dlg.showAndWait().ifPresent(q -> controller.atualizarQuantidade(item, q));
+        AlertUtils.showForm(
+                "Quantidade",
+                root,
+                "Aplicar quantidade",
+                () -> {
+                    try {
+                        return Integer.parseInt(tf.getText().replace(",", ".")) > 0;
+                    } catch (Exception ex) {
+                        AlertUtils.showWarningAlert("Quantidade inválida", "Introduza uma quantidade inteira válida.");
+                        return false;
+                    }
+                },
+                () -> controller.atualizarQuantidade(
+                        item,
+                        Integer.parseInt(tf.getText().replace(",", "."))
+                )
+        );
     }
 
     private void showQuantityDialogForProduct(Produto p, BigDecimal initialQty) {
-        if (p == null) return;
-        Dialog<BigDecimal> dlg = new Dialog<>();
-        dlg.setTitle("Pesagem/Quantidade: " + p.getNome());
-        
-        TextField tf = new TextField(initialQty.compareTo(BigDecimal.ONE) == 0 ? "" : initialQty.stripTrailingZeros().toPlainString());
+        if (p == null) {
+            return;
+        }
+
+        TextField tf = new TextField(
+                initialQty.compareTo(BigDecimal.ONE) == 0
+                        ? ""
+                        : initialQty.stripTrailingZeros().toPlainString()
+        );
         tf.setPromptText("0.000");
         tf.setPrefWidth(240);
         tf.getStyleClass().add(Styles.LARGE);
-        
+
         String unit = unidadeShort(p.getUnidadeMedida());
         VBox box = new VBox(10, new Label("Informe o peso ou quantidade (" + unit + "):"), tf);
-        
-        // Exibe preço por KG se for o caso
         if (isFracionavel(p)) {
             Label lblPreco = new Label("Preço: " + currencyFormat.format(p.getPrecoUnitario()) + " / " + unit);
             lblPreco.getStyleClass().add(Styles.TEXT_BOLD);
@@ -922,43 +922,30 @@ public class PdvView extends BorderPane {
         UnaryOperator<TextFormatter.Change> decFilter = change -> {
             String nt = change.getControlNewText();
             int casas = isFracionavel(p) ? 3 : 0;
-            if (nt.matches("\\d{0,6}([\\.,]\\d{0," + casas + "})?")) return change;
-            return null;
+            return nt.matches("\\d{0,6}([\\.,]\\d{0," + casas + "})?") ? change : null;
         };
         tf.setTextFormatter(new TextFormatter<>(decFilter));
 
-        // Atalhos de teclado no diálogo
-        tf.setOnKeyPressed(ke -> {
-            if (ke.getCode() == KeyCode.ENTER) {
-                try {
-                    BigDecimal val = new BigDecimal(tf.getText().replace(",", "."));
-                    controller.adicionarProdutoAoCarrinho(p, val);
-                    dlg.setResult(val);
-                    dlg.close();
-                } catch (Exception ignore) {}
-            } else if (ke.getCode() == KeyCode.ESCAPE) {
-                dlg.close();
-            }
-        });
-
         VBox root = new VBox(12, box);
         root.setPadding(new Insets(15));
-        dlg.getDialogPane().setContent(root);
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
-        
-        dlg.setResultConverter(bt -> {
-            if (bt == ButtonType.OK) {
-                try {
-                    return new BigDecimal(tf.getText().replace(",", "."));
-                } catch (Exception ex) {
-                    return null;
-                }
-            }
-            return null;
-        });
-        
-        javafx.application.Platform.runLater(tf::requestFocus);
-        dlg.showAndWait().ifPresent(val -> controller.adicionarProdutoAoCarrinho(p, val));
+        AlertUtils.showForm(
+                "Pesagem/Quantidade: " + p.getNome(),
+                root,
+                "Adicionar ao carrinho",
+                () -> {
+                    try {
+                        return new BigDecimal(tf.getText().replace(",", ".")).compareTo(BigDecimal.ZERO) > 0;
+                    } catch (Exception ex) {
+                        AlertUtils.showWarningAlert("Quantidade inválida", "Introduza um peso ou quantidade válida.");
+                        return false;
+                    }
+                },
+                () -> controller.adicionarProdutoAoCarrinho(
+                        p,
+                        new BigDecimal(tf.getText().replace(",", "."))
+                )
+        );
+        Platform.runLater(tf::requestFocus);
     }
 
     private String unidadeShort(ao.allon.kubata.faturacao.enums.UnidadeMedida u) {
