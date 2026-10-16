@@ -208,18 +208,19 @@ public class InventarioController {
     }
     
     private void excluirProduto(Produto produto) {
-        boolean confirm = AlertUtils.showConfirmationAlert("Excluir produto: " + produto.getNome(), 
-            "Tem certeza? Esta ação não pode ser desfeita.");
-            
-        if (confirm) {
-            try {
-                produtoService.delete(produto.getId());
-                carregarProdutos();
-                AlertUtils.showInfoAlert("Sucesso", "Produto excluído com sucesso.");
-            } catch (Exception e) {
-                AlertUtils.showErrorAlert("Erro ao excluir", e.getMessage());
-            }
-        }
+        AlertUtils.showConfirmationAsync(
+                "Excluir produto: " + produto.getNome(),
+                "Tem certeza? Esta ação não pode ser desfeita.",
+                () -> {
+                    try {
+                        produtoService.delete(produto.getId());
+                        carregarProdutos();
+                        AlertUtils.showInfoAlert("Sucesso", "Produto excluído com sucesso.");
+                    } catch (Exception e) {
+                        AlertUtils.showErrorAlert("Erro ao excluir", e.getMessage());
+                    }
+                }
+        );
     }
 
     @FXML
