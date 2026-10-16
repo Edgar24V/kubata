@@ -791,6 +791,10 @@ public class ModalManager {
                                              ModalConfig config) {
         if (config.width > 0 && config.height > 0) {
             dialog.setPrefSize(config.width, config.height);
+        } else if (config.width > 0) {
+            dialog.setPrefWidth(config.width);
+        } else if (config.height > 0) {
+            dialog.setPrefHeight(config.height);
         }
 
         if (config.minWidth > 0) {
