@@ -18,7 +18,6 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class AlertUtils {
@@ -111,134 +110,6 @@ public final class AlertUtils {
                 .buildAndShow());
     }
 
-    public static boolean showConfirmation(String title, String message) {
-        AtomicReference<Boolean> ref = new AtomicReference<>(false);
-        CountDownLatch latch = new CountDownLatch(1);
-
-        Platform.runLater(() -> getModalServiceOrThrow().create()
-                .title(title)
-                .content(buildMessageContent(icon(Feather.HELP_CIRCLE, Styles.ACCENT), "Confirmação", message, null))
-                .autoSize()
-                .withCustomButton("Sim", () -> {
-                    ref.set(true);
-                    latch.countDown();
-                }, Styles.SUCCESS)
-                .withCancelButton("Não", latch::countDown)
-                .buildAndShow());
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        return Boolean.TRUE.equals(ref.get());
-    }
-
-    /**
-     * Apresenta conteúdo JavaFX arbitrário dentro do modal partilhado do Core.
-     * Ideal para formulários, detalhes, pré-visualizações e tabelas.
-     */
-    public static void showCustomModal(String title, Node content) {
-        Platform.runLater(() -> getModalServiceOrThrow().create()
-                .title(title)
-                .content(content)
-                .dynamicSize()
-                .withCloseButton()
-                .buildAndShow());
-    }
-
-    /**
-     * Formulário assíncrono padrão. A validação ocorre sem fechar o modal;
-     * em caso de sucesso, o modal fecha antes da acção de gravação.
-     */
-    public static void showForm(
-            String title,
-            Node content,
-            String confirmText,
-            java.util.function.Supplier<Boolean> validator,
-            Runnable onConfirm
-    ) {
-        Platform.runLater(() -> getModalServiceOrThrow().create()
-                .title(title)
-                .content(content)
-                .dynamicSize()
-                .withCancelButton("Cancelar")
-                .withValidatedConfirmButton(
-                        confirmText == null || confirmText.isBlank() ? "Guardar" : confirmText,
-                        validator,
-                        onConfirm
-                )
-                .buildAndShow());
-    }
-
-    /** Modal com conteúdo complexo e acção executada após fechar. */
-    public static void showCustomModalWithCloseAction(
-            String title,
-            Node content,
-            int width,
-            int height,
-            Runnable onClose
-    ) {
-        Platform.runLater(() -> {
-            var builder = getModalServiceOrThrow().create()
-                    .title(title)
-                    .content(content)
-                    .size(width, height)
-                    .withCancelButton("Fechar", onClose);
-            builder.buildAndShow();
-        });
-    }
-
-    /** Modal com acção primária que fecha o diálogo antes de executar a acção. */
-    public static void showModalWithAction(
-            String title,
-            Node content,
-            String actionText,
-            Runnable action
-    ) {
-        Platform.runLater(() -> getModalServiceOrThrow().create()
-                .title(title)
-                .content(content)
-                .dynamicSize()
-                .withCancelButton("Fechar")
-                .withConfirmButton(
-                        actionText == null || actionText.isBlank() ? "Confirmar" : actionText,
-                        action
-                )
-                .buildAndShow());
-    }
-
-    /**
-     * Confirmação não bloqueante. Evita CountDownLatch/showAndWait na thread JavaFX.
-     */
-    public static void showConfirmationAsync(String title, String message, Runnable onConfirm) {
-        Platform.runLater(() -> getModalServiceOrThrow().create()
-                .title(title)
-                .content(buildMessageContent(
-                        icon(Feather.HELP_CIRCLE, Styles.ACCENT),
-                        "Confirmação",
-                        message,
-                        null))
-                .dynamicSize()
-                .withCancelButton("Cancelar")
-                .withConfirmButton("Confirmar", onConfirm == null ? () -> {} : onConfirm)
-                .buildAndShow());
-    }
-
-    /** Mostra uma mensagem e executa a acção apenas depois da confirmação no modal. */
-    public static void showInfoWithAction(String title, String message, Runnable onAcknowledge) {
-        Platform.runLater(() -> getModalServiceOrThrow().create()
-                .title(title)
-                .content(buildMessageContent(
-                        icon(Feather.INFO, Styles.ACCENT),
-                        null,
-                        message,
-                        null))
-                .dynamicSize()
-                .withConfirmButton("OK", onAcknowledge == null ? () -> {} : onAcknowledge)
-                .buildAndShow());
-    }
 
     public static void showInfoAlert(String title, String message) {
         showSuccess(title, message);
@@ -250,10 +121,6 @@ public final class AlertUtils {
 
     public static void showSuccessNotification(String message) {
         showSuccess("Sucesso", message);
-    }
-
-    public static boolean showConfirmationAlert(String title, String message) {
-        return showConfirmation(title, message);
     }
 
     public static void showWarningAlert(String title, String message) {
