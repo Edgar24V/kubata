@@ -172,6 +172,24 @@ public final class AlertUtils {
                 .buildAndShow());
     }
 
+    /** Modal com conteúdo complexo e acção executada após fechar. */
+    public static void showCustomModalWithCloseAction(
+            String title,
+            Node content,
+            int width,
+            int height,
+            Runnable onClose
+    ) {
+        Platform.runLater(() -> {
+            var builder = getModalServiceOrThrow().create()
+                    .title(title)
+                    .content(content)
+                    .size(width, height)
+                    .withCancelButton("Fechar", onClose);
+            builder.buildAndShow();
+        });
+    }
+
     /** Modal com acção primária que fecha o diálogo antes de executar a acção. */
     public static void showModalWithAction(
             String title,
