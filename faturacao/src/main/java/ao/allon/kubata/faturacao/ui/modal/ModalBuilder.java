@@ -68,10 +68,10 @@ public class ModalBuilder {
         Button button = new Button(text);
         button.getStyleClass().add("button-primary");
         button.setOnAction(event -> {
+            modalService.hide();
             if (onConfirm != null) {
                 onConfirm.run();
             }
-            modalService.hide();
         });
         footerNodes.add(button);
         return this;
@@ -97,10 +97,10 @@ public class ModalBuilder {
         Button button = new Button(text);
         button.getStyleClass().add("button-outlined");
         button.setOnAction(event -> {
+            modalService.hide();
             if (onCancel != null) {
                 onCancel.run();
             }
-            modalService.hide();
         });
         footerNodes.add(button);
         return this;
@@ -120,10 +120,10 @@ public class ModalBuilder {
             button.getStyleClass().add(styleClass);
         }
         button.setOnAction(event -> {
+            modalService.hide();
             if (onAction != null) {
                 onAction.run();
             }
-            modalService.hide();
         });
         footerNodes.add(button);
         return this;
