@@ -300,12 +300,11 @@ public class FechoExercicioView extends VBox {
                 equilibrado ? "EQUILIBRADO ✓" : "DESIQUILIBRADO ✗"
             );
 
-            Alert.AlertType tipo = equilibrado ? Alert.AlertType.INFORMATION : Alert.AlertType.WARNING;
-            Alert alert = new Alert(tipo);
-            alert.setTitle("Verificação do Balancete");
-            alert.setHeaderText(null);
-            alert.setContentText(mensagem);
-            alert.showAndWait();
+            if (equilibrado) {
+                AlertUtils.showSuccess("Verificação do Balancete", mensagem);
+            } else {
+                AlertUtils.showWarning("Verificação do Balancete", mensagem);
+            }
 
         } catch (Exception ex) {
             AlertUtils.showExceptionAlert("Erro", "Não foi possível gerar o balancete.", ex);
