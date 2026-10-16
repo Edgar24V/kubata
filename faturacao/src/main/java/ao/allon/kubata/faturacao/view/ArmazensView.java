@@ -285,32 +285,34 @@ public class ArmazensView extends BorderPane {
     }
 
     private void delete(Armazem armazem) {
-        boolean confirm = AlertUtils.showConfirmationAlert("Excluir Armazém", 
-            "Tem certeza que deseja excluir '" + armazem.getNome() + "'?");
-        
-        if (confirm) {
-            try {
-                armazemService.delete(armazem.getId());
-                refreshData();
-                AlertUtils.showInfoAlert("Sucesso", "Armazém excluído.");
-            } catch (Exception e) {
-                AlertUtils.showErrorAlert("Erro", e.getMessage());
-            }
-        }
+        AlertUtils.showConfirmationAsync(
+                "Excluir Armazém",
+                "Tem certeza que deseja excluir '" + armazem.getNome() + "'?",
+                () -> {
+                    try {
+                        armazemService.delete(armazem.getId());
+                        refreshData();
+                        AlertUtils.showInfoAlert("Sucesso", "Armazém excluído.");
+                    } catch (Exception e) {
+                        AlertUtils.showErrorAlert("Erro", e.getMessage());
+                    }
+                }
+        );
     }
 
     private void setPrincipal(Armazem armazem) {
-        boolean confirm = AlertUtils.showConfirmationAlert("Definir Principal", 
-            "Definir '" + armazem.getNome() + "' como armazém principal?");
-            
-        if (confirm) {
-            try {
-                armazemService.setPrincipal(armazem);
-                refreshData();
-                AlertUtils.showInfoAlert("Sucesso", "Armazém principal atualizado.");
-            } catch (Exception e) {
-                AlertUtils.showErrorAlert("Erro", e.getMessage());
-            }
-        }
+        AlertUtils.showConfirmationAsync(
+                "Definir Principal",
+                "Definir '" + armazem.getNome() + "' como armazém principal?",
+                () -> {
+                    try {
+                        armazemService.setPrincipal(armazem);
+                        refreshData();
+                        AlertUtils.showInfoAlert("Sucesso", "Armazém principal atualizado.");
+                    } catch (Exception e) {
+                        AlertUtils.showErrorAlert("Erro", e.getMessage());
+                    }
+                }
+        );
     }
 }
