@@ -154,7 +154,7 @@ public final class FaturacaoTitleBar extends HBox {
         Button close = createWindowButton("×", "Fechar", true);
         minimize.setOnAction(e -> { if (this.stage != null) this.stage.setIconified(true); });
         maximize.setOnAction(e -> { if (this.stage != null) this.stage.setMaximized(!this.stage.isMaximized()); });
-        close.setOnAction(e -> { if (this.stage != null) this.stage.close(); });
+        close.setOnAction(e -> owner.confirmApplicationClose());
         if (stage != null) {
             stage.maximizedProperty().addListener((obs, oldValue, maximized) -> {
                 maximize.setText(maximized ? "❐" : "□");
