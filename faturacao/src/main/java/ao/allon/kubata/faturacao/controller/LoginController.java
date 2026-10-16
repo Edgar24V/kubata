@@ -41,7 +41,7 @@ import java.util.prefs.Preferences;
 import java.util.regex.Pattern;
 
 /**
- * Tela principal de autenticação do Kubata Administrator.
+ * Tela de autenticação do Kubata Faturação.
  *
  * <p>Responsabilidades:
  * validação do formulário, MFA, autenticação assíncrona,
@@ -1426,9 +1426,8 @@ public class LoginController {
 
         Label body = new Label(
                 "A recuperação automática por email não está activa "
-                        + "neste ambiente. Para uma conta administrativa, "
-                        + "contacte outro administrador autorizado para efectuar "
-                        + "uma redefinição através do módulo Utilizadores."
+                        + "neste ambiente. Contacte o responsável autorizado pela gestão de utilizadores "
+                        + "da sua organização caso não receba instruções de recuperação."
         );
         body.setWrapText(true);
         body.setStyle(
@@ -1496,8 +1495,8 @@ public class LoginController {
                 securityInfo(
                         Feather.ACTIVITY,
                         "Auditoria",
-                        "Operações administrativas relevantes são "
-                                + "registadas para rastreabilidade."
+                        "Operações relevantes de faturação podem ser "
+                                + "registadas para auditoria e rastreabilidade."
                 )
         );
 
