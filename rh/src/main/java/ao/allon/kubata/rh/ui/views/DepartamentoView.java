@@ -4,7 +4,7 @@ import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.rh.domain.Departamento;
 import ao.allon.kubata.rh.service.DepartamentoService;
-import ao.allon.kubata.rh.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import net.synedra.validatorfx.Validator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
