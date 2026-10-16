@@ -13,6 +13,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
@@ -835,29 +836,26 @@ public class AdvancedTableView<S> extends TableView<S> {
                 return;
             }
 
-            Alert confirm = new Alert(
-                    Alert.AlertType.CONFIRMATION,
+            ModalManager manager = ModalManager.getActiveInstance();
+            if (manager == null || !manager.hasRoot()) {
+                System.err.println("Não foi possível abrir o modal de eliminação: ModalManager sem raiz.");
+                return;
+            }
+
+            manager.showConfirm(
+                    "Eliminar registos seleccionados",
                     "Eliminar " + selected.size() + " registo(s)?",
-                    ButtonType.YES,
-                    ButtonType.NO
+                    () -> {
+                        List<S> copy = List.copyOf(selected);
+                        if (onBatchDeleteCallback != null) {
+                            onBatchDeleteCallback.accept(copy);
+                        } else if (filteredData != null) {
+                            filteredData.getSource().removeAll(copy);
+                        }
+                        selectedItems.clear();
+                        refresh();
+                    }
             );
-
-            confirm.showAndWait().ifPresent(button -> {
-                if (button != ButtonType.YES) {
-                    return;
-                }
-
-                List<S> copy = List.copyOf(selected);
-
-                if (onBatchDeleteCallback != null) {
-                    onBatchDeleteCallback.accept(copy);
-                } else if (filteredData != null) {
-                    filteredData.getSource().removeAll(copy);
-                }
-
-                selectedItems.clear();
-                refresh();
-            });
         });
 
         MenuItem exportSelected = new MenuItem("Exportar seleccionados para CSV");
