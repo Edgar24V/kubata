@@ -353,16 +353,17 @@ public class InventarioController {
             FXMLLoader loader = new FXMLLoader(categoriasFxml.getURL());
             loader.setControllerFactory(applicationContext::getBean);
             Parent root = loader.load();
-            
-            Stage stage = new Stage();
-            stage.setTitle("Gestão de Categorias");
-            stage.setScene(new Scene(root, 600, 400));
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.showAndWait();
-            
-            // Recarregar produtos para atualizar nomes de categorias se necessário
-            carregarProdutos();
-            
+
+            AlertUtils.showCustomModalWithCloseAction(
+                    "Gestão de Categorias",
+                    root,
+                    600,
+                    400,
+                    () -> {
+                        // Recarregar produtos para atualizar nomes de categorias.
+                        carregarProdutos();
+                    }
+            );
         } catch (Exception e) {
             AlertUtils.showExceptionAlert("Erro", "Falha ao abrir gestão de categorias", e);
         }
