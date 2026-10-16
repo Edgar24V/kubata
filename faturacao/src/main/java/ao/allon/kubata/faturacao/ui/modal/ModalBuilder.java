@@ -1,97 +1,108 @@
 package ao.allon.kubata.faturacao.ui.modal;
 
-import atlantafx.base.theme.Styles;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.Pane;
+import org.kordamp.ikonli.feather.Feather;
 
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Construtor retrocompatível de diálogos de Faturação.
+ * A apresentação é delegada ao ModalManager partilhado do Kubata Core.
+ */
 public class ModalBuilder {
 
     private final ModalService modalService;
-    private final CustomModal modal;
+    private String title = "";
+    private Node content;
+    private double width = -1;
+    private double height = -1;
+    private boolean autoSize;
+    private final List<Node> footerNodes = new ArrayList<>();
 
     public ModalBuilder(ModalService modalService, Pane rootPane) {
         this.modalService = modalService;
-        this.modal = new CustomModal();
-        // A inicialização do rootPane será feita no ModalService
     }
 
     public ModalBuilder title(String title) {
-        modal.setTitle(title);
+        this.title = title == null ? "" : title;
         return this;
     }
 
     public ModalBuilder content(Node content) {
-        modal.setContent(content);
+        this.content = content;
         return this;
     }
 
     public ModalBuilder width(double width) {
-        modal.setModalWidth(width);
+        this.width = width;
         return this;
     }
 
     public ModalBuilder height(double height) {
-        modal.setModalHeight(height);
+        this.height = height;
         return this;
     }
 
     public ModalBuilder size(double width, double height) {
-        modal.setModalWidth(width);
-        modal.setModalHeight(height);
+        this.width = width;
+        this.height = height;
         return this;
     }
 
     public ModalBuilder autoSize() {
-        modal.setModalWidth(-1);
-        modal.setModalHeight(-1);
+        this.autoSize = true;
+        this.width = -1;
+        this.height = -1;
         return this;
     }
 
     public ModalBuilder dynamicSize() {
-        modal.setFitToContent();
-        return this;
+        return autoSize();
     }
 
     public ModalBuilder withConfirmButton(String text, Runnable onConfirm) {
-        Button confirmButton = new Button(text);
-        confirmButton.getStyleClass().add(Styles.ACCENT);
-        confirmButton.setOnAction(e -> {
-            onConfirm.run();
-            modal.hide();
+        Button button = new Button(text);
+        button.getStyleClass().add("button-primary");
+        button.setOnAction(event -> {
+            if (onConfirm != null) {
+                onConfirm.run();
+            }
+            modalService.hide();
         });
-        modal.getFooter().getChildren().add(confirmButton);
+        footerNodes.add(button);
         return this;
     }
 
     public ModalBuilder withConfirmButton(String text, java.util.function.Supplier<Boolean> onConfirm) {
-        Button confirmButton = new Button(text);
-        confirmButton.getStyleClass().add(Styles.ACCENT);
-        confirmButton.setOnAction(e -> {
-            if (Boolean.TRUE.equals(onConfirm.get())) {
-                modal.hide();
+        Button button = new Button(text);
+        button.getStyleClass().add("button-primary");
+        button.setOnAction(event -> {
+            if (onConfirm != null && Boolean.TRUE.equals(onConfirm.get())) {
+                modalService.hide();
             }
         });
-        modal.getFooter().getChildren().add(confirmButton);
+        footerNodes.add(button);
         return this;
     }
 
     public ModalBuilder withCancelButton(String text) {
-        Button cancelButton = new Button(text);
-        cancelButton.setOnAction(e -> modal.hide());
-        modal.getFooter().getChildren().add(cancelButton);
-        return this;
+        return withCancelButton(text, null);
     }
 
     public ModalBuilder withCancelButton(String text, Runnable onCancel) {
-        Button cancelButton = new Button(text);
-        cancelButton.setOnAction(e -> {
-            if (onCancel != null) onCancel.run();
-            modal.hide();
+        Button button = new Button(text);
+        button.getStyleClass().add("button-outlined");
+        button.setOnAction(event -> {
+            if (onCancel != null) {
+                onCancel.run();
+            }
+            modalService.hide();
         });
-        modal.getFooter().getChildren().add(cancelButton);
+        footerNodes.add(button);
         return this;
     }
 
@@ -104,25 +115,63 @@ public class ModalBuilder {
     }
 
     public ModalBuilder withCustomButton(String text, Runnable onAction, String styleClass) {
-        Button customButton = new Button(text);
+        Button button = new Button(text);
         if (styleClass != null && !styleClass.isBlank()) {
-            customButton.getStyleClass().add(styleClass);
+            button.getStyleClass().add(styleClass);
         }
-        customButton.setOnAction(e -> {
+        button.setOnAction(event -> {
             if (onAction != null) {
                 onAction.run();
             }
-            modal.hide();
+            modalService.hide();
         });
-        modal.getFooter().getChildren().add(customButton);
+        footerNodes.add(button);
         return this;
     }
 
-    public CustomModal getModal() {
-        return modal;
+    /** Acrescenta um controlo personalizado ao rodapé padrão. */
+    public ModalBuilder addFooterNode(Node node) {
+        if (node != null) {
+            footerNodes.add(node);
+        }
+        return this;
+    }
+
+    /** Insere um controlo personalizado numa posição específica do rodapé. */
+    public ModalBuilder addFooterNode(Node node, int index) {
+        if (node != null) {
+            int safeIndex = Math.max(0, Math.min(index, footerNodes.size()));
+            footerNodes.add(safeIndex, node);
+        }
+        return this;
+    }
+
+    /** Fecha o modal deste fluxo (o modal que está no topo da pilha). */
+    public void hide() {
+        modalService.hide();
     }
 
     public void buildAndShow() {
-        modalService.show(modal);
+        ModalManager.ModalConfig config = new ModalManager.ModalConfig()
+                .title(title)
+                .icon(Feather.LAYERS)
+                .closeOnOverlayClick(true)
+                .closeOnEscape(true);
+
+        if (autoSize || (width <= 0 && height <= 0)) {
+            config.autoSize();
+        } else {
+            if (width > 0) {
+                config.width((int) Math.round(width));
+            }
+            if (height > 0) {
+                config.height((int) Math.round(height));
+            }
+        }
+
+        for (Node node : footerNodes) {
+            config.footerNode(node);
+        }
+        modalService.show(content, config);
     }
 }
