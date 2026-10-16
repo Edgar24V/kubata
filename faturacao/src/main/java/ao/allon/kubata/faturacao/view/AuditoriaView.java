@@ -275,10 +275,6 @@ public class AuditoriaView extends VBox {
 
     private void showDetails(AuditLog log) {
         try {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Detalhes da Auditoria");
-            alert.setHeaderText(log.getActionType().getDescription() + " - " + log.getEntityType());
-
             VBox content = new VBox(10);
             content.setPadding(new Insets(10));
 
@@ -304,8 +300,10 @@ public class AuditoriaView extends VBox {
                 content.getChildren().add(newPane);
             }
 
-            alert.getDialogPane().setContent(content);
-            alert.showAndWait();
+            AlertUtils.showCustomModal(
+                    "Detalhes da Auditoria — " + log.getActionType().getDescription(),
+                    content
+            );
         } catch (Exception e) {
             AlertUtils.showExceptionAlert("Erro", "Falha ao mostrar detalhes da auditoria", e);
         }
