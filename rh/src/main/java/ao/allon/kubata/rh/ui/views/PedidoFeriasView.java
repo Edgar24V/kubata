@@ -5,7 +5,7 @@ import ao.allon.kubata.rh.domain.PedidoFerias;
 import ao.allon.kubata.rh.domain.Colaborador;
 import ao.allon.kubata.rh.service.PedidoFeriasService;
 import ao.allon.kubata.rh.service.ColaboradorService;
-import ao.allon.kubata.rh.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import net.synedra.validatorfx.Validator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
