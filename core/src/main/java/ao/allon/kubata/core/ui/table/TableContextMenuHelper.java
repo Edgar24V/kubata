@@ -2,6 +2,7 @@ package ao.allon.kubata.core.ui.table;
 
 import javafx.collections.ObservableList;
 import javafx.scene.control.*;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.MouseButton;
@@ -261,14 +262,16 @@ public class TableContextMenuHelper<S> {
     }
 
     private void confirmAndDelete(S item) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmar Exclusão");
-        confirm.setHeaderText("Excluir " + entityName);
-        confirm.setContentText("Tem certeza que deseja excluir este " + entityName.toLowerCase() + "?");
-
-        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-            onDelete.accept(item);
+        ModalManager manager = ModalManager.getActiveInstance();
+        if (manager == null || !manager.hasRoot()) {
+            System.err.println("Não foi possível confirmar a exclusão: ModalManager sem raiz.");
+            return;
         }
+        manager.showConfirm(
+                "Excluir " + entityName,
+                "Tem certeza que deseja excluir este " + entityName.toLowerCase() + "?",
+                () -> onDelete.accept(item)
+        );
     }
 
     private void copySelectionToClipboard() {
@@ -393,19 +396,21 @@ public class TableContextMenuHelper<S> {
     }
 
     private void showInfo(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        ModalManager manager = ModalManager.getActiveInstance();
+        if (manager != null && manager.hasRoot()) {
+            manager.info(title, content);
+        } else {
+            System.out.println(title + ": " + content);
+        }
     }
 
     private void showError(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        ModalManager manager = ModalManager.getActiveInstance();
+        if (manager != null && manager.hasRoot()) {
+            manager.danger(title, content);
+        } else {
+            System.err.println(title + ": " + content);
+        }
     }
 
     /**
