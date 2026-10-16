@@ -1627,46 +1627,39 @@ public class FaturasView extends BorderPane {
             AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura para submeter à AGT.");
             return;
         }
-
-        // Verificar se a fatura já foi submetida
         if ("SUCCESS".equals(f.getAgtSubmissionStatus())) {
             AlertUtils.showWarningAlert("Aviso", "Esta fatura já foi submetida e validada pela AGT.");
             return;
         }
 
-        boolean confirmed = AlertUtils.showConfirmation("Confirmar Submissão AGT",
-            "Deseja submeter a fatura " + f.getNumero() + " à AGT?");
-
-        if (confirmed) {
-            String loadingId = loadingService.showLoading("A submeter fatura à AGT...");
-
-            agtElectronicInvoiceService.submitInvoiceAsync(f)
-                .thenAccept(response -> {
-                    javafx.application.Platform.runLater(() -> {
-                        loadingService.hideLoading(loadingId);
-                        if (response != null && response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
-                            String validationCode = response.getValidationResults().get(0).getValidationCode();
-                            AlertUtils.showInfoAlert("Sucesso", "Fatura submetida com sucesso!\nCódigo de validação: " + validationCode);
-                        } else {
-                            AlertUtils.showInfoAlert("Sucesso", "Fatura submetida com sucesso!");
-                        }
-                        refresh();
-                    });
-                })
-                .exceptionally(ex -> {
-                    javafx.application.Platform.runLater(() -> {
-                        loadingService.hideLoading(loadingId);
-                        AlertUtils.showExceptionAlert("Erro", "Falha ao submeter fatura à AGT", ex);
-                    });
-                    return null;
-                });
-        }
-
+        AlertUtils.showConfirmationAsync(
+                "Confirmar Submissão AGT",
+                "Deseja submeter a fatura " + f.getNumero() + " à AGT?",
+                () -> {
+                    String loadingId = loadingService.showLoading("A submeter fatura à AGT...");
+                    agtElectronicInvoiceService.submitInvoiceAsync(f)
+                            .thenAccept(response -> javafx.application.Platform.runLater(() -> {
+                                loadingService.hideLoading(loadingId);
+                                if (response != null && response.getValidationResults() != null
+                                        && !response.getValidationResults().isEmpty()) {
+                                    String validationCode = response.getValidationResults().get(0).getValidationCode();
+                                    AlertUtils.showInfoAlert("Sucesso", "Fatura submetida com sucesso!\nCódigo de validação: " + validationCode);
+                                } else {
+                                    AlertUtils.showInfoAlert("Sucesso", "Fatura submetida com sucesso!");
+                                }
+                                refresh();
+                            }))
+                            .exceptionally(ex -> {
+                                javafx.application.Platform.runLater(() -> {
+                                    loadingService.hideLoading(loadingId);
+                                    AlertUtils.showExceptionAlert("Erro", "Falha ao submeter fatura à AGT", ex);
+                                });
+                                return null;
+                            });
+                }
+        );
     }
- 
-    /**
-     * Cancelar/Anular fatura na AGT
-     */
+
     private void cancelarAGT() {
         Fatura f = getSelectedFatura();
         if (f == null) {
@@ -1732,39 +1725,40 @@ private void corrigirAGT() {
             AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura para corrigir.");
             return;
         }
-
         if (!"FAILED".equals(f.getAgtSubmissionStatus())) {
             AlertUtils.showWarningAlert("Aviso", "Apenas faturas rejeitadas podem ser corrigidas.");
             return;
         }
 
-        boolean confirmed = AlertUtils.showConfirmation("Corrigir Fatura na AGT",
-            "Deseja submeter a correção da fatura " + f.getNumero() + " à AGT?\n\n" +
-            "Documento rejeitado: " + (f.getRejectedDocumentNo() != null ? f.getRejectedDocumentNo() : "N/A"));
-
-        if (confirmed) {
-            String loadingId = loadingService.showLoading("A submeter correção à AGT...");
-
-        agtElectronicInvoiceService.submitCorrection(f, f.getRejectedDocumentNo())
-            .thenAccept(response -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    if (response != null && response.getValidationResults() != null && !response.getValidationResults().isEmpty()) {
-                        String validationCode = response.getValidationResults().get(0).getValidationCode();
-                        AlertUtils.showInfoAlert("Sucesso", "Correção submetida com sucesso!\nCódigo: " + validationCode);
-                    } else {
-                        AlertUtils.showInfoAlert("Sucesso", "Correção submetida com sucesso!");
-                    }
-                    refresh();
-                });
-            })
-            .exceptionally(ex -> {
-                javafx.application.Platform.runLater(() -> {
-                    loadingService.hideLoading(loadingId);
-                    AlertUtils.showExceptionAlert("Erro", "Falha ao submeter correção", ex);
-                });
-                return null;
-            });
+        String documentoRejeitado = f.getRejectedDocumentNo() != null
+                ? f.getRejectedDocumentNo() : "N/A";
+        AlertUtils.showConfirmationAsync(
+                "Corrigir Fatura na AGT",
+                "Deseja submeter a correção da fatura " + f.getNumero()
+                        + " à AGT?\n\nDocumento rejeitado: " + documentoRejeitado,
+                () -> {
+                    String loadingId = loadingService.showLoading("A submeter correção à AGT...");
+                    agtElectronicInvoiceService.submitCorrection(f, f.getRejectedDocumentNo())
+                            .thenAccept(response -> javafx.application.Platform.runLater(() -> {
+                                loadingService.hideLoading(loadingId);
+                                if (response != null && response.getValidationResults() != null
+                                        && !response.getValidationResults().isEmpty()) {
+                                    String validationCode = response.getValidationResults().get(0).getValidationCode();
+                                    AlertUtils.showInfoAlert("Sucesso", "Correção submetida com sucesso!\nCódigo: " + validationCode);
+                                } else {
+                                    AlertUtils.showInfoAlert("Sucesso", "Correção submetida com sucesso!");
+                                }
+                                refresh();
+                            }))
+                            .exceptionally(ex -> {
+                                javafx.application.Platform.runLater(() -> {
+                                    loadingService.hideLoading(loadingId);
+                                    AlertUtils.showExceptionAlert("Erro", "Falha ao submeter correção", ex);
+                                });
+                                return null;
+                            });
+                }
+        );
     }
 }
 }
