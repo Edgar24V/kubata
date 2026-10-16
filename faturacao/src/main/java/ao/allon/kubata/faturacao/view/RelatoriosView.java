@@ -541,20 +541,12 @@ public class RelatoriosView extends VBox {
         content.setPadding(new Insets(10));
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.setTitle("Vendas por Unidade");
-        ButtonType btExport = new ButtonType("Exportar CSV", ButtonBar.ButtonData.LEFT);
-        dlg.getDialogPane().getButtonTypes().addAll(btExport, ButtonType.CLOSE);
-        dlg.getDialogPane().setContent(content);
-
-        javafx.scene.control.Button exportBtn = (javafx.scene.control.Button) dlg.getDialogPane().lookupButton(btExport);
-        exportBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
-            ev.consume();
-            exportVendasPorUnidadeCsv(inicio, fim, rows);
-        });
-
-        dlg.getDialogPane().setPrefSize(1000, 600);
-        dlg.showAndWait();
+        AlertUtils.showModalWithAction(
+                "Vendas por Unidade",
+                content,
+                "Exportar CSV",
+                () -> exportVendasPorUnidadeCsv(inicio, fim, rows)
+        );
     }
 
     private void exportVendasPorUnidadeCsv(LocalDate inicio, LocalDate fim, List<SalesByUnitReportService.Row> rows) {
@@ -658,33 +650,39 @@ public class RelatoriosView extends VBox {
     }
     
     private void showDateRangeDialog(String title, java.util.function.BiConsumer<LocalDate, LocalDate> onConfirm) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(title);
-        dialog.setHeaderText("Selecione o período");
-        
-        ButtonType typeGerar = new ButtonType("Gerar", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(typeGerar, ButtonType.CANCEL);
-        
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(20));
-        
+
         DatePicker dpInicio = new DatePicker(LocalDate.now().withDayOfMonth(1));
         DatePicker dpFim = new DatePicker(LocalDate.now());
-        
+
         grid.add(new Label("Início:"), 0, 0);
         grid.add(dpInicio, 1, 0);
         grid.add(new Label("Fim:"), 0, 1);
         grid.add(dpFim, 1, 1);
-        
-        dialog.getDialogPane().setContent(grid);
-        
-        Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isPresent() && result.get() == typeGerar) {
-            onConfirm.accept(dpInicio.getValue(), dpFim.getValue());
-        }
+
+        AlertUtils.showForm(
+                title,
+                grid,
+                "Gerar",
+                () -> {
+                    if (dpInicio.getValue() == null || dpFim.getValue() == null) {
+                        AlertUtils.showWarningAlert("Período inválido", "Selecione a data de início e a data de fim.");
+                        return false;
+                    }
+                    if (dpFim.getValue().isBefore(dpInicio.getValue())) {
+                        AlertUtils.showWarningAlert("Período inválido", "A data de fim não pode anteceder a data de início.");
+                        return false;
+                    }
+                    return true;
+                },
+                () -> onConfirm.accept(dpInicio.getValue(), dpFim.getValue())
+        );
     }
+
+    // NOVOS RELATÓRIOS FISCAIS
 
     // NOVOS RELATÓRIOS FISCAIS
 
@@ -809,13 +807,6 @@ public class RelatoriosView extends VBox {
     }
 
     private void showSingleDateDialog(String title, String header, java.util.function.Consumer<LocalDate> onConfirm) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(title);
-        dialog.setHeaderText(header);
-
-        ButtonType typeGerar = new ButtonType("Gerar", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(typeGerar, ButtonType.CANCEL);
-
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
@@ -824,45 +815,81 @@ public class RelatoriosView extends VBox {
         DatePicker dp = new DatePicker(LocalDate.now());
         grid.add(new Label("Data:"), 0, 0);
         grid.add(dp, 1, 0);
-        dialog.getDialogPane().setContent(grid);
 
-        Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isPresent() && result.get() == typeGerar) {
-            onConfirm.accept(dp.getValue());
-        }
+        AlertUtils.showForm(
+                title + (header == null || header.isBlank() ? "" : " — " + header),
+                grid,
+                "Gerar",
+                () -> {
+                    if (dp.getValue() == null) {
+                        AlertUtils.showWarningAlert("Data inválida", "Selecione uma data.");
+                        return false;
+                    }
+                    return true;
+                },
+                () -> onConfirm.accept(dp.getValue())
+        );
     }
 
-    private void showImprimirDocumentoA4() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Imprimir Documento (A4)");
-        dialog.setHeaderText("Informe o número do documento (ex: FT A/1)");
-        dialog.setContentText("Número:");
-        Optional<String> res = dialog.showAndWait();
-        if (res.isEmpty() || res.get().isBlank()) return;
-        String numero = res.get().trim();
+    private void showImprimirDocumentoA4()    private void showImprimirDocumentoA4() {
+        TextField numeroField = new TextField();
+        numeroField.setPromptText("FT A/1");
+        VBox content = new VBox(10, new Label("Informe o número do documento (ex.: FT A/1):"), numeroField);
+        content.setPadding(new Insets(12));
+
+        AlertUtils.showForm(
+                "Imprimir Documento (A4)",
+                content,
+                "Preparar documento",
+                () -> {
+                    if (numeroField.getText() == null || numeroField.getText().isBlank()) {
+                        AlertUtils.showWarningAlert("Documento", "Introduza o número do documento.");
+                        return false;
+                    }
+                    return true;
+                },
+                () -> prepararDocumentoA4(numeroField.getText().trim())
+        );
+    }
+
+    private void prepararDocumentoA4(String numero) {
         try {
             FaturaRepository repo = applicationContext.getBean(FaturaRepository.class);
             Fatura faturaBase = repo.findByNumero(numero)
                     .orElseThrow(() -> new IllegalArgumentException("Documento não encontrado: " + numero));
             Fatura fatura = faturaService.findFaturaParaImpressao(faturaBase.getId())
                     .orElseThrow(() -> new IllegalStateException("Documento não encontrado para impressão. ID: " + faturaBase.getId()));
-            JasperPrint jp = "Recibo".equalsIgnoreCase(fatura.getTipoDocumento() != null ? fatura.getTipoDocumento().getDescricao() : "")
-                    ? jasperReportService.prepararRecibo(fatura)
-                    : jasperReportService.prepararFatura(fatura);
+            JasperPrint jp = "Recibo".equalsIgnoreCase(
+                    fatura.getTipoDocumento() != null ? fatura.getTipoDocumento().getDescricao() : ""
+            ) ? jasperReportService.prepararRecibo(fatura) : jasperReportService.prepararFatura(fatura);
             jasperReportService.showReport(jp);
         } catch (Exception e) {
             AlertUtils.showExceptionAlert("Erro ao Imprimir", "Não foi possível preparar o documento.", e);
         }
     }
 
-    private void showImprimirDocumentoTermica() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Imprimir Térmica (80mm)");
-        dialog.setHeaderText("Informe o número do documento (ex: FT A/1)");
-        dialog.setContentText("Número:");
-        Optional<String> res = dialog.showAndWait();
-        if (res.isEmpty() || res.get().isBlank()) return;
-        String numero = res.get().trim();
+    private void showImprimirDocumentoTermica()    private void showImprimirDocumentoTermica() {
+        TextField numeroField = new TextField();
+        numeroField.setPromptText("FT A/1");
+        VBox content = new VBox(10, new Label("Informe o número do documento (ex.: FT A/1):"), numeroField);
+        content.setPadding(new Insets(12));
+
+        AlertUtils.showForm(
+                "Imprimir Térmica (80mm)",
+                content,
+                "Continuar",
+                () -> {
+                    if (numeroField.getText() == null || numeroField.getText().isBlank()) {
+                        AlertUtils.showWarningAlert("Documento", "Introduza o número do documento.");
+                        return false;
+                    }
+                    return true;
+                },
+                () -> prepararDocumentoTermico(numeroField.getText().trim())
+        );
+    }
+
+    private void prepararDocumentoTermico(String numero) {
         try {
             FaturaRepository repo = applicationContext.getBean(FaturaRepository.class);
             Fatura fatura = repo.findByNumero(numero)
@@ -871,7 +898,9 @@ public class RelatoriosView extends VBox {
             String operador = "";
             try {
                 if (sessionManager != null && sessionManager.getUsuario() != null) {
-                    operador = sessionManager.getUsuario().getNome() != null ? sessionManager.getUsuario().getNome() : sessionManager.getUsuario().getUsername();
+                    operador = sessionManager.getUsuario().getNome() != null
+                            ? sessionManager.getUsuario().getNome()
+                            : sessionManager.getUsuario().getUsername();
                 }
             } catch (Exception ignore) {
             }
@@ -881,12 +910,14 @@ public class RelatoriosView extends VBox {
                     fatura.getDataEmissao() != null ? fatura.getDataEmissao().atStartOfDay() : java.time.LocalDateTime.now(),
                     fatura.getSystemEntryDate() != null ? fatura.getSystemEntryDate() : java.time.LocalDateTime.now(),
                     operador,
-                    (fatura.getCliente() != null && fatura.getCliente().getNome() != null) ? fatura.getCliente().getNome() : "Consumidor Final",
-                    (fatura.getCliente() != null && fatura.getCliente().getNif() != null) ? fatura.getCliente().getNif() : "999999999",
+                    (fatura.getCliente() != null && fatura.getCliente().getNome() != null)
+                            ? fatura.getCliente().getNome() : "Consumidor Final",
+                    (fatura.getCliente() != null && fatura.getCliente().getNif() != null)
+                            ? fatura.getCliente().getNif() : "999999999",
                     fatura.getSubtotal() != null ? fatura.getSubtotal() : java.math.BigDecimal.ZERO,
                     fatura.getIva() != null ? fatura.getIva() : java.math.BigDecimal.ZERO,
                     fatura.getTotal() != null ? fatura.getTotal() : java.math.BigDecimal.ZERO,
-                    BigDecimal.ZERO, // totalDiscount
+                    BigDecimal.ZERO,
                     fatura.getTotalRetencao() != null ? fatura.getTotalRetencao() : java.math.BigDecimal.ZERO,
                     fatura.getHash() != null ? fatura.getHash() : "",
                     fatura.getHashAnterior() != null ? fatura.getHashAnterior() : ""
@@ -911,7 +942,9 @@ public class RelatoriosView extends VBox {
                         }
                         java.math.BigDecimal q = it.getQuantidadeDecimal() != null
                                 ? it.getQuantidadeDecimal()
-                                : (it.getQuantidade() != null ? new java.math.BigDecimal(it.getQuantidade()) : java.math.BigDecimal.ZERO);
+                                : (it.getQuantidade() != null
+                                    ? new java.math.BigDecimal(it.getQuantidade())
+                                    : java.math.BigDecimal.ZERO);
                         items.add(new InvoiceItemData(
                                 "",
                                 desc,
@@ -929,19 +962,37 @@ public class RelatoriosView extends VBox {
             }
 
             java.util.List<String> printers = invoiceReportService.getAvailablePrinters();
-            ChoiceDialog<String> printerDialog = new ChoiceDialog<>(invoiceReportService.getDefaultPrinterName(), printers);
-            printerDialog.setTitle("Escolher Impressora");
-            printerDialog.setHeaderText("Selecione a impressora térmica");
-            printerDialog.setContentText("Impressora:");
-            Optional<String> printer = printerDialog.showAndWait();
-            if (printer.isEmpty()) return;
-            invoiceReportService.printInvoiceThermal(data, items, printer.get());
+            if (printers == null || printers.isEmpty()) {
+                AlertUtils.showWarningAlert("Impressoras", "Não foi encontrada nenhuma impressora térmica disponível.");
+                return;
+            }
+            ComboBox<String> printerCombo = new ComboBox<>(FXCollections.observableArrayList(printers));
+            String defaultPrinter = invoiceReportService.getDefaultPrinterName();
+            if (defaultPrinter != null && printers.contains(defaultPrinter)) {
+                printerCombo.setValue(defaultPrinter);
+            } else {
+                printerCombo.getSelectionModel().selectFirst();
+            }
+            printerCombo.setMaxWidth(Double.MAX_VALUE);
+            VBox printerContent = new VBox(10,
+                    new Label("Selecione a impressora térmica:"),
+                    printerCombo
+            );
+            printerContent.setPadding(new Insets(10));
+
+            AlertUtils.showForm(
+                    "Escolher Impressora",
+                    printerContent,
+                    "Imprimir",
+                    () -> printerCombo.getValue() != null && !printerCombo.getValue().isBlank(),
+                    () -> invoiceReportService.printInvoiceThermal(data, items, printerCombo.getValue())
+            );
         } catch (Exception e) {
             AlertUtils.showExceptionAlert("Erro ao Imprimir", "Não foi possível imprimir na térmica.", e);
         }
     }
 
-    private void showVendasPorDiaReport() {
+    private void showVendasPorDiaReport()    private void showVendasPorDiaReport() {
         showDateRangeDialog("Vendas por Dia", (inicio, fim) -> {
             try {
                 List<Object[]> data = faturaService.findTaxReportData(inicio, fim);
