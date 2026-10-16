@@ -727,12 +727,12 @@ public class MainController {
     private void switchToLogin() {
         loginController.setStage(stage);
         Parent parent = loginController.createView();
-        Scene scene = new Scene(parent, 900, 600);
+        Scene scene = new Scene(parent, 1120, 720);
         scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
         ThemeManager.applyTheme(scene);
         stage.setScene(scene);
-        stage.setMinWidth(760);
-        stage.setMinHeight(520);
+        stage.setMinWidth(920);
+        stage.setMinHeight(560);
         stage.setResizable(true);
         stage.setMaximized(false);
         stage.centerOnScreen();
