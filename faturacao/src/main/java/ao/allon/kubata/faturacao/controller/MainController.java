@@ -591,6 +591,14 @@ public class MainController {
         if (notificationSink != null) notificationSink.accept("Gestão de Emails aberto");
     }
 
+    public void showAgtComunicacao() {
+        showPlaceholder("agt_comunicacao", "Comunicação AGT");
+    }
+
+    public void showLicenciamento() {
+        showPlaceholder("licenciamento", "Licenciamento");
+    }
+
     public void showAgtCorrecoes() {
         mainView.openOrFocusTab("agt_correcoes", "Correções AGT", () -> new ao.allon.kubata.faturacao.view.AgtCorrecoesView(faturaService, serieService, modalService));
         if (notificationSink != null) notificationSink.accept("Correções AGT aberto");
