@@ -489,21 +489,37 @@ public class EncomendasView extends VBox {
             return;
         }
 
-        List<TipoDocumento> opcoes = List.of(TipoDocumento.FATURA, TipoDocumento.FATURA_RECIBO);
-        ChoiceDialog<TipoDocumento> dialog = new ChoiceDialog<>(TipoDocumento.FATURA, opcoes);
-        dialog.setTitle("Converter Encomenda");
-        dialog.setHeaderText("Converter Encomenda " + f.getNumero());
-        dialog.setContentText("Escolha o documento de destino:");
-        
-        Optional<TipoDocumento> result = dialog.showAndWait();
-        result.ifPresent(tipo -> {
-            try {
-                faturaService.converterEncomendaEmFatura(f.getId(), tipo);
-                AlertUtils.showInfoAlert("Sucesso", "Encomenda convertida em " + tipo.getDescricao() + " (rascunho).");
-                refreshAsync();
-            } catch (Exception ex) {
-                AlertUtils.showExceptionAlert("Erro", "Falha ao converter encomenda.", ex);
-            }
-        });
+        ComboBox<TipoDocumento> destino = new ComboBox<>(
+                FXCollections.observableArrayList(TipoDocumento.FATURA, TipoDocumento.FATURA_RECIBO)
+        );
+        destino.setValue(TipoDocumento.FATURA);
+        destino.setMaxWidth(Double.MAX_VALUE);
+
+        VBox content = new VBox(10,
+                new Label("Encomenda: " + f.getNumero()),
+                new Label("Escolha o documento de destino:"),
+                destino
+        );
+        content.setPadding(new Insets(8));
+
+        AlertUtils.showModalWithAction(
+                "Converter Encomenda",
+                content,
+                "Converter",
+                () -> {
+                    TipoDocumento tipo = destino.getValue();
+                    if (tipo == null) {
+                        AlertUtils.showWarningAlert("Aviso", "Escolha o tipo de documento de destino.");
+                        return;
+                    }
+                    try {
+                        faturaService.converterEncomendaEmFatura(f.getId(), tipo);
+                        AlertUtils.showInfoAlert("Sucesso", "Encomenda convertida em " + tipo.getDescricao() + " (rascunho).");
+                        refreshAsync();
+                    } catch (Exception ex) {
+                        AlertUtils.showExceptionAlert("Erro", "Falha ao converter encomenda.", ex);
+                    }
+                }
+        );
     }
 }
