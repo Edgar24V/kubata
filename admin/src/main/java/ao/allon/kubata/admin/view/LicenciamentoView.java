@@ -2,7 +2,7 @@ package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.service.SessionManager;
-import ao.allon.kubata.admin.ui.modal.ModalManager;
+import ao.allon.kubata.core.ui.modal.ModalManager;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.ModuloSistema;
 import ao.allon.kubata.core.domain.Role;
