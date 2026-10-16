@@ -5,6 +5,7 @@ import ao.allon.kubata.core.ui.table.EditableTableManager;
 import ao.allon.kubata.faturacao.domain.Imposto;
 import ao.allon.kubata.faturacao.domain.MotivoIsencao;
 import ao.allon.kubata.faturacao.service.ImpostoService;
+import ao.allon.kubata.faturacao.ui.util.AlertUtils;
 import ao.allon.kubata.faturacao.service.MotivoIsencaoService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -184,21 +185,21 @@ public class ImpostoController {
             return;
         }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmação");
-        confirm.setHeaderText("Excluir Imposto");
-        confirm.setContentText("Tem certeza que deseja excluir este imposto?");
-
-        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-            try {
-                service.softDelete(impostoSelecionado.getId());
-                mostrarAlerta(Alert.AlertType.INFORMATION, "Sucesso", "Imposto excluído com sucesso!");
-                limparFormulario();
-                carregarDados();
-            } catch (Exception e) {
-                mostrarAlerta(Alert.AlertType.ERROR, "Erro", "Erro ao excluir: " + e.getMessage());
-            }
-        }
+        Imposto selected = impostoSelecionado;
+        AlertUtils.showConfirmationAsync(
+                "Excluir imposto",
+                "Tem certeza que deseja excluir este imposto?",
+                () -> {
+                    try {
+                        service.softDelete(selected.getId());
+                        mostrarAlerta(Alert.AlertType.INFORMATION, "Sucesso", "Imposto excluído com sucesso!");
+                        limparFormulario();
+                        carregarDados();
+                    } catch (Exception e) {
+                        mostrarAlerta(Alert.AlertType.ERROR, "Erro", "Erro ao excluir: " + e.getMessage());
+                    }
+                }
+        );
     }
 
     @FXML
@@ -235,10 +236,12 @@ public class ImpostoController {
     }
 
     private void mostrarAlerta(Alert.AlertType type, String title, String content) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        switch (type) {
+            case ERROR -> AlertUtils.showError(title, content);
+            case WARNING -> AlertUtils.showWarning(title, content);
+            case INFORMATION -> AlertUtils.showInfoAlert(title, content);
+            case CONFIRMATION -> AlertUtils.showConfirmationAsync(title, content, () -> {});
+            default -> AlertUtils.showInfoAlert(title, content);
+        }
     }
 }
