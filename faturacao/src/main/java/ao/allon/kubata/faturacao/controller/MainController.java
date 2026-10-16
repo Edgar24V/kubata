@@ -697,7 +697,7 @@ public class MainController {
                         showAlert(
                                 "Não foi possível encerrar a sessão",
                                 "A aplicação continuará aberta porque a base de dados não confirmou "
-                                        + "o encerramento da sessão.\\n\\n"
+                                        + "o encerramento da sessão.\n\n"
                                         + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
                         );
                     }
@@ -769,7 +769,7 @@ public class MainController {
                 showAlert(
                         "Não foi possível encerrar a sessão",
                         "O Kubata Faturação continuará aberto porque o encerramento da sessão "
-                                + "não foi confirmado pela base de dados.\\n\\n"
+                                + "não foi confirmado pela base de dados.\n\n"
                                 + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
                 );
                 return;
@@ -792,7 +792,7 @@ public class MainController {
                 showAlert(
                         "Não foi possível encerrar a sessão",
                         "O regresso ao login foi cancelado porque a base de dados não confirmou "
-                                + "o encerramento da sessão.\\n\\n"
+                                + "o encerramento da sessão.\n\n"
                                 + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
                 );
                 return;
