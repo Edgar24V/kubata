@@ -206,6 +206,15 @@ public class EmpresaWizardView extends VBox {
         if (this.empresa.getMoedaBase() == null || this.empresa.getMoedaBase().isBlank()) {
             this.empresa.setMoedaBase("AOA");
         }
+        if (this.empresa.getTipoInstalacao() == null || this.empresa.getTipoInstalacao().isBlank()) {
+            this.empresa.setTipoInstalacao("STANDARD");
+        }
+        if (this.empresa.getPeriodicidadeIva() == null || this.empresa.getPeriodicidadeIva().isBlank()) {
+            this.empresa.setPeriodicidadeIva("MENSAL");
+        }
+        if (this.empresa.getSentidoCambio() == null || this.empresa.getSentidoCambio().isBlank()) {
+            this.empresa.setSentidoCambio("INVERTIDO");
+        }
         if (this.empresa.getCasasDecimaisValor() == null) {
             this.empresa.setCasasDecimaisValor(2);
         }
@@ -432,14 +441,16 @@ public class EmpresaWizardView extends VBox {
             return false;
         }
 
-        String nifValidation = NifUtils.validate(
-                empresa.getNif(),
-                nifTypeOf(empresa.getTipoContribuinte())
+        String nifValidation = validateTaxIdForCountry(
+                empresa.getNif(), nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
         );
         if (nifValidation != null) {
+            String authorityNote = "AO".equalsIgnoreCase(empresa.getPais())
+                    ? "A confirmação oficial do cadastro continua a ser feita pela AGT."
+                    : "Confirme o cadastro junto da autoridade tributária do país seleccionado.";
             modalManager.alert(
                     "NIF inválido",
-                    nifValidation + " A confirmação oficial do cadastro continua a ser feita pela AGT.",
+                    nifValidation + " " + authorityNote,
                     "warning",
                     null
             );
@@ -485,6 +496,16 @@ public class EmpresaWizardView extends VBox {
         return value == null ? "" : value.trim();
     }
 
+    private String validateTaxIdForCountry(String value, NifUtils.TipoContribuinte taxpayerType, String countryCode) {
+        if ("AO".equalsIgnoreCase(normalize(countryCode))) {
+            return NifUtils.validate(value, taxpayerType);
+        }
+        String normalized = NifUtils.normalize(value);
+        return normalized.matches("[A-Z0-9]{6,30}")
+                ? null
+                : "O identificador fiscal deve conter entre 6 e 30 letras ou algarismos para o país seleccionado.";
+    }
+
     private NifUtils.TipoContribuinte nifTypeOf(String value) {
         if ("Pessoa Singular".equalsIgnoreCase(value)) {
             return NifUtils.TipoContribuinte.PESSOA_SINGULAR;
@@ -496,13 +517,14 @@ public class EmpresaWizardView extends VBox {
     }
 
     private boolean isAngolaProvince(String value) {
+        String province = normalize(value);
         return Set.of(
                 "Bengo", "Benguela", "Bié", "Cabinda", "Cuando", "Cubango",
                 "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
                 "Icolo e Bengo", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje",
                 "Moxico", "Moxico Leste", "Namibe", "Uíge", "Zaire",
                 "Cuando Cubango"
-        ).contains(value);
+        ).stream().anyMatch(candidate -> candidate.equalsIgnoreCase(province));
     }
 
     private TextField text(String prompt, String value) {
@@ -575,13 +597,25 @@ public class EmpresaWizardView extends VBox {
     }
 
     private class WelcomeStep implements WizardStep {
+        private ComboBox<String> installationType;
+
         public String title() { return "1 · Boas-vindas e plano de instalação"; }
-        public String description() { return "Prepare a empresa e siga o roteiro central do Kubata Administrator."; }
+        public String description() { return "Escolha o tipo de empresa e prepare o ambiente empresarial."; }
+
         public Node content() {
+            installationType = combo(
+                    "Standard — configurar do zero",
+                    "Demonstração — ambiente para formação e testes"
+            );
+            installationType.setValue("DEMONSTRACAO".equalsIgnoreCase(empresa.getTipoInstalacao())
+                    ? "Demonstração — ambiente para formação e testes"
+                    : "Standard — configurar do zero");
+
             VBox root = page(
                     section("Instalação empresarial Kubata", "um ambiente por empresa"),
                     new Label("Este assistente centraliza a configuração que será utilizada pelos módulos do ecossistema."),
-                    hint("Ao concluir, o Kubata grava a empresa, configura o exercício seleccionado, cria os parâmetros por empresa e regista os módulos escolhidos. Pode voltar atrás para rever cada etapa."),
+                    field("Tipo de empresa *", installationType),
+                    hint("Standard cria uma configuração limpa. Demonstração identifica a empresa como ambiente de formação. Os registos operacionais fictícios não serão injectados em tabelas partilhadas por várias empresas."),
                     installationChecklist(),
                     card(
                             new Label("Antes de começar"),
@@ -590,13 +624,14 @@ public class EmpresaWizardView extends VBox {
             );
             return root;
         }
+
         private Node installationChecklist() {
             VBox box = new VBox(8);
             box.getStyleClass().add("empresa-wizard-checklist");
             String[] items = {
                     "Identificação legal e NIF",
                     "Morada, contactos e localização",
-                    "Fiscalidade e parametrização financeira",
+                    "Fiscalidade, periodicidade do IVA e parametrização financeira",
                     "Módulos e funcionalidades por empresa",
                     "Organização e centros de operação",
                     "Documentos, logótipo e mensagens",
@@ -607,9 +642,29 @@ public class EmpresaWizardView extends VBox {
             }
             return box;
         }
-        public boolean validate() { return true; }
-        public void save() {}
-        public String help() { return "Esta etapa explica o que será configurado. Nenhum dado é gravado aqui."; }
+
+        public boolean validate() {
+            if (installationType == null || installationType.getValue() == null) {
+                modalManager.alert("Tipo de empresa", "Seleccione Standard ou Demonstração.", "warning", null);
+                return false;
+            }
+            return true;
+        }
+
+        public void save() {
+            boolean demo = installationType.getValue().startsWith("Demonstração");
+            empresa.setTipoInstalacao(demo ? "DEMONSTRACAO" : "STANDARD");
+            companyParameters.put("DEMO_MODE", String.valueOf(demo));
+            if (demo) {
+                companyParameters.put("DEMO_DADOS_OPERACIONAIS", "NAO_GERADOS");
+            } else {
+                companyParameters.remove("DEMO_DADOS_OPERACIONAIS");
+            }
+        }
+
+        public String help() {
+            return "Standard configura uma empresa real do zero. Demonstração identifica um ambiente destinado a formação e testes; a carga de registos operacionais depende do isolamento de dados por empresa.";
+        }
     }
 
     private class IdentityStep implements WizardStep {
@@ -673,8 +728,8 @@ public class EmpresaWizardView extends VBox {
             );
         }
         public boolean validate() {
-            if (normalize(identifier.getText()).length() < 2) {
-                modalManager.alert("Identificador inválido", "Indique um identificador curto com pelo menos 2 caracteres.", "warning", null);
+            if (!normalize(identifier.getText()).matches("(?i)[a-z]{3}")) {
+                modalManager.alert("Identificador inválido", "A sigla deve conter exactamente três letras (A–Z), por exemplo KBT.", "warning", null);
                 return false;
             }
             if (normalize(name.getText()).isBlank()) {
@@ -687,10 +742,9 @@ public class EmpresaWizardView extends VBox {
                 return false;
             }
 
-            String nifMessage = NifUtils.validate(nifValue, nifTypeOf(taxpayerType.getValue()));
-            if (nifMessage != null) {
-                modalManager.alert("NIF inválido", nifMessage
-                        + " A confirmação oficial do cadastro continua a ser feita pela AGT.", "warning", null);
+            String normalizedNif = NifUtils.normalize(nifValue);
+            if (!normalizedNif.matches("[A-Z0-9]{6,30}")) {
+                modalManager.alert("NIF inválido", "Use entre 6 e 30 letras ou algarismos; os separadores visuais são removidos.", "warning", null);
                 return false;
             }
 
@@ -715,7 +769,8 @@ public class EmpresaWizardView extends VBox {
         private TextField address;
         private TextField postalCode;
         private TextField locality;
-        private ComboBox<String> province;
+        private ComboBox<String> country;
+        private TextField province;
         private TextField municipality;
         private TextField fiscalDistrict;
         private TextField phone;
@@ -729,12 +784,19 @@ public class EmpresaWizardView extends VBox {
             address = text("Morada completa", empresa.getMorada());
             postalCode = text("Código postal", empresa.getCodigoPostal());
             locality = text("Localidade", empresa.getLocalidade());
-            province = combo("Bengo", "Benguela", "Bié", "Cabinda", "Cuando", "Cubango",
-                    "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla",
-                    "Icolo e Bengo", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje",
-                    "Moxico", "Moxico Leste", "Namibe", "Uíge", "Zaire");
-            province.setValue(empresa.getProvincia() == null ? "Luanda" : empresa.getProvincia());
-            municipality = text("Município", empresa.getMunicipio());
+            country = combo(
+                    "AO — Angola", "PT — Portugal", "MZ — Moçambique", "NA — Namíbia",
+                    "ZA — África do Sul", "CV — Cabo Verde", "BR — Brasil",
+                    "US — Estados Unidos", "GB — Reino Unido"
+            );
+            String countryCode = normalize(empresa.getPais()).toUpperCase(Locale.ROOT);
+            if (countryCode.isBlank()) countryCode = "AO";
+            final String selectedCountryCode = countryCode;
+            country.setValue(country.getItems().stream()
+                    .filter(option -> option.startsWith(selectedCountryCode + " —"))
+                    .findFirst().orElse("AO — Angola"));
+            province = text("Província / região", empresa.getProvincia());
+            municipality = text("Município / cidade", empresa.getMunicipio());
             fiscalDistrict = text("Bairro / zona fiscal", empresa.getBairroFiscal());
             phone = text("Telefone", empresa.getTelefone());
             mobile = text("Telemóvel", empresa.getTelemovel());
@@ -746,8 +808,9 @@ public class EmpresaWizardView extends VBox {
                     field("Morada *", address),
                     field("Código postal", postalCode),
                     field("Localidade", locality),
-                    field("Província", province),
-                    field("Município", municipality)
+                    field("País *", country),
+                    field("Província / região *", province),
+                    field("Município / cidade *", municipality)
             );
             VBox right = new VBox(
                     field("Bairro / zona fiscal", fiscalDistrict),
@@ -771,13 +834,26 @@ public class EmpresaWizardView extends VBox {
                 modalManager.alert("Morada obrigatória", "Indique a morada principal da empresa.", "warning", null);
                 return false;
             }
+            if (country.getValue() == null) {
+                modalManager.alert("País obrigatório", "Seleccione o país da empresa.", "warning", null);
+                return false;
+            }
+            if (normalize(province.getText()).isBlank()) {
+                modalManager.alert("Província / região obrigatória", "Indique a província ou região da empresa.", "warning", null);
+                return false;
+            }
+            if (normalize(municipality.getText()).isBlank()) {
+                modalManager.alert("Município obrigatório", "Indique o município ou cidade da empresa.", "warning", null);
+                return false;
+            }
             return true;
         }
         public void save() {
             empresa.setMorada(normalize(address.getText()));
             empresa.setCodigoPostal(normalize(postalCode.getText()));
             empresa.setLocalidade(normalize(locality.getText()));
-            empresa.setProvincia(province.getValue());
+            empresa.setPais(country.getValue().substring(0, 2));
+            empresa.setProvincia(normalize(province.getText()));
             empresa.setMunicipio(normalize(municipality.getText()));
             empresa.setBairroFiscal(normalize(fiscalDistrict.getText()));
             empresa.setTelefone(normalize(phone.getText()));
@@ -792,6 +868,7 @@ public class EmpresaWizardView extends VBox {
     private class FiscalStep implements WizardStep {
         private ComboBox<String> regime;
         private TextField cae;
+        private ComboBox<String> ivaPeriodicity;
         private TextField socialSecurityNif;
         private TextField fiscalNif;
         private TextField certificate;
@@ -803,6 +880,12 @@ public class EmpresaWizardView extends VBox {
         public Node content() {
             regime = combo("Regime Geral", "Regime Simplificado", "Regime de Exclusão", "Isento", "Especial");
             regime.setValue(empresa.getRegimeFiscal() == null ? "Regime Geral" : empresa.getRegimeFiscal());
+            ivaPeriodicity = combo("Normal mensal", "Trimestral", "Isento / não aplicável");
+            ivaPeriodicity.setValue(switch (normalize(empresa.getPeriodicidadeIva()).toUpperCase(Locale.ROOT)) {
+                case "TRIMESTRAL" -> "Trimestral";
+                case "ISENTO", "NAO_APLICAVEL" -> "Isento / não aplicável";
+                default -> "Normal mensal";
+            });
             cae = text("CAE", empresa.getCae());
             socialSecurityNif = text("NIF Segurança Social", empresa.getNifSegurancaSocial());
             fiscalNif = text("NIF Fiscal", empresa.getNifFiscal());
@@ -812,13 +895,18 @@ public class EmpresaWizardView extends VBox {
             certificateDate.setMaxWidth(Double.MAX_VALUE);
             certificateHash = text("Hash / impressão digital", empresa.getHashCertificadoAGT());
 
+            boolean angolaCompany = "AO".equalsIgnoreCase(empresa.getPais());
+            if (!angolaCompany) saftEnabled = false;
             CheckBox saft = new CheckBox("Preparar integração/controlo SAFT-AO");
             saft.setSelected(saftEnabled);
+            saft.setDisable(!angolaCompany);
+            saft.setTooltip(new Tooltip("Disponível apenas para empresas com domicílio fiscal em Angola."));
             saft.selectedProperty().addListener((obs, old, value) -> saftEnabled = value);
 
             return page(
                     section("Enquadramento tributário", "dados para faturação e reporting"),
                     field("Regime fiscal *", regime),
+                    field("Periodicidade do IVA *", ivaPeriodicity),
                     field("CAE", cae),
                     field("NIF Fiscal", fiscalNif),
                     field("NIF Segurança Social", socialSecurityNif),
@@ -856,9 +944,14 @@ public class EmpresaWizardView extends VBox {
                 return false;
             }
 
-            if (!normalize(empresa.getProvincia()).isBlank()
+            if ("AO".equalsIgnoreCase(empresa.getPais())
                     && !isAngolaProvince(normalize(empresa.getProvincia()))) {
-                modalManager.alert("Província inválida", "Seleccione uma província válida de Angola.", "warning", null);
+                modalManager.alert("Província inválida", "Indique uma província válida de Angola.", "warning", null);
+                return false;
+            }
+
+            if (ivaPeriodicity == null || ivaPeriodicity.getValue() == null) {
+                modalManager.alert("Periodicidade do IVA", "Seleccione a periodicidade do IVA.", "warning", null);
                 return false;
             }
 
@@ -867,14 +960,16 @@ public class EmpresaWizardView extends VBox {
                 return false;
             }
 
-            String nifMessage = NifUtils.validate(
-                    empresa.getNif(),
-                    nifTypeOf(empresa.getTipoContribuinte())
+            String nifMessage = validateTaxIdForCountry(
+                    empresa.getNif(), nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
             );
             if (nifMessage != null) {
+                String authorityNote = "AO".equalsIgnoreCase(empresa.getPais())
+                        ? "A confirmação oficial do cadastro continua a ser feita pela AGT."
+                        : "Confirme o cadastro junto da autoridade tributária do país seleccionado.";
                 modalManager.alert(
                         "NIF inválido",
-                        nifMessage + " A confirmação oficial do cadastro continua a ser feita pela AGT.",
+                        nifMessage + " " + authorityNote,
                         "warning",
                         null
                 );
@@ -882,9 +977,8 @@ public class EmpresaWizardView extends VBox {
             }
 
             if (!fiscalNifValue.isBlank()) {
-                String fiscalMessage = NifUtils.validate(
-                        fiscalNifValue,
-                        nifTypeOf(empresa.getTipoContribuinte())
+                String fiscalMessage = validateTaxIdForCountry(
+                        fiscalNifValue, nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
                 );
                 if (fiscalMessage != null) {
                     modalManager.alert("NIF Fiscal inválido", fiscalMessage, "warning", null);
@@ -893,9 +987,8 @@ public class EmpresaWizardView extends VBox {
             }
 
             if (!socialSecurityNifValue.isBlank()) {
-                String socialMessage = NifUtils.validate(
-                        socialSecurityNifValue,
-                        nifTypeOf(empresa.getTipoContribuinte())
+                String socialMessage = validateTaxIdForCountry(
+                        socialSecurityNifValue, nifTypeOf(empresa.getTipoContribuinte()), empresa.getPais()
                 );
                 if (socialMessage != null) {
                     modalManager.alert("NIF Segurança Social inválido", socialMessage, "warning", null);
@@ -940,6 +1033,12 @@ public class EmpresaWizardView extends VBox {
         }
         public void save() {
             empresa.setRegimeFiscal(regime.getValue());
+            empresa.setPeriodicidadeIva(switch (ivaPeriodicity.getValue()) {
+                case "Trimestral" -> "TRIMESTRAL";
+                case "Isento / não aplicável" -> "ISENTO";
+                default -> "MENSAL";
+            });
+            companyParameters.put("IVA_PERIODICIDADE", empresa.getPeriodicidadeIva());
             empresa.setCae(normalize(cae.getText()));
             empresa.setNifFiscal(NifUtils.normalize(fiscalNif.getText()));
             empresa.setNifSegurancaSocial(NifUtils.normalize(socialSecurityNif.getText()));
@@ -956,6 +1055,8 @@ public class EmpresaWizardView extends VBox {
         private Spinner<Integer> fiscalYear;
         private ComboBox<String> baseCurrency;
         private ComboBox<String> alternativeCurrency;
+        private TextField exchangeRate;
+        private ComboBox<String> exchangeDirection;
         private Spinner<Integer> moneyDecimals;
         private Spinner<Integer> quantityDecimals;
         private TextField bank;
@@ -971,10 +1072,16 @@ public class EmpresaWizardView extends VBox {
         public Node content() {
             fiscalYear = new Spinner<>(2000, 2100, empresa.getExercicioActual());
             fiscalYear.setMaxWidth(Double.MAX_VALUE);
-            baseCurrency = combo("AOA", "USD", "EUR", "ZAR");
+            baseCurrency = combo("AOA", "USD", "EUR", "ZAR", "GBP");
             baseCurrency.setValue(empresa.getMoedaBase() == null ? "AOA" : empresa.getMoedaBase());
-            alternativeCurrency = combo("AOA", "USD", "EUR", "ZAR");
-            alternativeCurrency.setValue(empresa.getMoedaAlternativa());
+            alternativeCurrency = combo("Nenhuma", "AOA", "USD", "EUR", "ZAR", "GBP");
+            alternativeCurrency.setValue(normalize(empresa.getMoedaAlternativa()).isBlank()
+                    ? "Nenhuma" : empresa.getMoedaAlternativa());
+            exchangeRate = text("Ex.: 920.000000", decimal(empresa.getTaxaCambio()));
+            exchangeDirection = combo("Directo", "Invertido");
+            exchangeDirection.setValue("DIRECTO".equalsIgnoreCase(empresa.getSentidoCambio()) ? "Directo" : "Invertido");
+            alternativeCurrency.valueProperty().addListener((obs, oldValue, newValue) -> updateExchangeControls(newValue));
+            updateExchangeControls(alternativeCurrency.getValue());
             moneyDecimals = new Spinner<>(0, 6, empresa.getCasasDecimaisValor() == null ? 2 : empresa.getCasasDecimaisValor());
             quantityDecimals = new Spinner<>(0, 6, empresa.getCasasDecimaisQuantidade() == null ? 3 : empresa.getCasasDecimaisQuantidade());
             bank = text("Banco principal", empresa.getBanco());
@@ -992,34 +1099,71 @@ public class EmpresaWizardView extends VBox {
             grid.add(field("Exercício actual *", fiscalYear), 0, 0);
             grid.add(field("Moeda base *", baseCurrency), 1, 0);
             grid.add(field("Moeda alternativa", alternativeCurrency), 0, 1);
-            grid.add(field("Casas decimais valor", moneyDecimals), 1, 1);
-            grid.add(field("Casas decimais quantidade", quantityDecimals), 0, 2);
-            grid.add(field("Banco", bank), 1, 2);
-            grid.add(field("Conta bancária", bankAccount), 0, 3);
-            grid.add(field("IBAN", iban), 1, 3);
-            grid.add(field("Capital social", shareCapital), 0, 4);
-            grid.add(field("Volume previsto", expectedRevenue), 1, 4);
-            grid.add(field("Capital nacional", nationalCapital), 0, 5);
-            grid.add(field("Capital estrangeiro", foreignCapital), 1, 5);
-            grid.add(field("Capital público", publicCapital), 0, 6);
+            grid.add(field("Taxa de câmbio", exchangeRate), 1, 1);
+            grid.add(field("Sentido do câmbio", exchangeDirection), 0, 2);
+            grid.add(field("Casas decimais valor", moneyDecimals), 1, 2);
+            grid.add(field("Casas decimais quantidade", quantityDecimals), 0, 3);
+            grid.add(field("Banco", bank), 1, 3);
+            grid.add(field("Conta bancária", bankAccount), 0, 4);
+            grid.add(field("IBAN", iban), 1, 4);
+            grid.add(field("Capital social", shareCapital), 0, 5);
+            grid.add(field("Volume previsto", expectedRevenue), 1, 5);
+            grid.add(field("Capital nacional", nationalCapital), 0, 6);
+            grid.add(field("Capital estrangeiro", foreignCapital), 1, 6);
+            grid.add(field("Capital público", publicCapital), 0, 7);
             GridPane.setHgrow(grid.getChildren().get(1), Priority.ALWAYS);
 
             return page(
                     section("Configuração financeira", "parâmetros globais da empresa"),
                     grid,
-                    hint("O exercício escolhido será usado para criar o primeiro exercício fiscal quando essa opção for activada na etapa de segurança.")
+                    hint("O exercício contabilístico será criado de 1 de Janeiro a 31 de Dezembro. Quando existir moeda alternativa, indique uma taxa positiva e escolha se a conversão será directa ou invertida.")
             );
+        }
+        private boolean hasAlternativeCurrency() {
+            String value = normalize(alternativeCurrency == null ? null : alternativeCurrency.getValue());
+            return !value.isBlank() && !"Nenhuma".equalsIgnoreCase(value);
+        }
+        private void updateExchangeControls(String alternative) {
+            boolean enabled = alternative != null && !alternative.isBlank()
+                    && !"Nenhuma".equalsIgnoreCase(alternative);
+            if (exchangeRate != null) {
+                exchangeRate.setDisable(!enabled);
+                if (!enabled) exchangeRate.clear();
+            }
+            if (exchangeDirection != null) exchangeDirection.setDisable(!enabled);
         }
         public boolean validate() {
             if (fiscalYear.getValue() == null || baseCurrency.getValue() == null) {
                 modalManager.alert("Configuração financeira", "Seleccione o exercício e a moeda base.", "warning", null);
                 return false;
             }
-            return validDecimal("Capital social", shareCapital)
-                    && validDecimal("Volume de negócios previsto", expectedRevenue)
-                    && validDecimal("Capital nacional", nationalCapital)
-                    && validDecimal("Capital estrangeiro", foreignCapital)
-                    && validDecimal("Capital público", publicCapital);
+            if (!validDecimal("Capital social", shareCapital)
+                    || !validDecimal("Volume de negócios previsto", expectedRevenue)
+                    || !validDecimal("Capital nacional", nationalCapital)
+                    || !validDecimal("Capital estrangeiro", foreignCapital)
+                    || !validDecimal("Capital público", publicCapital)) {
+                return false;
+            }
+
+            String alternative = hasAlternativeCurrency() ? normalize(alternativeCurrency.getValue()) : "";
+            String base = normalize(baseCurrency.getValue());
+            if (!alternative.isBlank() && alternative.equalsIgnoreCase(base)) {
+                modalManager.alert("Moedas incompatíveis", "A moeda alternativa deve ser diferente da moeda base.", "warning", null);
+                return false;
+            }
+            if (!alternative.isBlank()) {
+                if (!validDecimal("Taxa de câmbio", exchangeRate)) return false;
+                BigDecimal rate = decimalValue(exchangeRate);
+                if (rate == null || rate.signum() <= 0) {
+                    modalManager.alert("Taxa de câmbio inválida", "A taxa deve ser um número superior a zero quando existe moeda alternativa.", "warning", null);
+                    return false;
+                }
+                if (exchangeDirection.getValue() == null) {
+                    modalManager.alert("Sentido do câmbio", "Seleccione Directo ou Invertido.", "warning", null);
+                    return false;
+                }
+            }
+            return true;
         }
         private boolean validDecimal(String label, TextField field) {
             if (normalize(field.getText()).isBlank()) return true;
@@ -1034,7 +1178,17 @@ public class EmpresaWizardView extends VBox {
         public void save() {
             empresa.setExercicioActual(fiscalYear.getValue());
             empresa.setMoedaBase(baseCurrency.getValue());
-            empresa.setMoedaAlternativa(alternativeCurrency.getValue());
+            empresa.setMoedaAlternativa(hasAlternativeCurrency()
+                    ? alternativeCurrency.getValue() : null);
+            empresa.setTaxaCambio(decimalValue(exchangeRate));
+            empresa.setSentidoCambio("Directo".equals(exchangeDirection.getValue()) ? "DIRECTO" : "INVERTIDO");
+            if (empresa.getMoedaAlternativa() != null) {
+                companyParameters.put("CAMBIO_TAXA", decimal(empresa.getTaxaCambio()));
+                companyParameters.put("CAMBIO_SENTIDO", empresa.getSentidoCambio());
+            } else {
+                companyParameters.remove("CAMBIO_TAXA");
+                companyParameters.remove("CAMBIO_SENTIDO");
+            }
             empresa.setCasasDecimaisValor(moneyDecimals.getValue());
             empresa.setCasasDecimaisQuantidade(quantityDecimals.getValue());
             empresa.setBanco(normalize(bank.getText()));
