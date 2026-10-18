@@ -3,6 +3,7 @@ package ao.allon.kubata.admin.view;
 import ao.allon.kubata.admin.service.NotificationService;
 import ao.allon.kubata.admin.service.MaintenanceModeService;
 import ao.allon.kubata.admin.service.PersistenceService;
+import ao.allon.kubata.admin.service.PlatformCommandCenterService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.service.job.AdminJob;
 import ao.allon.kubata.admin.service.job.JobManager;
@@ -50,6 +51,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +73,7 @@ public class ConsoleView extends VBox {
     private final SessionManager sessionManager;
     private final ModalManager modalManager;
     private final PersistenceService persistenceService;
+    private final PlatformCommandCenterService platformCommandCenterService;
     private final NotificationService notificationService;
     private final MaintenanceModeService maintenanceModeService;
     private final Environment environment;
@@ -110,6 +113,7 @@ public class ConsoleView extends VBox {
                        SessionManager sessionManager, 
                        ModalManager modalManager,
                        PersistenceService persistenceService,
+                       PlatformCommandCenterService platformCommandCenterService,
                        NotificationService notificationService,
                        MaintenanceModeService maintenanceModeService,
                        Environment environment,
@@ -123,6 +127,7 @@ public class ConsoleView extends VBox {
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
+        this.platformCommandCenterService = platformCommandCenterService;
         this.notificationService = notificationService;
         this.maintenanceModeService = maintenanceModeService;
         this.environment = environment;
@@ -712,11 +717,12 @@ public class ConsoleView extends VBox {
                 DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
                 for (UserSession s : sessions) {
                     activeSessions.add(new ActiveSession(
-                        s.getUsername(), 
-                        s.getLoginTime().format(timeFormatter), 
-                        s.getWorkstation(), 
-                        s.getIpAddress(), 
-                        s.getContext(), 
+                        s.getId(),
+                        s.getUsername(),
+                        s.getLoginTime().format(timeFormatter),
+                        s.getWorkstation(),
+                        s.getIpAddress(),
+                        s.getContext(),
                         s.getMemoryUsage() != null ? s.getMemoryUsage() : "N/A"
                     ));
                 }
@@ -770,15 +776,19 @@ public class ConsoleView extends VBox {
     }
 
     private void kickUser(ActiveSession session) {
-        modalManager.showConfirmModal(new Label("Forçar a saída do utilizador " + session.getUserName() + "?\nEsta ação encerrará a sessão imediatamente."), 
+        modalManager.showConfirmModal(new Label("Forçar a saída do utilizador " + session.getUserName() + "?\nEsta ação encerrará apenas a sessão seleccionada."), 
                 "Kick Utilizador", () -> {
-            persistenceService.executeAsync(() -> {
-                userSessionRepository.findByUsername(session.getUserName())
-                    .ifPresent(userSessionRepository::delete);
-            }, "USER_KICK", "CONSOLE", "Utilizador " + session.getUserName() + " removido do sistema", () -> {
-                activeSessions.remove(session);
-                lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
-            });
+            persistenceService.executeAsync(
+                    () -> platformCommandCenterService.terminateSession(
+                            sessionManager.getUser(), session.getId()),
+                    "USER_KICK",
+                    "CONSOLE",
+                    "Sessão " + session.getId() + " do utilizador " + session.getUserName() + " encerrada",
+                    () -> {
+                        activeSessions.removeIf(activeSession ->
+                                Objects.equals(activeSession.getId(), session.getId()));
+                        lblActiveSessionsCount.setText(String.valueOf(activeSessions.size()));
+                    });
         }, null);
     }
 
@@ -1027,8 +1037,10 @@ public class ConsoleView extends VBox {
 
     // Classes Auxiliares (Diferente do Primavera, aqui usamos POJOs simples para a UI)
     public static class ActiveSession {
+        private final Long id;
         private final SimpleStringProperty userName, loginTime, workstation, ip, context, memory;
-        public ActiveSession(String u, String l, String w, String ip, String c, String m) { 
+        public ActiveSession(Long id, String u, String l, String w, String ip, String c, String m) {
+            this.id = id;
             this.userName = new SimpleStringProperty(u);
             this.loginTime = new SimpleStringProperty(l);
             this.workstation = new SimpleStringProperty(w);
@@ -1036,6 +1048,7 @@ public class ConsoleView extends VBox {
             this.context = new SimpleStringProperty(c);
             this.memory = new SimpleStringProperty(m);
         }
+        public Long getId() { return id; }
         public String getUserName() { return userName.get(); }
         public String getLoginTime() { return loginTime.get(); }
         public String getWorkstation() { return workstation.get(); }
