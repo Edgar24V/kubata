@@ -42,7 +42,7 @@ import java.util.prefs.Preferences;
 import java.util.regex.Pattern;
 
 /**
- * Tela principal de autenticação do Kubata Administrator.
+ * Tela de autenticação da Faturação, alinhada com o padrão visual e as políticas do Kubata Administrator.
  *
  * <p>Responsabilidades:
  * validação do formulário, MFA, autenticação assíncrona,
@@ -61,7 +61,7 @@ public class LoginController {
 
     private final AuthService authService;
     private final ApplicationEventPublisher eventPublisher;
-        private final PasswordChangeService passwordChangeService;
+    private final PasswordChangeService passwordChangeService;
     private final ModalService modalService;
     private final Preferences preferences =
             Preferences.userRoot().node(PREF_NODE);
@@ -533,7 +533,7 @@ public class LoginController {
                 securityCard
         );
 
-        Label buildLabel = new Label("KUBATA Faturação • v2.0.0");
+        Label buildLabel = new Label("KUBATA Faturação • Acesso seguro");
         buildLabel.setStyle(
                 "-fx-font-size: 11px;"
                         + "-fx-text-fill: rgba(255,255,255,0.48);"
