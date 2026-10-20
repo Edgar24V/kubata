@@ -87,6 +87,7 @@ public class MainController {
     private final ao.allon.kubata.faturacao.service.ContaBancariaService contaBancariaService;
     private final ao.allon.kubata.core.service.ContabilidadeService contabilidadeService;
     private final ApplicationContext applicationContext;
+    private final ao.allon.kubata.core.service.AuthService authService;
     private final ModalService modalService;
     private final ao.allon.kubata.faturacao.service.RetencaoFonteService retencaoFonteService;
     private final ao.allon.kubata.faturacao.pdv.service.CustomerDisplayService customerDisplayService;
@@ -142,6 +143,7 @@ public class MainController {
                           RetencaoFonteService retencaoFonteService,
                           ao.allon.kubata.faturacao.pdv.service.CustomerDisplayService customerDisplayService,
                           ao.allon.kubata.core.service.AuditService auditService,
+                          ao.allon.kubata.core.service.AuthService authService,
                           ao.allon.kubata.faturacao.service.SystemLogService systemLogService,
                           ao.allon.kubata.faturacao.service.BackupRestoreService backupRestoreService,
                           ao.allon.kubata.faturacao.service.BackupConfigService backupConfigService,
@@ -184,6 +186,7 @@ public class MainController {
         this.retencaoFonteService = retencaoFonteService;
         this.customerDisplayService = customerDisplayService;
         this.auditService = auditService;
+        this.authService = authService;
         this.systemLogService = systemLogService;
         this.backupRestoreService = backupRestoreService;
         this.backupConfigService = backupConfigService;
@@ -678,11 +681,30 @@ public class MainController {
             ThemeManager.setupCustomTitleBar(stage);
             switchToLogin();
             this.stage.setTitle(applicationTitle);
-            try {
-                this.stage.setOnCloseRequest(ev -> {
-                    try { customerDisplayService.stop(); } catch (Exception ignored) {}
-                });
-            } catch (Exception ignored) {}
+            this.stage.setOnCloseRequest(ev -> {
+                ao.allon.kubata.core.domain.User activeUser = sessionManager.getUserObject();
+                if (activeUser != null) {
+                    try {
+                        authService.logout(activeUser, resolveSourceIp());
+                        sessionManager.logout();
+                    } catch (Exception ex) {
+                        ev.consume();
+                        showAlert(
+                                "Não foi possível encerrar a sessão",
+                                "A sessão não foi encerrada na base de dados. "
+                                        + "A aplicação permanecerá aberta.\n\n"
+                                        + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                        );
+                        return;
+                    }
+                }
+                try {
+                    customerDisplayService.stop();
+                } catch (Exception ex) {
+                    org.slf4j.LoggerFactory.getLogger(MainController.class)
+                            .debug("Não foi possível parar o ecrã secundário do PDV.", ex);
+                }
+            });
             this.stage.show();
         } catch (Exception e) {
             e.printStackTrace();
@@ -833,8 +855,31 @@ public class MainController {
     }
 
     public void performLogoutAndShowLogin() {
+        ao.allon.kubata.core.domain.User activeUser = sessionManager.getUserObject();
+        if (activeUser != null) {
+            try {
+                authService.logout(activeUser, resolveSourceIp());
+            } catch (Exception ex) {
+                showAlert(
+                        "Não foi possível encerrar a sessão",
+                        "O Kubata não confirmou o encerramento da sessão. "
+                                + "O utilizador continuará ligado.\n\n"
+                                + (ex.getMessage() == null ? "Erro desconhecido." : ex.getMessage())
+                );
+                return;
+            }
+        }
         sessionManager.logout();
         switchToLogin();
+    }
+
+    private String resolveSourceIp() {
+        try {
+            String address = java.net.InetAddress.getLocalHost().getHostAddress();
+            return address == null || address.isBlank() ? "127.0.0.1" : address;
+        } catch (Exception ex) {
+            return "127.0.0.1";
+        }
     }
 
     @EventListener
