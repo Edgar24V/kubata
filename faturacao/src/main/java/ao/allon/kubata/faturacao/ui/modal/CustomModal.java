@@ -266,13 +266,17 @@ public class CustomModal extends StackPane {
 
     /** Define o ícone contextual do cabeçalho, seguindo o padrão do Administrator. */
     public void setHeaderIcon(Feather feather) {
+        setHeaderIcon(feather, javafx.scene.paint.Color.web("#217346"));
+    }
+
+    public void setHeaderIcon(Feather feather, javafx.scene.paint.Color color) {
         if (feather == null) {
             titleLabel.setGraphic(null);
             return;
         }
         FontIcon icon = new FontIcon(feather);
         icon.setIconSize(16);
-        icon.setIconColor(javafx.scene.paint.Color.web("#217346"));
+        icon.setIconColor(color == null ? javafx.scene.paint.Color.web("#217346") : color);
         titleLabel.setGraphic(icon);
         titleLabel.setGraphicTextGap(9);
     }
