@@ -31,6 +31,7 @@ public class CustomModal extends StackPane {
     private final ScrollPane outerScrollPane;
     private final HBox footer;
     private final Label titleLabel;
+    private final Label subtitleLabel;
     private Button closeButton;
     private boolean dismissible = true;
     
@@ -65,6 +66,13 @@ public class CustomModal extends StackPane {
         // 3. Header
         titleLabel = new Label("Default Title");
         titleLabel.getStyleClass().add("custom-modal-title");
+        subtitleLabel = new Label();
+        subtitleLabel.getStyleClass().add("custom-modal-subtitle");
+        subtitleLabel.setManaged(false);
+        subtitleLabel.setVisible(false);
+
+        VBox titleBox = new VBox(2, titleLabel, subtitleLabel);
+        titleBox.setAlignment(Pos.CENTER_LEFT);
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         closeButton = new Button("", new FontIcon(Feather.X));
@@ -81,7 +89,7 @@ public class CustomModal extends StackPane {
             }
         });
 
-        header = new HBox(titleLabel, spacer, closeButton);
+        header = new HBox(titleBox, spacer, closeButton);
         header.getStyleClass().add("custom-modal-header");
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(10, 20, 10, 20)); // Consistent padding
@@ -175,6 +183,24 @@ public class CustomModal extends StackPane {
 
     public void setTitle(String title) {
         titleLabel.setText(title);
+    }
+
+    public void setSubtitle(String subtitle) {
+        String value = subtitle == null ? "" : subtitle.trim();
+        subtitleLabel.setText(value);
+        boolean visible = !value.isEmpty();
+        subtitleLabel.setVisible(visible);
+        subtitleLabel.setManaged(visible);
+    }
+
+    public void setModalMinSize(double width, double height) {
+        modalContainer.setMinDimensions(Math.max(0, width), Math.max(0, height));
+        modalContainer.setMinSize(Math.max(0, width), Math.max(0, height));
+    }
+
+    public void setModalMaxSize(double width, double height) {
+        modalContainer.setMaxDimensions(Math.max(0, width), Math.max(0, height));
+        modalContainer.setMaxSize(Math.max(0, width), Math.max(0, height));
     }
 
     public void setFitToContent() {
