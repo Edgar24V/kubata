@@ -31,6 +31,9 @@ public class CustomModal extends StackPane {
     private final ScrollPane outerScrollPane;
     private final HBox footer;
     private final Label titleLabel;
+    private final Label subtitleLabel;
+    private Button closeButton;
+    private boolean dismissible = true;
     
     // Dragging state
     private double xOffset = 0;
@@ -53,7 +56,9 @@ public class CustomModal extends StackPane {
         modalContainer.setFocusTraversable(true);
         modalContainer.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ESCAPE) {
-                hide();
+                if (dismissible) {
+                    hide();
+                }
                 e.consume();
             }
         });
@@ -61,11 +66,22 @@ public class CustomModal extends StackPane {
         // 3. Header
         titleLabel = new Label("Default Title");
         titleLabel.getStyleClass().add("custom-modal-title");
+        subtitleLabel = new Label();
+        subtitleLabel.getStyleClass().add("custom-modal-subtitle");
+        subtitleLabel.setManaged(false);
+        subtitleLabel.setVisible(false);
+
+        VBox titleBox = new VBox(2, titleLabel, subtitleLabel);
+        titleBox.setAlignment(Pos.CENTER_LEFT);
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        Button closeButton = new Button("", new FontIcon(Feather.X));
+        closeButton = new Button("", new FontIcon(Feather.X));
         closeButton.getStyleClass().addAll("custom-modal-close-button", "button-icon");
         closeButton.setOnAction(e -> {
+            if (!dismissible) {
+                e.consume();
+                return;
+            }
             if (onCloseRequest != null) {
                 onCloseRequest.accept(null);
             } else {
@@ -73,7 +89,7 @@ public class CustomModal extends StackPane {
             }
         });
 
-        header = new HBox(titleLabel, spacer, closeButton);
+        header = new HBox(titleBox, spacer, closeButton);
         header.getStyleClass().add("custom-modal-header");
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(10, 20, 10, 20)); // Consistent padding
@@ -120,7 +136,7 @@ public class CustomModal extends StackPane {
         scrollContent.setOnMouseClicked(e -> {
             // Check if the click target is the scrollContent itself (the backdrop area)
             // or if the click didn't occur inside the modalContainer
-            if (e.getTarget() == scrollContent) {
+            if (e.getTarget() == scrollContent && dismissible) {
                 hide();
             }
         });
@@ -167,6 +183,24 @@ public class CustomModal extends StackPane {
 
     public void setTitle(String title) {
         titleLabel.setText(title);
+    }
+
+    public void setSubtitle(String subtitle) {
+        String value = subtitle == null ? "" : subtitle.trim();
+        subtitleLabel.setText(value);
+        boolean visible = !value.isEmpty();
+        subtitleLabel.setVisible(visible);
+        subtitleLabel.setManaged(visible);
+    }
+
+    public void setModalMinSize(double width, double height) {
+        modalContainer.setMinDimensions(Math.max(0, width), Math.max(0, height));
+        modalContainer.setMinSize(Math.max(0, width), Math.max(0, height));
+    }
+
+    public void setModalMaxSize(double width, double height) {
+        modalContainer.setMaxDimensions(Math.max(0, width), Math.max(0, height));
+        modalContainer.setMaxSize(Math.max(0, width), Math.max(0, height));
     }
 
     public void setFitToContent() {
@@ -217,6 +251,34 @@ public class CustomModal extends StackPane {
 
     public HBox getFooter() {
         return footer;
+    }
+
+    /** Impede o fecho por ESC, pelo overlay ou pelo botão X em fluxos obrigatórios. */
+    public void setDismissible(boolean dismissible) {
+        this.dismissible = dismissible;
+        if (closeButton != null) {
+            closeButton.setDisable(!dismissible);
+            closeButton.setAccessibleText(
+                    dismissible ? "Fechar janela" : "Fecho bloqueado durante esta operação"
+            );
+        }
+    }
+
+    /** Define o ícone contextual do cabeçalho, seguindo o padrão do Administrator. */
+    public void setHeaderIcon(Feather feather) {
+        setHeaderIcon(feather, javafx.scene.paint.Color.web("#217346"));
+    }
+
+    public void setHeaderIcon(Feather feather, javafx.scene.paint.Color color) {
+        if (feather == null) {
+            titleLabel.setGraphic(null);
+            return;
+        }
+        FontIcon icon = new FontIcon(feather);
+        icon.setIconSize(16);
+        icon.setIconColor(color == null ? javafx.scene.paint.Color.web("#217346") : color);
+        titleLabel.setGraphic(icon);
+        titleLabel.setGraphicTextGap(9);
     }
     
     public Button addPrimaryButton(String text, EventHandler<ActionEvent> action) {
