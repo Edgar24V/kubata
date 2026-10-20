@@ -78,7 +78,14 @@ public class ModalService {
         }
 
         CustomModal modal = builder.getModal();
-        modal.setHeaderIcon(effective.icon());
+        modal.setSubtitle(effective.subtitle());
+        if (effective.minWidth() > 0 || effective.minHeight() > 0) {
+            modal.setModalMinSize(effective.minWidth(), effective.minHeight());
+        }
+        if (effective.maxWidth() > 0 || effective.maxHeight() > 0) {
+            modal.setModalMaxSize(effective.maxWidth(), effective.maxHeight());
+        }
+        modal.setHeaderIcon(effective.icon(), toneColor(effective.tone()));
         modal.setDismissible(effective.dismissible());
         show(modal);
     }
@@ -99,6 +106,16 @@ public class ModalService {
             rootPane.getChildren().add(modal);
         }
         modal.show();
+    }
+
+    private javafx.scene.paint.Color toneColor(ModalTone tone) {
+        return switch (tone) {
+            case INFO -> javafx.scene.paint.Color.web("#2563eb");
+            case SUCCESS -> javafx.scene.paint.Color.web("#217346");
+            case WARNING -> javafx.scene.paint.Color.web("#b45309");
+            case DANGER -> javafx.scene.paint.Color.web("#b91c1c");
+            case DEFAULT -> javafx.scene.paint.Color.web("#217346");
+        };
     }
 
     private List<CustomModal> visibleModals() {
@@ -126,6 +143,10 @@ public class ModalService {
         private ModalTone tone = ModalTone.DEFAULT;
         private double width = -1;
         private double height = -1;
+        private double minWidth = -1;
+        private double minHeight = -1;
+        private double maxWidth = -1;
+        private double maxHeight = -1;
         private boolean singleButton;
         private String singleButtonText = "Fechar";
         private boolean dismissible = true;
@@ -163,10 +184,14 @@ public class ModalService {
         }
 
         public ModalConfig minSize(double width, double height) {
+            this.minWidth = width;
+            this.minHeight = height;
             return this;
         }
 
         public ModalConfig maxSize(double width, double height) {
+            this.maxWidth = width;
+            this.maxHeight = height;
             return this;
         }
 
@@ -214,6 +239,22 @@ public class ModalService {
 
         public double height() {
             return height;
+        }
+
+        public double minWidth() {
+            return minWidth;
+        }
+
+        public double minHeight() {
+            return minHeight;
+        }
+
+        public double maxWidth() {
+            return maxWidth;
+        }
+
+        public double maxHeight() {
+            return maxHeight;
         }
 
         public boolean singleButton() {
