@@ -31,6 +31,8 @@ public class CustomModal extends StackPane {
     private final ScrollPane outerScrollPane;
     private final HBox footer;
     private final Label titleLabel;
+    private Button closeButton;
+    private boolean dismissible = true;
     
     // Dragging state
     private double xOffset = 0;
@@ -53,7 +55,9 @@ public class CustomModal extends StackPane {
         modalContainer.setFocusTraversable(true);
         modalContainer.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ESCAPE) {
-                hide();
+                if (dismissible) {
+                    hide();
+                }
                 e.consume();
             }
         });
@@ -63,9 +67,13 @@ public class CustomModal extends StackPane {
         titleLabel.getStyleClass().add("custom-modal-title");
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        Button closeButton = new Button("", new FontIcon(Feather.X));
+        closeButton = new Button("", new FontIcon(Feather.X));
         closeButton.getStyleClass().addAll("custom-modal-close-button", "button-icon");
         closeButton.setOnAction(e -> {
+            if (!dismissible) {
+                e.consume();
+                return;
+            }
             if (onCloseRequest != null) {
                 onCloseRequest.accept(null);
             } else {
@@ -120,7 +128,7 @@ public class CustomModal extends StackPane {
         scrollContent.setOnMouseClicked(e -> {
             // Check if the click target is the scrollContent itself (the backdrop area)
             // or if the click didn't occur inside the modalContainer
-            if (e.getTarget() == scrollContent) {
+            if (e.getTarget() == scrollContent && dismissible) {
                 hide();
             }
         });
@@ -217,6 +225,30 @@ public class CustomModal extends StackPane {
 
     public HBox getFooter() {
         return footer;
+    }
+
+    /** Impede o fecho por ESC, pelo overlay ou pelo botão X em fluxos obrigatórios. */
+    public void setDismissible(boolean dismissible) {
+        this.dismissible = dismissible;
+        if (closeButton != null) {
+            closeButton.setDisable(!dismissible);
+            closeButton.setAccessibleText(
+                    dismissible ? "Fechar janela" : "Fecho bloqueado durante esta operação"
+            );
+        }
+    }
+
+    /** Define o ícone contextual do cabeçalho, seguindo o padrão do Administrator. */
+    public void setHeaderIcon(Feather feather) {
+        if (feather == null) {
+            titleLabel.setGraphic(null);
+            return;
+        }
+        FontIcon icon = new FontIcon(feather);
+        icon.setIconSize(16);
+        icon.setIconColor(javafx.scene.paint.Color.web("#217346"));
+        titleLabel.setGraphic(icon);
+        titleLabel.setGraphicTextGap(9);
     }
     
     public Button addPrimaryButton(String text, EventHandler<ActionEvent> action) {
