@@ -15,13 +15,21 @@ import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.pdv.controller.PdvController;
 import javafx.scene.Parent;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.paint.Color;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.Priority;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import org.kordamp.ikonli.feather.Feather;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -667,6 +675,7 @@ public class MainController {
         try {
             this.stage = event.getStage();
             ThemeManager.applyTheme();
+            ThemeManager.setupCustomTitleBar(stage);
             switchToLogin();
             this.stage.setTitle(applicationTitle);
             try {
@@ -696,24 +705,131 @@ public class MainController {
     }
 
     private void switchToLogin() {
-        Parent parent = loginController.createView();
-        Scene scene = new Scene(parent, 400, 500);
+        Parent parent = loginController.createView(stage);
+        Scene scene = new Scene(parent, 1120, 720, Color.TRANSPARENT);
+        ThemeManager.applyTheme(scene);
         stage.setScene(scene);
+        stage.setMinWidth(920);
+        stage.setMinHeight(560);
+        stage.setResizable(true);
+        stage.setWidth(1120);
+        stage.setHeight(720);
+        stage.setMaximized(false);
         stage.centerOnScreen();
     }
 
     private void switchToMain() {
-        Parent parent = createView();
-        javafx.geometry.Rectangle2D vb = Screen.getPrimary().getVisualBounds();
-        double w = Math.max(1024, vb.getWidth() * 0.9);
-        double h = Math.max(768, vb.getHeight() * 0.9);
-        Scene scene = new Scene(parent, w, h);
+        Parent content = createView();
+        VBox shell = new VBox(createWindowBar(stage), content);
+        shell.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
+        VBox.setVgrow(content, Priority.ALWAYS);
+
+        javafx.geometry.Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
+        double width = Math.max(1024, bounds.getWidth() * 0.9);
+        double height = Math.max(720, bounds.getHeight() * 0.9);
+
+        Scene scene = new Scene(shell, width, height, Color.TRANSPARENT);
+        ThemeManager.applyTheme(scene);
         installAccelerators(scene);
         stage.setScene(scene);
-        stage.setMinWidth(960);
-        stage.setMinHeight(600);
+        stage.setMinWidth(1024);
+        stage.setMinHeight(680);
+        stage.setResizable(true);
         stage.centerOnScreen();
         stage.setMaximized(true);
+    }
+
+    /** Barra de janela comum ao Administrator, visível quando a moldura nativa está oculta. */
+    private HBox createWindowBar(Stage targetStage) {
+        HBox bar = new HBox(8);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(new Insets(6, 10, 6, 16));
+        bar.setMinHeight(38);
+        bar.setPrefHeight(38);
+        bar.setMaxHeight(38);
+        bar.setStyle(
+                "-fx-background-color: #ffffff;"
+                        + "-fx-background-radius: 12 12 0 0;"
+                        + "-fx-border-color: #e2e8f0;"
+                        + "-fx-border-width: 0 0 1 0;"
+        );
+
+        Label title = new Label("KUBATA Faturação");
+        title.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #1A5C35;");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button minimize = createWindowControl(Feather.MINUS, "Minimizar", () ->
+                targetStage.setIconified(true));
+
+        Button maximize = new Button("", new FontIcon(Feather.MAXIMIZE_2));
+        styleWindowControl(maximize, "Maximizar ou restaurar");
+        maximize.setOnAction(event -> {
+            boolean restore = targetStage.isMaximized();
+            targetStage.setMaximized(!restore);
+            maximize.setGraphic(new FontIcon(
+                    restore ? Feather.MAXIMIZE_2 : Feather.MINIMIZE_2
+            ));
+            maximize.setAccessibleText(restore ? "Maximizar" : "Restaurar tamanho");
+        });
+
+        Button close = createWindowControl(Feather.X, "Fechar", targetStage::close);
+        close.setStyle(
+                "-fx-background-color: transparent; -fx-background-radius: 7;"
+                        + "-fx-text-fill: #64748b; -fx-cursor: hand;"
+        );
+        close.setOnMouseEntered(event -> close.setStyle(
+                "-fx-background-color: #fee2e2; -fx-background-radius: 7;"
+                        + "-fx-text-fill: #b91c1c; -fx-cursor: hand;"
+        ));
+        close.setOnMouseExited(event -> close.setStyle(
+                "-fx-background-color: transparent; -fx-background-radius: 7;"
+                        + "-fx-text-fill: #64748b; -fx-cursor: hand;"
+        ));
+
+        final double[] drag = new double[2];
+        final boolean[] dragging = new boolean[1];
+        bar.setOnMousePressed(event -> {
+            dragging[0] = !(event.getTarget() instanceof javafx.scene.control.Control)
+                    && !targetStage.isMaximized();
+            drag[0] = event.getScreenX() - targetStage.getX();
+            drag[1] = event.getScreenY() - targetStage.getY();
+        });
+        bar.setOnMouseDragged(event -> {
+            if (dragging[0] && !targetStage.isMaximized()) {
+                targetStage.setX(event.getScreenX() - drag[0]);
+                targetStage.setY(event.getScreenY() - drag[1]);
+            }
+        });
+
+        bar.getChildren().addAll(title, spacer, minimize, maximize, close);
+        return bar;
+    }
+
+    private Button createWindowControl(Feather icon, String accessibleText, Runnable action) {
+        Button button = new Button("", new FontIcon(icon));
+        styleWindowControl(button, accessibleText);
+        button.setOnAction(event -> action.run());
+        return button;
+    }
+
+    private void styleWindowControl(Button button, String accessibleText) {
+        button.setAccessibleText(accessibleText);
+        button.setFocusTraversable(false);
+        button.setPrefSize(34, 26);
+        button.setMinSize(34, 26);
+        button.setStyle(
+                "-fx-background-color: transparent; -fx-background-radius: 7;"
+                        + "-fx-text-fill: #64748b; -fx-cursor: hand;"
+        );
+        button.setOnMouseEntered(event -> button.setStyle(
+                "-fx-background-color: #f1f5f9; -fx-background-radius: 7;"
+                        + "-fx-text-fill: #334155; -fx-cursor: hand;"
+        ));
+        button.setOnMouseExited(event -> button.setStyle(
+                "-fx-background-color: transparent; -fx-background-radius: 7;"
+                        + "-fx-text-fill: #64748b; -fx-cursor: hand;"
+        ));
     }
 
     public void performLogoutAndShowLogin() {
