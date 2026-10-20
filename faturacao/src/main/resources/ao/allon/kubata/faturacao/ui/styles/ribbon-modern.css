@@ -1,0 +1,477 @@
+﻿/* ════════════════════════════════════════════════════════════════════════════
+   KUBATA ADMIN — Ribbon Moderno
+   Estilo unificado com a barra de título (verde Kubata).
+   Layout PRIMAVERA V10: grupos compactos, separadores, ícone + legenda.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tokens do Ribbon ──────────────────────────────────────────────────────── */
+.root {
+    -kubata-ribbon-radius-tab:      3px;
+    -kubata-ribbon-radius-control:  4px;
+
+    /* Alturas rigorosas — iguais ao título para fluidez visual */
+    -kubata-ribbon-tab-row-h:       30px;    /* mesma altura das tabs no topo */
+    -kubata-ribbon-content-h:       96px;    /* área de conteúdo (grupos) */
+    -kubata-ribbon-total-h:         126px;   /* tab-row + content */
+
+    /* Fundo da área de conteúdo */
+    -kubata-ribbon-content-bg:      #ffffff;
+
+    /* Bordas subtis */
+    -kubata-ribbon-border-subtle:   #dde8e2;
+    -kubata-ribbon-border-group:    #d0ddd7;
+
+    /* Estados dos botões */
+    -kubata-ribbon-hover-bg:        rgba(33, 115, 70, 0.08);
+    -kubata-ribbon-hover-border:    rgba(33, 115, 70, 0.22);
+    -kubata-ribbon-pressed-bg:      rgba(33, 115, 70, 0.18);
+    -kubata-ribbon-pressed-border:  rgba(33, 115, 70, 0.38);
+    -kubata-ribbon-focus-border:    #217346;
+
+    /* Texto */
+    -kubata-ribbon-text-primary:    #1a1a1a;
+    -kubata-ribbon-text-muted:      #6b7280;
+    -kubata-ribbon-text-caption:    #9ca3af;
+}
+
+/* ── Barra Ribbon Principal ────────────────────────────────────────────────── */
+/* Fundo verde igual ao .custom-title-bar — continuidade visual total */
+.ribbon-bar {
+    -fx-background-color: -kubata-green;
+    -fx-border-color: transparent transparent rgba(0, 0, 0, 0.14) transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-font-size: 11px;
+    -fx-min-height: -kubata-ribbon-total-h;
+    -fx-pref-height: -kubata-ribbon-total-h;
+    -fx-max-height: -kubata-ribbon-total-h;
+}
+
+/* ── TabPane — cabeçalho verde igual à title bar ────────────────────────────── */
+.ribbon-tab-pane {
+    -fx-background-color: -kubata-green;
+    -fx-tab-min-height: -kubata-ribbon-tab-row-h;
+    -fx-tab-max-height: -kubata-ribbon-tab-row-h;
+}
+
+.ribbon-tab-pane .tab-header-area {
+    -fx-padding: 0 6px 0 6px;
+    -fx-background-color: -kubata-green;
+}
+
+.ribbon-tab-pane .tab-header-background {
+    -fx-background-color: -kubata-green;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+}
+
+.ribbon-tab-pane .headers-region {
+    -fx-background-color: -kubata-green;
+}
+
+.ribbon-tab-pane .tab-header-area .control-buttons-tab {
+    -fx-background-color: -kubata-green;
+    -fx-visibility: hidden;
+}
+
+/* ── Tab individual — estilo PRIMAVERA ────────────────────────────────────── */
+.ribbon-tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: -kubata-ribbon-radius-tab -kubata-ribbon-radius-tab 0 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0 16px 0 16px;
+    -fx-cursor: hand;
+}
+
+.ribbon-tab-pane .tab:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Tab seleccionada: branca, encaixada na área de conteúdo */
+.ribbon-tab-pane .tab:selected {
+    -fx-background-color: #ffffff;
+    -fx-background-insets: 0;
+    -fx-effect: null;
+}
+
+.ribbon-tab-pane .tab .tab-label {
+    -fx-text-fill: rgba(255, 255, 255, 0.92);
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-letter-spacing: 0.3px;
+}
+
+.ribbon-tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-weight: 700;
+}
+
+/* Remove focus ring padrão do JavaFX nas tabs */
+.ribbon-tab-pane .tab:focused {
+    -fx-background-color: rgba(255, 255, 255, 0.10);
+}
+.ribbon-tab-pane .tab:selected:focused {
+    -fx-background-color: #ffffff;
+}
+
+/* ── Área de conteúdo das tabs ──────────────────────────────────────────────── */
+.ribbon-tab-pane .tab-content-area {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent -kubata-ribbon-border-subtle transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 0;
+    -fx-min-height: -kubata-ribbon-content-h;
+    -fx-pref-height: -kubata-ribbon-content-h;
+    -fx-max-height: -kubata-ribbon-content-h;
+}
+
+/* ── Faixa de conteúdo da tab (HBox com grupos) ─────────────────────────────── */
+.ribbon-tab-content {
+    -fx-background-color: #ffffff;
+    -fx-padding: 4px 8px 0px 8px;
+    -fx-spacing: 0;
+    -fx-alignment: center-left;
+    -fx-min-height: -kubata-ribbon-content-h;
+    -fx-pref-height: -kubata-ribbon-content-h;
+    -fx-max-height: -kubata-ribbon-content-h;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GRUPOS — estilo PRIMAVERA V10
+   Grupos em coluna, título em baixo, separador vertical à direita.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-group {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent -kubata-ribbon-border-group transparent transparent;
+    -fx-border-width: 0 1px 0 0;
+    -fx-padding: 0 10px 0 6px;
+    -fx-alignment: top-center;
+    -fx-spacing: 0;
+}
+
+/* Título do grupo — em baixo, centrado, letra pequena e cinzenta */
+.ribbon-group-title {
+    -fx-font-size: 9px;
+    -fx-font-weight: 600;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-text-fill: -kubata-ribbon-text-caption;
+    -fx-letter-spacing: 0.5px;
+    -fx-alignment: center;
+    -fx-padding: 2px 0 2px 0;
+    -fx-min-height: 14px;
+    -fx-pref-height: 14px;
+    -fx-max-width: Double.MAX_VALUE;
+    -fx-text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTÃO TILE — mosaico quadrado (ícone centrado + legenda abaixo)
+   Estilo PRIMAVERA V10: compacto, ícone colorido, fonte pequena
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: -kubata-ribbon-radius-control;
+    -fx-border-color: transparent;
+    -fx-border-radius: -kubata-ribbon-radius-control;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+    -fx-content-display: graphic-only;
+    -fx-padding: 0;
+}
+
+/* ── Estado hover ── */
+.ribbon-button:hover {
+    -fx-background-color: -kubata-ribbon-hover-bg;
+    -fx-border-color: -kubata-ribbon-hover-border;
+}
+
+/* ── Estado pressed ── */
+.ribbon-button:pressed {
+    -fx-background-color: -kubata-ribbon-pressed-bg;
+    -fx-border-color: -kubata-ribbon-pressed-border;
+}
+
+/* ── Estado focused ── */
+.ribbon-button:focused {
+    -fx-border-color: -kubata-ribbon-focus-border;
+    -fx-background-color: -kubata-ribbon-hover-bg;
+}
+
+/* ── Disabled ── */
+.ribbon-button:disabled {
+    -fx-opacity: 0.38;
+    -fx-cursor: default;
+}
+
+/* ─── Layout TILE ──────────────────────────────────────────────────────────── */
+.ribbon-button-tile {
+    -fx-min-width: 58px;
+    -fx-pref-width: 58px;
+    -fx-max-width: 58px;
+    -fx-min-height: 76px;
+    -fx-pref-height: 76px;
+    -fx-max-height: 76px;
+    -fx-padding: 3px 2px 3px 2px;
+    -fx-alignment: top-center;
+}
+
+/* Wrapper do ícone — quadrado arredondado estilo PRIMAVERA */
+.ribbon-tile-icon-wrap {
+    -fx-background-color: rgba(33, 115, 70, 0.07);
+    -fx-background-radius: 7px;
+    -fx-border-color: rgba(33, 115, 70, 0.15);
+    -fx-border-radius: 7px;
+    -fx-border-width: 1px;
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+    -fx-max-width: 40px;
+    -fx-max-height: 40px;
+    -fx-alignment: center;
+}
+
+.ribbon-button-tile:hover .ribbon-tile-icon-wrap {
+    -fx-background-color: rgba(33, 115, 70, 0.13);
+    -fx-border-color: rgba(33, 115, 70, 0.28);
+}
+
+.ribbon-button-tile:pressed .ribbon-tile-icon-wrap {
+    -fx-background-color: rgba(33, 115, 70, 0.22);
+    -fx-border-color: rgba(33, 115, 70, 0.42);
+}
+
+/* Ícone dentro do wrapper */
+.ribbon-icon-tile {
+    -fx-icon-size: 22px;
+    -fx-icon-color: -kubata-green;
+    -fx-fill: -kubata-green;
+}
+
+/* Texto abaixo do ícone */
+.ribbon-button-text {
+    -fx-font-size: 9.5px;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-text-fill: -kubata-ribbon-text-primary;
+}
+
+.ribbon-button-text-below {
+    -fx-font-size: 9px;
+    -fx-wrap-text: true;
+    -fx-max-height: 28px;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* ─── Layout LARGE ─────────────────────────────────────────────────────────── */
+.ribbon-button-large {
+    -fx-min-width: 68px;
+    -fx-pref-width: 68px;
+    -fx-padding: 5px 4px;
+    -fx-min-height: 76px;
+    -fx-pref-height: 76px;
+    -fx-alignment: center;
+}
+
+.ribbon-icon-large {
+    -fx-icon-size: 28px;
+    -fx-icon-color: -kubata-green;
+    -fx-fill: -kubata-green;
+}
+
+/* ─── Layout SMALL (linha horizontal) ─────────────────────────────────────── */
+.ribbon-button-small {
+    -fx-padding: 3px 10px;
+    -fx-min-width: 90px;
+    -fx-min-height: 22px;
+    -fx-pref-height: 24px;
+    -fx-alignment: center-left;
+}
+
+.ribbon-icon-small {
+    -fx-icon-size: 14px;
+    -fx-icon-color: -kubata-green;
+    -fx-fill: -kubata-green;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OVERFLOW — botão "»" e popup
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-overflow-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent transparent transparent -kubata-ribbon-border-subtle;
+    -fx-border-width: 0 0 0 1px;
+    -fx-min-width: 22px;
+    -fx-pref-width: 22px;
+    -fx-cursor: hand;
+    -fx-padding: 0 2px;
+}
+
+.ribbon-overflow-button:hover {
+    -fx-background-color: -kubata-ribbon-hover-bg;
+    -fx-border-color: transparent transparent transparent -kubata-ribbon-border-group;
+}
+
+.ribbon-overflow-button .ikonli-font-icon {
+    -fx-icon-size: 13px;
+    -fx-icon-color: -kubata-ribbon-text-muted;
+    -fx-fill: -kubata-ribbon-text-muted;
+}
+
+.ribbon-overflow-button:hover .ikonli-font-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-fill: -kubata-green;
+}
+
+/* Popup de overflow */
+.ribbon-overflow-popup {
+    -fx-background-color: #ffffff;
+    -fx-border-color: -kubata-ribbon-border-group;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(33, 115, 70, 0.18), 12, 0, 0, 4);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   JANELA FLUTUANTE (tab desacoplada)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-floating-root {
+    -fx-background-color: #ffffff;
+    -fx-border-color: -kubata-green;
+    -fx-border-width: 2px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 20, 0, 0, 8);
+    -fx-padding: 0;
+}
+
+/* Barra de título da janela flutuante — mesma cor que a title bar */
+.ribbon-floating-title-bar {
+    -fx-background-color: -kubata-green;
+    -fx-background-radius: 4px 4px 0 0;
+    -fx-padding: 5px 10px;
+    -fx-cursor: move;
+    -fx-alignment: center-left;
+    -fx-spacing: 8;
+}
+
+.ribbon-floating-title-text {
+    -fx-text-fill: rgba(255, 255, 255, 0.96);
+    -fx-font-weight: 700;
+    -fx-font-size: 11px;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-letter-spacing: 0.8px;
+}
+
+.ribbon-floating-dock-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 3px 5px;
+    -fx-cursor: hand;
+    -fx-background-radius: 3px;
+}
+
+.ribbon-floating-dock-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.18);
+}
+
+.ribbon-floating-dock-button .ikonli-font-icon {
+    -fx-icon-color: rgba(255, 255, 255, 0.90);
+    -fx-fill: rgba(255, 255, 255, 0.90);
+    -fx-icon-size: 13px;
+}
+
+.ribbon-floating-content {
+    -fx-padding: 0;
+    -fx-background-color: #ffffff;
+}
+
+/* Tab marcada como flutuante no TabPane principal */
+.ribbon-tab-pane .tab.ribbon-tab-floating {
+    -fx-opacity: 0.50;
+}
+
+.ribbon-tab-pane .tab.ribbon-tab-floating .tab-label {
+    -fx-font-style: italic;
+    -fx-text-fill: rgba(255, 255, 255, 0.60);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SEPARADOR DE CATÁLOGO (entre grupos de botões diferentes)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ribbon-catalog-tab {
+    /* Herda do .ribbon-tab-pane .tab */
+}
+/* ═══════════════════════════════════════════════════════════════════════════
+   NOVO RIBBON CONTAINER (Ribbon.java)
+   Classes: ribbon-bar, ribbon-tab-strip, ribbon-tab-label,
+            ribbon-content-host, ribbon-content-scroll
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Container principal do Ribbon */
+.ribbon-bar {
+    -fx-background-color: -kubata-ribbon-bg, transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent transparent -kubata-ribbon-border-subtle transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+/* Faixa de separadores (tab labels) — alinhada ao fundo */
+.ribbon-tab-strip {
+    -fx-background-color: -kubata-green;
+    -fx-padding: 0 0 0 4px;
+    -fx-alignment: bottom-left;
+    -fx-min-height: 28px;
+    -fx-pref-height: 28px;
+}
+
+/* Cada label de tab */
+.ribbon-tab-label {
+    -fx-text-fill: rgba(255, 255, 255, 0.82);
+    -fx-font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+    -fx-padding: 6px 14px 5px 14px;
+    -fx-background-color: transparent;
+    -fx-background-radius: 3px 3px 0 0;
+    -fx-cursor: hand;
+}
+
+.ribbon-tab-label:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.12);
+    -fx-text-fill: white;
+}
+
+/* Tab selecionada: fundo branco, texto verde escuro — mesmo estilo dos tabs do Excel */
+.ribbon-tab-label-selected {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: -kubata-green-dark;
+    -fx-font-weight: 700;
+    -fx-padding: 6px 14px 6px 14px;
+    -fx-background-radius: 3px 3px 0 0;
+}
+
+/* Área que aloja o conteúdo da tab activa (StackPane) */
+.ribbon-content-host {
+    -fx-background-color: #ffffff;
+    -fx-min-height: -kubata-ribbon-content-h;
+    -fx-pref-height: -kubata-ribbon-content-h;
+    -fx-max-height: -kubata-ribbon-content-h;
+}
+
+/* ScrollPane wrapper de cada tab (sem barras visíveis) */
+.ribbon-content-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+}
+.ribbon-content-scroll > .viewport {
+    -fx-background-color: transparent;
+}
