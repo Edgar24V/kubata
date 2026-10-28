@@ -2,7 +2,7 @@ package ao.allon.kubata.faturacao.repository;
 
 import ao.allon.kubata.faturacao.domain.Despesa;
 import ao.allon.kubata.faturacao.domain.StatusDespesa;
-import ao.allon.kubata.faturacao.domain.Fornecedor;
+import ao.allon.kubata.core.domain.Fornecedor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

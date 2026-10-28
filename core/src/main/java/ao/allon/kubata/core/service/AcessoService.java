@@ -5,6 +5,7 @@ import ao.allon.kubata.core.domain.UserAccessPermission;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.AuditLog;
 import ao.allon.kubata.core.service.AuditService;
+import ao.allon.kubata.core.security.PermissionCatalog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -175,16 +176,34 @@ public class AcessoService {
         }
 
         // Verifica permissões via perfis
-        if (user.getPerfis() != null) {
-            return user.getPerfis().stream()
+        List<ao.allon.kubata.core.domain.PermissaoPerfil> permissoes =
+            userSecurityProfileService.perfisDe(user).stream()
                 .filter(p -> p != null && Boolean.TRUE.equals(p.getActivo()))
                 .flatMap(p -> p.getPermissoes().stream())
-                .anyMatch(pm ->
-                    pm.getModulo().equalsIgnoreCase(modulo) &&
-                    pm.getRecurso().equalsIgnoreCase(recurso) &&
-                    pm.getOperacao() == operacao &&
-                    Boolean.TRUE.equals(pm.getPermitido())
-                );
+                .filter(pm -> Boolean.TRUE.equals(pm.getPermitido()))
+                .collect(Collectors.toList());
+
+        boolean directa = permissoes.stream().anyMatch(pm ->
+            pm.getModulo().equalsIgnoreCase(modulo) &&
+            pm.getRecurso().equalsIgnoreCase(recurso) &&
+            pm.getOperacao() == operacao
+        );
+        if (directa) {
+            return true;
+        }
+
+        // Fallback: verificações legadas chegam pelo overload de 3 argumentos com
+        // VER; traduz o par (módulo, opção) para os checks canónicos do catálogo
+        // para que as permissões de perfil (ex. FATURAS/CRIAR) as satisfaçam.
+        // Só para VER, para não degradar pedidos canónicos de outras operações.
+        if (operacao == ao.allon.kubata.core.domain.PermissaoPerfil.Operacao.VER) {
+            return PermissionCatalog.resolve(modulo, recurso).stream().anyMatch(check ->
+                permissoes.stream().anyMatch(pm ->
+                    pm.getModulo().equalsIgnoreCase(check.modulo()) &&
+                    pm.getRecurso().equalsIgnoreCase(check.recurso()) &&
+                    pm.getOperacao() == check.operacao()
+                )
+            );
         }
         return false;
     }

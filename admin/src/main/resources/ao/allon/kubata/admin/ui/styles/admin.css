@@ -5707,9 +5707,13 @@ Text {
 /* ── Cabeçalho da janela de login ───────────────────────────────────── */
 .login-window-header {
     -fx-background-color: rgba(255,255,255,0.98);
-    -fx-background-radius: 20px 20px 0 0;
+    -fx-background-radius: 22px 22px 0 0;
     -fx-border-color: rgba(33,115,70,0.10);
     -fx-border-width: 0 0 1px 0;
+    -fx-padding: 7px 10px 7px 14px;
+    -fx-pref-height: 44px;
+    -fx-min-height: 44px;
+    -fx-max-height: 44px;
 }
 
 .login-window-title {
@@ -5731,59 +5735,299 @@ Text {
     -fx-border-radius: 6px;
 }
 
-/* ── Login Moderno ─────────────────────────────────────────────── */
-/* ========== LOGIN MODERNO – KUBATA ========== */
-
-/* Raiz do container da tela de login */
+/* ── Login Kubata (redesenho) ───────────────────────────────────── */
+/* A janela tem um piso de conteúdo; o cartão acompanha a cena em Java. */
 .login-container {
+    -fx-min-width: 600px;
+    -fx-min-height: 420px;
     -fx-background-color: transparent;
 }
 
-/* Cartão principal (split visual + formulário) */
+.login-backdrop {
+    -fx-background-color: linear-gradient(to bottom right, #eef5f1, #f8fafc);
+}
+
 .login-card {
-    -fx-background-color: transparent;
-    -fx-background-radius: 20px;
+    -fx-background-color: -color-bg-default;
+    -fx-background-radius: 22px;
+    -fx-border-color: rgba(33, 115, 70, 0.12);
+    -fx-border-width: 1px;
+    -fx-border-radius: 22px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.24), 35, 0, 0, 4);
 }
 
-/* Lado esquerdo – área de branding */
-.login-visual-side {
-    -fx-background-radius: 20px 0px 0px 20px;
+.login-body {
+    -fx-spacing: 0;
+    -fx-fill-height: true;
 }
 
-/* Lado direito – formulário de login */
-.login-form-side {
-    -fx-background-radius: 0px 20px 20px 0px;
+/* Coluna de marca (esquerda) */
+.login-branding-pane {
+    -fx-pref-width: 360px;
+    -fx-padding: 32px;
+    -fx-spacing: 18px;
+    -fx-alignment: center-left;
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: transparent rgba(33, 115, 70, 0.12) transparent transparent;
+    -fx-border-width: 1px;
 }
 
-/* Campos de texto modernos (email, senha) */
+.login-branding-emblem {
+    -fx-min-width: 76px;
+    -fx-min-height: 76px;
+    -fx-pref-width: 76px;
+    -fx-pref-height: 76px;
+    -fx-background-color: linear-gradient(to bottom right, #1f7045, #2f9e63);
+    -fx-background-radius: 24px;
+}
+
+.login-branding-emblem-icon {
+    -fx-icon-color: -color-fg-emphasis;
+    -fx-icon-size: 40;
+}
+
+.login-branding-wordmark {
+    -fx-font-size: 34px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #163725;
+}
+
+.login-branding-subtitle {
+    -fx-font-size: 15px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -kubata-green;
+}
+
+.login-branding-description {
+    -fx-font-size: 12px;
+    -fx-line-spacing: 3px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.login-security-card {
+    -fx-padding: 12px;
+    -fx-spacing: 8px;
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 14px;
+    -fx-border-color: rgba(33, 115, 70, 0.14);
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+}
+
+.login-security-card-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-icon-size: 16;
+}
+
+.login-security-card-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #163725;
+}
+
+.login-security-card-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.login-build-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-subtle;
+}
+
+/* Coluna de autenticação (direita) */
+.login-form-pane {
+    -fx-pref-width: 440px;
+    -fx-padding: 28px 34px 24px 34px;
+    -fx-spacing: 14px;
+    -fx-alignment: center-left;
+    -fx-background-color: -color-bg-default;
+    -fx-background-radius: 0 0 22px 0;
+}
+
+.login-form-topline {
+    -fx-spacing: 8px;
+    -fx-alignment: center-left;
+}
+
+.login-form-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #163725;
+}
+
+.login-form-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.login-footer-note {
+    -fx-font-size: 10px;
+    -fx-text-fill: -color-fg-subtle;
+}
+
+.login-help-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-icon-size: 14;
+}
+
+.login-form {
+    -fx-spacing: 11px;
+}
+
+.login-form-actions {
+    -fx-spacing: 8px;
+    -fx-alignment: center-left;
+}
+
+.login-field-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-fg-default;
+}
+
+.login-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-subtle;
+}
+
+.login-state-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-success-fg;
+}
+
+.login-checkbox {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.login-link {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -kubata-green;
+}
+
+.login-link--minor {
+    -fx-font-size: 11px;
+}
+
+.login-link:hover,
+.login-link:visited {
+    -fx-text-fill: -kubata-green-dark;
+}
+
+/* Estado de manutenção (faixa do formulário) */
+.login-maintenance-banner {
+    -fx-padding: 10px 12px;
+    -fx-spacing: 8px;
+    -fx-alignment: center-left;
+    -fx-background-color: -color-warning-subtle;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-warning-1;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+}
+
+.login-maintenance-icon {
+    -fx-icon-color: -color-warning-emphasis;
+    -fx-icon-size: 15;
+}
+
+.login-maintenance-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-warning-fg;
+}
+
+/* Chip de segurança no fundo do formulário */
+.login-status-chip {
+    -fx-padding: 10px 12px;
+    -fx-spacing: 9px;
+    -fx-alignment: center-left;
+    -fx-background-color: -color-accent-subtle;
+    -fx-background-radius: 10px;
+    -fx-border-color: -kubata-green-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+}
+
+.login-status-chip-icon {
+    -fx-icon-color: -kubata-green-dark;
+    -fx-icon-size: 14;
+}
+
+.login-status-chip-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+/* Mensagem de erro/info do formulário */
+.login-message {
+    -fx-padding: 10px 12px;
+    -fx-font-size: 12px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+}
+
+.login-message.is-error {
+    -fx-background-color: -color-danger-subtle;
+    -fx-border-color: -color-danger-1;
+    -fx-text-fill: -color-danger-6;
+}
+
+.login-message.is-info {
+    -fx-background-color: -color-success-subtle;
+    -fx-border-color: -color-success-1;
+    -fx-text-fill: -color-success-7;
+}
+
+/* Campos */
 .modern-text-field {
-    -fx-background-color: #f8f9fa;
-    -fx-border-color: #dee2e6;
+    -fx-background-color: -color-bg-inset;
+    -fx-border-color: -color-border-default;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 12px 15px;
+    -fx-pref-height: 40px;
     -fx-font-size: 14px;
-    -fx-text-fill: #2c3e50;
-    -fx-transition: all 0.2s ease-in-out;
+    -fx-text-fill: -color-fg-default;
 }
 
 .modern-text-field:hover {
-    -fx-border-color: #ced4da;
-    -fx-background-color: #ffffff;
+    -fx-border-color: -color-border-muted;
+    -fx-background-color: -color-bg-default;
 }
 
 .modern-text-field:focused {
-    -fx-background-color: white;
-    -fx-border-color: #217346;
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: -kubata-green;
     -fx-border-width: 1.5px;
     -fx-effect: dropshadow(gaussian, rgba(33, 115, 70, 0.15), 10, 0, 0, 0);
 }
 
-/* Botão primário (Iniciar Sessão) dentro do formulário */
-.login-form-side .button-primary {
-    -fx-background-color: linear-gradient(to bottom, #217346, #1A5C35);
-    -fx-text-fill: white;
+/* Validação por estado, nunca por estilo inline. */
+.modern-text-field.is-valid {
+    -fx-border-color: -color-success-2;
+}
+
+.modern-text-field.is-invalid {
+    -fx-border-color: -color-danger-2;
+}
+
+.modern-text-field.is-invalid:focused {
+    -fx-border-color: -color-danger-5;
+}
+
+.modern-text-field:disabled {
+    -fx-opacity: 0.6;
+}
+
+/* Botão de entrar e botão de mostrar palavra-passe */
+.login-form-pane .button-primary {
+    -fx-pref-height: 54px;
+    -fx-background-color: linear-gradient(to bottom, -kubata-green, -kubata-green-dark);
+    -fx-text-fill: -color-fg-emphasis;
     -fx-font-weight: bold;
     -fx-font-size: 15px;
     -fx-background-radius: 8px;
@@ -5792,27 +6036,185 @@ Text {
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 5, 0, 0, 2);
 }
 
-.login-form-side .button-primary:hover {
-    -fx-background-color: linear-gradient(to bottom, #2ecc71, #217346);
+.login-form-pane .button-primary:hover {
+    -fx-background-color: linear-gradient(to bottom, -kubata-green-light, -kubata-green);
     -fx-effect: dropshadow(gaussian, rgba(46, 204, 113, 0.2), 10, 0, 0, 4);
 }
 
-.login-form-side .button-primary:pressed {
+.login-form-pane .button-primary:pressed {
     -fx-scale-x: 0.98;
     -fx-scale-y: 0.98;
 }
 
-/* Botões sociais (outlined) dentro do formulário */
-.login-form-side .button-outlined {
-    -fx-background-color: white;
-    -fx-border-color: #dee2e6;
-    -fx-border-radius: 6px;
-    -fx-text-fill: #2c3e50;
+.login-show-password {
+    -fx-font-size: 11px;
+    -fx-text-fill: -kubata-green;
 }
 
-.login-form-side .button-outlined:hover {
-    -fx-background-color: #f8f9fa;
-    -fx-border-color: #ced4da;
+.login-show-password-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-icon-size: 14;
+}
+
+/* Overlay e diálogos de apoio */
+.login-overlay-dim {
+    -fx-background-color: rgba(15, 23, 42, 0.45);
+}
+
+.login-overlay-card {
+    -fx-padding: 22px;
+    -fx-spacing: 14px;
+    -fx-background-color: -color-bg-overlay;
+    -fx-background-radius: 16px;
+    -fx-border-color: rgba(33, 115, 70, 0.16);
+    -fx-border-width: 1px;
+    -fx-border-radius: 16px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.22), 24, 0, 0, 4);
+}
+
+.login-overlay-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #163725;
+}
+
+.login-dialog {
+    -fx-spacing: 12px;
+}
+
+.login-dialog-field {
+    -fx-pref-height: 46px;
+}
+
+.login-modal-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-icon-size: 22;
+}
+
+.login-modal-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-fg-default;
+}
+
+.login-modal-body {
+    -fx-font-size: 13px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.login-modal-warning {
+    -fx-padding: 12px;
+    -fx-background-color: -color-warning-subtle;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-warning-1;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+}
+
+.login-modal-warning-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-warning-fg;
+}
+
+.login-info-row {
+    -fx-padding: 10px;
+    -fx-spacing: 10px;
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 10px;
+}
+
+.login-info-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-icon-size: 17;
+}
+
+.login-info-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -color-fg-default;
+}
+
+.login-info-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.login-policy-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+
+.login-field-error {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-danger-6;
+}
+
+/* Cabeçalho da janela */
+.login-window-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-icon-size: 16;
+}
+
+.login-window-control-icon {
+    -fx-icon-color: -color-fg-muted;
+    -fx-icon-size: 13;
+}
+
+/* Ponto de rutura: dispensa a coluna de marca. */
+.login-container.login-compact .login-form-pane {
+    -fx-padding: 24px 26px 20px 26px;
+    -fx-spacing: 12px;
+}
+
+/* Ponto de rutura em altura: dispensa os textos de apoio. */
+.login-container.login-short .login-form-pane {
+    -fx-padding: 20px 26px 16px 26px;
+    -fx-spacing: 10px;
+}
+
+.login-container.login-short .login-branding-pane {
+    -fx-padding: 20px;
+    -fx-spacing: 12px;
+}
+
+.login-container.login-short .login-form-pane .button-primary {
+    -fx-pref-height: 46px;
+}
+
+/* Infraestrutura de tema escuro: só tokens, sem toggle na vista.
+   Aplica-se apenas se a cena receber a classe login-dark. */
+.login-container.login-dark {
+    -color-bg-default: #0d1117;
+    -color-bg-overlay: #161b22;
+    -color-bg-subtle: #161b22;
+    -color-bg-inset: #0d1117;
+    -color-fg-default: #e6edf3;
+    -color-fg-muted: #8b949e;
+    -color-fg-subtle: #6e7781;
+    -color-fg-emphasis: #0d1117;
+    -color-border-default: #30363d;
+    -color-border-muted: #21262d;
+    -color-accent-subtle: #12301f;
+    -kubata-green-pale: #12301f;
+    -kubata-green-border: #1f5c39;
+}
+
+.login-container.login-dark .login-backdrop {
+    -fx-background-color: linear-gradient(to bottom right, #0b1013, #11171c);
+}
+
+.login-container.login-dark .login-card,
+.login-container.login-dark .login-branding-pane,
+.login-container.login-dark .login-form-pane,
+.login-container.login-dark .login-window-header {
+    -fx-background-color: -color-bg-default;
+}
+
+.login-container.login-dark .login-form-title,
+.login-container.login-dark .login-branding-wordmark,
+.login-container.login-dark .login-security-card-title,
+.login-container.login-dark .login-overlay-title {
+    -fx-text-fill: #e6edf3;
 }
 
 /* Botões pequenos com ícone (mostrar senha, fechar) */
@@ -5924,6 +6326,120 @@ Text {
 .console-log-error {
     -fx-background-color: rgba(211, 47, 47, 0.10);
     -fx-text-fill: #C62828;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   § DADOS DE DEMONSTRAÇÃO — ambiente de testes para visitas de clientes
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.demo-badge {
+    -fx-padding: 6px 10px;
+    -fx-background-radius: 12px;
+    -fx-background-color: rgba(33, 115, 70, 0.10);
+    -fx-text-fill: #217346;
+    -fx-border-color: rgba(33, 115, 70, 0.25);
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.demo-state-chip {
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 8px;
+    -fx-border-color: -color-border-muted;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+
+.demo-state-chip:hover {
+    -fx-border-color: rgba(33, 115, 70, 0.35);
+}
+
+.demo-state-value {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-fg-default;
+}
+
+.demo-log {
+    -fx-font-family: 'Consolas', 'Courier New', monospace;
+    -fx-font-size: 12px;
+    -fx-control-inner-background: -color-bg-subtle;
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: -color-border-muted;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px;
+}
+
+.console-statusbar {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: -color-border-muted;
+    -fx-border-width: 1px 0 0 0;
+    -fx-font-size: 11px;
+}
+
+.console-status-chip {
+    -fx-text-fill: -color-fg-muted;
+    -fx-graphic-text-gap: 5px;
+}
+
+.console-tab-toolbar {
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: -color-border-muted;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.console-alerts-card {
+    -fx-background-color: -color-bg-default;
+}
+
+.console-alert-row {
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+}
+
+.console-alert-danger {
+    -fx-background-color: rgba(211, 47, 47, 0.07);
+    -fx-border-color: rgba(211, 47, 47, 0.25);
+}
+
+.console-alert-warning {
+    -fx-background-color: rgba(237, 156, 20, 0.08);
+    -fx-border-color: rgba(237, 156, 20, 0.28);
+}
+
+.console-alert-success {
+    -fx-background-color: rgba(16, 124, 65, 0.06);
+    -fx-border-color: rgba(16, 124, 65, 0.20);
+}
+
+.console-alert-icon-danger {
+    -fx-icon-color: #C62828;
+    -fx-fill: #C62828;
+}
+
+.console-alert-icon-warning {
+    -fx-icon-color: #9A6500;
+    -fx-fill: #9A6500;
+}
+
+.console-alert-icon-success {
+    -fx-icon-color: #107C41;
+    -fx-fill: #107C41;
+}
+
+.button-icon-success {
+    -fx-background-color: transparent;
+    -fx-padding: 6px;
+}
+
+.button-icon-success:hover {
+    -fx-background-color: rgba(16, 124, 65, 0.12);
 }
 
 

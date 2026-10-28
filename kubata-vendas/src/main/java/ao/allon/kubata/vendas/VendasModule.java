@@ -2,6 +2,7 @@ package ao.allon.kubata.vendas;
 
 import ao.allon.kubata.core.module.AbstractKubataModule;
 import ao.allon.kubata.core.module.ModuleView;
+import ao.allon.kubata.vendas.view.ClientesView;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -59,7 +60,7 @@ public class VendasModule extends AbstractKubataModule {
             "Gestão de clientes",
             null,
             "vendas.clientes",
-            null,
+            ClientesView.class,
             2
         ));
         

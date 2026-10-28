@@ -1,6 +1,6 @@
 package ao.allon.kubata.faturacao.view;
 
-import ao.allon.kubata.faturacao.domain.Empresa;
+import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.faturacao.service.EmpresaService;
 import ao.allon.kubata.faturacao.service.SessionManager;
 import ao.allon.kubata.faturacao.ui.modal.ModalService;
@@ -17,6 +17,7 @@ import javafx.stage.FileChooser;
 import org.kordamp.ikonli.feather.Feather;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.util.Base64;
 
 /**
@@ -38,12 +39,8 @@ public class EmpresaConfigView extends VBox {
     private TextField txtRegimeIva;
     private TextField txtConservatoria;
     private TextField txtCapitalSocial;
-    private TextField txtSoftwareValidation;
     private TextField txtBanco1;
     private TextField txtIban1;
-    private TextField txtBanco2;
-    private TextField txtIban2;
-    private TextArea txtSlogan;
     private ImageView imgLogotipo;
     private byte[] logotipoData;
 
@@ -175,20 +172,6 @@ public class EmpresaConfigView extends VBox {
         grid.add(new Label("Capital Social:"), 0, row);
         grid.add(txtCapitalSocial, 1, row);
 
-        row++;
-        txtSoftwareValidation = new TextField();
-        txtSoftwareValidation.setPromptText("Número de validação do software");
-        grid.add(new Label("Nº Validação Software:"), 0, row);
-        grid.add(txtSoftwareValidation, 1, row);
-
-        row++;
-        txtSlogan = new TextArea();
-        txtSlogan.setPromptText("Slogan da empresa");
-        txtSlogan.setPrefRowCount(2);
-        txtSlogan.setWrapText(true);
-        grid.add(new Label("Slogan:"), 0, row);
-        grid.add(txtSlogan, 1, row);
-
         VBox vbox = new VBox(grid);
         vbox.setPadding(new Insets(10));
         return vbox;
@@ -200,8 +183,8 @@ public class EmpresaConfigView extends VBox {
         grid.setVgap(10);
         grid.setPadding(new Insets(15));
 
-        // Banco 1
-        Label lblBanco1 = new Label("Banco 1:");
+        // Banco
+        Label lblBanco1 = new Label("Banco:");
         lblBanco1.setStyle("-fx-font-weight: bold;");
         grid.add(lblBanco1, 0, 0, 2, 1);
 
@@ -215,24 +198,6 @@ public class EmpresaConfigView extends VBox {
         txtIban1.setPromptText("IBAN");
         grid.add(new Label("IBAN:"), 0, 2);
         grid.add(txtIban1, 1, 2);
-
-        // Separator
-        grid.add(new Separator(), 0, 3, 2, 1);
-
-        // Banco 2
-        Label lblBanco2 = new Label("Banco 2:");
-        lblBanco2.setStyle("-fx-font-weight: bold;");
-        grid.add(lblBanco2, 0, 4, 2, 1);
-
-        txtBanco2 = new TextField();
-        txtBanco2.setPromptText("Nome do Banco");
-        grid.add(new Label("Banco:"), 0, 5);
-        grid.add(txtBanco2, 1, 5);
-
-        txtIban2 = new TextField();
-        txtIban2.setPromptText("IBAN");
-        grid.add(new Label("IBAN:"), 0, 6);
-        grid.add(txtIban2, 1, 6);
 
         VBox vbox = new VBox(grid);
         vbox.setPadding(new Insets(10));
@@ -274,20 +239,17 @@ public class EmpresaConfigView extends VBox {
         if (empresa != null) {
             txtNome.setText(empresa.getNome());
             txtNif.setText(empresa.getNif());
-            txtEndereco.setText(empresa.getEndereco());
-            txtCidade.setText(empresa.getCidade());
+            txtEndereco.setText(empresa.getMorada());
+            txtCidade.setText(empresa.getLocalidade());
             txtTelefone.setText(empresa.getTelefone());
             txtEmail.setText(empresa.getEmail());
             txtWebsite.setText(empresa.getWebsite());
-            txtRegimeIva.setText(empresa.getRegimeIva());
+            txtRegimeIva.setText(empresa.getRegimeFiscal());
             txtConservatoria.setText(empresa.getConservatoria());
-            txtCapitalSocial.setText(empresa.getCapitalSocial());
-            txtSoftwareValidation.setText(empresa.getSoftwareValidationNumber());
-            txtSlogan.setText(empresa.getSlogan());
-            txtBanco1.setText(empresa.getBanco1());
-            txtIban1.setText(empresa.getIban1());
-            txtBanco2.setText(empresa.getBanco2());
-            txtIban2.setText(empresa.getIban2());
+            txtCapitalSocial.setText(empresa.getCapitalSocial() != null
+                    ? empresa.getCapitalSocial().stripTrailingZeros().toPlainString() : "");
+            txtBanco1.setText(empresa.getBanco());
+            txtIban1.setText(empresa.getIban());
 
             logotipoData = empresa.getLogotipo();
             if (logotipoData != null) {
@@ -312,27 +274,29 @@ public class EmpresaConfigView extends VBox {
             return;
         }
 
-        Empresa empresa = empresaService.getDadosEmpresa();
-        if (empresa == null) {
-            empresa = new Empresa();
+        BigDecimal capitalSocial;
+        try {
+            capitalSocial = txtCapitalSocial.getText().trim().isEmpty()
+                    ? null : new BigDecimal(txtCapitalSocial.getText().trim());
+        } catch (NumberFormatException invalido) {
+            AlertUtils.showWarningAlert("Capital Social", "Introduza um valor numérico válido.");
+            return;
         }
+
+        Empresa empresa = empresaService.getDadosEmpresa();
 
         empresa.setNome(txtNome.getText().trim());
         empresa.setNif(txtNif.getText().trim());
-        empresa.setEndereco(txtEndereco.getText().trim());
-        empresa.setCidade(txtCidade.getText().trim());
+        empresa.setMorada(txtEndereco.getText().trim());
+        empresa.setLocalidade(txtCidade.getText().trim());
         empresa.setTelefone(txtTelefone.getText().trim());
         empresa.setEmail(txtEmail.getText().trim());
         empresa.setWebsite(txtWebsite.getText().trim());
-        empresa.setRegimeIva(txtRegimeIva.getText().trim());
+        empresa.setRegimeFiscal(txtRegimeIva.getText().trim());
         empresa.setConservatoria(txtConservatoria.getText().trim());
-        empresa.setCapitalSocial(txtCapitalSocial.getText().trim());
-        empresa.setSoftwareValidationNumber(txtSoftwareValidation.getText().trim());
-        empresa.setSlogan(txtSlogan.getText().trim());
-        empresa.setBanco1(txtBanco1.getText().trim());
-        empresa.setIban1(txtIban1.getText().trim());
-        empresa.setBanco2(txtBanco2.getText().trim());
-        empresa.setIban2(txtIban2.getText().trim());
+        empresa.setCapitalSocial(capitalSocial);
+        empresa.setBanco(txtBanco1.getText().trim());
+        empresa.setIban(txtIban1.getText().trim());
         empresa.setLogotipo(logotipoData);
 
         try {

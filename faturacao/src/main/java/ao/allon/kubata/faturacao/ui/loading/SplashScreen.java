@@ -70,9 +70,9 @@ public class SplashScreen {
         Rectangle bg = new Rectangle(width, height);
         LinearGradient gradient = new LinearGradient(
             0, 0, 1, 1, true, null,
-            new Stop(0, Color.web("#1e1b4b")),
-            new Stop(0.5, Color.web("#312e81")),
-            new Stop(1, Color.web("#4338ca"))
+            new Stop(0, Color.web("#06281a")),
+            new Stop(0.5, Color.web("#14532d")),
+            new Stop(1, Color.web("#217346"))
         );
         bg.setFill(gradient);
         root.getChildren().add(bg);
@@ -106,12 +106,12 @@ public class SplashScreen {
         
         Label lblSubtitle = new Label("Sistema de Faturação e Gestão Empresarial");
         lblSubtitle.setFont(Font.font("System", 16));
-        lblSubtitle.setTextFill(Color.web("#c7d2fe"));
+        lblSubtitle.setTextFill(Color.web("#a7f3d0"));
         
         // Status
         lblStatus = new Label("Inicializando sistema...");
         lblStatus.setFont(Font.font("System", 14));
-        lblStatus.setTextFill(Color.web("#a5b4fc"));
+        lblStatus.setTextFill(Color.web("#86efac"));
         
         // Progress bar
         progressBar = new javafx.scene.control.ProgressBar(0);
@@ -121,12 +121,12 @@ public class SplashScreen {
         // Progress text
         lblProgress = new Label("0%");
         lblProgress.setFont(Font.font("System", 12));
-        lblProgress.setTextFill(Color.web("#818cf8"));
+        lblProgress.setTextFill(Color.web("#4ade80"));
         
         // Versão
         Label lblVersion = new Label("Versão 1.0.0");
         lblVersion.setFont(Font.font("System", 11));
-        lblVersion.setTextFill(Color.web("#6366f1"));
+        lblVersion.setTextFill(Color.web("#6ee7b7"));
         
         VBox.setVgrow(lblVersion, Priority.ALWAYS);
         lblVersion.setAlignment(Pos.BOTTOM_CENTER);

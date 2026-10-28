@@ -1,7 +1,7 @@
 package ao.allon.kubata.faturacao.service;
 
-import ao.allon.kubata.faturacao.domain.Fornecedor;
-import ao.allon.kubata.faturacao.repository.FornecedorRepository;
+import ao.allon.kubata.core.domain.Fornecedor;
+import ao.allon.kubata.core.repository.FornecedorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

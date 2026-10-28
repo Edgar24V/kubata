@@ -15,6 +15,7 @@ public class JavaFxApplication extends Application {
     @Override
     public void init() {
         GlobalExceptionHandler.setup();
+        ao.allon.kubata.core.config.KubataDatabasePaths.ensureDirectory();
         applicationContext = new SpringApplicationBuilder(KubataRhApplication.class)
                 .headless(false)
                 .run(getParameters().getRaw().toArray(new String[0]));

@@ -51,7 +51,7 @@ import java.util.Locale;
 
 import ao.allon.kubata.faturacao.domain.Imposto;
 import ao.allon.kubata.faturacao.enums.UnidadeMedida;
-import ao.allon.kubata.faturacao.domain.Fornecedor;
+import ao.allon.kubata.core.domain.Fornecedor;
 import ao.allon.kubata.faturacao.service.ImpostoService;
 import ao.allon.kubata.faturacao.service.FornecedorService;
 import org.controlsfx.validation.ValidationSupport;

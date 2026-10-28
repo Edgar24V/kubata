@@ -74,8 +74,11 @@ public class ItemFatura extends BaseEntity {
     @Column(name = "peso_total", precision = 19, scale = 2)
     private BigDecimal pesoTotal = BigDecimal.ZERO;
     
-    @Transient
+    @Column(name = "desconto_percentual", precision = 5, scale = 2)
     private BigDecimal descontoPercentual = BigDecimal.ZERO;
+
+    @Column(name = "item_origem_id")
+    private Long itemOrigemId;
 
     @Transient
     private boolean isNew = true; // Default to true for new items
@@ -213,6 +216,14 @@ public class ItemFatura extends BaseEntity {
 
     public void setDescontoPercentual(BigDecimal descontoPercentual) {
         this.descontoPercentual = descontoPercentual;
+    }
+
+    public Long getItemOrigemId() {
+        return itemOrigemId;
+    }
+
+    public void setItemOrigemId(Long itemOrigemId) {
+        this.itemOrigemId = itemOrigemId;
     }
 
     public BigDecimal getDesconto() {

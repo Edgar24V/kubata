@@ -38,6 +38,8 @@ public class CustomerDisplayView extends BorderPane {
     public CustomerDisplayView(String lojaNome) {
         setPadding(new Insets(16));
         getStyleClass().add("customer-display");
+        getStylesheets().add(java.util.Objects.requireNonNull(
+            getClass().getResource("/css/pdv-styles.css")).toExternalForm());
 
         idleTitle.setText(lojaNome != null ? lojaNome : "Sua Loja");
         idleTitle.getStyleClass().add(Styles.TITLE_2);

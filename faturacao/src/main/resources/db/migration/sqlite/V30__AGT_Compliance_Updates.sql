@@ -1,8 +1,6 @@
 -- Atualização de conformidade AGT: Backup, Usuarios e Faturas
-ALTER TABLE backup_record ADD COLUMN restore_count INTEGER DEFAULT 0;
-
-ALTER TABLE users ADD COLUMN password_changed_at DATETIME;
-ALTER TABLE users ADD COLUMN password_expiry_days INTEGER DEFAULT 90;
+-- (password_changed_at/password_expiry_days já nascem no esquema canónico de users - V1;
+--  backup_record é criada pelo Administrator com restore_count incluído)
 
 ALTER TABLE faturas ADD COLUMN data_cancelamento DATETIME;
 ALTER TABLE faturas ADD COLUMN modo_formacao BOOLEAN DEFAULT 0;

@@ -1,6 +1,6 @@
 package ao.allon.kubata.faturacao.view;
 
-import ao.allon.kubata.faturacao.domain.Empresa;
+import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.faturacao.service.DatabaseBackupService;
 import ao.allon.kubata.faturacao.service.EmpresaService;
 import ao.allon.kubata.faturacao.ui.util.AlertUtils;
@@ -39,7 +39,6 @@ public class ConfiguracoesView extends VBox {
     private final EmailSettingsService emailSettingsService;
 
     private TextField txtNome;
-    private TextField txtSlogan;
     private TextField txtNif;
     private TextField txtEndereco;
     private TextField txtCidade;
@@ -52,8 +51,6 @@ public class ConfiguracoesView extends VBox {
     // Dados Bancários
     private TextField txtBanco1;
     private TextField txtIban1;
-    private TextField txtBanco2;
-    private TextField txtIban2;
     
     private ComboBox<String> cbRegime;
     
@@ -153,10 +150,8 @@ public class ConfiguracoesView extends VBox {
         
         VBox identitySection = new VBox(10);
         txtNome = new TextField();
-        txtSlogan = new TextField();
         identitySection.getChildren().addAll(
-            TileFactory.createFormField("Nome da Empresa", "Razão social ou nome comercial", txtNome),
-            TileFactory.createFormField("Slogan", "Frase de efeito ou lema", txtSlogan)
+            TileFactory.createFormField("Nome da Empresa", "Razão social ou nome comercial", txtNome)
         );
         HBox.setHgrow(identitySection, Priority.ALWAYS);
         
@@ -206,15 +201,11 @@ public class ConfiguracoesView extends VBox {
         VBox col3 = new VBox(15);
         txtBanco1 = new TextField();
         txtIban1 = new TextField();
-        txtBanco2 = new TextField();
-        txtIban2 = new TextField();
         
         col3.getChildren().addAll(
             TileFactory.createSectionHeader("Dados Bancários", "Contas para documentos", Feather.CREDIT_CARD),
-            TileFactory.createFormField("Banco Principal", "Nome do banco", txtBanco1),
-            TileFactory.createFormField("IBAN Principal", "Número de IBAN", txtIban1),
-            TileFactory.createFormField("Banco Secundário", "Nome do banco (opcional)", txtBanco2),
-            TileFactory.createFormField("IBAN Secundário", "Número de IBAN (opcional)", txtIban2)
+            TileFactory.createFormField("Banco", "Nome do banco", txtBanco1),
+            TileFactory.createFormField("IBAN", "Número de IBAN", txtIban1)
         );
 
         columns.getChildren().addAll(col1, col2, col3);
@@ -322,22 +313,20 @@ public class ConfiguracoesView extends VBox {
             Empresa emp = empresaService.getDadosEmpresa();
             if (emp != null) {
                 txtNome.setText(emp.getNome() != null ? emp.getNome() : "");
-                txtSlogan.setText(emp.getSlogan() != null ? emp.getSlogan() : "");
                 txtNif.setText(emp.getNif() != null ? emp.getNif() : "");
-                txtEndereco.setText(emp.getEndereco() != null ? emp.getEndereco() : "");
-                txtCidade.setText(emp.getCidade() != null ? emp.getCidade() : "");
+                txtEndereco.setText(emp.getMorada() != null ? emp.getMorada() : "");
+                txtCidade.setText(emp.getLocalidade() != null ? emp.getLocalidade() : "");
                 txtEmail.setText(emp.getEmail() != null ? emp.getEmail() : "");
                 txtTelefone.setText(emp.getTelefone() != null ? emp.getTelefone() : "");
                 txtWebsite.setText(emp.getWebsite() != null ? emp.getWebsite() : "");
                 txtConservatoria.setText(emp.getConservatoria() != null ? emp.getConservatoria() : "");
-                txtCapitalSocial.setText(emp.getCapitalSocial() != null ? emp.getCapitalSocial() : "");
-                
-                txtBanco1.setText(emp.getBanco1() != null ? emp.getBanco1() : "");
-                txtIban1.setText(emp.getIban1() != null ? emp.getIban1() : "");
-                txtBanco2.setText(emp.getBanco2() != null ? emp.getBanco2() : "");
-                txtIban2.setText(emp.getIban2() != null ? emp.getIban2() : "");
-                
-                cbRegime.setValue(emp.getRegimeIva());
+                txtCapitalSocial.setText(emp.getCapitalSocial() != null
+                        ? emp.getCapitalSocial().stripTrailingZeros().toPlainString() : "");
+
+                txtBanco1.setText(emp.getBanco() != null ? emp.getBanco() : "");
+                txtIban1.setText(emp.getIban() != null ? emp.getIban() : "");
+
+                cbRegime.setValue(emp.getRegimeFiscal());
                 
                 this.currentLogoBytes = emp.getLogotipo();
                 updateLogoPreview();
@@ -367,26 +356,31 @@ public class ConfiguracoesView extends VBox {
             }
         }
 
+        java.math.BigDecimal capitalSocial;
+        try {
+            capitalSocial = txtCapitalSocial.getText() == null || txtCapitalSocial.getText().trim().isEmpty()
+                    ? null : new java.math.BigDecimal(txtCapitalSocial.getText().trim());
+        } catch (NumberFormatException invalido) {
+            AlertUtils.showWarningAlert("Capital Social", "Introduza um valor numérico válido.");
+            return;
+        }
+
         Empresa emp = empresaService.getDadosEmpresa();
-        if (emp == null) emp = new Empresa();
-        
+
         emp.setNome(txtNome.getText());
-        emp.setSlogan(txtSlogan.getText());
         emp.setNif(ao.allon.kubata.faturacao.util.AngolaValidationUtils.normalizeNif(txtNif.getText()));
-        emp.setEndereco(txtEndereco.getText());
-        emp.setCidade(txtCidade.getText());
+        emp.setMorada(txtEndereco.getText());
+        emp.setLocalidade(txtCidade.getText());
         emp.setEmail(txtEmail.getText());
         emp.setTelefone(txtTelefone.getText());
         emp.setWebsite(txtWebsite.getText());
         emp.setConservatoria(txtConservatoria.getText());
-        emp.setCapitalSocial(txtCapitalSocial.getText());
-        
-        emp.setBanco1(txtBanco1.getText());
-        emp.setIban1(txtIban1.getText());
-        emp.setBanco2(txtBanco2.getText());
-        emp.setIban2(txtIban2.getText());
-        
-        emp.setRegimeIva(cbRegime.getValue());
+        emp.setCapitalSocial(capitalSocial);
+
+        emp.setBanco(txtBanco1.getText());
+        emp.setIban(txtIban1.getText());
+
+        emp.setRegimeFiscal(cbRegime.getValue());
         emp.setLogotipo(currentLogoBytes);
 
         try {

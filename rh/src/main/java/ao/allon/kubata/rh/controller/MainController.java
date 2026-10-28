@@ -1,7 +1,12 @@
 package ao.allon.kubata.rh.controller;
 
 import ao.allon.kubata.core.domain.User;
-import ao.allon.kubata.core.service.AcessoService;
+import ao.allon.kubata.core.service.AuthService;
+import ao.allon.kubata.core.service.MaintenanceModeService;
+import ao.allon.kubata.core.service.PasswordChangeService;
+import ao.allon.kubata.core.ui.login.KubataLoginView;
+import ao.allon.kubata.core.ui.login.LoginViewConfig;
+import ao.allon.kubata.rh.service.SessionManager;
 import ao.allon.kubata.rh.ui.StageReadyEvent;
 import ao.allon.kubata.rh.ui.modal.ModalManager;
 import ao.allon.kubata.rh.ui.util.IconUtils;
@@ -36,7 +41,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -45,11 +52,13 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
+/**
+ * Shell do Kubata RH. A entrada é controlada pelo Kubata Administrator:
+ * login partilhado, perfis e permissões definidos no Administrator e o
+ * estado do módulo (activo/inactivo) decidido na gestão de módulos.
+ */
 @Component
 public class MainController extends StackPane {
-
-    @Autowired
-    private AcessoService acessoService;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -57,13 +66,32 @@ public class MainController extends StackPane {
     @Autowired
     private ModalManager modalManager;
 
+    @Autowired
+    private SessionManager sessionManager;
+
+    @Autowired
+    private AuthService authService;
+
+    @Autowired
+    private PasswordChangeService passwordChangeService;
+
+    @Autowired
+    private MaintenanceModeService maintenanceModeService;
+
+    /** Bilhete emitido pelo Kubata Administrator quando a aplicação é lançada a partir do hub. */
+    @org.springframework.beans.factory.annotation.Value("${kubata-launch-ticket:}")
+    private String launchTicket;
+
+    @Autowired(required = false)
+    private ao.allon.kubata.core.service.SessionTicketService sessionTicketService;
+
     private BorderPane mainLayout;
     private Ribbon ribbon;
     private TabPane mainTabPane;
     private Label statusLabel;
 
     private Stage stage;
-    private User currentUser;
+    private Stage loginStage;
 
     public MainController() {
         // A UI é montada depois da injeção do Spring.
@@ -72,23 +100,39 @@ public class MainController extends StackPane {
     @EventListener
     public void onStageReady(StageReadyEvent event) {
         this.stage = event.getStage();
-
-        Scene scene = new Scene(this);
-        ThemeManager.applyTheme(scene);
-
-        stage.setScene(scene);
         stage.setTitle("Kubata RH - Sistema de Recursos Humanos");
-        stage.setMaximized(true);
-        stage.show();
+        if (!entrarComBilhete()) {
+            switchToLogin();
+        }
+    }
 
-        startUI();
+    /**
+     * Reaproveita o login já feito no Kubata Administrator. Um bilhete ausente, expirado ou
+     * recusado devolve o comportamento normal de pedido de credenciais.
+     */
+    private boolean entrarComBilhete() {
+        if (sessionTicketService == null || launchTicket == null || launchTicket.isBlank()) {
+            return false;
+        }
+        try {
+            handleLoginSuccess(sessionTicketService.consumir(launchTicket, "RH", "127.0.0.1"));
+            return true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Alert aviso = new Alert(Alert.AlertType.WARNING);
+            aviso.setTitle("Sessão do Administrator");
+            aviso.setHeaderText(null);
+            aviso.setContentText("Não foi possível reutilizar a sessão do Administrator. "
+                    + "Introduza as credenciais normalmente.");
+            aviso.showAndWait();
+            return false;
+        }
     }
 
     @PostConstruct
     public void init() {
         Platform.runLater(() -> {
             buildUI();
-            setupRibbon();
             setupStatusBar();
             modalManager.setRoot(this);
         });
@@ -97,7 +141,7 @@ public class MainController extends StackPane {
     private void buildUI() {
         mainLayout = new BorderPane();
 
-        // Top: Ribbon
+        // Top: Ribbon (construído após o login, com as permissões do utilizador)
         ribbon = new Ribbon();
         ribbon.getStyleClass().add("kubata-ribbon-host");
         mainLayout.setTop(ribbon);
@@ -129,134 +173,171 @@ public class MainController extends StackPane {
         getChildren().setAll(mainLayout);
     }
 
-    public void startUI() {
-        Platform.runLater(() -> {
-            try {
-                setupUserInterface();
-                loadInitialView();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+    // ── Autenticação (login partilhado do Kubata Administrator) ─────────────
+
+    private void switchToLogin() {
+        closeLoginStage();
+        loginStage = new Stage(StageStyle.TRANSPARENT);
+        KubataLoginView loginView = new KubataLoginView(
+                LoginViewConfig.rh(),
+                authService,
+                passwordChangeService,
+                maintenanceModeService,
+                this::handleLoginSuccess);
+        javafx.geometry.Dimension2D loginSize = KubataLoginView.recommendedSceneSize();
+        Scene loginScene = new Scene(loginView.createView(loginStage),
+                loginSize.getWidth(), loginSize.getHeight());
+        loginScene.setFill(Color.TRANSPARENT);
+        ThemeManager.applyTheme(loginScene);
+        loginStage.setScene(loginScene);
+        loginStage.centerOnScreen();
+        loginStage.show();
     }
 
-    private void setupUserInterface() {
-        // Reservado para configurações adicionais de interface.
+    private void closeLoginStage() {
+        if (loginStage != null) {
+            loginStage.close();
+            loginStage = null;
+        }
     }
+
+    private void handleLoginSuccess(User user) {
+        sessionManager.login(user);
+        closeLoginStage();
+        enterMain();
+    }
+
+    private void enterMain() {
+        setupRibbon();
+        setupStatusBar();
+
+        Scene scene = new Scene(this);
+        ThemeManager.applyTheme(scene);
+
+        stage.setScene(scene);
+        stage.setMaximized(true);
+        stage.show();
+        stage.toFront();
+
+        Platform.runLater(this::loadInitialView);
+    }
+
+    private void performLogoutAndShowLogin() {
+        sessionManager.logout();
+        stage.hide();
+        switchToLogin();
+    }
+
+    // ── UI principal ────────────────────────────────────────────────────────
 
     private void setupRibbon() {
+        ribbon.getTabs().clear();
+
         RibbonTab cadastrosTab = new RibbonTab("Cadastros");
 
         RibbonGroup estruturaGroup = new RibbonGroup();
         estruturaGroup.setTitle("Estrutura");
-        Button btnDepartamentos = createRibbonButton(
-                "Departamentos", Feather.MAP,
-                e -> openOrFocusTab("departamentos", "Departamentos", DepartamentoView.class));
-        Button btnCargos = createRibbonButton(
-                "Cargos", Feather.BRIEFCASE,
-                e -> openOrFocusTab("cargos", "Cargos", CargoView.class));
-        estruturaGroup.getNodes().addAll(btnDepartamentos, btnCargos);
+        if (podeVer("FUNCIONARIOS")) {
+            estruturaGroup.getNodes().addAll(
+                    createRibbonButton("Departamentos", Feather.MAP,
+                            e -> openOrFocusTab("departamentos", "Departamentos", DepartamentoView.class)),
+                    createRibbonButton("Cargos", Feather.BRIEFCASE,
+                            e -> openOrFocusTab("cargos", "Cargos", CargoView.class)));
+        }
 
         RibbonGroup pessoalGroup = new RibbonGroup();
         pessoalGroup.setTitle("Pessoal");
-        Button btnColaboradores = createRibbonButton(
-                "Colaboradores", Feather.USERS,
-                e -> openOrFocusTab("colaboradores", "Colaboradores", ColaboradorView.class));
-        Button btnContratos = createRibbonButton(
-                "Contratos", Feather.FILE_TEXT,
-                e -> openOrFocusTab("contratos", "Contratos", ContratoView.class));
-        Button btnDocumentos = createRibbonButton(
-                "Documentos", Feather.FOLDER,
-                e -> openOrFocusTab("documentos", "Documentos", DocumentoColaboradorView.class));
-        pessoalGroup.getNodes().addAll(btnColaboradores, btnContratos, btnDocumentos);
+        if (podeVer("FUNCIONARIOS")) {
+            pessoalGroup.getNodes().addAll(
+                    createRibbonButton("Colaboradores", Feather.USERS,
+                            e -> openOrFocusTab("colaboradores", "Colaboradores", ColaboradorView.class)),
+                    createRibbonButton("Contratos", Feather.FILE_TEXT,
+                            e -> openOrFocusTab("contratos", "Contratos", ContratoView.class)),
+                    createRibbonButton("Documentos", Feather.FOLDER,
+                            e -> openOrFocusTab("documentos", "Documentos", DocumentoColaboradorView.class)));
+        }
 
-        cadastrosTab.getRibbonGroups().add(estruturaGroup);
-        cadastrosTab.getRibbonGroups().add(pessoalGroup);
+        if (!estruturaGroup.getNodes().isEmpty()) cadastrosTab.getRibbonGroups().add(estruturaGroup);
+        if (!pessoalGroup.getNodes().isEmpty()) cadastrosTab.getRibbonGroups().add(pessoalGroup);
 
         RibbonTab assiduidadeTab = new RibbonTab("Assiduidade");
 
         RibbonGroup registoGroup = new RibbonGroup();
         registoGroup.setTitle("Registos");
-        Button btnPonto = createRibbonButton(
-                "Ponto", Feather.CLOCK,
-                e -> openOrFocusTab("ponto", "Registo de Ponto", RegistoPontoView.class));
-        Button btnFaltas = createRibbonButton(
-                "Faltas", Feather.CALENDAR,
-                e -> openOrFocusTab("faltas", "Faltas", FaltaView.class));
-        Button btnHorasExtra = createRibbonButton(
-                "Horas Extra", Feather.PLUS_CIRCLE,
-                e -> openOrFocusTab("horas_extra", "Horas Extra", HoraExtraView.class));
-        registoGroup.getNodes().addAll(btnPonto, btnFaltas, btnHorasExtra);
+        if (podeVer("FUNCIONARIOS")) {
+            registoGroup.getNodes().addAll(
+                    createRibbonButton("Ponto", Feather.CLOCK,
+                            e -> openOrFocusTab("ponto", "Registo de Ponto", RegistoPontoView.class)),
+                    createRibbonButton("Faltas", Feather.CALENDAR,
+                            e -> openOrFocusTab("faltas", "Faltas", FaltaView.class)),
+                    createRibbonButton("Horas Extra", Feather.PLUS_CIRCLE,
+                            e -> openOrFocusTab("horas_extra", "Horas Extra", HoraExtraView.class)));
+        }
 
-        assiduidadeTab.getRibbonGroups().add(registoGroup);
+        if (!registoGroup.getNodes().isEmpty()) assiduidadeTab.getRibbonGroups().add(registoGroup);
 
         RibbonTab feriasTab = new RibbonTab("Férias e Licenças");
 
         RibbonGroup feriasGroup = new RibbonGroup();
         feriasGroup.setTitle("Gestão");
-        Button btnGerirFerias = createRibbonButton(
-                "Férias", Feather.SUN,
-                e -> openOrFocusTab("ferias", "Gestão de Férias", PedidoFeriasView.class));
-        Button btnLicencas = createRibbonButton(
-                "Licenças", Feather.UMBRELLA,
-                e -> openOrFocusTab("licencas", "Licenças", LicencaView.class));
-        feriasGroup.getNodes().addAll(btnGerirFerias, btnLicencas);
+        if (podeVer("FUNCIONARIOS")) {
+            feriasGroup.getNodes().addAll(
+                    createRibbonButton("Férias", Feather.SUN,
+                            e -> openOrFocusTab("ferias", "Gestão de Férias", PedidoFeriasView.class)),
+                    createRibbonButton("Licenças", Feather.UMBRELLA,
+                            e -> openOrFocusTab("licencas", "Licenças", LicencaView.class)));
+        }
 
-        feriasTab.getRibbonGroups().add(feriasGroup);
+        if (!feriasGroup.getNodes().isEmpty()) feriasTab.getRibbonGroups().add(feriasGroup);
 
         RibbonTab relatoriosTab = new RibbonTab("Relatórios");
 
         RibbonGroup relPessoalGroup = new RibbonGroup();
         relPessoalGroup.setTitle("Pessoal");
-        Button btnRelColaboradores = createRibbonButton(
-                "Colaboradores", Feather.PRINTER,
-                e -> gerarRelatorioColaboradores());
-        Button btnRelContratos = createRibbonButton(
-                "Contratos", Feather.FILE,
-                e -> gerarRelatorioContratosExpirar());
-        relPessoalGroup.getNodes().addAll(btnRelColaboradores, btnRelContratos);
+        if (podeVer("FUNCIONARIOS")) {
+            relPessoalGroup.getNodes().addAll(
+                    createRibbonButton("Colaboradores", Feather.PRINTER, e -> gerarRelatorioColaboradores()),
+                    createRibbonButton("Contratos", Feather.FILE, e -> gerarRelatorioContratosExpirar()));
+        }
 
         RibbonGroup relFeriasGroup = new RibbonGroup();
         relFeriasGroup.setTitle("Férias");
-        Button btnRelFerias = createRibbonButton(
-                "Mapa Férias", Feather.MAP,
-                e -> gerarRelatorioMapaFerias());
-        relFeriasGroup.getNodes().add(btnRelFerias);
+        if (podeVer("FUNCIONARIOS")) {
+            relFeriasGroup.getNodes().add(
+                    createRibbonButton("Mapa Férias", Feather.MAP, e -> gerarRelatorioMapaFerias()));
+        }
 
-        relatoriosTab.getRibbonGroups().add(relPessoalGroup);
-        relatoriosTab.getRibbonGroups().add(relFeriasGroup);
+        if (!relPessoalGroup.getNodes().isEmpty()) relatoriosTab.getRibbonGroups().add(relPessoalGroup);
+        if (!relFeriasGroup.getNodes().isEmpty()) relatoriosTab.getRibbonGroups().add(relFeriasGroup);
 
         RibbonTab sistemaTab = new RibbonTab("Sistema");
 
         RibbonGroup configGroup = new RibbonGroup();
         configGroup.setTitle("Configurações");
-        Button btnUsuarios = createRibbonButton(
-                "Utilizadores", Feather.SHIELD,
-                e -> showAlert(Alert.AlertType.INFORMATION, "Informação",
-                        "Módulo Centralizado",
-                        "A gestão de utilizadores é feita no módulo Core."));
-        Button btnSobre = createRibbonButton(
-                "Sobre", Feather.INFO,
-                e -> showAlert(Alert.AlertType.INFORMATION, "Sobre",
-                        "Kubata RH", "Sistema de Gestão de Recursos Humanos v1.0.0"));
-        configGroup.getNodes().addAll(btnUsuarios, btnSobre);
+        configGroup.getNodes().addAll(
+                createRibbonButton("Utilizadores", Feather.SHIELD, e -> showAlert(Alert.AlertType.INFORMATION, "Informação",
+                        "Gestão Centralizada",
+                        "Os utilizadores e permissões são geridos no Kubata Administrator.")),
+                createRibbonButton("Sobre", Feather.INFO, e -> showAlert(Alert.AlertType.INFORMATION, "Sobre",
+                        "Kubata RH", "Sistema de Gestão de Recursos Humanos v1.0.0")));
 
         RibbonGroup acoesGroup = new RibbonGroup();
         acoesGroup.setTitle("Ações");
-        Button btnSair = createRibbonButton(
-                "Sair", Feather.LOG_OUT, e -> Platform.exit());
-        acoesGroup.getNodes().add(btnSair);
+        acoesGroup.getNodes().add(
+                createRibbonButton("Sair", Feather.LOG_OUT, e -> confirmarSaida()));
 
         sistemaTab.getRibbonGroups().add(configGroup);
         sistemaTab.getRibbonGroups().add(acoesGroup);
 
-        ribbon.getTabs().addAll(
-                cadastrosTab,
-                assiduidadeTab,
-                feriasTab,
-                relatoriosTab,
-                sistemaTab
-        );
+        if (!cadastrosTab.getRibbonGroups().isEmpty()) ribbon.getTabs().add(cadastrosTab);
+        if (!assiduidadeTab.getRibbonGroups().isEmpty()) ribbon.getTabs().add(assiduidadeTab);
+        if (!feriasTab.getRibbonGroups().isEmpty()) ribbon.getTabs().add(feriasTab);
+        if (!relatoriosTab.getRibbonGroups().isEmpty()) ribbon.getTabs().add(relatoriosTab);
+        ribbon.getTabs().add(sistemaTab);
+    }
+
+    private boolean podeVer(String recurso) {
+        return sessionManager.podeVer(recurso);
     }
 
     private Button createRibbonButton(
@@ -279,7 +360,13 @@ public class MainController extends StackPane {
     }
 
     private void setupStatusBar() {
-        statusLabel.setText("Sistema RH pronto");
+        User user = sessionManager.getUser();
+        if (user != null) {
+            String nome = user.getNome() != null ? user.getNome() : user.getEmail();
+            statusLabel.setText("Sessão: " + nome + "  •  permissões definidas no Kubata Administrator");
+        } else {
+            statusLabel.setText("Sistema RH pronto");
+        }
     }
 
     private void loadInitialView() {
@@ -338,6 +425,15 @@ public class MainController extends StackPane {
             showAlert(Alert.AlertType.ERROR, "Erro",
                     "Não foi possível carregar Dashboard", e.getMessage());
         }
+    }
+
+    private void confirmarSaida() {
+        Label mensagem = new Label("Terminar a sessão e voltar ao ecrã de login?");
+        modalManager.showModal(mensagem, new ModalManager.ModalConfig()
+                .title("Terminar Sessão")
+                .autoSize()
+                .withConfirmButtons("Terminar Sessão", "Cancelar")
+                .onConfirm(this::performLogoutAndShowLogin));
     }
 
     private void gerarRelatorioColaboradores() {

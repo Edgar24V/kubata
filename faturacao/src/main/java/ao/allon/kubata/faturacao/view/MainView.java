@@ -182,7 +182,7 @@ public class MainView extends BorderPane {
         bar.setPadding(new Insets(4, 10, 4, 10));
         bar.getStyleClass().add("app-footer");
         
-        ao.allon.kubata.faturacao.domain.Empresa emp = null;
+        ao.allon.kubata.core.domain.Empresa emp = null;
         try { emp = empresaService.getDadosEmpresa(); } catch (Exception ignored) {}
         String empresaNome = emp != null && emp.getNome() != null ? emp.getNome() : "Empresa";
         String empresaNif = emp != null && emp.getNif() != null ? emp.getNif() : "";

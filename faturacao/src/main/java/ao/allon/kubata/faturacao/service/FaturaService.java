@@ -48,8 +48,25 @@ public class FaturaService {
     private final ContabilidadeService contabilidadeService;
     private final PlanoContaRepository planoContaRepository;
     private final SessionManager sessionManager;
+    private final CondicaoPagamentoService condicaoPagamentoService;
 
-    public FaturaService(FaturaRepository faturaRepository, ItemFaturaRepository itemFaturaRepository, ProdutoService produtoService, SerieService serieService, AGTService agtService, AGTElectronicInvoiceService agtElectronicInvoiceService, JWSDigitalSignatureService signatureService, ContabilidadeService contabilidadeService, PlanoContaRepository planoContaRepository, SessionManager sessionManager) {
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ao.allon.kubata.faturacao.repository.ReciboAlocacaoRepository reciboAlocacaoRepository;
+
+    /**
+     * Guarda de permissões ao nível do serviço: as mesmas chaves dos botões da interface, para
+     * que chamar o serviço directamente não contorne o perfil de segurança.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ao.allon.kubata.core.service.AccessGuard accessGuard;
+
+    private void exigir(String modulo, String opcao) {
+        if (accessGuard != null) {
+            accessGuard.require(modulo, opcao);
+        }
+    }
+
+    public FaturaService(FaturaRepository faturaRepository, ItemFaturaRepository itemFaturaRepository, ProdutoService produtoService, SerieService serieService, AGTService agtService, AGTElectronicInvoiceService agtElectronicInvoiceService, JWSDigitalSignatureService signatureService, ContabilidadeService contabilidadeService, PlanoContaRepository planoContaRepository, SessionManager sessionManager, CondicaoPagamentoService condicaoPagamentoService) {
         this.faturaRepository = faturaRepository;
         this.itemFaturaRepository = itemFaturaRepository;
         this.produtoService = produtoService;
@@ -60,6 +77,15 @@ public class FaturaService {
         this.contabilidadeService = contabilidadeService;
         this.planoContaRepository = planoContaRepository;
         this.sessionManager = sessionManager;
+        this.condicaoPagamentoService = condicaoPagamentoService;
+    }
+
+    /**
+     * Resolve a data de vencimento: usa o prazo da condição de pagamento associada
+     * à fatura; se não houver condição, mantém o fallback de 30 dias.
+     */
+    private LocalDate resolverVencimento(LocalDate emissao, ao.allon.kubata.faturacao.domain.CondicaoPagamento condicao) {
+        return condicaoPagamentoService.calcularVencimento(emissao, condicao, emissao.plusDays(30));
     }
 
     public Optional<Fatura> findById(Long id) {
@@ -122,6 +148,10 @@ public class FaturaService {
     public List<Fatura> findAll() {
         return faturaRepository.findAll();
     }
+
+    public List<Fatura> findByCliente(Long clienteId) {
+        return faturaRepository.findByClienteId(clienteId);
+    }
     
     public BigDecimal getVendasMesAtual() {
         LocalDate inicio = YearMonth.now().atDay(1);
@@ -145,9 +175,23 @@ public class FaturaService {
         return total != null ? total : BigDecimal.ZERO;
     }
 
+    public BigDecimal getVendasEmitidasEntre(LocalDate inicio, LocalDate fim) {
+        BigDecimal total = faturaRepository.sumTotalByStatusAndDataEmissaoBetween(StatusFatura.EMITIDA, inicio, fim);
+        return total != null ? total : BigDecimal.ZERO;
+    }
+
     public List<Fatura> getFaturasDoDia() {
         LocalDate hoje = LocalDate.now();
         return faturaRepository.findByDataEmissaoBetween(hoje, hoje);
+    }
+
+    public long countFaturasDoDia() {
+        LocalDate hoje = LocalDate.now();
+        return faturaRepository.countByDataEmissaoBetween(hoje, hoje);
+    }
+
+    public List<Object[]> getVendasPorCategoria(LocalDate inicio, LocalDate fim) {
+        return faturaRepository.findVendasPorCategoria(inicio, fim);
     }
 
     public List<Fatura> findByDataEmissaoBetween(LocalDate start, LocalDate end) {
@@ -226,11 +270,13 @@ public class FaturaService {
 
     @Transactional
     public Fatura criarRascunho(Cliente cliente, TipoDocumento tipo) {
+        exigir("FATURACAO", "Criar");
         Fatura fatura = new Fatura();
         fatura.setCliente(cliente);
         fatura.setTipoDocumento(tipo);
+        fatura.setCondicaoPagamento(cliente != null ? cliente.getCondicaoPagamento() : null);
         fatura.setDataEmissao(LocalDate.now());
-        fatura.setDataVencimento(LocalDate.now().plusDays(30)); // Default 30 dias
+        fatura.setDataVencimento(resolverVencimento(LocalDate.now(), fatura.getCondicaoPagamento()));
         fatura.setStatus(StatusFatura.RASCUNHO);
         fatura.setNumero("RASC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         try {
@@ -275,6 +321,7 @@ public class FaturaService {
 
     @Transactional
     public Fatura emitirFatura(Long faturaId) {
+        exigir("FATURACAO", "Emitir");
         Fatura fatura = faturaRepository.findById(faturaId)
                 .orElseThrow(() -> new IllegalArgumentException("Fatura não encontrada"));
 
@@ -284,6 +331,7 @@ public class FaturaService {
     
     @Transactional
     public Fatura salvarEEmitir(Fatura fatura) {
+        exigir("FATURACAO", "Emitir");
         fatura = salvar(fatura);
         processarEmissao(fatura);
         return faturaRepository.save(fatura);
@@ -293,6 +341,8 @@ public class FaturaService {
         if (fatura.getStatus() == StatusFatura.EMITIDA) {
             throw new IllegalStateException("A fatura já foi emitida ou processada");
         }
+
+        validarLimiteCredito(fatura);
 
         // Operador/Usuário responsável (para impressão/SAF-T/AGT)
         try {
@@ -437,6 +487,48 @@ public class FaturaService {
         } catch (Exception e) {
             System.err.println("Erro ao lançar na contabilidade: " + e.getMessage());
         }
+    }
+
+    private void validarLimiteCredito(Fatura fatura) {
+        if (fatura == null || fatura.getCliente() == null) return;
+        if (fatura.getTipoDocumento() == TipoDocumento.NOTA_CREDITO
+                || fatura.getTipoDocumento() == TipoDocumento.NOTA_DEBITO
+                || fatura.getTipoDocumento() == TipoDocumento.GUIA_REMESSA
+                || fatura.getTipoDocumento() == TipoDocumento.GUIA_TRANSPORTE
+                || fatura.getTipoDocumento() == TipoDocumento.ORCAMENTO
+                || fatura.getTipoDocumento() == TipoDocumento.PRO_FORMA
+                || fatura.getTipoDocumento() == TipoDocumento.ENCOMENDA) return;
+        java.math.BigDecimal limite = fatura.getCliente().getLimiteCredito();
+        if (limite == null || limite.compareTo(java.math.BigDecimal.ZERO) <= 0) return;
+        java.math.BigDecimal total = fatura.getTotal() != null ? fatura.getTotal() : java.math.BigDecimal.ZERO;
+        if (total.compareTo(java.math.BigDecimal.ZERO) <= 0) return;
+        java.math.BigDecimal exposto = java.math.BigDecimal.ZERO;
+        for (Fatura f : faturaRepository.findByClienteId(fatura.getCliente().getId())) {
+            if (f.getId() != null && f.getId().equals(fatura.getId())) continue;
+            if (f.getStatus() == StatusFatura.CANCELADA) continue;
+            if (f.getTipoDocumento() == TipoDocumento.NOTA_CREDITO) {
+                java.math.BigDecimal nc = f.getTotal() != null ? f.getTotal() : java.math.BigDecimal.ZERO;
+                exposto = exposto.subtract(nc);
+            } else if (f.getTipoDocumento() == TipoDocumento.FATURA
+                    || f.getTipoDocumento() == TipoDocumento.FATURA_RECIBO) {
+                if (f.getStatus() != StatusFatura.EMITIDA && f.getStatus() != StatusFatura.PROCESSADA) continue;
+                java.math.BigDecimal t = f.getTotal() != null ? f.getTotal() : java.math.BigDecimal.ZERO;
+                java.math.BigDecimal pago = faturaPagado(f.getId());
+                exposto = exposto.add(t.subtract(pago));
+            }
+        }
+        java.math.BigDecimal novo = exposto.add(total);
+        if (novo.compareTo(limite) > 0) {
+            throw new IllegalStateException("Limite de crédito excedido para o cliente " +
+                    (fatura.getCliente().getNome() != null ? fatura.getCliente().getNome() : fatura.getCliente().getId()) +
+                    " (exposição " + novo + " > limite " + limite + ").");
+        }
+    }
+
+    private java.math.BigDecimal faturaPagado(Long faturaId) {
+        if (reciboAlocacaoRepository == null) return java.math.BigDecimal.ZERO;
+        java.math.BigDecimal v = reciboAlocacaoRepository.sumValorByFaturaId(faturaId);
+        return v != null ? v : java.math.BigDecimal.ZERO;
     }
 
     /**
@@ -586,6 +678,7 @@ public class FaturaService {
 
     @Transactional
     public Fatura emitirGuiaRemessa(Fatura faturaOriginal, String localCarga, String localDescarga, LocalDateTime dataCarga, LocalDateTime dataDescarga, String matricula) {
+         exigir("LOGISTICA", "Criar");
          Fatura guia = new Fatura();
          guia.setCliente(faturaOriginal.getCliente());
          guia.setFaturaReferencia(faturaOriginal);
@@ -644,8 +737,9 @@ public class FaturaService {
         }
         Fatura f = new Fatura();
         f.setCliente(guia.getCliente());
+        f.setCondicaoPagamento(guia.getCliente() != null ? guia.getCliente().getCondicaoPagamento() : null);
         f.setDataEmissao(LocalDate.now());
-        f.setDataVencimento(LocalDate.now().plusDays(30));
+        f.setDataVencimento(resolverVencimento(LocalDate.now(), f.getCondicaoPagamento()));
         f.setStatus(StatusFatura.RASCUNHO);
         f.setObservacoes("Convertida da guia " + guia.getNumero());
         for (ItemFatura it : guia.getItens()) {
@@ -730,8 +824,9 @@ public class FaturaService {
         // Criar nova Fatura baseada na Pro-forma
         Fatura novaFatura = new Fatura();
         novaFatura.setCliente(proForma.getCliente());
+        novaFatura.setCondicaoPagamento(proForma.getCliente() != null ? proForma.getCliente().getCondicaoPagamento() : null);
         novaFatura.setDataEmissao(LocalDate.now());
-        novaFatura.setDataVencimento(LocalDate.now().plusDays(30));
+        novaFatura.setDataVencimento(resolverVencimento(LocalDate.now(), novaFatura.getCondicaoPagamento()));
         novaFatura.setStatus(StatusFatura.RASCUNHO);
         novaFatura.setMetodoPagamento(proForma.getMetodoPagamento());
         novaFatura.setObservacoes("Convertido de " + proForma.getNumero());
@@ -783,8 +878,9 @@ public class FaturaService {
         Fatura novaFatura = new Fatura();
         novaFatura.setTipoDocumento(destino);
         novaFatura.setCliente(encomenda.getCliente());
+        novaFatura.setCondicaoPagamento(encomenda.getCliente() != null ? encomenda.getCliente().getCondicaoPagamento() : null);
         novaFatura.setDataEmissao(LocalDate.now());
-        novaFatura.setDataVencimento(LocalDate.now().plusDays(30));
+        novaFatura.setDataVencimento(resolverVencimento(LocalDate.now(), novaFatura.getCondicaoPagamento()));
         novaFatura.setStatus(StatusFatura.RASCUNHO);
         novaFatura.setMetodoPagamento(encomenda.getMetodoPagamento());
         novaFatura.setObservacoes("Convertido da Encomenda " + encomenda.getNumero());
@@ -813,6 +909,7 @@ public class FaturaService {
 
     @Transactional
     public Fatura emitirNotaCredito(Long faturaId, String motivo) {
+        exigir("FATURACAO", "Anular");
         Fatura faturaOriginal = faturaRepository.findById(faturaId)
                 .orElseThrow(() -> new IllegalArgumentException("Fatura original não encontrada"));
 
@@ -866,8 +963,84 @@ public class FaturaService {
         return notaCredito;
     }
 
+    /**
+     * Emitir Nota de Crédito parcial — apenas algumas linhas/quantidades da fatura original.
+     * @param faturaId id da fatura original
+     * @param linhas lista de (itemIdOrigem, quantidade) a anular parcialmente
+     * @param motivo descrição
+     */
+    @Transactional
+    public Fatura emitirNotaCreditoParcial(Long faturaId, List<AlocacaoNcLinha> linhas, String motivo) {
+        exigir("FATURACAO", "Anular");
+        if (linhas == null || linhas.isEmpty()) {
+            throw new IllegalArgumentException("Nenhuma linha para anular");
+        }
+        Fatura original = faturaRepository.findById(faturaId)
+                .orElseThrow(() -> new IllegalArgumentException("Fatura original não encontrada"));
+        if (original.getStatus() != StatusFatura.EMITIDA && original.getStatus() != StatusFatura.PAGA) {
+            throw new IllegalStateException("A fatura original deve estar emitida ou paga");
+        }
+        java.util.Map<Long, ItemFatura> byId = new java.util.HashMap<>();
+        for (ItemFatura it : original.getItens()) if (it.getId() != null) byId.put(it.getId(), it);
+
+        Fatura nc = new Fatura();
+        nc.setCliente(original.getCliente());
+        nc.setFaturaReferencia(original);
+        nc.setMotivoCancelamento(motivo);
+        nc.setDataEmissao(LocalDate.now());
+        nc.setDataVencimento(LocalDate.now());
+        nc.setStatus(StatusFatura.RASCUNHO);
+        nc.setObservacoes("NC parcial referente à fatura " + original.getNumero());
+        Serie serieNC = serieService.findPadrao(TipoDocumento.NOTA_CREDITO)
+                .orElseGet(() -> serieService.criarSeriePadrao(TipoDocumento.NOTA_CREDITO));
+        nc.setSerie(serieNC);
+
+        for (AlocacaoNcLinha linha : linhas) {
+            ItemFatura src = byId.get(linha.itemIdOrigem);
+            if (src == null) throw new IllegalArgumentException("Item origem não pertence à fatura: " + linha.itemIdOrigem);
+            java.math.BigDecimal qtdOriginal = ao.allon.kubata.faturacao.util.Qty.qtyOrInt(src.getQuantidadeDecimal(), src.getQuantidade());
+            if (linha.quantidade == null || linha.quantidade.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Quantidade deve ser > 0");
+            }
+            if (linha.quantidade.compareTo(qtdOriginal) > 0) {
+                throw new IllegalArgumentException("Quantidade acima do original para item " + linha.itemIdOrigem);
+            }
+            ItemFatura novo = new ItemFatura();
+            novo.setProduto(src.getProduto());
+            novo.setDescricao(src.getDescricao());
+            novo.setQuantidadeDecimal(linha.quantidade);
+            novo.setPrecoUnitario(src.getPrecoUnitario());
+            novo.setTaxaIva(src.getTaxaIva());
+            novo.setDesconto(src.getDesconto());
+            novo.setDescontoPercentual(src.getDescontoPercentual());
+            novo.setCodigoIsencao(src.getCodigoIsencao());
+            novo.setMotivoIsencao(src.getMotivoIsencao());
+            novo.setItemOrigemId(src.getId());
+            nc.addItem(novo);
+        }
+
+        nc = salvar(nc);
+        processarEmissao(nc);
+        original.setObservacoes(
+                (original.getObservacoes() != null ? original.getObservacoes() + "\n" : "")
+                + "NC PARCIAL " + nc.getNumero() + " total " + nc.getTotal() + ": " + motivo);
+        faturaRepository.save(original);
+        return nc;
+    }
+
+    public static class AlocacaoNcLinha {
+        public final Long itemIdOrigem;
+        public final java.math.BigDecimal quantidade;
+        public AlocacaoNcLinha(Long itemIdOrigem, java.math.BigDecimal quantidade) {
+            this.itemIdOrigem = itemIdOrigem;
+            this.quantidade = quantidade;
+        }
+    }
+
+
     @Transactional
     public Fatura emitirNotaDebito(Long faturaId, String motivo, List<ItemFatura> itensAdicionais) {
+        exigir("FATURACAO", "Anular");
         Fatura faturaOriginal = faturaRepository.findById(faturaId)
                 .orElseThrow(() -> new IllegalArgumentException("Fatura original não encontrada"));
 

@@ -60,6 +60,18 @@ public interface FaturaRepository extends JpaRepository<Fatura, Long> {
     
     long countByStatus(StatusFatura status);
 
+    long countByDataEmissaoBetween(LocalDate startDate, LocalDate endDate);
+
+    @Query("SELECT COALESCE(c.nome, 'Sem Categoria'), SUM(i.subtotal) " +
+           "FROM ItemFatura i " +
+           "JOIN i.fatura f " +
+           "LEFT JOIN i.produto p " +
+           "LEFT JOIN p.categoria c " +
+           "WHERE f.status = 'EMITIDA' AND f.dataEmissao BETWEEN :startDate AND :endDate " +
+           "GROUP BY c.nome " +
+           "ORDER BY SUM(i.subtotal) DESC")
+    List<Object[]> findVendasPorCategoria(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
     @Query("SELECT f FROM Fatura f JOIN FETCH f.itens WHERE f.id = :id")
     Optional<Fatura> findByIdWithItens(@Param("id") Long id);
 

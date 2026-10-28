@@ -1,5 +1,6 @@
 package ao.allon.kubata.faturacao.service;
 
+import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.faturacao.domain.*;
 import ao.allon.kubata.faturacao.domain.enums.MetodoPagamento;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
@@ -154,8 +155,8 @@ public class SaftAoExportService {
         
         // Endereço Empresa
         out.println("    <CompanyAddress>");
-        out.println("      <AddressDetail>" + escape(empresa.getEndereco()) + "</AddressDetail>");
-        out.println("      <City>" + escape(empresa.getCidade()) + "</City>");
+        out.println("      <AddressDetail>" + escape(empresa.getMorada()) + "</AddressDetail>");
+        out.println("      <City>" + escape(empresa.getLocalidade()) + "</City>");
         out.println("      <Country>AO</Country>");
         out.println("    </CompanyAddress>");
         
@@ -167,7 +168,7 @@ public class SaftAoExportService {
         out.println("    <TaxEntity>Global</TaxEntity>");
         out.println("    <ProductCompanyTaxID>" + escape(empresa.getNif()) + "</ProductCompanyTaxID>");
         
-        String softVal = empresa.getSoftwareValidationNumber();
+        String softVal = empresa.getNumeroCertificadoAGT();
         if (softVal == null || softVal.isBlank() || softVal.contains("0000")) {
             softVal = "0000/AGT/2024"; // Fallback para desenvolvimento
         }
@@ -435,7 +436,7 @@ public class SaftAoExportService {
                  out.println("          <TaxExemptionCode>" + (code != null ? code : "M00") + "</TaxExemptionCode>");
             }
             
-            out.println("          <SettlementAmount>0.00</SettlementAmount>");
+            out.println("          <SettlementAmount>" + settlementValue(item) + "</SettlementAmount>");
             out.println("        </Line>");
         }
         out.println("      </Invoice>");
@@ -501,7 +502,7 @@ public class SaftAoExportService {
                  out.println("          <TaxExemptionCode>" + (code != null ? code : "M00") + "</TaxExemptionCode>");
             }
 
-            out.println("          <SettlementAmount>0.00</SettlementAmount>");
+            out.println("          <SettlementAmount>" + settlementValue(item) + "</SettlementAmount>");
             out.println("        </Line>");
         }
         out.println("        <DocumentTotals>");
@@ -558,7 +559,7 @@ public class SaftAoExportService {
                  out.println("          <TaxExemptionCode>" + (code != null ? code : "M00") + "</TaxExemptionCode>");
             }
             
-            out.println("          <SettlementAmount>0.00</SettlementAmount>");
+            out.println("          <SettlementAmount>" + settlementValue(item) + "</SettlementAmount>");
             out.println("        </Line>");
         }
         out.println("        <DocumentTotals>");
@@ -567,6 +568,23 @@ public class SaftAoExportService {
         out.println("          <GrossTotal>" + f.getTotal() + "</GrossTotal>");
         out.println("        </DocumentTotals>");
         out.println("      </WorkDocument>");
+    }
+
+    /**
+     * Valor do desconto aplicado à linha (bruto - subtotal), para o SettlementAmount do SAF-T(AO).
+     */
+    private BigDecimal settlementValue(ItemFatura item) {
+        if (item == null || item.getPrecoUnitario() == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal qtd = ao.allon.kubata.faturacao.util.Qty.qtyOrInt(item.getQuantidadeDecimal(), item.getQuantidade());
+        BigDecimal bruto = item.getPrecoUnitario().multiply(qtd);
+        BigDecimal subtotal = item.getSubtotal() != null ? item.getSubtotal() : bruto;
+        BigDecimal desconto = bruto.subtract(subtotal);
+        if (desconto.compareTo(BigDecimal.ZERO) < 0) {
+            desconto = BigDecimal.ZERO;
+        }
+        return desconto.setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     private String getTaxCode(ItemFatura item, List<Produto> produtos, List<Imposto> impostos) {

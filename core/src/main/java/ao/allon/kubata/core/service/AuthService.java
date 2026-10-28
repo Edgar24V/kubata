@@ -1,8 +1,10 @@
 package ao.allon.kubata.core.service;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
+import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.exception.AuthenticationException;
+import ao.allon.kubata.core.exception.MfaRequiredException;
 import ao.allon.kubata.core.exception.PasswordChangeRequiredException;
 import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.repository.UserRepository;
@@ -28,6 +30,8 @@ public class AuthService {
     private final MfaService mfaService;
     private final UserDeviceService userDeviceService;
     private final UserSecurityProfileService userSecurityProfileService;
+    private final ModuleAccessService moduleAccessService;
+    private final MaintenanceModeService maintenanceModeService;
 
     @Value("${kubata.security.max-login-attempts:5}")
     private int maxAttempts;
@@ -44,7 +48,9 @@ public class AuthService {
                        AcessoService acessoService,
                        MfaService mfaService,
                        UserDeviceService userDeviceService,
-                       UserSecurityProfileService userSecurityProfileService) {
+                       UserSecurityProfileService userSecurityProfileService,
+                       ModuleAccessService moduleAccessService,
+                       MaintenanceModeService maintenanceModeService) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
@@ -52,6 +58,8 @@ public class AuthService {
         this.mfaService = mfaService;
         this.userDeviceService = userDeviceService;
         this.userSecurityProfileService = userSecurityProfileService;
+        this.moduleAccessService = moduleAccessService;
+        this.maintenanceModeService = maintenanceModeService;
     }
 
     @Transactional
@@ -61,7 +69,8 @@ public class AuthService {
                 password,
                 mfaCode,
                 null,
-                ip
+                ip,
+                null
         );
     }
 
@@ -71,6 +80,16 @@ public class AuthService {
                              Integer mfaCode,
                              String recoveryCode,
                              String ip) {
+        return authenticate(email, password, mfaCode, recoveryCode, ip, null);
+    }
+
+    @Transactional
+    public User authenticate(String email,
+                             String password,
+                             Integer mfaCode,
+                             String recoveryCode,
+                             String ip,
+                             String applicationCode) {
         Optional<User> userOpt = userRepository.findByEmail(email);
 
         if (userOpt.isEmpty()) {
@@ -99,6 +118,13 @@ public class AuthService {
 
         boolean mfaSatisfied = !user.isMfaEnabled();
         if (user.isMfaEnabled()) {
+            // A falta de código não é uma credencial errada: pede-o antes de
+            // consumir tentativas, para que o passo 2 do ecrã de login não
+            // bloqueie contas por um simples ENTER prematuro.
+            if (mfaCode == null && recoveryCode == null) {
+                throw new MfaRequiredException();
+            }
+
             boolean totpValid =
                     mfaCode != null
                             && gAuth.authorize(user.getMfaSecret(), mfaCode);
@@ -194,6 +220,28 @@ public class AuthService {
             );
         } catch (Exception ignored) {
             // O registo de dispositivo não pode bloquear um login já autenticado.
+        }
+
+        if (maintenanceModeService != null && maintenanceModeService.isEnabled()) {
+            boolean elevated = user.isSuperadmin() || user.getRole() == Role.ADMIN;
+            if (!elevated) {
+                acessoService.registrarAuditoria(
+                        user,
+                        "LOGIN",
+                        "AUTH",
+                        ip,
+                        "Login recusado: modo de manutenção",
+                        false
+                );
+                throw new AuthenticationException(
+                        "O sistema está temporariamente em manutenção. "
+                                + maintenanceModeService.getReason()
+                );
+            }
+        }
+
+        if (applicationCode != null && !applicationCode.isBlank()) {
+            moduleAccessService.assertCanEnterApplication(user, applicationCode);
         }
 
         acessoService.registrarAuditoria(user, "LOGIN", "AUTH", ip, "Sucesso", true);

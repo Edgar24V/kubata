@@ -233,13 +233,13 @@ public class JasperReportService {
 
 
     private Map<String, Object> getEmpresaParams() {
-        ao.allon.kubata.faturacao.domain.Empresa empresa = empresaService.getDadosEmpresa();
+        ao.allon.kubata.core.domain.Empresa empresa = empresaService.getDadosEmpresa();
         Map<String, Object> params = new HashMap<>();
         
         // Dados da Empresa
         params.put("EMPRESA_NOME", empresa.getNome());
         params.put("EMPRESA_NIF", empresa.getNif());
-        params.put("EMPRESA_ENDERECO", empresa.getEndereco());
+        params.put("EMPRESA_ENDERECO", empresa.getMorada());
         params.put("EMPRESA_TELEFONE", empresa.getTelefone());
         params.put("EMPRESA_EMAIL", empresa.getEmail());
         params.put("EMPRESA_WEBSITE", empresa.getWebsite());
@@ -248,13 +248,13 @@ public class JasperReportService {
         }
 
         // AGT: Nº do Programa Validado
-        params.put("PROGRAMA_VALIDADO_NO", empresa.getSoftwareValidationNumber() != null ? empresa.getSoftwareValidationNumber() : "");
+        params.put("PROGRAMA_VALIDADO_NO", empresa.getNumeroCertificadoAGT() != null ? empresa.getNumeroCertificadoAGT() : "");
         
         // Dados Bancários
-        params.put("BANCO_NOME_1", empresa.getBanco1());
-        params.put("BANCO_IBAN_1", empresa.getIban1());
-        params.put("BANCO_NOME_2", empresa.getBanco2());
-        params.put("BANCO_IBAN_2", empresa.getIban2());
+        params.put("BANCO_NOME_1", empresa.getBanco());
+        params.put("BANCO_IBAN_1", empresa.getIban());
+        params.put("BANCO_NOME_2", "");
+        params.put("BANCO_IBAN_2", "");
         
         return params;
     }

@@ -81,6 +81,8 @@ public class PdvView extends BorderPane {
     public PdvView(PdvController controller) {
         this.controller = controller;
         getStyleClass().add("pdv-view");
+        getStylesheets().add(Objects.requireNonNull(
+            getClass().getResource("/css/pdv-styles.css")).toExternalForm());
         setPadding(new Insets(0));
 
         controller.init();

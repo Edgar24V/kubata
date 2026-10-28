@@ -1,6 +1,7 @@
 package ao.allon.kubata.faturacao.service;
 
 import ao.allon.kubata.faturacao.domain.Fatura;
+import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.enums.EstadoDocumento;
 import ao.allon.kubata.faturacao.domain.enums.StatusFatura;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
@@ -156,8 +157,21 @@ public class DocumentoEstadoService {
         copia.setMotivoGeracaoCopia(motivo);
 
         original.getItens().forEach(item -> {
-            // Criar nova instância do item para a cópia
-            // (A implementação depende da estrutura de ItemFatura)
+            ItemFatura novoItem = new ItemFatura();
+            novoItem.setProduto(item.getProduto());
+            novoItem.setDescricao(item.getDescricao());
+            novoItem.setQuantidade(item.getQuantidade());
+            novoItem.setPrecoUnitario(item.getPrecoUnitario());
+            novoItem.setPercentualIva(item.getPercentualIva());
+            novoItem.setCodigoIsencao(item.getCodigoIsencao());
+            novoItem.setMotivoIsencao(item.getMotivoIsencao());
+            novoItem.setLote(item.getLote());
+            novoItem.setPesoUnitario(item.getPesoUnitario());
+            novoItem.setDescontoPercentual(item.getDescontoPercentual());
+            // setQuantidadeDecimal recalcula a quantidade inteira e tem de vir antes
+            // de addItem(), que invoca calculateTotals()
+            novoItem.setQuantidadeDecimal(item.getQuantidadeDecimal());
+            copia.addItem(novoItem);
         });
 
         return copia;

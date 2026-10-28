@@ -1,14 +1,16 @@
 package ao.allon.kubata.faturacao.controller;
 
-import ao.allon.kubata.faturacao.domain.Fatura;
-import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.service.ClienteService;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.ProdutoService;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class DashboardController {
@@ -23,37 +25,56 @@ public class DashboardController {
         this.produtoService = produtoService;
     }
 
+    public BigDecimal getVendasDiaAtual() {
+        return faturaService.getVendasDiaAtual();
+    }
+
     public BigDecimal getVendasMesAtual() {
-        // Lógica para buscar vendas do mês atual (exemplo)
-        return faturaService.findTotalVendasMesAtual();
+        return faturaService.getVendasMesAtual();
+    }
+
+    public long getFaturasHojeCount() {
+        return faturaService.countFaturasDoDia();
     }
 
     public long getFaturasPendentesCount() {
         return faturaService.countByStatusPendente();
     }
 
-    public int getTotalClientesCount() {
+    public long getTotalClientesCount() {
         return clienteService.countTotalClientes();
     }
 
-    public int getTotalProdutosCount() {
+    public long getClientesNovosMesCount() {
+        LocalDate hoje = LocalDate.now();
+        return clienteService.countClientesCriadosEntre(hoje.withDayOfMonth(1), hoje);
+    }
+
+    public long getTotalProdutosCount() {
         return produtoService.countTotalProdutos();
     }
 
-    public List<Fatura> getFaturasRecentes() {
-        // Delega a busca para o FaturaService
-        // (Este método precisaria ser criado no FaturaService, por exemplo, para buscar as 10 últimas)
-        return faturaService.findAll(); // Simplesmente retornando todos por enquanto
+    public long getProdutosBaixoStockCount() {
+        return produtoService.buscarProdutosComStockBaixo().size();
     }
 
-    public List<Produto> getProdutosComStockBaixo() {
-        // Delega a busca para o ProdutoService
-        return produtoService.buscarProdutosComStockBaixo();
+    public Map<YearMonth, BigDecimal> getVendasPorMes(int meses) {
+        Map<YearMonth, BigDecimal> vendas = new LinkedHashMap<>();
+        YearMonth atual = YearMonth.now();
+        for (int i = meses - 1; i >= 0; i--) {
+            YearMonth mes = atual.minusMonths(i);
+            vendas.put(mes, faturaService.getVendasEmitidasEntre(mes.atDay(1), mes.atEndOfMonth()));
+        }
+        return vendas;
     }
 
-    public List<Object[]> findTopSellingProducts(java.time.LocalDate start, java.time.LocalDate end) {
+    /** Linhas {categoria, valor} das vendas emitidas no período, por ordem decrescente. */
+    public List<Object[]> getVendasPorCategoria(LocalDate inicio, LocalDate fim) {
+        return faturaService.getVendasPorCategoria(inicio, fim);
+    }
+
+    /** Linhas {descrição, quantidade, valor} dos artigos mais vendidos no período. */
+    public List<Object[]> findTopSellingProducts(LocalDate start, LocalDate end) {
         return faturaService.findTopSellingProducts(start, end);
     }
-
-    // Outros métodos para buscar dados para os gráficos...
 }

@@ -7,7 +7,7 @@ import ao.allon.kubata.faturacao.service.barcode.BarcodeService;
 import ao.allon.kubata.faturacao.service.barcode.BarcodeTypeEnum;
 import ao.allon.kubata.faturacao.service.printer.PrinterService;
 import ao.allon.kubata.faturacao.service.EmpresaService;
-import ao.allon.kubata.faturacao.domain.Empresa;
+import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
@@ -119,11 +119,11 @@ public class InvoiceReportService {
         Map<String, Object> parameters = new HashMap<>();
 
         String nomeEmpresa = empresa.getNome() != null ? empresa.getNome() : "Empresa";
-        String enderecoEmpresa = empresa.getEndereco() != null ? empresa.getEndereco() : "";
-        String cidadeEmpresa = empresa.getCidade() != null ? empresa.getCidade() : "";
+        String enderecoEmpresa = empresa.getMorada() != null ? empresa.getMorada() : "";
+        String cidadeEmpresa = empresa.getLocalidade() != null ? empresa.getLocalidade() : "";
         String telefoneEmpresa = empresa.getTelefone() != null ? empresa.getTelefone() : "";
         String emailEmpresa = empresa.getEmail() != null ? empresa.getEmail() : "";
-        String caeEmpresa = empresa.getRegimeIva() != null ? empresa.getRegimeIva() : "";
+        String caeEmpresa = empresa.getRegimeFiscal() != null ? empresa.getRegimeFiscal() : "";
 
         String enderecoCompleto = enderecoEmpresa;
         if (!cidadeEmpresa.isBlank()) {
@@ -238,7 +238,7 @@ public class InvoiceReportService {
         parameters.put("hashFull", invoiceData.hash());
         parameters.put("hashControl", (invoiceData.hash() != null && invoiceData.hash().length() >= 4) ? invoiceData.hash().substring(0, 4) : "XXXX");
 
-        String softVal = empresa.getSoftwareValidationNumber();
+        String softVal = empresa.getNumeroCertificadoAGT();
         if (softVal == null || softVal.isBlank() || softVal.contains("0000")) {
             softVal = "0000"; // Placeholder para desenvolvimento
         }

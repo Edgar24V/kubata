@@ -2,15 +2,21 @@ package ao.allon.kubata.admin.controller;
 
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.ui.StageReadyEvent;
-import ao.allon.kubata.admin.ui.event.LoginSuccessEvent;
 import ao.allon.kubata.admin.ui.util.ThemeManager;
 import ao.allon.kubata.admin.view.AdminMainView;
-import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.security.PermissionCatalog;
 import ao.allon.kubata.core.service.AuthService;
+import ao.allon.kubata.core.service.MaintenanceModeService;
+import ao.allon.kubata.core.service.ModuleAccessService;
+import ao.allon.kubata.core.service.PasswordChangeService;
+import ao.allon.kubata.core.ui.login.KubataLoginView;
+import ao.allon.kubata.core.ui.login.LoginViewConfig;
+import javafx.geometry.Dimension2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.paint.Color;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationContext;
@@ -20,16 +26,27 @@ import org.springframework.stereotype.Component;
 @Component
 public class MainController {
 
-    private final LoginController loginController;
     private final SessionManager sessionManager;
     private final ApplicationContext applicationContext;
+    private final AuthService authService;
+    private final PasswordChangeService passwordChangeService;
+    private final MaintenanceModeService maintenanceModeService;
+    private final ModuleAccessService moduleAccessService;
 
     private Stage stage;
 
-    public MainController(LoginController loginController, SessionManager sessionManager, ApplicationContext applicationContext) {
-        this.loginController = loginController;
+    public MainController(SessionManager sessionManager,
+                          ApplicationContext applicationContext,
+                          AuthService authService,
+                          PasswordChangeService passwordChangeService,
+                          MaintenanceModeService maintenanceModeService,
+                          ModuleAccessService moduleAccessService) {
         this.sessionManager = sessionManager;
         this.applicationContext = applicationContext;
+        this.authService = authService;
+        this.passwordChangeService = passwordChangeService;
+        this.maintenanceModeService = maintenanceModeService;
+        this.moduleAccessService = moduleAccessService;
     }
 
     @EventListener
@@ -41,17 +58,19 @@ public class MainController {
         stage.show();
     }
 
-    @EventListener
-    public void onLoginSuccess(LoginSuccessEvent event) {
-        User user = event.getUser();
+    public void handleLoginSuccess(User user) {
         if (user == null || user.getRole() == null) {
             showAlert("Acesso negado", "Utilizador inválido.");
             switchToLogin();
             return;
         }
 
-        if (user.getRole() != Role.ADMIN) {
-            showAlert("Acesso negado", "Apenas administradores podem aceder ao Kubata.");
+        // O login partilhado já pede ADMINISTRATOR ao AuthService; repetimos a verificação
+        // para que o gate do hub não dependa exclusivamente do ecrã de login.
+        if (!moduleAccessService.canEnterApplication(user, PermissionCatalog.ADMINISTRATOR)) {
+            showAlert("Acesso negado",
+                    "Não tem permissão para aceder ao Kubata Administrator. "
+                            + "Peça ao administrador para atribuir o perfil correcto.");
             switchToLogin();
             return;
         }
@@ -69,7 +88,7 @@ public class MainController {
         User user = sessionManager.getUser();
         if (user != null) {
             try {
-                applicationContext.getBean(AuthService.class).logout(user, "127.0.0.1");
+                authService.logout(user, "127.0.0.1");
             } catch (Exception ex) {
                 showAlert(
                         "Não foi possível encerrar a sessão",
@@ -92,7 +111,7 @@ public class MainController {
         User user = sessionManager.getUser();
         if (user != null) {
             try {
-                applicationContext.getBean(AuthService.class).logout(user, "127.0.0.1");
+                authService.logout(user, "127.0.0.1");
             } catch (Exception ex) {
                 showAlert(
                         "Não foi possível encerrar a sessão",
@@ -111,20 +130,27 @@ public class MainController {
     }
 
     private void switchToLogin() {
-        Parent root = loginController.createView(stage);
+        KubataLoginView loginView = new KubataLoginView(
+                LoginViewConfig.administrator(),
+                authService,
+                passwordChangeService,
+                maintenanceModeService,
+                this::handleLoginSuccess);
+        Parent root = loginView.createView(stage);
 
         // Janela de login sem moldura nativa, com controles personalizados
         // e suporte a maximizar/restaurar.
-        Scene scene = new Scene(root, 1120, 720);
-        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        Dimension2D loginSize = KubataLoginView.recommendedSceneSize();
+        Scene scene = new Scene(root, loginSize.getWidth(), loginSize.getHeight());
+        scene.setFill(Color.TRANSPARENT);
         ThemeManager.applyTheme(scene);
 
         stage.setScene(scene);
-        stage.setMinWidth(920);
-        stage.setMinHeight(560);
+        stage.setMinWidth(720);
+        stage.setMinHeight(480);
         stage.setResizable(true);
-        stage.setWidth(1120);
-        stage.setHeight(720);
+        stage.setWidth(loginSize.getWidth());
+        stage.setHeight(loginSize.getHeight());
         stage.centerOnScreen();
     }
 

@@ -17,26 +17,26 @@
 
 .cart-item-code {
     -fx-font-size: 0.9em;
-    -fx-text-fill: -color-text-muted;
+    -fx-text-fill: -color-fg-muted;
 }
 
 .cart-item-description {
     -fx-font-weight: bold;
     -fx-font-size: 1.1em;
-    -fx-text-fill: -color-text-default;
+    -fx-text-fill: -color-fg-default;
 }
 
 .cart-item-quantity {
     -fx-font-weight: bold;
     -fx-font-size: 1.1em;
-    -fx-text-fill: -color-text-default;
+    -fx-text-fill: -color-fg-default;
     -fx-min-width: 30px;
     -fx-alignment: CENTER;
 }
 
 .cart-item-unit-price {
     -fx-font-size: 0.9em;
-    -fx-text-fill: -color-text-muted;
+    -fx-text-fill: -color-fg-muted;
     -fx-min-width: 80px;
     -fx-alignment: CENTER-RIGHT;
 }
@@ -81,25 +81,25 @@
 .customer-display-description {
     -fx-font-weight: bold;
     -fx-font-size: 1.4em;
-    -fx-text-fill: -color-text-default;
+    -fx-text-fill: -color-fg-default;
 }
 
 .customer-display-code {
     -fx-font-size: 1.0em;
-    -fx-text-fill: -color-text-muted;
+    -fx-text-fill: -color-fg-muted;
 }
 
 .customer-display-quantity {
     -fx-font-weight: bold;
     -fx-font-size: 1.2em;
-    -fx-text-fill: -color-text-default;
+    -fx-text-fill: -color-fg-default;
     -fx-min-width: 40px;
     -fx-alignment: CENTER;
 }
 
 .customer-display-unit-price {
     -fx-font-size: 1.0em;
-    -fx-text-fill: -color-text-muted;
+    -fx-text-fill: -color-fg-muted;
     -fx-min-width: 100px;
     -fx-alignment: CENTER-RIGHT;
 }

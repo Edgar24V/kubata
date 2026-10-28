@@ -12,30 +12,26 @@ import ao.allon.kubata.faturacao.domain.Usuario;
 
 @Service
 public class SessionManager {
-    private String currentUser;
+    /** Sem sessão iniciada nada é atribuído a "Admin": o histórico usa o mesmo default do logout. */
+    private static final String SEM_SESSAO = "Convidado";
+
+    private String currentUser = SEM_SESSAO;
     private User userObject;
     private Usuario usuario;
     private Set<String> permissions = new HashSet<>();
     @Autowired
     private AcessoService acessoService;
     @Autowired
+    private ao.allon.kubata.core.service.ModuleAccessService moduleAccessService;
+    @Autowired
     private ApplicationEventPublisher eventPublisher;
+    @Autowired
+    private ao.allon.kubata.core.service.AccessGuard accessGuard;
 
-    public SessionManager() {
-        // Default permissions for development
-        currentUser = "Admin";
-        permissions.add("INVENTARIO_VIEW");
-        permissions.add("INVENTARIO_CREATE");
-        permissions.add("INVENTARIO_EDIT");
-        permissions.add("INVENTARIO_DELETE");
-        permissions.add("INVENTARIO_STOCK"); // Stock operations
-        permissions.add("INVENTARIO_REPORT");
-        permissions.add("INVENTARIO_ADMIN");
-        permissions.add("FATURACAO_VIEW");
-        permissions.add("FATURACAO_CREATE");
-        permissions.add("CLIENTE_VIEW");
-        permissions.add("RECIBO_VIEW");
-        permissions.add("RECIBO_CREATE");
+    @jakarta.annotation.PostConstruct
+    void exporUtilizadorAoGuard() {
+        // O AccessGuard valida permissões ao nível do serviço; precisa do utilizador deste processo.
+        accessGuard.registerUserResolver(() -> userObject);
     }
 
     public void login(String user, Set<String> perms) {
@@ -54,7 +50,7 @@ public class SessionManager {
     }
 
     public void logout() {
-        this.currentUser = "Convidado";
+        this.currentUser = SEM_SESSAO;
         this.userObject = null;
         this.usuario = null;
         this.permissions.clear();
@@ -68,6 +64,13 @@ public class SessionManager {
         return usuario;
     }
 
+    public Long getCurrentUserId() {
+        if (userObject != null && userObject.getId() != null) {
+            return userObject.getId();
+        }
+        return usuario != null ? usuario.getId() : null;
+    }
+
     public boolean hasPermission(String permission) {
         return permissions.contains(permission) || permissions.contains("ADMIN");
     }
@@ -76,6 +79,11 @@ public class SessionManager {
         if (userObject != null && userObject.getRole() == ao.allon.kubata.core.domain.Role.ADMIN) return true;
         if (userObject == null) return permissions.contains("ADMIN");
         try {
+            // Um módulo desactivado no Kubata Administrator bloqueia o acesso aqui também.
+            if (!moduleAccessService.isPermissionModuleEnabled(
+                    ao.allon.kubata.core.security.PermissionCatalog.canonicalSecurityModule(modulo))) {
+                return false;
+            }
             return acessoService.temAcesso(userObject, modulo, opcao);
         } catch (Exception e) {
             return false;

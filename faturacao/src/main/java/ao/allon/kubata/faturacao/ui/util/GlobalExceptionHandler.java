@@ -1,6 +1,7 @@
 package ao.allon.kubata.faturacao.ui.util;
 
 import ao.allon.kubata.core.exception.AppBusinessException;
+import ao.allon.kubata.core.exception.SessionExpiredException;
 import javafx.application.Platform;
 import ao.allon.kubata.faturacao.ui.util.AlertUtils;
 import javafx.scene.control.Alert;
@@ -21,6 +22,15 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /** Definida pelo MainController: devolver o utilizador ao ecrã de credenciais. */
+    private static volatile Runnable aoExpirarSessao = () -> { };
+
+    public static void definirAcçãoSessaoExpirada(Runnable accao) {
+        if (accao != null) {
+            aoExpirarSessao = accao;
+        }
+    }
+
     public static void setup() {
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> handleException(t, e));
     }
@@ -36,6 +46,15 @@ public class GlobalExceptionHandler {
     }
 
     private static void showErrorDialog(Throwable throwable) {
+        if (throwable instanceof SessionExpiredException
+                || throwable.getCause() instanceof SessionExpiredException) {
+            Throwable expirada = throwable instanceof SessionExpiredException
+                    ? throwable : throwable.getCause();
+            AlertUtils.showError("Sessão expirada", expirada.getMessage());
+            aoExpirarSessao.run();
+            return;
+        }
+
         // Se for uma exceção de negócio, mostra apenas a mensagem amigável
         if (throwable instanceof AppBusinessException || throwable.getCause() instanceof AppBusinessException) {
             Throwable business = (throwable instanceof AppBusinessException) ? throwable : throwable.getCause();

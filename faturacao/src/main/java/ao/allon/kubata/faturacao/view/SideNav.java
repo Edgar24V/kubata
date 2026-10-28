@@ -91,6 +91,7 @@ public final class SideNav extends VBox {
             admin() ? item("Bancos", Feather.BRIEFCASE, controller::showBancos) : null,
             admin() ? item("Transferências", Feather.REPEAT, controller::showTransferencias) : null,
             allow("RELATORIOS","Financeiro") ? item("Contas a Receber", Feather.ARROW_DOWN_LEFT, controller::showContasReceber) : null,
+            allow("RELATORIOS","Financeiro") ? item("Extrato de Cliente", Feather.LIST, controller::showExtratoCliente) : null,
             allow("RELATORIOS","Financeiro") ? item("Contas a Pagar", Feather.ARROW_UP_RIGHT, controller::showContasPagar) : null,
             admin() ? item("Despesas Rápidas", Feather.MINUS_CIRCLE, controller::showDespesasRapidas) : null
         );
@@ -123,7 +124,7 @@ public final class SideNav extends VBox {
 
         TitledPane sistema = category("Sistema",
             allow("CONFIG","Empresa") ? item("Configurações", Feather.SETTINGS, controller::showConfiguracoes) : null,
-            admin() ? item("Gestão de Acessos (ADI)", Feather.SHIELD, controller::showPerfis) : null,
+            admin() ? item("Gestão de Acessos", Feather.SHIELD, controller::showPerfis) : null,
             admin() ? item("Backup e Restauro", Feather.DATABASE, controller::showBackupRestore) : null,
             admin() ? item("Gestão de Emails", Feather.MAIL, controller::showEmailManager) : null,
             admin() ? item("Auditoria", Feather.ACTIVITY, controller::showAuditoria) : null,

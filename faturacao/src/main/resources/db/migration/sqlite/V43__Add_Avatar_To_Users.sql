@@ -1,2 +1,3 @@
 -- V43: Add avatar to users (SQLite)
-ALTER TABLE users ADD COLUMN avatar BLOB;
+-- NO-OP: já nasce no esquema canónico de users (V1).
+SELECT 1;

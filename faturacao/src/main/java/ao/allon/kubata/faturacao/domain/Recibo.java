@@ -36,6 +36,22 @@ public class Recibo extends BaseEntity {
 
     private String observacoes;
 
+    @Column(name = "moeda_codigo", length = 3)
+    private String moedaCodigo = "AOA";
+
+    @Column(name = "taxa_cambio", precision = 12, scale = 6)
+    private BigDecimal taxaCambio = BigDecimal.ONE;
+
+    @Column(name = "valor_moeda", precision = 19, scale = 2)
+    private BigDecimal valorMoeda;
+
+    public String getMoedaCodigo() { return moedaCodigo; }
+    public void setMoedaCodigo(String moedaCodigo) { this.moedaCodigo = moedaCodigo; }
+    public BigDecimal getTaxaCambio() { return taxaCambio; }
+    public void setTaxaCambio(BigDecimal taxaCambio) { this.taxaCambio = taxaCambio; }
+    public BigDecimal getValorMoeda() { return valorMoeda; }
+    public void setValorMoeda(BigDecimal valorMoeda) { this.valorMoeda = valorMoeda; }
+
     public String getNumero() {
         return numero;
     }

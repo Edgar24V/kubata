@@ -8,11 +8,16 @@ import org.springframework.stereotype.Service;
 public class SessionManager {
 
     private final AcessoService acessoService;
+    private final ao.allon.kubata.core.service.AccessGuard accessGuard;
 
     private User user;
 
-    public SessionManager(AcessoService acessoService) {
+    public SessionManager(AcessoService acessoService,
+                          ao.allon.kubata.core.service.AccessGuard accessGuard) {
         this.acessoService = acessoService;
+        this.accessGuard = accessGuard;
+        // O AccessGuard valida permissões ao nível do serviço; precisa do utilizador deste processo.
+        accessGuard.registerUserResolver(() -> user);
     }
 
     public void login(User user) {

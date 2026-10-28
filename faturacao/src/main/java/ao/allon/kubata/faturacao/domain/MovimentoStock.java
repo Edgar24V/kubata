@@ -1,6 +1,7 @@
 package ao.allon.kubata.faturacao.domain;
 
 import ao.allon.kubata.core.domain.BaseEntity;
+import ao.allon.kubata.core.domain.Fornecedor;
 import ao.allon.kubata.faturacao.enums.TipoMovimento;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;

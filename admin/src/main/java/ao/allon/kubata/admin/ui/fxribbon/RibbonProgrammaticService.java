@@ -1,14 +1,17 @@
 package ao.allon.kubata.admin.ui.fxribbon;
 
+import ao.allon.kubata.admin.module.ModuleWorkbenchLauncher;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.admin.view.*;
 import ao.allon.kubata.core.domain.Role;
 import ao.allon.kubata.core.domain.User;
+import ao.allon.kubata.core.service.AcessoService;
 import javafx.scene.Node;
 import org.kordamp.ikonli.feather.Feather;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -29,6 +32,15 @@ public class RibbonProgrammaticService {
         void open(String id, String title, Supplier<Node> content, boolean closable);
     }
 
+    private final ModuleWorkbenchLauncher workbenchLauncher;
+    private final AcessoService acessoService;
+
+    public RibbonProgrammaticService(ModuleWorkbenchLauncher workbenchLauncher,
+                                     AcessoService acessoService) {
+        this.workbenchLauncher = workbenchLauncher;
+        this.acessoService = acessoService;
+    }
+
     // ── API pública ────────────────────────────────────────────────────────────
 
     /**
@@ -46,6 +58,12 @@ public class RibbonProgrammaticService {
 
         ribbon.addTab(buildInicio(opener, beanLookup));
         ribbon.addTab(buildGestao(opener, beanLookup));
+
+        RibbonTab modulos = buildModulos(user, opener, beanLookup);
+        if (modulos != null) {
+            ribbon.addTab(modulos);
+        }
+
         ribbon.addTab(buildSeguranca(opener, beanLookup));
         ribbon.addTab(buildFiscal(opener, beanLookup));
         ribbon.addTab(buildSistema(opener, beanLookup));
@@ -56,6 +74,43 @@ public class RibbonProgrammaticService {
     }
 
     // ── Construção de Tabs ─────────────────────────────────────────────────────
+
+    /**
+     * Separador "Módulos": construído a partir do ModuleRegistry, não de uma lista fixa.
+     * Cada entrada é uma funcionalidade cujo conteúdo vive no próprio módulo satélite e só
+     * aparece se o perfil de segurança permitir ver esse módulo.
+     */
+    private RibbonTab buildModulos(User user,
+                                   TabOpener opener,
+                                   Function<Class<? extends Node>, Node> beanLookup) {
+        Map<String, List<ModuleWorkbenchLauncher.Funcionalidade>> porModulo =
+                workbenchLauncher.funcionalidadesPorModulo(user);
+        if (porModulo.isEmpty()) {
+            return null;
+        }
+
+        RibbonTab tab = new RibbonTab("Módulos");
+        for (Map.Entry<String, List<ModuleWorkbenchLauncher.Funcionalidade>> entrada : porModulo.entrySet()) {
+            RibbonGroup grupo = new RibbonGroup(entrada.getKey());
+            grupo.addSmallButtons(entrada.getValue().stream()
+                    .map(funcionalidade -> smallBtn(
+                            funcionalidade.tabId(),
+                            funcionalidade.titulo(),
+                            funcionalidade.icone(),
+                            funcionalidade.descricao(),
+                            () -> {
+                                opener.open(
+                                        funcionalidade.tabId(),
+                                        funcionalidade.moduleName() + " · " + funcionalidade.titulo(),
+                                        () -> beanLookup.apply(funcionalidade.viewClass()),
+                                        true);
+                                registarAbertura(user, funcionalidade);
+                            }))
+                    .toList());
+            tab.addGroup(grupo);
+        }
+        return tab;
+    }
 
     private RibbonTab buildInicio(TabOpener opener, Function<Class<? extends Node>, Node> bl) {
         RibbonTab tab = new RibbonTab("Início");
@@ -80,7 +135,9 @@ public class RibbonProgrammaticService {
         ));
         ops.addSmallButtons(List.of(
                 smallBtn("nova_serie", "Nova Série", Feather.LAYERS, "Criar nova série de documentos",
-                        () -> openNovaSerie(bl))
+                        () -> openNovaSerie(bl)),
+                smallBtn("dados_demo", "Dados Demo", Feather.ZAP, "Criar dados de demonstração para testes e visitas de clientes",
+                        () -> opener.open("dados_demo", "Dados de Demonstração", () -> bl.apply(DadosDemonstracaoView.class), true))
         ));
         tab.addGroup(ops);
 
@@ -95,6 +152,9 @@ public class RibbonProgrammaticService {
                 () -> opener.open("empresa", "Empresa", () -> bl.apply(EmpresaView.class), true)));
         dados.addLargeButton(largeBtn("exercicios", "Exercícios", Feather.CALENDAR, "Gerir exercícios fiscais",
                 () -> opener.open("exercicios", "Exercícios", () -> bl.apply(ExerciciosFiscaisView.class), true)));
+        dados.addLargeButton(largeBtn("dados_demonstracao", "Demonstração", Feather.ZAP,
+                "Criar ou remover dados de demonstração (empresa, utilizadores de teste e dados mestres de amostra)",
+                () -> opener.open("dados_demo", "Dados de Demonstração", () -> bl.apply(DadosDemonstracaoView.class), true)));
         tab.addGroup(dados);
 
         return tab;
@@ -234,11 +294,27 @@ public class RibbonProgrammaticService {
     }
 
     private RibbonButton smallBtn(String id, String label, Feather icon, String tooltip, Runnable action) {
-        return new RibbonButton(id, label, IconUtils.icon(icon, IconUtils.SIZE_MEDIUM),
-                RibbonButtonSize.SMALL, tooltip, action);
+        return smallBtn(id, label, IconUtils.icon(icon, IconUtils.SIZE_MEDIUM), tooltip, action);
+    }
+
+    private RibbonButton smallBtn(String id, String label, Node icon, String tooltip, Runnable action) {
+        return new RibbonButton(id, label, icon, RibbonButtonSize.SMALL, tooltip, action);
     }
 
     // ── Verificação de acesso ──────────────────────────────────────────────────
+
+    /** Deixa rasto de cada separador de módulo aberto no workbench do hub. */
+    private void registarAbertura(User user, ModuleWorkbenchLauncher.Funcionalidade funcionalidade) {
+        if (user == null) {
+            return;
+        }
+        try {
+            acessoService.registrarAuditoria(user, "OPEN_MODULE", funcionalidade.moduleId(),
+                    "127.0.0.1", funcionalidade.titulo(), true);
+        } catch (RuntimeException ex) {
+            // A auditoria não pode fechar o separador que o utilizador acabou de abrir.
+        }
+    }
 
     private boolean isAdmin(User user) {
         if (user == null) return false;

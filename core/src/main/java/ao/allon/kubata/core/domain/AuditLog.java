@@ -112,7 +112,8 @@ public class AuditLog extends BaseEntity {
         PERMISSION_CHANGE("Alteração de Permissão"),
         RESET_PASSWORD("Redefinição de palavra-passe"),
         SAFT_EXPORT("Exportação SAFT"),
-        AGT_COMMUNICATION("Comunicação AGT");
+        AGT_COMMUNICATION("Comunicação AGT"),
+        OPEN_MODULE("Abertura de módulo");
 
         private final String description;
 

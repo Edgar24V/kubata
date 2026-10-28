@@ -1,13 +1,9 @@
 -- V24__Add_Security_And_Profile_Tables.sql
+-- Os ALTERs de users (perfil_id, mfa_secret, mfa_enabled, ultimo_acesso) foram
+-- incorporados no esquema canónico de users (V1). Mantêm-se apenas as tabelas
+-- legadas próprias do módulo.
 
--- Adicionar colunas à tabela users
-ALTER TABLE users ADD COLUMN perfil_id INTEGER;
-ALTER TABLE users ADD COLUMN mfa_secret VARCHAR(255);
-ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT FALSE NOT NULL;
-ALTER TABLE users ADD COLUMN ultimo_acesso TIMESTAMP;
-
--- Criar tabela permissoes
-CREATE TABLE permissoes (
+CREATE TABLE IF NOT EXISTS permissoes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP,
@@ -17,8 +13,7 @@ CREATE TABLE permissoes (
     modulo VARCHAR(255) NOT NULL
 );
 
--- Criar tabela perfis
-CREATE TABLE perfis (
+CREATE TABLE IF NOT EXISTS perfis (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP,
@@ -29,8 +24,7 @@ CREATE TABLE perfis (
     FOREIGN KEY (pai_id) REFERENCES perfis (id)
 );
 
--- Criar tabela de relacionamento perfil_permissoes
-CREATE TABLE perfil_permissoes (
+CREATE TABLE IF NOT EXISTS perfil_permissoes (
     perfil_id INTEGER NOT NULL,
     permissao_id INTEGER NOT NULL,
     PRIMARY KEY (perfil_id, permissao_id),
@@ -38,8 +32,7 @@ CREATE TABLE perfil_permissoes (
     FOREIGN KEY (permissao_id) REFERENCES permissoes (id)
 );
 
--- Criar tabela auditoria_acesso
-CREATE TABLE auditoria_acesso (
+CREATE TABLE IF NOT EXISTS auditoria_acesso (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP,

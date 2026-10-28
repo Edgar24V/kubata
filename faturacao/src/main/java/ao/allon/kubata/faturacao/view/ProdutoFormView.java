@@ -1,7 +1,7 @@
 package ao.allon.kubata.faturacao.view;
 
 import ao.allon.kubata.faturacao.domain.Categoria;
-import ao.allon.kubata.faturacao.domain.Fornecedor;
+import ao.allon.kubata.core.domain.Fornecedor;
 import ao.allon.kubata.faturacao.domain.Imposto;
 import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.enums.UnidadeMedida;

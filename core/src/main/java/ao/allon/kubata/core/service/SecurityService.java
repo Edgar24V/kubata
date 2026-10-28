@@ -19,6 +19,11 @@ public class SecurityService {
         this.userSecurityProfileService = userSecurityProfileService;
     }
 
+    /** Perfis do utilizador, mesmo quando a instância recebida está desanexada. */
+    private List<PerfilAcesso> perfisDe(User user) {
+        return userSecurityProfileService.perfisDe(user);
+    }
+
     /**
      * Verifica se um utilizador tem permissão para uma determinada operação num recurso/módulo.
      * 
@@ -50,19 +55,15 @@ public class SecurityService {
         if (hasDirect) return true;
 
         // 2. Verifica permissões via Perfis (RBAC)
-        if (user.getPerfis() != null) {
-            return user.getPerfis().stream()
-                .filter(PerfilAcesso::getActivo)
-                .flatMap(p -> p.getPermissoes().stream())
-                .anyMatch(pm -> 
-                    pm.getModulo().equalsIgnoreCase(modulo) &&
-                    (pm.getRecurso().equalsIgnoreCase(modulo) || pm.getRecurso().equalsIgnoreCase("TODOS")) && // Se o recurso for o próprio módulo ou "TODOS"
-                    pm.getOperacao().name().equalsIgnoreCase(operacao) &&
-                    Boolean.TRUE.equals(pm.getPermitido())
-                );
-        }
-
-        return false;
+        return perfisDe(user).stream()
+            .filter(PerfilAcesso::getActivo)
+            .flatMap(p -> p.getPermissoes().stream())
+            .anyMatch(pm ->
+                pm.getModulo().equalsIgnoreCase(modulo) &&
+                (pm.getRecurso().equalsIgnoreCase(modulo) || pm.getRecurso().equalsIgnoreCase("TODOS")) && // Se o recurso for o próprio módulo ou "TODOS"
+                pm.getOperacao().name().equalsIgnoreCase(operacao) &&
+                Boolean.TRUE.equals(pm.getPermitido())
+            );
     }
 
     /**
@@ -75,19 +76,15 @@ public class SecurityService {
         if (user.isSuperadmin() || user.getRole() == Role.ADMIN) return true;
 
         // Verifica nos perfis
-        if (user.getPerfis() != null) {
-            return user.getPerfis().stream()
-                .filter(PerfilAcesso::getActivo)
-                .flatMap(p -> p.getPermissoes().stream())
-                               .anyMatch(pm ->
-                    pm.getModulo().equalsIgnoreCase(modulo) &&
-                    (pm.getRecurso().equalsIgnoreCase(recurso) || pm.getRecurso().equalsIgnoreCase("TODOS")) &&
-                    pm.getOperacao() == operacao &&
-                    Boolean.TRUE.equals(pm.getPermitido())
-                );
-        }
-        
-        return false;
+        return perfisDe(user).stream()
+            .filter(PerfilAcesso::getActivo)
+            .flatMap(p -> p.getPermissoes().stream())
+            .anyMatch(pm ->
+                pm.getModulo().equalsIgnoreCase(modulo) &&
+                (pm.getRecurso().equalsIgnoreCase(recurso) || pm.getRecurso().equalsIgnoreCase("TODOS")) &&
+                pm.getOperacao() == operacao &&
+                Boolean.TRUE.equals(pm.getPermitido())
+            );
     }
 
     /**
@@ -98,18 +95,15 @@ public class SecurityService {
     public String getRestrictionValue(User user, String modulo, String recurso) {
         if (user == null || user.isSuperadmin() || user.getRole() == Role.ADMIN) return null;
 
-        if (user.getPerfis() != null) {
-            return user.getPerfis().stream()
-                .filter(PerfilAcesso::getActivo)
-                .flatMap(p -> p.getPermissoes().stream())
-                .filter(pm -> pm.getModulo().equalsIgnoreCase(modulo) && 
-                              pm.getRecurso().equalsIgnoreCase(recurso) &&
-                              pm.getValorRestricao() != null)
-                .map(PermissaoPerfil::getValorRestricao)
-                .findFirst()
-                .orElse(null);
-        }
-        return null;
+        return perfisDe(user).stream()
+            .filter(PerfilAcesso::getActivo)
+            .flatMap(p -> p.getPermissoes().stream())
+            .filter(pm -> pm.getModulo().equalsIgnoreCase(modulo) &&
+                          pm.getRecurso().equalsIgnoreCase(recurso) &&
+                          pm.getValorRestricao() != null)
+            .map(PermissaoPerfil::getValorRestricao)
+            .findFirst()
+            .orElse(null);
     }
 
     /**
@@ -126,13 +120,9 @@ public class SecurityService {
         if (perms.stream().anyMatch(p -> p.getModulo().equalsIgnoreCase(modulo))) return true;
 
         // Verifica nos perfis
-        if (user.getPerfis() != null) {
-            return user.getPerfis().stream()
-                .filter(PerfilAcesso::getActivo)
-                .flatMap(p -> p.getPermissoes().stream())
-                .anyMatch(pm -> pm.getModulo().equalsIgnoreCase(modulo) && Boolean.TRUE.equals(pm.getPermitido()));
-        }
-
-        return false;
+        return perfisDe(user).stream()
+            .filter(PerfilAcesso::getActivo)
+            .flatMap(p -> p.getPermissoes().stream())
+            .anyMatch(pm -> pm.getModulo().equalsIgnoreCase(modulo) && Boolean.TRUE.equals(pm.getPermitido()));
     }
 }

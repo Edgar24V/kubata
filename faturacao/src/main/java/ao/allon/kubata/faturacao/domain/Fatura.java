@@ -34,6 +34,19 @@ public class Fatura extends BaseEntity {
     @JoinColumn(name = "serie_id")
     private Serie serie;
 
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "condicao_pagamento_id")
+    private CondicaoPagamento condicaoPagamento;
+
+    @Column(name = "moeda_codigo", length = 3)
+    private String moedaCodigo = "AOA";
+
+    @Column(name = "taxa_cambio", precision = 12, scale = 6)
+    private java.math.BigDecimal taxaCambio = java.math.BigDecimal.ONE;
+
+    @Column(name = "total_moeda", precision = 19, scale = 2)
+    private java.math.BigDecimal totalMoeda;
+
     @Column(name = "numero_sequencial")
     private Long numeroSequencial;
 
@@ -229,6 +242,21 @@ public class Fatura extends BaseEntity {
     public void setSerie(Serie serie) {
         this.serie = serie;
     }
+
+    public CondicaoPagamento getCondicaoPagamento() {
+        return condicaoPagamento;
+    }
+
+    public void setCondicaoPagamento(CondicaoPagamento condicaoPagamento) {
+        this.condicaoPagamento = condicaoPagamento;
+    }
+
+    public String getMoedaCodigo() { return moedaCodigo; }
+    public void setMoedaCodigo(String moedaCodigo) { this.moedaCodigo = moedaCodigo; }
+    public java.math.BigDecimal getTaxaCambio() { return taxaCambio; }
+    public void setTaxaCambio(java.math.BigDecimal taxaCambio) { this.taxaCambio = taxaCambio; }
+    public java.math.BigDecimal getTotalMoeda() { return totalMoeda; }
+    public void setTotalMoeda(java.math.BigDecimal totalMoeda) { this.totalMoeda = totalMoeda; }
 
     public Long getNumeroSequencial() {
         return numeroSequencial;

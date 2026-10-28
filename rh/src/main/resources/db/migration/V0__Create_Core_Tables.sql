@@ -1,24 +1,48 @@
 -- Migração V0 - Criação das tabelas core necessárias para o módulo RH
--- Tabela users (necessária para autenticação)
+-- Tabela users: esquema canónico partilhado por todas as aplicações Kubata
+-- (idêntico ao V1 do Administrator e ao V1 do Faturação) — a BD partilhada
+-- pode ser inicializada por qualquer aplicação, por qualquer ordem.
 
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
+    username VARCHAR(255) UNIQUE,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
+    perfil_id INTEGER,
     nif VARCHAR(20),
     telefone VARCHAR(20),
+    avatar BLOB,
+    mfa_secret VARCHAR(255),
+    mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    ultimo_acesso TIMESTAMP,
+    failed_attempts INTEGER DEFAULT 0,
+    lockout_end TIMESTAMP,
+    password_changed_at TIMESTAMP,
+    password_expiry_days INTEGER DEFAULT 90,
+    password_provisoria BOOLEAN NOT NULL DEFAULT TRUE,
+    data_expiracao_password DATE,
+    departamento VARCHAR(255),
+    cargo VARCHAR(255),
+    ultimo_ip_login VARCHAR(45),
+    superadmin BOOLEAN NOT NULL DEFAULT FALSE,
+    idioma VARCHAR(20) DEFAULT 'pt-AO',
+    tema VARCHAR(50) DEFAULT 'VERDE_ADMIN',
+    linhas_por_pagina INTEGER DEFAULT 50,
+    empresa_id INTEGER,
+    mfa_recovery_codes VARCHAR(2048),
+    codigo VARCHAR(40),
+    tipo_conta VARCHAR(30) NOT NULL DEFAULT 'PESSOAL',
+    filial_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP,
-    active BOOLEAN DEFAULT TRUE,
-    mfa_enabled BOOLEAN DEFAULT FALSE,
-    mfa_secret VARCHAR(255),
-    last_access TIMESTAMP,
-    failed_login_attempts INTEGER DEFAULT 0,
-    lockout_end TIMESTAMP,
-    last_password_change TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    active BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_empresa ON users(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_users_filial ON users(filial_id);
+CREATE INDEX IF NOT EXISTS idx_users_tipo_conta ON users(tipo_conta);
 
 -- Tabela de permissões de acesso
 CREATE TABLE IF NOT EXISTS user_access_permissions (

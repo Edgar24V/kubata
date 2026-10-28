@@ -64,9 +64,9 @@
 
 /* Gradient backgrounds */
 .gradient-bg-blue {
-    -fx-background-color: linear-gradient(to bottom right, #6366f1, #8b5cf6);
+    -fx-background-color: linear-gradient(to bottom right, #217346, #34d399);
 }
 
 .gradient-bg-purple {
-    -fx-background-color: linear-gradient(to bottom right, #8b5cf6, #ec4899);
+    -fx-background-color: linear-gradient(to bottom right, #14532d, #217346);
 }

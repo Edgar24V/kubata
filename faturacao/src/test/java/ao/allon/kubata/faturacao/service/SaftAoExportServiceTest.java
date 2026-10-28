@@ -1,5 +1,6 @@
 package ao.allon.kubata.faturacao.service;
 
+import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.faturacao.domain.*;
 import ao.allon.kubata.faturacao.domain.enums.*;
 import ao.allon.kubata.faturacao.repository.*;

@@ -3,12 +3,15 @@ package ao.allon.kubata.faturacao.view;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.faturacao.domain.Cliente;
+import ao.allon.kubata.faturacao.domain.CondicaoPagamento;
 import ao.allon.kubata.faturacao.domain.Fatura;
 import ao.allon.kubata.faturacao.domain.ItemFatura;
 import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.service.ClienteService;
 import ao.allon.kubata.faturacao.service.FaturaService;
 import ao.allon.kubata.faturacao.service.ProdutoService;
+import ao.allon.kubata.faturacao.service.CondicaoPagamentoService;
+import ao.allon.kubata.faturacao.service.RegraDescontoService;
 import ao.allon.kubata.faturacao.ui.modal.ModalService;
 import ao.allon.kubata.faturacao.domain.enums.TipoDocumento;
 import atlantafx.base.theme.Styles;
@@ -38,8 +41,19 @@ public class NovaFaturaView extends BorderPane {
     private final ClienteService clienteService;
     private final ProdutoService produtoService;
     private final ModalService modalService;
+    private RegraDescontoService regraDescontoService;
+    private CondicaoPagamentoService condicaoPagamentoService;
+
+    public void setRegraDescontoService(RegraDescontoService regraDescontoService) {
+        this.regraDescontoService = regraDescontoService;
+    }
+
+    public void setCondicaoPagamentoService(CondicaoPagamentoService condicaoPagamentoService) {
+        this.condicaoPagamentoService = condicaoPagamentoService;
+    }
 
     private final ComboBox<Cliente> cbCliente = new ComboBox<>();
+    private final ComboBox<CondicaoPagamento> cbCondicao = new ComboBox<>();
     private final DatePicker dpEmissao = new DatePicker();
     private final DatePicker dpVencimento = new DatePicker();
 
@@ -121,6 +135,17 @@ public class NovaFaturaView extends BorderPane {
         dpEmissao.setValue(faturaAtual.getDataEmissao());
         dpVencimento.setValue(faturaAtual.getDataVencimento());
 
+        if (condicaoPagamentoService != null) {
+            cbCondicao.setItems(FXCollections.observableArrayList(condicaoPagamentoService.findAtivas()));
+            cbCondicao.setValue(faturaAtual.getCondicaoPagamento() != null
+                    ? faturaAtual.getCondicaoPagamento() : condicaoPagamentoService.padrao());
+            cbCondicao.valueProperty().addListener((obs, o, n) -> recalcularVencimento());
+            dpEmissao.valueProperty().addListener((obs, o, n) -> recalcularVencimento());
+        } else {
+            cbCondicao.setDisable(true);
+            cbCondicao.setPromptText("Indisponível");
+        }
+
         btnNovoCliente.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.ACCENT);
         btnNovoCliente.setTooltip(new Tooltip("Novo Cliente"));
         btnNovoCliente.setOnAction(e -> showNovoClienteModal());
@@ -128,7 +153,8 @@ public class NovaFaturaView extends BorderPane {
         form.addRow(0, new Label("Cliente"), new HBox(5, cbCliente, btnNovoCliente));
         form.addRow(1, new Label("Emissão"), dpEmissao);
         form.addRow(2, new Label("Vencimento"), dpVencimento);
-        form.addRow(3, chkModoFormacao);
+        form.addRow(3, new Label("Condição"), cbCondicao);
+        form.addRow(4, chkModoFormacao);
 
         HBox addBox = new HBox(8);
         addBox.setAlignment(Pos.CENTER_LEFT);
@@ -170,6 +196,11 @@ public class NovaFaturaView extends BorderPane {
         colItemPreco.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(CURRENCY_FORMAT.format(c.getValue().getPrecoUnitario())));
         TableColumn<ItemFatura, String> colItemIva = new TableColumn<>("IVA");
         colItemIva.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getPercentualIva() + "%"));
+        TableColumn<ItemFatura, String> colItemDesconto = new TableColumn<>("Desc.%");
+        colItemDesconto.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+                c.getValue().getDescontoPercentual() != null ? c.getValue().getDescontoPercentual().stripTrailingZeros().toPlainString() : "0"));
+        colItemDesconto.setEditable(true);
+        colItemDesconto.setCellFactory(col -> new EditingDescontoCell());
         TableColumn<ItemFatura, String> colItemTotal = new TableColumn<>("Total");
         colItemTotal.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(CURRENCY_FORMAT.format(c.getValue().getTotal())));
         TableColumn<ItemFatura, Void> colItemAcao = new TableColumn<>("Ação");
@@ -188,7 +219,14 @@ public class NovaFaturaView extends BorderPane {
                 setGraphic(empty ? null : btnRemover);
             }
         });
-        tabelaItens.getColumns().setAll(colItemProduto, colItemQtd, colItemPreco, colItemIva, colItemTotal, colItemAcao);
+        tabelaItens.setEditable(true);
+        colItemProduto.setEditable(false);
+        colItemQtd.setEditable(false);
+        colItemPreco.setEditable(false);
+        colItemIva.setEditable(false);
+        colItemTotal.setEditable(false);
+        colItemAcao.setEditable(false);
+        tabelaItens.getColumns().setAll(colItemProduto, colItemQtd, colItemPreco, colItemIva, colItemDesconto, colItemTotal, colItemAcao);
         tabelaItens.setData(itensObservable);
         VBox.setVgrow(tabelaItens, Priority.ALWAYS);
 
@@ -332,6 +370,103 @@ public class NovaFaturaView extends BorderPane {
         lblTotalGeral.setText(CURRENCY_FORMAT.format(faturaAtual.getTotal()));
     }
 
+    private void recalcularVencimento() {
+        if (condicaoPagamentoService == null) return;
+        LocalDate emissao = dpEmissao.getValue();
+        CondicaoPagamento condicao = cbCondicao.getValue();
+        if (emissao != null && condicao != null) {
+            dpVencimento.setValue(condicaoPagamentoService.calcularVencimento(emissao, condicao, emissao));
+        }
+    }
+
+    private BigDecimal limiteDesconto(Produto produto) {
+        if (regraDescontoService != null) {
+            return regraDescontoService.maxPercentFor(produto).orElse(regraDescontoService.fallbackPolicy(produto));
+        }
+        return new BigDecimal("100");
+    }
+
+    private void aplicarDesconto(ItemFatura item, String texto) {
+        BigDecimal perc;
+        try {
+            perc = new BigDecimal((texto == null ? "" : texto.trim()).replace(",", "."));
+        } catch (NumberFormatException ex) {
+            perc = BigDecimal.ZERO;
+        }
+        if (perc.compareTo(BigDecimal.ZERO) < 0) perc = BigDecimal.ZERO;
+        BigDecimal limite = limiteDesconto(item.getProduto());
+        if (perc.compareTo(limite) > 0) {
+            modalService.create()
+                    .title("Desconto acima do limite")
+                    .content(new Label("O desconto máximo permitido para este artigo é "
+                            + limite.stripTrailingZeros().toPlainString() + "%."))
+                    .autoSize()
+                    .withCancelButton("OK")
+                    .buildAndShow();
+            perc = limite;
+        }
+        item.setDescontoPercentual(perc);
+        item.calculateTotals();
+        atualizarTotais();
+        tabelaItens.refresh();
+    }
+
+    private class EditingDescontoCell extends TableCell<ItemFatura, String> {
+        private final TextField field = new TextField();
+
+        {
+            field.setOnAction(e -> commit());
+            field.focusedProperty().addListener((obs, o, f) -> { if (!f) commit(); });
+        }
+
+        private void commit() {
+            if (!isEditing()) return;
+            ItemFatura item = getTableView().getItems().get(getIndex());
+            aplicarDesconto(item, field.getText());
+            cancelEdit();
+        }
+
+        @Override
+        protected void updateItem(String value, boolean empty) {
+            super.updateItem(value, empty);
+            if (empty) {
+                setText(null);
+                setGraphic(null);
+                return;
+            }
+            if (isEditing()) {
+                setText(null);
+                if (field.getText() == null || field.getText().isEmpty()) {
+                    field.setText(getItemValue());
+                }
+                setGraphic(field);
+            } else {
+                setGraphic(null);
+                setText(getItemValue());
+            }
+        }
+
+        private String getItemValue() {
+            ItemFatura item = getTableView().getItems().get(getIndex());
+            return item.getDescontoPercentual() != null ? item.getDescontoPercentual().stripTrailingZeros().toPlainString() : "0";
+        }
+
+        @Override
+        public void startEdit() {
+            super.startEdit();
+            field.setText(getItemValue());
+            setText(null);
+            setGraphic(field);
+        }
+
+        @Override
+        public void cancelEdit() {
+            super.cancelEdit();
+            setGraphic(null);
+            setText(getItemValue());
+        }
+    }
+
     private boolean validarFatura() {
         if (cbCliente.getValue() == null) {
             modalService.create()
@@ -389,6 +524,9 @@ public class NovaFaturaView extends BorderPane {
         faturaAtual.setCliente(cbCliente.getValue());
         faturaAtual.setDataEmissao(dpEmissao.getValue());
         faturaAtual.setDataVencimento(dpVencimento.getValue());
+        if (condicaoPagamentoService != null) {
+            faturaAtual.setCondicaoPagamento(cbCondicao.getValue());
+        }
         faturaAtual.setModoFormacao(chkModoFormacao.isSelected());
     }
 
@@ -480,6 +618,9 @@ public class NovaFaturaView extends BorderPane {
         tipoDocumento = existente.getTipoDocumento() != null ? existente.getTipoDocumento() : tipoDocumento;
         cbCliente.setItems(FXCollections.observableArrayList(clienteService.findAll()));
         cbCliente.setValue(existente.getCliente());
+        if (condicaoPagamentoService != null) {
+            cbCondicao.setValue(existente.getCondicaoPagamento());
+        }
         dpEmissao.setValue(existente.getDataEmissao());
         dpVencimento.setValue(existente.getDataVencimento());
         itensObservable.setAll(existente.getItens());

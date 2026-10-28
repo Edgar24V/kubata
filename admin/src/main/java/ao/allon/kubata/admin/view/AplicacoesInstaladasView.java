@@ -1,5 +1,6 @@
 package ao.allon.kubata.admin.view;
 
+import ao.allon.kubata.admin.service.ApplicationLauncherService;
 import ao.allon.kubata.admin.service.ModuleInstallationService;
 import ao.allon.kubata.admin.ui.util.IconUtils;
 import ao.allon.kubata.core.domain.ModuloSistema;
@@ -26,6 +27,7 @@ public class AplicacoesInstaladasView extends VBox {
     private final ModuloSistemaRepository repository;
     private final ModuleRegistry registry;
     private final ModuleInstallationService installationService;
+    private final ApplicationLauncherService launcherService;
     private final ObservableList<ModuloSistema> modules = FXCollections.observableArrayList();
     private final TableView<ModuloSistema> table = new TableView<>(modules);
     private final Label status = new Label("Pronto");
@@ -36,10 +38,12 @@ public class AplicacoesInstaladasView extends VBox {
     public AplicacoesInstaladasView(
             ModuloSistemaRepository repository,
             ModuleRegistry registry,
-            ModuleInstallationService installationService) {
+            ModuleInstallationService installationService,
+            ApplicationLauncherService launcherService) {
         this.repository = repository;
         this.registry = registry;
         this.installationService = installationService;
+        this.launcherService = launcherService;
 
         setSpacing(0);
         getStyleClass().add("kubata-server-page");
@@ -92,12 +96,16 @@ public class AplicacoesInstaladasView extends VBox {
         init.getStyleClass().add("button-outlined");
         init.setOnAction(e -> initializeSelected());
 
+        Button open = new Button("Abrir aplicação", IconUtils.icon(Feather.EXTERNAL_LINK, 12));
+        open.getStyleClass().add("button-outlined");
+        open.setOnAction(e -> openSelected());
+
         Label helper = new Label("Seleccione uma aplicação na tabela para executar uma operação.");
         helper.getStyleClass().add("kubata-server-note");
 
         Region actionSpacer = new Region();
         HBox.setHgrow(actionSpacer, Priority.ALWAYS);
-        actions.getChildren().addAll(helper, actionSpacer, activate, init);
+        actions.getChildren().addAll(helper, actionSpacer, open, activate, init);
 
         header.getChildren().addAll(line, actions);
 
@@ -247,6 +255,20 @@ public class AplicacoesInstaladasView extends VBox {
         }
         run("A inicializar " + selected.getCodigo() + "...",
                 () -> installationService.initializeInstalledModule(selected.getCodigo()));
+    }
+
+    private void openSelected() {
+        ModuloSistema selected = table.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            status.setText("Seleccione uma aplicação.");
+            return;
+        }
+        if (!launcherService.isLaunchable(selected.getCodigo())) {
+            status.setText("Abertura sem segundo login aplica-se a Faturação e RH.");
+            return;
+        }
+        launcherService.abrirAsync(selected.getCodigo(), mensagem ->
+                Platform.runLater(() -> status.setText(mensagem)));
     }
 
     private void run(String message, java.util.concurrent.Callable<?> action) {

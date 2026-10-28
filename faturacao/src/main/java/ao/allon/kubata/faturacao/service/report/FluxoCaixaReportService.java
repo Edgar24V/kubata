@@ -3,7 +3,7 @@ package ao.allon.kubata.faturacao.service.report;
 import ao.allon.kubata.faturacao.service.EmpresaService;
 import ao.allon.kubata.faturacao.service.ReciboService;
 import ao.allon.kubata.faturacao.service.DespesaService;
-import ao.allon.kubata.faturacao.domain.Empresa;
+import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.faturacao.domain.Recibo;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
@@ -283,7 +283,7 @@ public class FluxoCaixaReportService {
         Map<String, Object> params = new HashMap<>();
         params.put("EMPRESA_NOME", empresa.getNome());
         params.put("EMPRESA_NIF", empresa.getNif());
-        params.put("EMPRESA_ENDERECO", empresa.getEndereco());
+        params.put("EMPRESA_ENDERECO", empresa.getMorada());
         params.put("EMPRESA_TELEFONE", empresa.getTelefone());
         params.put("EMPRESA_EMAIL", empresa.getEmail());
         if (empresa.getLogotipo() != null && empresa.getLogotipo().length > 0) {

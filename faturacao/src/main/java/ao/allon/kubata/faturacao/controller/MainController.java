@@ -28,10 +28,15 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import ao.allon.kubata.faturacao.ui.modal.ModalService;
 import ao.allon.kubata.faturacao.ui.util.AlertUtils;
+import ao.allon.kubata.faturacao.ui.util.GlobalExceptionHandler;
 import ao.allon.kubata.faturacao.ui.util.ThemeManager;
 import ao.allon.kubata.faturacao.ui.StageReadyEvent;
-import ao.allon.kubata.faturacao.ui.event.LoginSuccessEvent;
 import ao.allon.kubata.faturacao.ui.event.PermissionsChangedEvent;
+import ao.allon.kubata.core.service.AuthService;
+import ao.allon.kubata.core.service.MaintenanceModeService;
+import ao.allon.kubata.core.service.PasswordChangeService;
+import ao.allon.kubata.core.ui.login.KubataLoginView;
+import ao.allon.kubata.core.ui.login.LoginViewConfig;
 import java.util.function.Consumer;
 import ao.allon.kubata.faturacao.repository.UsuarioRepository;
 
@@ -46,8 +51,18 @@ public class MainController {
 
     private Stage stage;
     private final String applicationTitle = "Kubata - Sistema de Faturação";
-    private final LoginController loginController;
-    
+    private final AuthService authService;
+    private final PasswordChangeService passwordChangeService;
+    private final MaintenanceModeService maintenanceModeService;
+    private Stage loginStage;
+
+    /** Bilhete emitido pelo Kubata Administrator quando a aplicação é lançada a partir do hub. */
+    @org.springframework.beans.factory.annotation.Value("${kubata-launch-ticket:}")
+    private String launchTicket;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ao.allon.kubata.core.service.SessionTicketService sessionTicketService;
+
 
     private final ClienteService clienteService;
     private final FaturaService faturaService;
@@ -96,10 +111,13 @@ public class MainController {
     private ArmazensView armazensView;
     private FornecedoresView fornecedoresView;
     private PdvView pdvView;
+    private ao.allon.kubata.faturacao.view.FaturasView faturasView;
     private ao.allon.kubata.faturacao.view.SeriesView seriesView;
     private Consumer<String> notificationSink;
 
-        public MainController(LoginController loginController,
+        public MainController(AuthService authService,
+                          PasswordChangeService passwordChangeService,
+                          MaintenanceModeService maintenanceModeService,
                           ClienteService clienteService,
                           FaturaService faturaService,
                           ProdutoService produtoService,
@@ -171,7 +189,9 @@ public class MainController {
         this.contaBancariaService = contaBancariaService;
         this.contabilidadeService = contabilidadeService;
         this.applicationContext = applicationContext;
-        this.loginController = loginController;
+        this.authService = authService;
+        this.passwordChangeService = passwordChangeService;
+        this.maintenanceModeService = maintenanceModeService;
         this.modalService = modalService;
         this.retencaoFonteService = retencaoFonteService;
         this.customerDisplayService = customerDisplayService;
@@ -238,8 +258,12 @@ public class MainController {
     }
 
     public void showPerfis() {
-        mainView.openOrFocusTab("usuarios", "Usuários", () -> new ao.allon.kubata.faturacao.view.GestaoUsuariosView(acessoService, applicationContext.getBean(ao.allon.kubata.core.service.PasswordResetService.class), sessionManager.getUserObject(), modalService, jasperReportService, sessionManager));
-        if (notificationSink != null) notificationSink.accept("Gestão de Usuários aberta");
+        showAlert("Gestão Centralizada no Kubata Administrator",
+                "Os utilizadores, perfis e permissões passam a ser geridos exclusivamente "
+                        + "no Kubata Administrator. As alterações aí feitas reflectem-se "
+                        + "automaticamente neste módulo.\n\nUtilize o separador \"Meu Perfil\" "
+                        + "para alterações pessoais.");
+        if (notificationSink != null) notificationSink.accept("Gestão de Usuários centralizada no Administrator");
     }
 
     public void showClientes() {
@@ -257,9 +281,30 @@ public class MainController {
             showAlert("Acesso Negado", "Não tem permissão para aceder a Faturas.");
             return;
         }
-        mainView.openOrFocusTab("faturas", "Faturas", 
-            () -> new ao.allon.kubata.faturacao.view.FaturasView(faturaService, sessionManager, jasperReportService, emailService, applicationContext, modalService, applicationContext.getBean(ao.allon.kubata.faturacao.service.DocumentoEstadoService.class), applicationContext.getBean(ao.allon.kubata.faturacao.ui.loading.LoadingService.class), applicationContext.getBean(ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService.class)));
+        mainView.openOrFocusTab("faturas", "Faturas",
+            () -> {
+                ao.allon.kubata.faturacao.view.FaturasView view = new ao.allon.kubata.faturacao.view.FaturasView(faturaService, sessionManager, jasperReportService, emailService, applicationContext, modalService, applicationContext.getBean(ao.allon.kubata.faturacao.service.DocumentoEstadoService.class), applicationContext.getBean(ao.allon.kubata.faturacao.ui.loading.LoadingService.class), applicationContext.getBean(ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService.class));
+                view.setOnOpenDocumento(this::abrirVisualizarDocumento);
+                faturasView = view;
+                return view;
+            });
         if (notificationSink != null) notificationSink.accept("Faturas aberto");
+    }
+
+    public void abrirVisualizarDocumento(Long faturaId) {
+        String numero = faturaService.findById(faturaId).map(f -> f.getNumero()).orElse("");
+        mainView.openOrFocusTab("doc-" + faturaId, "Documento " + numero, () ->
+            new ao.allon.kubata.faturacao.view.VisualizarDocumentoView(
+                    faturaId,
+                    faturaService,
+                    reciboService,
+                    applicationContext.getBean(ao.allon.kubata.faturacao.service.DocumentoEstadoService.class),
+                    jasperReportService,
+                    applicationContext.getBean(ao.allon.kubata.faturacao.service.report.InvoiceReportService.class),
+                    modalService,
+                    applicationContext.getBean(ao.allon.kubata.faturacao.ui.loading.LoadingService.class),
+                    sessionManager,
+                    id -> { if (faturasView != null) faturasView.refresh(); }));
     }
     
     public void showRecibos() {
@@ -316,6 +361,8 @@ public class MainController {
     public void showNovaFatura() {
         ao.allon.kubata.faturacao.view.NovaFaturaView view =
                 new ao.allon.kubata.faturacao.view.NovaFaturaView(faturaService, clienteService, produtoService, modalService);
+        view.setRegraDescontoService(applicationContext.getBean(ao.allon.kubata.faturacao.service.RegraDescontoService.class));
+        view.setCondicaoPagamentoService(applicationContext.getBean(ao.allon.kubata.faturacao.service.CondicaoPagamentoService.class));
         //view.setPrefWidth(680);
         modalService.create()
                 .title("Nova Fatura")
@@ -520,6 +567,12 @@ public class MainController {
         if (notificationSink != null) notificationSink.accept("Contas a Receber aberto");
     }
 
+    public void showExtratoCliente() {
+        mainView.openOrFocusTab("extrato_cliente", "Extrato de Cliente", () ->
+                new ao.allon.kubata.faturacao.view.ExtratoClienteView(clienteService, faturaService, reciboService));
+        if (notificationSink != null) notificationSink.accept("Extrato de Cliente aberto");
+    }
+
     public void showContasPagar() {
         mainView.openOrFocusTab("contas_pagar", "Contas a Pagar", () -> {
             ao.allon.kubata.faturacao.view.ContasPagarView view =
@@ -667,39 +720,80 @@ public class MainController {
         try {
             this.stage = event.getStage();
             ThemeManager.applyTheme();
-            switchToLogin();
             this.stage.setTitle(applicationTitle);
+            GlobalExceptionHandler.definirAcçãoSessaoExpirada(this::performLogoutAndShowLogin);
             try {
                 this.stage.setOnCloseRequest(ev -> {
                     try { customerDisplayService.stop(); } catch (Exception ignored) {}
                 });
             } catch (Exception ignored) {}
-            this.stage.show();
+            if (!entrarComBilhete()) {
+                switchToLogin();
+            }
         } catch (Exception e) {
             e.printStackTrace();
             AlertUtils.showExceptionAlert("Erro Crítico na Inicialização", "A aplicação não pôde ser iniciada.", e);
         }
     }
 
-    @EventListener
-    public void onLoginSuccess(LoginSuccessEvent event) {
-        sessionManager.login(event.getUser());
+    /**
+     * Reaproveita o login já feito no Kubata Administrator. Um bilhete ausente, expirado ou
+     * recusado simplesmente devolve o comportamento normal de pedido de credenciais.
+     */
+    private boolean entrarComBilhete() {
+        if (sessionTicketService == null || launchTicket == null || launchTicket.isBlank()) {
+            return false;
+        }
         try {
-            if (event.getUser() != null && event.getUser().getEmail() != null) {
-                usuarioRepository.findByEmail(event.getUser().getEmail()).ifPresent(sessionManager::login);
+            handleLoginSuccess(sessionTicketService.consumir(launchTicket, "FATURACAO", "127.0.0.1"));
+            return true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            AlertUtils.showWarningAlert("Sessão do Administrator",
+                    "Não foi possível reutilizar a sessão. Inicie as credenciais normalmente.");
+            return false;
+        }
+    }
+
+    private void switchToLogin() {
+        closeLoginStage();
+        loginStage = new Stage(javafx.stage.StageStyle.TRANSPARENT);
+        KubataLoginView loginView = new KubataLoginView(
+                LoginViewConfig.faturacao(),
+                authService,
+                passwordChangeService,
+                maintenanceModeService,
+                this::handleLoginSuccess);
+        javafx.geometry.Dimension2D loginSize = KubataLoginView.recommendedSceneSize();
+        javafx.scene.Scene scene = new javafx.scene.Scene(loginView.createView(loginStage),
+                loginSize.getWidth(), loginSize.getHeight());
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        ThemeManager.applySceneTheme(scene);
+        loginStage.setScene(scene);
+        loginStage.setTitle(applicationTitle);
+        loginStage.centerOnScreen();
+        loginStage.show();
+    }
+
+    private void closeLoginStage() {
+        if (loginStage != null) {
+            loginStage.close();
+            loginStage = null;
+        }
+    }
+
+    private void handleLoginSuccess(ao.allon.kubata.core.domain.User user) {
+        sessionManager.login(user);
+        try {
+            if (user != null && user.getEmail() != null) {
+                usuarioRepository.findByEmail(user.getEmail()).ifPresent(sessionManager::login);
             }
         } catch (Exception ignore) {
             // não bloquear entrada
         }
+        closeLoginStage();
         switchToMain();
         openHomeForRole();
-    }
-
-    private void switchToLogin() {
-        Parent parent = loginController.createView();
-        Scene scene = new Scene(parent, 400, 500);
-        stage.setScene(scene);
-        stage.centerOnScreen();
     }
 
     private void switchToMain() {
@@ -709,15 +803,19 @@ public class MainController {
         double h = Math.max(768, vb.getHeight() * 0.9);
         Scene scene = new Scene(parent, w, h);
         installAccelerators(scene);
+        ThemeManager.applySceneTheme(scene);
         stage.setScene(scene);
         stage.setMinWidth(960);
         stage.setMinHeight(600);
         stage.centerOnScreen();
         stage.setMaximized(true);
+        stage.show();
+        stage.toFront();
     }
 
     public void performLogoutAndShowLogin() {
         sessionManager.logout();
+        stage.hide();
         switchToLogin();
     }
 

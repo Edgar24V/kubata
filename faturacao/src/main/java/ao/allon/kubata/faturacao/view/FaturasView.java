@@ -64,6 +64,7 @@ public class FaturasView extends BorderPane {
 
     private final FaturaService faturaService;
     private final ClienteService clienteService;
+    private final ao.allon.kubata.faturacao.service.ReciboService reciboService;
     private final SessionManager sessionManager;
     private final JasperReportService jasperReportService;
     private final InvoiceReportService invoiceReportService;
@@ -72,6 +73,12 @@ public class FaturasView extends BorderPane {
     private final ModalService modalService;
     private final ao.allon.kubata.faturacao.service.DocumentoEstadoService documentoEstadoService;
     private final AGTElectronicInvoiceService agtElectronicInvoiceService;
+
+    private java.util.function.Consumer<Long> onOpenDocumento;
+
+    public void setOnOpenDocumento(java.util.function.Consumer<Long> onOpenDocumento) {
+        this.onOpenDocumento = onOpenDocumento;
+    }
 
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", new Locale("pt", "AO"));
     private final DateTimeFormatter monthFormatter = DateTimeFormatter.ofPattern("MMM/yyyy", new Locale("pt", "AO"));
@@ -114,6 +121,7 @@ public class FaturasView extends BorderPane {
         this.documentoEstadoService = documentoEstadoService;
         this.loadingService = loadingService;
         this.clienteService = applicationContext.getBean(ClienteService.class);
+        this.reciboService = applicationContext.getBean(ao.allon.kubata.faturacao.service.ReciboService.class);
         this.agtElectronicInvoiceService = agtElectronicInvoiceService;
 
         getStyleClass().add("faturas-view");
@@ -573,7 +581,7 @@ public class FaturasView extends BorderPane {
             row.setOnMouseClicked(event -> {
                 if (row.isEmpty()) return;
                 if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
-                    // TODO: Abrir detalhes
+                    if (onOpenDocumento != null) onOpenDocumento.accept(row.getItem().getId());
                 }
                 if (event.getButton() == MouseButton.SECONDARY) {
                     ContextMenu cm = buildRowMenu(row.getItem());
@@ -588,6 +596,11 @@ public class FaturasView extends BorderPane {
     }
 
     private ContextMenu buildRowMenu(Fatura f) {
+        MenuItem miVer = new MenuItem("Ver Detalhes", IconUtils.icon(Feather.EYE, IconUtils.SIZE_SMALL));
+        miVer.setOnAction(e -> {
+            if (onOpenDocumento != null) onOpenDocumento.accept(f.getId());
+        });
+
         MenuItem miEmitir = new MenuItem("Emitir", IconUtils.icon(Feather.CHECK, IconUtils.SIZE_SMALL));
         miEmitir.setOnAction(e -> emitirFatura());
 
@@ -606,7 +619,7 @@ public class FaturasView extends BorderPane {
         MenuItem miNotaCredito = new MenuItem("Nota de Crédito", IconUtils.icon(Feather.FILE_MINUS, IconUtils.SIZE_SMALL));
         miNotaCredito.setOnAction(e -> emitirNotaCredito());
 
-        ContextMenu cm = new ContextMenu(miEmitir, miCancelar, new SeparatorMenuItem(), miRecibo, miNotaCredito, new SeparatorMenuItem(), miImprimir, miEmail);
+        ContextMenu cm = new ContextMenu(miVer, new SeparatorMenuItem(), miEmitir, miCancelar, new SeparatorMenuItem(), miRecibo, miNotaCredito, new SeparatorMenuItem(), miImprimir, miEmail);
         return cm;
     }
 
@@ -890,9 +903,21 @@ public class FaturasView extends BorderPane {
             AlertUtils.showWarningAlert("Aviso", "Selecione uma fatura.");
             return;
         }
+        if (f.getStatus() == StatusFatura.CANCELADA) {
+            AlertUtils.showWarningAlert("Aviso", "Não é possível receber valores de uma fatura cancelada.");
+            return;
+        }
 
-        TextField valorField = new TextField(String.valueOf(f.getTotal()));
-        VBox content = new VBox(8, new Label("Valor recebido"), valorField);
+        BigDecimal recebido = reciboService.totalRecebidoFatura(f.getId());
+        BigDecimal emAberto = f.getTotal().subtract(recebido);
+        if (emAberto.compareTo(BigDecimal.ZERO) <= 0) {
+            AlertUtils.showInfoAlert("Informação", "Esta fatura já se encontra liquidada.");
+            return;
+        }
+
+        TextField valorField = new TextField(emAberto.toPlainString());
+        Label lblAberto = new Label("Saldo em aberto: " + emAberto.toPlainString());
+        VBox content = new VBox(8, lblAberto, new Label("Valor recebido"), valorField);
         content.setPadding(new Insets(10));
 
         modalService.create()
@@ -904,7 +929,11 @@ public class FaturasView extends BorderPane {
                 
                 new Thread(() -> {
                     try {
-                        BigDecimal valor = new BigDecimal(valorField.getText());
+                        BigDecimal valor = new BigDecimal(valorField.getText().replace(",", ".").trim());
+                        if (valor.compareTo(BigDecimal.ZERO) <= 0 || valor.compareTo(emAberto) > 0) {
+                            throw new IllegalArgumentException("Valor inválido. Saldo em aberto: " + emAberto.toPlainString());
+                        }
+                        reciboService.registrar(f.getId(), valor, "Recebimento", null);
                         faturaService.registrarRecebimento(f.getId(), valor, "Recebimento");
                         Platform.runLater(() -> {
                             loadData();
@@ -999,7 +1028,7 @@ public class FaturasView extends BorderPane {
             .autoSize()
             .withConfirmButton("Gerar", () -> {
                 try {
-                    documentoEstadoService.gerarDuplicado(f, 1L, motivoField.getText());
+                    documentoEstadoService.gerarDuplicado(f, sessionManager.getCurrentUserId(), motivoField.getText());
                     loadData();
                     return true;
                 } catch (Exception ex) {
@@ -1028,7 +1057,7 @@ public class FaturasView extends BorderPane {
             .autoSize()
             .withConfirmButton("Gerar", () -> {
                 try {
-                    documentoEstadoService.gerarSegundaVia(f, 1L, motivoField.getText());
+                    documentoEstadoService.gerarSegundaVia(f, sessionManager.getCurrentUserId(), motivoField.getText());
                     loadData();
                     return true;
                 } catch (Exception ex) {
@@ -1573,7 +1602,7 @@ public class FaturasView extends BorderPane {
                 .withConfirmButton("Gerar", () -> {
                     try {
                         String motivo = motivoField.getText();
-                        documentoEstadoService.gerarDuplicado(f, 1L, motivo);
+                        documentoEstadoService.gerarDuplicado(f, sessionManager.getCurrentUserId(), motivo);
                         AlertUtils.showInfoAlert("Sucesso", "Duplicado gerado com sucesso!");
                         refresh();
                         return true;
@@ -1606,7 +1635,7 @@ public class FaturasView extends BorderPane {
                 .withConfirmButton("Gerar", () -> {
                     try {
                         String motivo = motivoField.getText();
-                        documentoEstadoService.gerarSegundaVia(f, 1L, motivo);
+                        documentoEstadoService.gerarSegundaVia(f, sessionManager.getCurrentUserId(), motivo);
                         AlertUtils.showInfoAlert("Sucesso", "Segunda via gerada com sucesso!");
                         refresh();
                         return true;

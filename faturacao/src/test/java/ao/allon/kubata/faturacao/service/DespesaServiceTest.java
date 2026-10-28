@@ -1,7 +1,7 @@
 package ao.allon.kubata.faturacao.service;
 
 import ao.allon.kubata.faturacao.domain.Despesa;
-import ao.allon.kubata.faturacao.domain.Fornecedor;
+import ao.allon.kubata.core.domain.Fornecedor;
 import ao.allon.kubata.core.domain.PlanoConta;
 import ao.allon.kubata.core.repository.PlanoContaRepository;
 import ao.allon.kubata.core.service.ContabilidadeService;

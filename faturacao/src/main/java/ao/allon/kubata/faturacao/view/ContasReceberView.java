@@ -34,6 +34,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 import javafx.stage.FileChooser;
 import java.io.File;
@@ -101,7 +102,10 @@ public class ContasReceberView extends BorderPane {
         Button btnExport = new Button("Exportar CSV", IconUtils.icon(Feather.DOWNLOAD, IconUtils.SIZE_SMALL));
         btnExport.getStyleClass().addAll(Styles.BUTTON_OUTLINED);
         btnExport.setOnAction(e -> exportCsvReceber());
-        header.getChildren().addAll(titleBox, spacer, btnRelatorio, btnExport, btnReceber);
+        Button btnMulti = new Button("Recibo multi-fatura", IconUtils.icon(Feather.LAYERS, IconUtils.SIZE_SMALL));
+        btnMulti.getStyleClass().addAll(Styles.BUTTON_OUTLINED);
+        btnMulti.setOnAction(e -> showReciboMultiModal(getSelectedFatura()));
+        header.getChildren().addAll(titleBox, spacer, btnRelatorio, btnExport, btnMulti, btnReceber);
         container.getChildren().add(header);
 
         FlowPane kpiPane = new FlowPane(20, 20);
@@ -174,7 +178,9 @@ public class ContasReceberView extends BorderPane {
         ContextMenu ctx = new ContextMenu();
         MenuItem itemReceber = new MenuItem("Registrar Recebimento", IconUtils.icon(Feather.CHECK_CIRCLE, IconUtils.SIZE_SMALL));
         itemReceber.setOnAction(e -> showRecebimentoModal(getSelectedFatura()));
-        ctx.getItems().addAll(itemReceber);
+        MenuItem itemMulti = new MenuItem("Recibo multi-fatura...", IconUtils.icon(Feather.LAYERS, IconUtils.SIZE_SMALL));
+        itemMulti.setOnAction(e -> showReciboMultiModal(getSelectedFatura()));
+        ctx.getItems().addAll(itemReceber, itemMulti);
         tableFaturas.setContextMenu(ctx);
 
         container.getChildren().add(tableFaturas);
@@ -337,7 +343,135 @@ public class ContasReceberView extends BorderPane {
             .buildAndShow();
     }
 
+    private void showReciboMultiModal(Fatura faturaSemente) {
+        if (faturaSemente == null || faturaSemente.getCliente() == null) {
+            AlertUtils.showErrorAlert("Seleção necessária", "Selecione uma fatura com cliente para gerar recibo multi-fatura.");
+            return;
+        }
+        Cliente cliente = faturaSemente.getCliente();
+        List<Fatura> pendentes = new java.util.ArrayList<>();
+        for (Fatura f : faturaRepositoryAbertas(cliente.getId())) {
+            BigDecimal total = f.getTotal() != null ? f.getTotal() : BigDecimal.ZERO;
+            BigDecimal recebido = reciboService.totalRecebidoFatura(f.getId());
+            BigDecimal aberto = total.subtract(recebido);
+            if (aberto.compareTo(BigDecimal.ZERO) > 0) {
+                pendentes.add(f);
+            }
+        }
+        if (pendentes.isEmpty()) {
+            AlertUtils.showInfoAlert("Sem pendências", "Cliente não tem faturas em aberto.");
+            return;
+        }
+
+        ObservableList<ReciboLinha> linhas = FXCollections.observableArrayList();
+        for (Fatura f : pendentes) {
+            BigDecimal total = f.getTotal() != null ? f.getTotal() : BigDecimal.ZERO;
+            BigDecimal recebido = reciboService.totalRecebidoFatura(f.getId());
+            linhas.add(new ReciboLinha(f, total.subtract(recebido)));
+        }
+
+        TableView<ReciboLinha> tabela = new TableView<>(linhas);
+        tabela.setPrefHeight(320);
+        TableColumn<ReciboLinha, String> cNum = new TableColumn<>("Documento");
+        cNum.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().fatura.getNumero()));
+        TableColumn<ReciboLinha, String> cData = new TableColumn<>("Vencimento");
+        cData.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().fatura.getDataVencimento() != null
+                ? cd.getValue().fatura.getDataVencimento().toString() : "-"));
+        TableColumn<ReciboLinha, String> cAberto = new TableColumn<>("Em Aberto");
+        cAberto.setCellValueFactory(cd -> new SimpleStringProperty(String.format("Kz %.2f", cd.getValue().aberto())));
+        TableColumn<ReciboLinha, String> cValor = new TableColumn<>("Receber agora");
+        cValor.setEditable(true);
+        cValor.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().valor.get()));
+        cValor.setCellFactory(col -> new TableCell<>() {
+            private final TextField field = new TextField();
+            {
+                field.setOnAction(e -> commit());
+                field.focusedProperty().addListener((o, ov, nv) -> { if (!nv) commit(); });
+            }
+            private void commit() {
+                ReciboLinha row = getTableRow() != null ? getTableRow().getItem() : null;
+                if (row != null) row.valor.set(field.getText());
+            }
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) { setGraphic(null); }
+                else { field.setText(getTableRow().getItem().valor.get()); setGraphic(field); }
+            }
+        });
+        tabela.getColumns().addAll(cNum, cData, cAberto, cValor);
+        tabela.setEditable(true);
+
+        TextField txtReferencia = new TextField();
+        txtReferencia.setPromptText("Referência/Comprovativo");
+        TextArea txtObs = new TextArea();
+        txtObs.setPromptText("Observações");
+        txtObs.setPrefRowCount(2);
+        Label lblCliente = new Label("Cliente: " + safe(cliente.getNome()));
+        lblCliente.getStyleClass().add(Styles.TEXT_MUTED);
+        Label lblTitulo = new Label("Recibo multi-fatura");
+        lblTitulo.getStyleClass().add(Styles.TITLE_3);
+
+        VBox root = new VBox(12, lblTitulo, lblCliente, tabela, txtReferencia, txtObs);
+        root.setPadding(new Insets(16));
+        root.setPrefWidth(720);
+
+        modalService.create()
+            .title("Recibo multi-fatura")
+            .content(root)
+            .autoSize()
+            .withConfirmButton("Confirmar", () -> {
+                try {
+                    List<ReciboService.AlocacaoItem> aloc = new java.util.ArrayList<>();
+                    for (ReciboLinha l : linhas) {
+                        BigDecimal v = parseValor(l.valor.get());
+                        if (v == null || v.compareTo(BigDecimal.ZERO) <= 0) continue;
+                        if (v.compareTo(l.aberto()) > 0) {
+                            throw new IllegalArgumentException("Valor acima do em aberto para " + l.fatura.getNumero());
+                        }
+                        aloc.add(new ReciboService.AlocacaoItem(l.fatura.getId(), v));
+                    }
+                    if (aloc.isEmpty()) throw new IllegalArgumentException("Preencha pelo menos um valor.");
+                    Recibo r = reciboService.registrarMulti(faturaSemente.getId(), aloc, txtReferencia.getText(), txtObs.getText());
+                    for (ReciboService.AlocacaoItem it : aloc) {
+                        try { faturaService.registrarRecebimento(it.faturaId, it.valor, txtReferencia.getText()); } catch (Exception ignore) {}
+                    }
+                    AlertUtils.showInfoAlert("Sucesso", "Recibo " + r.getNumero() + " registado com " + aloc.size() + " alocações.");
+                    refreshData();
+                    return true;
+                } catch (Exception ex) {
+                    AlertUtils.showErrorAlert("Erro", ex.getMessage());
+                    return false;
+                }
+            })
+            .withCancelButton("Cancelar")
+            .buildAndShow();
+    }
+
+    private List<Fatura> faturaRepositoryAbertas(Long clienteId) {
+        return faturaService.findByCliente(clienteId);
+    }
+
+    private static BigDecimal parseValor(String raw) {
+        if (raw == null) return null;
+        String s = raw.trim().replace("Kz", "").replace(" ", "").replace(".", "").replace(",", ".");
+        if (s.isEmpty()) return null;
+        try { return new BigDecimal(s); } catch (Exception e) { return null; }
+    }
+
+    private static class ReciboLinha {
+        final Fatura fatura;
+        final BigDecimal totalAberto;
+        final javafx.beans.property.StringProperty valor = new javafx.beans.property.SimpleStringProperty();
+        ReciboLinha(Fatura f, BigDecimal aberto) {
+            this.fatura = f;
+            this.totalAberto = aberto;
+            this.valor.set(String.format("%.2f", aberto));
+        }
+        BigDecimal aberto() { return totalAberto; }
+    }
+
     private void exportCsvReceber() {
+
         FileChooser fc = new FileChooser();
         fc.setTitle("Exportar Contas a Receber");
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));

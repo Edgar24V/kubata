@@ -2,7 +2,7 @@ package ao.allon.kubata.faturacao.view;
 
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
-import ao.allon.kubata.faturacao.domain.Fornecedor;
+import ao.allon.kubata.core.domain.Fornecedor;
 import ao.allon.kubata.faturacao.service.FornecedorService;
 import ao.allon.kubata.faturacao.service.SessionManager;
 import ao.allon.kubata.faturacao.ui.modal.ModalService;
@@ -245,6 +245,10 @@ public class FornecedoresView extends BorderPane {
         colTel.setCellValueFactory(new PropertyValueFactory<>("telefone"));
         colTel.setMinWidth(120);
 
+        TableColumn<Fornecedor, String> colCidade = new TableColumn<>("Cidade");
+        colCidade.setCellValueFactory(new PropertyValueFactory<>("cidade"));
+        colCidade.setMinWidth(110);
+
         TableColumn<Fornecedor, String> colTermos = new TableColumn<>("Termos Pgto");
         colTermos.setCellValueFactory(new PropertyValueFactory<>("termosPagamento"));
         colTermos.setMinWidth(100);
@@ -273,7 +277,7 @@ public class FornecedoresView extends BorderPane {
         });
         colAval.setMinWidth(100);
 
-        table.getColumns().addAll(colNome, colNif, colEmail, colTel, colTermos, colAval);
+        table.getColumns().addAll(colNome, colNif, colEmail, colTel, colCidade, colTermos, colAval);
 
         // Double click para editar
         table.setRowFactory(tv -> {
@@ -317,6 +321,9 @@ public class FornecedoresView extends BorderPane {
             new Label("Email: " + f.getEmail()),
             new Label("Telefone: " + f.getTelefone()),
             new Label("Endereço: " + f.getEndereco()),
+            new Label("Cidade: " + f.getCidade()),
+            new Label("Pessoa de contacto: " + f.getPessoaContacto()),
+            new Label("Observações: " + f.getObservacoes()),
             new Label("Termos: " + f.getTermosPagamento()),
             new Label("Avaliação: " + f.getAvaliacao() + "/5")
         );
@@ -338,11 +345,12 @@ public class FornecedoresView extends BorderPane {
         File file = fileChooser.showSaveDialog(getScene().getWindow());
         if (file != null) {
             try (FileWriter writer = new FileWriter(file)) {
-                writer.write("Nome;NIF;Email;Telefone;Endereco;Termos;Avaliacao\n");
+                writer.write("Nome;NIF;Email;Telefone;Endereco;Cidade;Pessoa Contacto;Observacoes;Termos;Avaliacao\n");
                 for (Fornecedor f : table.getItems()) {
-                    writer.write(String.format("%s;%s;%s;%s;%s;%s;%d\n",
+                    writer.write(String.format("%s;%s;%s;%s;%s;%s;%s;%s;%s;%d\n",
                         f.getNome(), f.getNif(), f.getEmail(),
                         f.getTelefone(), f.getEndereco(),
+                        f.getCidade(), f.getPessoaContacto(), f.getObservacoes(),
                         f.getTermosPagamento(), f.getAvaliacao() != null ? f.getAvaliacao() : 0));
                 }
                 AlertUtils.showInfoAlert("Sucesso", "Exportado com sucesso!");
@@ -367,6 +375,10 @@ public class FornecedoresView extends BorderPane {
         txtTelefone.setLeft(IconUtils.icon(Feather.PHONE, IconUtils.SIZE_SMALL));
 
         TextField txtEndereco = new TextField(fornecedor != null ? fornecedor.getEndereco() : "");
+        TextField txtCidade = new TextField(fornecedor != null ? fornecedor.getCidade() : "");
+        TextField txtPessoaContacto = new TextField(fornecedor != null ? fornecedor.getPessoaContacto() : "");
+        TextArea txtObservacoes = new TextArea(fornecedor != null && fornecedor.getObservacoes() != null ? fornecedor.getObservacoes() : "");
+        txtObservacoes.setPrefRowCount(2);
         TextField txtTermos = new TextField(fornecedor != null ? fornecedor.getTermosPagamento() : "");
         Spinner<Integer> spAval = new Spinner<>(1, 5, fornecedor != null && fornecedor.getAvaliacao() != null ? fornecedor.getAvaliacao() : 3);
 
@@ -375,8 +387,11 @@ public class FornecedoresView extends BorderPane {
         grid.addRow(2, new Label("Email:"), txtEmail);
         grid.addRow(3, new Label("Telefone:"), txtTelefone);
         grid.addRow(4, new Label("Endereço:"), txtEndereco);
-        grid.addRow(5, new Label("Termos de Pagamento:"), txtTermos);
-        grid.addRow(6, new Label("Avaliação (1-5):"), spAval);
+        grid.addRow(5, new Label("Cidade:"), txtCidade);
+        grid.addRow(6, new Label("Pessoa de contacto:"), txtPessoaContacto);
+        grid.addRow(7, new Label("Observações:"), txtObservacoes);
+        grid.addRow(8, new Label("Termos de Pagamento:"), txtTermos);
+        grid.addRow(9, new Label("Avaliação (1-5):"), spAval);
 
         modalService.create()
             .title(fornecedor == null ? "Novo Fornecedor" : "Editar Fornecedor")
@@ -390,6 +405,9 @@ public class FornecedoresView extends BorderPane {
                     f.setEmail(txtEmail.getText());
                     f.setTelefone(txtTelefone.getText());
                     f.setEndereco(txtEndereco.getText());
+                    f.setCidade(txtCidade.getText());
+                    f.setPessoaContacto(txtPessoaContacto.getText());
+                    f.setObservacoes(txtObservacoes.getText());
                     f.setTermosPagamento(txtTermos.getText());
                     f.setAvaliacao(spAval.getValue());
                     fornecedorService.save(f);

@@ -21,6 +21,7 @@ public class JavaFxApplication extends Application {
     @Override
     public void init() {
         GlobalExceptionHandler.setup();
+        ao.allon.kubata.core.config.KubataDatabasePaths.ensureDirectory();
         // Mostrar splash screen antes de inicializar Spring
         Platform.runLater(() -> {
             splashScreen = new SplashScreen();

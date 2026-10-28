@@ -3,6 +3,10 @@ package ao.allon.kubata.inventario;
 import ao.allon.kubata.core.module.AbstractKubataModule;
 import ao.allon.kubata.core.module.KubataModule;
 import ao.allon.kubata.core.module.ModuleView;
+import ao.allon.kubata.inventario.view.ArmazensView;
+import ao.allon.kubata.inventario.view.CategoriasView;
+import ao.allon.kubata.inventario.view.EstoqueView;
+import ao.allon.kubata.inventario.view.ProdutosView;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -53,37 +57,37 @@ public class InventarioModule extends AbstractKubataModule implements KubataModu
             "Gestão de produtos e serviços",
             null,
             "inventario.produtos",
-            null, // ProdutosView.class
+            ProdutosView.class,
             1
         ));
-        
+
         addView(new ModuleView(
             "categorias",
             "Categorias",
             "Categorias de produtos",
             null,
             "inventario.categorias",
-            null, // CategoriasView.class
+            CategoriasView.class,
             2
         ));
-        
+
         addView(new ModuleView(
             "armazens",
             "Armazéns",
             "Gestão de armazéns",
             null,
             "inventario.armazens",
-            null, // ArmazensView.class
+            ArmazensView.class,
             3
         ));
-        
+
         addView(new ModuleView(
             "estoque",
             "Estoque",
             "Controlo de stock e movimentos",
             null,
             "inventario.estoque",
-            null, // EstoqueView.class
+            EstoqueView.class,
             4
         ));
     }

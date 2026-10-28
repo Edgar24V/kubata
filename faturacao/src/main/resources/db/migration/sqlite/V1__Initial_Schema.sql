@@ -1,15 +1,45 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
+    username VARCHAR(255) UNIQUE,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
+    perfil_id INTEGER,
+    nif VARCHAR(20),
+    telefone VARCHAR(20),
+    avatar BLOB,
+    mfa_secret VARCHAR(255),
+    mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    ultimo_acesso TIMESTAMP,
+    failed_attempts INTEGER DEFAULT 0,
+    lockout_end TIMESTAMP,
+    password_changed_at TIMESTAMP,
+    password_expiry_days INTEGER DEFAULT 90,
+    password_provisoria BOOLEAN NOT NULL DEFAULT TRUE,
+    data_expiracao_password DATE,
+    departamento VARCHAR(255),
+    cargo VARCHAR(255),
+    ultimo_ip_login VARCHAR(45),
+    superadmin BOOLEAN NOT NULL DEFAULT FALSE,
+    idioma VARCHAR(20) DEFAULT 'pt-AO',
+    tema VARCHAR(50) DEFAULT 'VERDE_ADMIN',
+    linhas_por_pagina INTEGER DEFAULT 50,
+    empresa_id INTEGER,
+    mfa_recovery_codes VARCHAR(2048),
+    codigo VARCHAR(40),
+    tipo_conta VARCHAR(30) NOT NULL DEFAULT 'PESSOAL',
+    filial_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP,
-    active BOOLEAN DEFAULT TRUE
+    active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE user_profiles (
+CREATE INDEX IF NOT EXISTS idx_users_empresa ON users(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_users_filial ON users(filial_id);
+CREATE INDEX IF NOT EXISTS idx_users_tipo_conta ON users(tipo_conta);
+
+CREATE TABLE IF NOT EXISTS user_profiles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -23,7 +53,7 @@ CREATE TABLE user_profiles (
     updated_at TIMESTAMP
 );
 
-CREATE TABLE clientes (
+CREATE TABLE IF NOT EXISTS clientes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(255) NOT NULL,
     nif VARCHAR(255) NOT NULL UNIQUE,
@@ -36,7 +66,7 @@ CREATE TABLE clientes (
     updated_at TIMESTAMP
 );
 
-CREATE TABLE fornecedores (
+CREATE TABLE IF NOT EXISTS fornecedores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(255) NOT NULL UNIQUE,
     nif VARCHAR(255) UNIQUE,
@@ -48,7 +78,7 @@ CREATE TABLE fornecedores (
     updated_at TIMESTAMP
 );
 
-CREATE TABLE categorias (
+CREATE TABLE IF NOT EXISTS categorias (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(255) NOT NULL UNIQUE,
     descricao TEXT,
@@ -57,7 +87,7 @@ CREATE TABLE categorias (
     updated_at TIMESTAMP
 );
 
-CREATE TABLE impostos (
+CREATE TABLE IF NOT EXISTS impostos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     codigo VARCHAR(10) NOT NULL UNIQUE,
     descricao VARCHAR(255) NOT NULL,
@@ -69,7 +99,7 @@ CREATE TABLE impostos (
     updated_at TIMESTAMP
 );
 
-CREATE TABLE series (
+CREATE TABLE IF NOT EXISTS series (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     designacao VARCHAR(255) NOT NULL,
     tipo_documento VARCHAR(50) NOT NULL,
@@ -83,7 +113,7 @@ CREATE TABLE series (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE produtos (
+CREATE TABLE IF NOT EXISTS produtos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(255) NOT NULL,
     descricao TEXT,
@@ -107,7 +137,7 @@ CREATE TABLE produtos (
     FOREIGN KEY (imposto_id) REFERENCES impostos(id)
 );
 
-CREATE TABLE armazens (
+CREATE TABLE IF NOT EXISTS armazens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome VARCHAR(255) NOT NULL UNIQUE,
     localizacao TEXT,
@@ -118,7 +148,7 @@ CREATE TABLE armazens (
     updated_at TIMESTAMP
 );
 
-CREATE TABLE estoques (
+CREATE TABLE IF NOT EXISTS estoques (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     produto_id INTEGER NOT NULL,
     armazem_id INTEGER NOT NULL,
@@ -133,7 +163,7 @@ CREATE TABLE estoques (
     CONSTRAINT uk_estoque_unique UNIQUE (produto_id, armazem_id, lote)
 );
 
-CREATE TABLE movimentos_stock (
+CREATE TABLE IF NOT EXISTS movimentos_stock (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     produto_id INTEGER NOT NULL,
     armazem_id INTEGER,
@@ -151,7 +181,7 @@ CREATE TABLE movimentos_stock (
     FOREIGN KEY (armazem_id) REFERENCES armazens(id)
 );
 
-CREATE TABLE faturas (
+CREATE TABLE IF NOT EXISTS faturas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     numero VARCHAR(255) NOT NULL UNIQUE,
     cliente_id INTEGER NOT NULL,
@@ -189,7 +219,7 @@ CREATE TABLE faturas (
     FOREIGN KEY (fatura_referencia_id) REFERENCES faturas(id)
 );
 
-CREATE TABLE itens_fatura (
+CREATE TABLE IF NOT EXISTS itens_fatura (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     fatura_id INTEGER NOT NULL,
     produto_id INTEGER,
@@ -210,7 +240,7 @@ CREATE TABLE itens_fatura (
     FOREIGN KEY (produto_id) REFERENCES produtos(id)
 );
 
-CREATE TABLE recibos (
+CREATE TABLE IF NOT EXISTS recibos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     numero VARCHAR(255) NOT NULL UNIQUE,
     fatura_id INTEGER NOT NULL,
@@ -225,7 +255,7 @@ CREATE TABLE recibos (
     FOREIGN KEY (fatura_id) REFERENCES faturas(id)
 );
 
-CREATE TABLE auditoria_logs (
+CREATE TABLE IF NOT EXISTS auditoria_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tabela VARCHAR(50) NOT NULL,
     registro_id INTEGER NOT NULL,
@@ -235,11 +265,11 @@ CREATE TABLE auditoria_logs (
     data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_produtos_categoria ON produtos(categoria_id);
-CREATE INDEX idx_movimentos_produto ON movimentos_stock(produto_id);
-CREATE INDEX idx_itens_fatura_produto ON itens_fatura(produto_id);
-CREATE INDEX idx_auditoria_tabela ON auditoria_logs(tabela);
-CREATE INDEX idx_auditoria_data ON auditoria_logs(data_hora);
+CREATE INDEX IF NOT EXISTS idx_produtos_categoria ON produtos(categoria_id);
+CREATE INDEX IF NOT EXISTS idx_movimentos_produto ON movimentos_stock(produto_id);
+CREATE INDEX IF NOT EXISTS idx_itens_fatura_produto ON itens_fatura(produto_id);
+CREATE INDEX IF NOT EXISTS idx_auditoria_tabela ON auditoria_logs(tabela);
+CREATE INDEX IF NOT EXISTS idx_auditoria_data ON auditoria_logs(data_hora);
 
 -- Seed Initial Data
 INSERT INTO armazens (nome, localizacao, is_principal, created_at, active) 

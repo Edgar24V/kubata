@@ -78,4 +78,9 @@ public class ClienteService {
     public int countTotalClientes() {
         return (int) clienteRepository.count();
     }
+
+    public long countClientesCriadosEntre(java.time.LocalDate inicio, java.time.LocalDate fim) {
+        return clienteRepository.countByCreatedAtBetween(
+                inicio.atStartOfDay(), fim.plusDays(1).atStartOfDay());
+    }
 }

@@ -2,7 +2,7 @@ package ao.allon.kubata.faturacao.service;
 
 import ao.allon.kubata.faturacao.domain.Armazem;
 import ao.allon.kubata.faturacao.domain.Estoque;
-import ao.allon.kubata.faturacao.domain.Fornecedor;
+import ao.allon.kubata.core.domain.Fornecedor;
 import ao.allon.kubata.faturacao.domain.MovimentoStock;
 import ao.allon.kubata.faturacao.domain.Produto;
 import ao.allon.kubata.faturacao.enums.TipoMovimento;

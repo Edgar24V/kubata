@@ -20,6 +20,7 @@ public class JavaFxApplication extends Application {
     @Override
     public void init() {
         GlobalExceptionHandler.setup(); // Configura o handler de exceções global
+        ao.allon.kubata.core.config.KubataDatabasePaths.ensureDirectory();
         PendingRestoreApplier.applyIfPresent();
         applicationContext = new SpringApplicationBuilder(KubataAdminApplication.class)
                 .headless(false)

@@ -1,7 +1,7 @@
 package ao.allon.kubata.admin.view;
 
 import ao.allon.kubata.admin.service.NotificationService;
-import ao.allon.kubata.admin.service.MaintenanceModeService;
+import ao.allon.kubata.core.service.MaintenanceModeService;
 import ao.allon.kubata.admin.service.PersistenceService;
 import ao.allon.kubata.admin.service.SessionManager;
 import ao.allon.kubata.admin.service.job.AdminJob;
@@ -12,7 +12,9 @@ import ao.allon.kubata.core.domain.SystemLog;
 import ao.allon.kubata.core.domain.User;
 import ao.allon.kubata.core.domain.UserSession;
 import ao.allon.kubata.core.domain.RecordLock;
+import ao.allon.kubata.core.domain.BackupRecord;
 import ao.allon.kubata.core.repository.SystemLogRepository;
+import ao.allon.kubata.core.repository.BackupRecordRepository;
 import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
 import ao.allon.kubata.core.repository.RecordLockRepository;
@@ -24,12 +26,14 @@ import ao.allon.kubata.core.module.communication.ModuleCommunicationService;
 import javafx.application.Platform;
 import java.util.Collection;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.Node;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
@@ -39,6 +43,7 @@ import org.kordamp.ikonli.feather.Feather;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
@@ -46,6 +51,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -77,8 +83,47 @@ public class ConsoleView extends VBox {
     private final JobManager jobManager;
     private final ModuleRegistry moduleRegistry;
     private final ModuleCommunicationService moduleCommunicationService;
+    private final BackupRecordRepository backupRecordRepository;
+
+    /** Últimos eventos carregados na consola (tabela paginada, sem fazer findAll completo). */
+    private static final int MAX_LOGS_CARREGADOS = 500;
+
+    /** Blocos de bloqueio considerados "antigos" para alerta na Consola. */
+    private static final Duration LIMITE_BLOQUEIO_ANTIGO = Duration.ofMinutes(15);
 
     private final TabPane tabPane = new TabPane();
+
+    // Referências de abas (navegação a partir dos alertas do Painel de Controlo)
+    private Tab tabDash;
+    private Tab tabSessions;
+    private Tab tabLocks;
+    private Tab tabLogs;
+    private Tab tabModules;
+    private Tab tabProcesses;
+
+    // Barra de estado inferior
+    private Label lblStatusSessions;
+    private Label lblStatusLocks;
+    private Label lblStatusLogs;
+    private Label lblStatusModules;
+    private Label lblLastRefresh;
+
+    // Actualização automática
+    private CheckBox chkAutoRefresh;
+    private volatile boolean autoRefreshEnabled;
+    private int autoRefreshTicks;
+
+    // Filtros da tab de Eventos
+    private ComboBox<String> cmbLevel;
+    private ComboBox<String> cmbCategory;
+    private TextField txtLogSearch;
+    private Label lblLogCount;
+
+    // Tabela de bloqueios (selecção múltipla para "Anular")
+    private AdvancedTableView<LockedRecord> locksTable;
+
+    // Painel de alertas do Painel de Controlo
+    private VBox alertsContainer;
     
     // KPIs Dashboard
     private Label lblActiveSessionsCount;
@@ -107,6 +152,7 @@ public class ConsoleView extends VBox {
                        UserRepository userRepository,
                        UserSessionRepository userSessionRepository,
                        RecordLockRepository recordLockRepository,
+                       BackupRecordRepository backupRecordRepository,
                        SessionManager sessionManager, 
                        ModalManager modalManager,
                        PersistenceService persistenceService,
@@ -120,6 +166,7 @@ public class ConsoleView extends VBox {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
         this.recordLockRepository = recordLockRepository;
+        this.backupRecordRepository = backupRecordRepository;
         this.sessionManager = sessionManager;
         this.modalManager = modalManager;
         this.persistenceService = persistenceService;
@@ -205,6 +252,7 @@ public class ConsoleView extends VBox {
 
                 chartTime++;
                 updateUptime();
+                tickAutoRefresh();
 
                 if (lblDBStatus != null) {
                     lblDBStatus.setText(finalDbOk ? "LIGADO" : "ERRO");
@@ -256,28 +304,81 @@ public class ConsoleView extends VBox {
         tabPane.getStyleClass().addAll("office365-tabs", "console-tab-content");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        Tab tabDash = new Tab("Painel de Controlo", buildDashboardTab());
+        tabDash = new Tab("Painel de Controlo", buildDashboardTab());
         tabDash.setGraphic(IconUtils.icon(Feather.LAYOUT, 14));
 
-        Tab tabSessions = new Tab("Utilizadores Ligados", buildSessionsTab());
+        tabSessions = new Tab("Utilizadores Ligados", buildSessionsTab());
         tabSessions.setGraphic(IconUtils.icon(Feather.USERS, 14));
 
-        Tab tabLocks = new Tab("Registos Bloqueados", buildLocksTab());
+        tabLocks = new Tab("Registos Bloqueados", buildLocksTab());
         tabLocks.setGraphic(IconUtils.icon(Feather.LOCK, 14));
 
-        Tab tabLogs = new Tab("Eventos do Sistema", buildLogsTab());
+        tabLogs = new Tab("Eventos do Sistema", buildLogsTab());
         tabLogs.setGraphic(IconUtils.icon(Feather.ACTIVITY, 14));
 
-        Tab tabModules = new Tab("Estado dos Módulos", buildModulesTab());
+        tabModules = new Tab("Estado dos Módulos", buildModulesTab());
         tabModules.setGraphic(IconUtils.icon(Feather.GRID, 14));
 
-        Tab tabProcesses = new Tab("Processos em Background", buildProcessesTab());
+        tabProcesses = new Tab("Processos em Background", buildProcessesTab());
         tabProcesses.setGraphic(IconUtils.icon(Feather.CPU, 14));
 
         tabPane.getTabs().addAll(tabDash, tabSessions, tabLocks, tabLogs, tabModules, tabProcesses);
 
-        getChildren().addAll(toolbar, tabPane);
+        HBox statusBar = buildStatusBar();
+
+        getChildren().addAll(toolbar, tabPane, statusBar);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
+    }
+
+    /**
+     * Barra de estado inferior, no estilo da Consola Primavera:
+     * resume em tempo real o que está a acontecer no sistema.
+     */
+    private HBox buildStatusBar() {
+        HBox bar = new HBox(18);
+        bar.getStyleClass().add("console-statusbar");
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(new Insets(6, 18, 6, 18));
+
+        lblStatusSessions = statusChip(Feather.USERS, "Sessões: 0");
+        lblStatusLocks = statusChip(Feather.LOCK, "Bloqueios: 0");
+        lblStatusLogs = statusChip(Feather.ACTIVITY, "Eventos: 0");
+        lblStatusModules = statusChip(Feather.GRID, "Módulos: 0/0");
+
+        Pane spacer = new Pane();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        lblLastRefresh = new Label("—");
+        lblLastRefresh.getStyleClass().add("text-muted");
+        lblLastRefresh.setGraphic(IconUtils.icon(Feather.CLOCK, 12));
+
+        bar.getChildren().addAll(
+                lblStatusSessions,
+                lblStatusLocks,
+                lblStatusLogs,
+                lblStatusModules,
+                spacer,
+                lblLastRefresh
+        );
+        return bar;
+    }
+
+    private Label statusChip(Feather icon, String text) {
+        Label label = new Label(text, IconUtils.icon(icon, 12));
+        label.getStyleClass().add("console-status-chip");
+        return label;
+    }
+
+    /** Dispara a actualização automática (de 10 em 10 segundos) quando activa. */
+    private void tickAutoRefresh() {
+        if (!autoRefreshEnabled) {
+            return;
+        }
+
+        if (++autoRefreshTicks >= 5) {
+            autoRefreshTicks = 0;
+            refreshAll();
+        }
     }
 
     private Node buildDashboardTab() {
@@ -315,7 +416,9 @@ public class ConsoleView extends VBox {
         
         chartArea.getChildren().addAll(cpuBox, memBox);
 
-        dash.getChildren().addAll(kpiPaneTop, kpiPaneBottom, chartArea);
+        Node alertsCard = buildAlertsCard();
+
+        dash.getChildren().addAll(kpiPaneTop, kpiPaneBottom, chartArea, alertsCard);
         ScrollPane scroll = new ScrollPane(dash);
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("transparent-scroll");
@@ -351,6 +454,172 @@ public class ConsoleView extends VBox {
 
         box.getChildren().addAll(lblTitle, chart);
         return box;
+    }
+
+    /** Painel de alertas de administração, no espírito da Consola Primavera V10. */
+    private Node buildAlertsCard() {
+        VBox card = new VBox(8);
+        card.getStyleClass().addAll("console-chart-card", "console-alerts-card");
+        card.setPadding(new Insets(16));
+
+        Label title = new Label("Alertas de Administração", IconUtils.icon(Feather.BELL, 15));
+        title.getStyleClass().add("h4");
+
+        Label subtitle = new Label(
+                "Condições do sistema que exigem atenção: backups, módulos, bloqueios e eventos"
+        );
+        subtitle.getStyleClass().add("text-muted");
+
+        alertsContainer = new VBox(6);
+
+        card.getChildren().addAll(title, subtitle, new Separator(), alertsContainer);
+        return card;
+    }
+
+    private record Alerta(String severidade, String mensagem, String accaoLabel, Runnable accao) {}
+
+    /** Recalcula a lista de alertas apresentada no Painel de Controlo. */
+    private void updateAlertas(List<RecordLock> locks, long errosHoje,
+                               Collection<KubataModule> modulos, BackupRecord ultimoBackup) {
+        if (alertsContainer == null) {
+            return;
+        }
+
+        LocalDateTime agora = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        List<Alerta> alertas = new ArrayList<>();
+
+        // 1. Modo de manutenção
+        if (maintenanceModeService.isEnabled()) {
+            alertas.add(new Alerta(
+                    "danger",
+                    "Modo de manutenção activo desde " + maintenanceModeService.getSince()
+                            + (maintenanceModeService.getReason() == null
+                                ? ""
+                                : " — " + maintenanceModeService.getReason()),
+                    null, null));
+        } else {
+            alertas.add(new Alerta(
+                    "success",
+                    "Sistema operacional: modo de manutenção desactivado.",
+                    null, null));
+        }
+
+        // 2. Backups desactualizados
+        if (ultimoBackup == null) {
+            alertas.add(new Alerta(
+                    "danger",
+                    "Não existe nenhum backup concluído registado. Consulte o módulo Backup.",
+                    null, null));
+        } else {
+            LocalDateTime quando = ultimoBackup.getStartTime();
+            long horas = quando == null ? 0 : Duration.between(quando, agora).toHours();
+
+            if (quando == null || horas >= 24) {
+                alertas.add(new Alerta(
+                        "warning",
+                        "O último backup concluído tem " + horas + " horas ("
+                                + ultimoBackup.getFilename() + ").",
+                        null, null));
+            } else {
+                alertas.add(new Alerta(
+                        "success",
+                        "Último backup concluído: " + quando.format(fmt)
+                                + " — " + ultimoBackup.getFilename(),
+                        null, null));
+            }
+        }
+
+        // 3. Bloqueios antigos
+        LocalDateTime limite = agora.minus(LIMITE_BLOQUEIO_ANTIGO);
+        long antigos = locks.stream()
+                .filter(l -> l.getLockedSince() != null && l.getLockedSince().isBefore(limite))
+                .count();
+
+        if (antigos > 0) {
+            alertas.add(new Alerta(
+                    "warning",
+                    antigos + " bloqueio(s) de registos com mais de "
+                            + LIMITE_BLOQUEIO_ANTIGO.toMinutes() + " minutos.",
+                    "Ver bloqueios",
+                    () -> tabPane.getSelectionModel().select(tabLocks)));
+        } else {
+            alertas.add(new Alerta(
+                    "success",
+                    "Sem bloqueios antigos de registos.",
+                    null, null));
+        }
+
+        // 4. Módulos inactivos
+        long inactivos = modulos.stream().filter(m -> !m.isActive()).count();
+        if (inactivos > 0) {
+            alertas.add(new Alerta(
+                    "warning",
+                    inactivos + " módulo(s) registado(s) inactivo(s) de " + modulos.size() + ".",
+                    "Ver módulos",
+                    () -> tabPane.getSelectionModel().select(tabModules)));
+        } else {
+            alertas.add(new Alerta(
+                    "success",
+                    "Todos os " + modulos.size() + " módulos registados estão activos.",
+                    null, null));
+        }
+
+        // 5. Erros do dia
+        if (errosHoje > 10) {
+            alertas.add(new Alerta(
+                    "danger",
+                    errosHoje + " erros registados hoje no sistema.",
+                    "Ver eventos",
+                    () -> tabPane.getSelectionModel().select(tabLogs)));
+        } else if (errosHoje > 0) {
+            alertas.add(new Alerta(
+                    "warning",
+                    errosHoje + " erro(s) registado(s) hoje no sistema.",
+                    "Ver eventos",
+                    () -> tabPane.getSelectionModel().select(tabLogs)));
+        } else {
+            alertas.add(new Alerta(
+                    "success",
+                    "Sem erros registados hoje no sistema.",
+                    null, null));
+        }
+
+        alertsContainer.getChildren().clear();
+        for (Alerta alerta : alertas) {
+            alertsContainer.getChildren().add(createAlertRow(alerta));
+        }
+    }
+
+    private HBox createAlertRow(Alerta alerta) {
+        HBox row = new HBox(10);
+        row.getStyleClass().addAll("console-alert-row", "console-alert-" + alerta.severidade());
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(8, 12, 8, 12));
+
+        Feather icon = switch (alerta.severidade()) {
+            case "danger" -> Feather.X_CIRCLE;
+            case "warning" -> Feather.ALERT_TRIANGLE;
+            default -> Feather.CHECK_CIRCLE;
+        };
+
+        Label lblIcon = new Label("", IconUtils.icon(icon, 15));
+        lblIcon.getStyleClass().add("console-alert-icon-" + alerta.severidade());
+
+        Label lblMsg = new Label(alerta.mensagem());
+        lblMsg.setWrapText(true);
+        HBox.setHgrow(lblMsg, Priority.ALWAYS);
+
+        row.getChildren().addAll(lblIcon, lblMsg);
+
+        if (alerta.accao() != null && alerta.accaoLabel() != null) {
+            Button btn = new Button(alerta.accaoLabel(), IconUtils.icon(Feather.CHEVRON_RIGHT, 12));
+            btn.getStyleClass().add("button-flat");
+            btn.setOnAction(e -> alerta.accao().run());
+            row.getChildren().add(btn);
+        }
+
+        return row;
     }
 
     private VBox createKPI(String title, Feather icon, Label value, String valueStyle) {
@@ -396,6 +665,18 @@ public class ConsoleView extends VBox {
         maintenanceStatusLabel = maintenance;
         updateMaintenanceIndicator();
 
+        chkAutoRefresh = new CheckBox("Actualização automática");
+        chkAutoRefresh.setSelected(autoRefreshEnabled);
+        chkAutoRefresh.setTooltip(new Tooltip(
+                "Actualiza sessões, bloqueios, eventos e módulos de 10 em 10 segundos"));
+        chkAutoRefresh.setOnAction(e -> {
+            autoRefreshEnabled = chkAutoRefresh.isSelected();
+            autoRefreshTicks = 0;
+            if (autoRefreshEnabled) {
+                refreshAll();
+            }
+        });
+
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
@@ -427,6 +708,7 @@ public class ConsoleView extends VBox {
                 heading,
                 maintenance,
                 spacer,
+                chkAutoRefresh,
                 btnRefresh,
                 btnBroadcast,
                 btnMaintenance
@@ -440,6 +722,7 @@ public class ConsoleView extends VBox {
 
         table.getColumns().add(TableUtils.createTextColumn("Utilizador", s -> new SimpleStringProperty(s.getValue().getUserName())));
         table.getColumns().add(TableUtils.createTextColumn("Login", s -> new SimpleStringProperty(s.getValue().getLoginTime())));
+        table.getColumns().add(TableUtils.createTextColumn("Duração", s -> new SimpleStringProperty(s.getValue().getDuracaoTexto())));
         table.getColumns().add(TableUtils.createTextColumn("Máquina", s -> new SimpleStringProperty(s.getValue().getWorkstation())));
         table.getColumns().add(TableUtils.createTextColumn("IP", s -> new SimpleStringProperty(s.getValue().getIp())));
         table.getColumns().add(TableUtils.createTextColumn("Módulo/Empresa", s -> new SimpleStringProperty(s.getValue().getContext())));
@@ -447,8 +730,14 @@ public class ConsoleView extends VBox {
 
         TableColumn<ActiveSession, Void> colActions = new TableColumn<>("Ações");
         colActions.setCellFactory(col -> new TableCell<>() {
+            private final Button btnMsg = new Button("", IconUtils.icon(Feather.MESSAGE_SQUARE, 12));
             private final Button btnKick = new Button("", IconUtils.icon(Feather.USER_X, 12));
+            private final HBox actions = new HBox(4, btnMsg, btnKick);
             {
+                btnMsg.getStyleClass().add("button-icon");
+                btnMsg.setTooltip(new Tooltip("Enviar mensagem ao utilizador"));
+                btnMsg.setOnAction(e -> sendMessageToUser(getTableView().getItems().get(getIndex())));
+
                 btnKick.getStyleClass().add("button-icon-danger");
                 btnKick.setTooltip(new Tooltip("Forçar Saída"));
                 btnKick.setOnAction(e -> kickUser(getTableView().getItems().get(getIndex())));
@@ -456,7 +745,7 @@ public class ConsoleView extends VBox {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : btnKick);
+                setGraphic(empty ? null : actions);
                 setAlignment(Pos.CENTER);
             }
         });
@@ -466,19 +755,23 @@ public class ConsoleView extends VBox {
     }
 
     private Node buildLocksTab() {
-        AdvancedTableView<LockedRecord> table = new AdvancedTableView<>(lockedRecords);
-        TableUtils.standardize(table);
+        locksTable = new AdvancedTableView<>(lockedRecords);
+        TableUtils.standardize(locksTable);
+        locksTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        locksTable.getColumns().add(locksTable.createSelectionColumn());
 
-        table.getColumns().add(TableUtils.createTextColumn("Tipo de Registo", l -> new SimpleStringProperty(l.getValue().getEntityType())));
-        table.getColumns().add(TableUtils.createTextColumn("ID Registo", l -> new SimpleStringProperty(l.getValue().getEntityId())));
-        table.getColumns().add(TableUtils.createTextColumn("Bloqueado Por", l -> new SimpleStringProperty(l.getValue().getUserName())));
-        table.getColumns().add(TableUtils.createTextColumn("Desde", l -> new SimpleStringProperty(l.getValue().getLockedSince())));
+        locksTable.getColumns().add(TableUtils.createTextColumn("Tipo de Registo", l -> new SimpleStringProperty(l.getValue().getEntityType())));
+        locksTable.getColumns().add(TableUtils.createTextColumn("ID Registo", l -> new SimpleStringProperty(l.getValue().getEntityId())));
+        locksTable.getColumns().add(TableUtils.createTextColumn("Bloqueado Por", l -> new SimpleStringProperty(l.getValue().getUserName())));
+        locksTable.getColumns().add(TableUtils.createTextColumn("Desde", l -> new SimpleStringProperty(l.getValue().getLockedSince())));
+        locksTable.getColumns().add(TableUtils.createTextColumn("Duração", l -> new SimpleStringProperty(l.getValue().getDuracaoTexto())));
 
         TableColumn<LockedRecord, Void> colActions = new TableColumn<>("Ações");
         colActions.setCellFactory(col -> new TableCell<>() {
-            private final Button btnUnlock = new Button("Libertar", IconUtils.icon(Feather.UNLOCK, 12));
+            private final Button btnUnlock = new Button("", IconUtils.icon(Feather.UNLOCK, 12));
             {
-                btnUnlock.getStyleClass().add("button-success");
+                btnUnlock.getStyleClass().add("button-icon-success");
+                btnUnlock.setTooltip(new Tooltip("Anular Bloqueio"));
                 btnUnlock.setOnAction(e -> unlockRecord(getTableView().getItems().get(getIndex())));
             }
             @Override
@@ -488,54 +781,81 @@ public class ConsoleView extends VBox {
                 setAlignment(Pos.CENTER);
             }
         });
-        table.getColumns().add(colActions);
+        locksTable.getColumns().add(colActions);
 
-        return table.withSearchBar();
+        Button btnUnlockSelected = new Button(
+                "Anular seleção",
+                IconUtils.icon(Feather.UNLOCK, IconUtils.SIZE_SMALL)
+        );
+        btnUnlockSelected.getStyleClass().add("button-success");
+        btnUnlockSelected.setTooltip(new Tooltip(
+                "Anula os bloqueios dos registos seleccionados (como no Primavera V10)"));
+        btnUnlockSelected.setOnAction(e -> unlockSelectedRecords());
+
+        Button btnRefreshLocks = new Button(
+                "Actualizar",
+                IconUtils.icon(Feather.REFRESH_CW, IconUtils.SIZE_SMALL)
+        );
+        btnRefreshLocks.getStyleClass().add("button-outlined");
+        btnRefreshLocks.setOnAction(e -> refreshAll());
+
+        Label hint = new Label(
+                "Seleccione um ou mais registos e clique em \"Anular seleção\" para libertar os bloqueios.");
+        hint.getStyleClass().add("text-muted");
+
+        HBox bar = new HBox(10, btnUnlockSelected, btnRefreshLocks, hint);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.getStyleClass().add("console-tab-toolbar");
+        bar.setPadding(new Insets(8, 14, 8, 14));
+
+        Node content = locksTable.withSearchBar();
+        VBox.setVgrow(content, Priority.ALWAYS);
+
+        VBox box = new VBox(0, bar, content);
+        return box;
     }
 
     private Node buildLogsTab() {
         VBox content = new VBox(10);
         content.setPadding(new Insets(15));
 
-        // Filtros de Log
-        HBox filters = new HBox(15);
+        // Barra de filtros com aplicação automática (sem botão "Filtrar")
+        HBox filters = new HBox(12);
         filters.setAlignment(Pos.CENTER_LEFT);
-        filters.getStyleClass().add("card");
-        filters.setPadding(new Insets(10, 15, 10, 15));
+        filters.getStyleClass().add("console-tab-toolbar");
+        filters.setPadding(new Insets(10, 14, 10, 14));
 
-        ComboBox<String> cmbLevel = new ComboBox<>(FXCollections.observableArrayList("TODOS", "INFO", "WARN", "ERROR", "FATAL"));
+        cmbLevel = new ComboBox<>(FXCollections.observableArrayList("TODOS", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"));
         cmbLevel.setValue("TODOS");
-        
-        ComboBox<String> cmbCategory = new ComboBox<>(FXCollections.observableArrayList("TODOS", "AUTH", "DATABASE", "SYSTEM", "UI"));
+        cmbLevel.setPrefWidth(120);
+
+        cmbCategory = new ComboBox<>(FXCollections.observableArrayList("TODOS"));
         cmbCategory.setValue("TODOS");
+        cmbCategory.setPrefWidth(170);
 
-        Button btnFilter = new Button("Filtrar", IconUtils.icon(Feather.FILTER, 12));
-        btnFilter.getStyleClass().add("button-primary");
-        btnFilter.setOnAction(e -> {
-            String level = cmbLevel.getValue();
-            String category = cmbCategory.getValue();
+        txtLogSearch = new TextField();
+        txtLogSearch.setPromptText("Pesquisar mensagem, fonte ou categoria...");
+        txtLogSearch.setPrefWidth(320);
+        HBox.setHgrow(txtLogSearch, Priority.ALWAYS);
 
-            List<SystemLog> filtered = systemLogs.stream()
-                    .filter(l -> l != null)
-                    .filter(l -> "TODOS".equals(level)
-                            || (l.getLogLevel() != null
-                            && l.getLogLevel().name().equals(level)))
-                    .filter(l -> "TODOS".equals(category)
-                            || (l.getCategory() != null
-                            && l.getCategory().equals(category)))
-                    .collect(Collectors.toList());
+        lblLogCount = new Label("0 eventos");
+        lblLogCount.getStyleClass().add("text-muted");
 
-            filteredLogs.setAll(filtered);
-        });
+        cmbLevel.valueProperty().addListener((obs, o, n) -> applyLogFilters());
+        cmbCategory.valueProperty().addListener((obs, o, n) -> applyLogFilters());
+        txtLogSearch.textProperty().addListener((obs, o, n) -> applyLogFilters());
 
-        Button btnExport = new Button("Exportar", IconUtils.icon(Feather.DOWNLOAD, 12));
+        Button btnExport = new Button("Exportar", IconUtils.icon(Feather.DOWNLOAD, IconUtils.SIZE_SMALL));
         btnExport.getStyleClass().add("button-outlined");
+        btnExport.setTooltip(new Tooltip("Exporta os eventos filtrados para ficheiro CSV"));
         btnExport.setOnAction(e -> exportLogs());
-        
+
         filters.getChildren().addAll(
             new Label("Nível:"), cmbLevel,
             new Label("Categoria:"), cmbCategory,
-            btnFilter, btnExport
+            new Label("Pesquisar:"), txtLogSearch,
+            lblLogCount,
+            btnExport
         );
 
         AdvancedTableView<SystemLog> table = new AdvancedTableView<>(filteredLogs);
@@ -610,11 +930,47 @@ public class ConsoleView extends VBox {
         return content;
     }
 
+    /** Aplica os filtros da tab de Eventos (nível, categoria e texto livre). */
+    private void applyLogFilters() {
+        if (cmbLevel == null || cmbCategory == null) {
+            return;
+        }
+
+        String level = cmbLevel.getValue();
+        String category = cmbCategory.getValue();
+        String termo = txtLogSearch == null || txtLogSearch.getText() == null
+                ? ""
+                : txtLogSearch.getText().trim().toLowerCase();
+
+        List<SystemLog> filtered = systemLogs.stream()
+                .filter(l -> l != null)
+                .filter(l -> "TODOS".equals(level)
+                        || (l.getLogLevel() != null && l.getLogLevel().name().equals(level)))
+                .filter(l -> "TODOS".equals(category)
+                        || (l.getCategory() != null && l.getCategory().equals(category)))
+                .filter(l -> termo.isEmpty()
+                        || containsTerm(l.getMessage(), termo)
+                        || containsTerm(l.getSource(), termo)
+                        || containsTerm(l.getCategory(), termo))
+                .collect(Collectors.toList());
+
+        filteredLogs.setAll(filtered);
+
+        if (lblLogCount != null) {
+            lblLogCount.setText(filtered.size() + " de " + systemLogs.size() + " eventos");
+        }
+    }
+
+    private static boolean containsTerm(String valor, String termoLower) {
+        return valor != null && valor.toLowerCase().contains(termoLower);
+    }
+
     private Node buildModulesTab() {
         AdvancedTableView<ModuleStatus> table = new AdvancedTableView<>(moduleStatuses);
         TableUtils.standardize(table);
 
         table.getColumns().add(TableUtils.createTextColumn("Módulo", m -> new SimpleStringProperty(m.getValue().getName())));
+        table.getColumns().add(TableUtils.createTextColumn("Descrição", m -> new SimpleStringProperty(m.getValue().getDescription())));
         table.getColumns().add(TableUtils.createTextColumn("Versão", m -> new SimpleStringProperty(m.getValue().getVersion())));
         
         TableColumn<ModuleStatus, String> colStatus = new TableColumn<>("Estado");
@@ -648,6 +1004,14 @@ public class ConsoleView extends VBox {
         TableUtils.standardize(table);
 
         table.getColumns().add(TableUtils.createTextColumn("Processo", p -> p.getValue().titleProperty()));
+        table.getColumns().add(TableUtils.createTextColumn("Tipo", p -> new SimpleStringProperty(p.getValue().getActionType())));
+
+        TableColumn<AdminJob, String> colCreatedAt = new TableColumn<>("Iniciado");
+        colCreatedAt.setCellValueFactory(p -> new SimpleStringProperty(
+                p.getValue().getCreatedAt() == null
+                        ? ""
+                        : p.getValue().getCreatedAt().format(DateTimeFormatter.ofPattern("HH:mm:ss"))));
+        table.getColumns().add(colCreatedAt);
 
         TableColumn<AdminJob, Number> colProgress = new TableColumn<>("Progresso");
         colProgress.setCellValueFactory(p -> p.getValue().progressProperty());
@@ -702,10 +1066,17 @@ public class ConsoleView extends VBox {
             List<RecordLock> locks = recordLockRepository.findAll();
 
             // Obter logs do sistema
-            List<SystemLog> logs = systemLogRepository.findAll();
+            List<SystemLog> logs = systemLogRepository
+                    .findByOrderByTimestampDesc(PageRequest.of(0, MAX_LOGS_CARREGADOS))
+                    .getContent();
 
             // Obter módulos reais do ModuleRegistry
             Collection<KubataModule> modules = moduleRegistry.getAllModules();
+
+            // Último backup concluído (indicador no estilo da Consola Primavera)
+            BackupRecord ultimoBackup = backupRecordRepository
+                    .findTopByStatusOrderByStartTimeDesc(BackupRecord.BackupStatus.COMPLETED)
+                    .orElse(null);
 
             Platform.runLater(() -> {
                 activeSessions.clear();
@@ -713,7 +1084,8 @@ public class ConsoleView extends VBox {
                 for (UserSession s : sessions) {
                     activeSessions.add(new ActiveSession(
                         s.getUsername(), 
-                        s.getLoginTime().format(timeFormatter), 
+                        s.getLoginTime() != null ? s.getLoginTime().format(timeFormatter) : "—",
+                        s.getLoginTime(), 
                         s.getWorkstation(), 
                         s.getIpAddress(), 
                         s.getContext(), 
@@ -727,17 +1099,20 @@ public class ConsoleView extends VBox {
                         l.getEntityType(), 
                         l.getEntityId(), 
                         l.getUsername(), 
-                        l.getLockedSince().format(timeFormatter)
+                        l.getLockedSince() != null ? l.getLockedSince().format(timeFormatter) : "—",
+                        l.getLockedSince()
                     ));
                 }
 
                 systemLogs.setAll(logs);
-                filteredLogs.setAll(logs);
+                refreshLogCategories();
+                applyLogFilters();
 
                 moduleStatuses.clear();
                 for (KubataModule m : modules) {
                     moduleStatuses.add(new ModuleStatus(
                         m.getModuleName(), 
+                        m.getModuleDescription(),
                         m.getVersion(), 
                         m.isActive() ? "ONLINE" : "OFFLINE", 
                         LocalDateTime.now().format(timeFormatter)
@@ -765,8 +1140,53 @@ public class ConsoleView extends VBox {
                     lblSystemHealth.setText("ESTÁVEL");
                     lblSystemHealth.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 24px; -fx-font-weight: bold;");
                 }
+
+                // Alertas de administração e barra de estado
+                updateAlertas(locks, errorCount, modules, ultimoBackup);
+                updateStatusBar(modules);
             });
         }, null);
+    }
+
+    /** Actualiza a combo de categorias com as categorias realmente existentes nos eventos. */
+    private void refreshLogCategories() {
+        if (cmbCategory == null) {
+            return;
+        }
+
+        String actual = cmbCategory.getValue();
+
+        List<String> opcoes = new ArrayList<>();
+        opcoes.add("TODOS");
+        systemLogs.stream()
+                .map(SystemLog::getCategory)
+                .filter(c -> c != null && !c.isBlank())
+                .distinct()
+                .sorted()
+                .forEach(opcoes::add);
+
+        cmbCategory.getItems().setAll(opcoes);
+        if (actual == null || !opcoes.contains(actual)) {
+            cmbCategory.setValue("TODOS");
+        }
+    }
+
+    /** Barra de estado inferior: resume o estado operacional da Consola. */
+    private void updateStatusBar(Collection<KubataModule> modules) {
+        if (lblStatusSessions == null) {
+            return;
+        }
+
+        lblStatusSessions.setText("Sessões: " + activeSessions.size());
+        lblStatusLocks.setText("Bloqueios: " + lockedRecords.size());
+        lblStatusLogs.setText("Eventos: " + systemLogs.size());
+
+        long activos = modules == null ? 0 : modules.stream().filter(KubataModule::isActive).count();
+        long total = modules == null ? 0 : modules.size();
+        lblStatusModules.setText("Módulos: " + activos + "/" + total);
+
+        lblLastRefresh.setText("Última actualização: "
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
     }
 
     private void kickUser(ActiveSession session) {
@@ -1028,9 +1448,11 @@ public class ConsoleView extends VBox {
     // Classes Auxiliares (Diferente do Primavera, aqui usamos POJOs simples para a UI)
     public static class ActiveSession {
         private final SimpleStringProperty userName, loginTime, workstation, ip, context, memory;
-        public ActiveSession(String u, String l, String w, String ip, String c, String m) { 
+        private final ObjectProperty<LocalDateTime> loginDateTime;
+        public ActiveSession(String u, String l, LocalDateTime loginDateTime, String w, String ip, String c, String m) { 
             this.userName = new SimpleStringProperty(u);
             this.loginTime = new SimpleStringProperty(l);
+            this.loginDateTime = new SimpleObjectProperty<>(loginDateTime);
             this.workstation = new SimpleStringProperty(w);
             this.ip = new SimpleStringProperty(ip);
             this.context = new SimpleStringProperty(c);
@@ -1042,34 +1464,159 @@ public class ConsoleView extends VBox {
         public String getIp() { return ip.get(); }
         public String getContext() { return context.get(); }
         public String getMemory() { return memory.get(); }
+        public LocalDateTime getLoginDateTime() { return loginDateTime.get(); }
+        public String getDuracaoTexto() { return formatDuracao(loginDateTime.get()); }
     }
 
     public static class LockedRecord {
         private final SimpleStringProperty entityType, entityId, userName, lockedSince;
-        public LockedRecord(String t, String i, String u, String s) { 
+        private final ObjectProperty<LocalDateTime> lockedSinceTime;
+        public LockedRecord(String t, String i, String u, String s, LocalDateTime lockedSince) { 
             this.entityType = new SimpleStringProperty(t);
             this.entityId = new SimpleStringProperty(i);
             this.userName = new SimpleStringProperty(u);
             this.lockedSince = new SimpleStringProperty(s);
+            this.lockedSinceTime = new SimpleObjectProperty<>(lockedSince);
         }
         public String getEntityType() { return entityType.get(); }
         public String getEntityId() { return entityId.get(); }
         public String getUserName() { return userName.get(); }
         public String getLockedSince() { return lockedSince.get(); }
+        public LocalDateTime getLockedSinceTime() { return lockedSinceTime.get(); }
+        public String getDuracaoTexto() { return formatDuracao(lockedSinceTime.get()); }
     }
 
      public static class ModuleStatus {
-        private final SimpleStringProperty name, version, status, lastCheck;
-        public ModuleStatus(String n, String v, String s, String l) {
+        private final SimpleStringProperty name, description, version, status, lastCheck;
+        public ModuleStatus(String n, String d, String v, String s, String l) {
             this.name = new SimpleStringProperty(n);
+            this.description = new SimpleStringProperty(d);
             this.version = new SimpleStringProperty(v);
             this.status = new SimpleStringProperty(s);
             this.lastCheck = new SimpleStringProperty(l);
         }
         public String getName() { return name.get(); }
+        public String getDescription() { return description.get(); }
         public String getVersion() { return version.get(); }
         public String getStatus() { return status.get(); }
         public String getLastCheck() { return lastCheck.get(); }
+    }
+
+    /** Formata a duração decorrida desde uma data/hora (ex.: "2h 05m"). */
+    private static String formatDuracao(LocalDateTime desde) {
+        if (desde == null) {
+            return "—";
+        }
+
+        long minutos = Duration.between(desde, LocalDateTime.now()).toMinutes();
+        if (minutos < 0) {
+            minutos = 0;
+        }
+
+        long h = minutos / 60;
+        long m = minutos % 60;
+        return h > 0 ? h + "h " + String.format("%02dm", m) : m + "m";
+    }
+
+    /** Anula em lote os bloqueios dos registos seleccionados (botão "Anular" do Primavera V10). */
+    private void unlockSelectedRecords() {
+        List<LockedRecord> selection = locksTable == null
+                ? new ArrayList<>()
+                : new ArrayList<>(locksTable.getSelectionModel().getSelectedItems());
+
+        if (selection.isEmpty()) {
+            notificationService.showWarning(
+                    "Sem seleção",
+                    "Seleccione um ou mais registos bloqueados para anular.");
+            return;
+        }
+
+        modalManager.showConfirmModal(new Label(
+                        "Anular " + selection.size() + " bloqueio(s) de registos?\n\n"
+                                + "AVISO: Se os utilizadores ainda estiverem a editar esses registos, "
+                                + "podem perder dados."),
+                "Anular Registos Bloqueados", () -> {
+                    persistenceService.executeAsync(() -> {
+                        for (LockedRecord record : selection) {
+                            recordLockRepository.deleteByEntityTypeAndEntityId(
+                                    record.getEntityType(), record.getEntityId());
+                        }
+                    }, "RECORD_UNLOCK", "CONSOLE",
+                            selection.size() + " bloqueio(s) de registos anulados",
+                            () -> {
+                                lockedRecords.removeAll(selection);
+                                lblLockedRecordsCount.setText(String.valueOf(lockedRecords.size()));
+                                updateStatusBar(moduleRegistry.getAllModules());
+                                notificationService.showSuccess(
+                                        "Bloqueios Anulados",
+                                        selection.size() + " bloqueio(s) libertado(s).");
+                            });
+                }, null);
+    }
+
+    /** Envia uma mensagem operacional a um utilizador específico ligado. */
+    private void sendMessageToUser(ActiveSession session) {
+        VBox content = new VBox(10);
+
+        Label info = new Label("Mensagem dirigida a " + session.getUserName()
+                + " (" + session.getWorkstation() + ")");
+        info.getStyleClass().add("text-muted");
+
+        TextArea txtMsg = new TextArea();
+        txtMsg.setPromptText("Mensagem operacional para o utilizador...");
+        txtMsg.setPrefRowCount(4);
+        txtMsg.setWrapText(true);
+
+        CheckBox chkUrgent = new CheckBox("Marcar como urgente");
+
+        content.getChildren().addAll(info, txtMsg, chkUrgent);
+
+        modalManager.showConfirmModal(content, "Mensagem ao Utilizador", () -> {
+            String msg = txtMsg.getText() == null ? "" : txtMsg.getText().trim();
+
+            if (msg.isBlank()) {
+                modalManager.alert(
+                        "Mensagem inválida",
+                        "Introduza uma mensagem antes de enviar.",
+                        "warning",
+                        null
+                );
+                return;
+            }
+
+            boolean urgent = chkUrgent.isSelected();
+
+            persistenceService.executeAsync(() -> {
+                SystemLog log = new SystemLog();
+                log.setLogLevel(urgent ? SystemLog.LogLevel.WARN : SystemLog.LogLevel.INFO);
+                log.setCategory("MESSAGE");
+                log.setSource("Kubata Administrator");
+                log.setMessage("Mensagem para " + session.getUserName() + ": " + msg);
+                log.setThreadName(Thread.currentThread().getName());
+                systemLogRepository.save(log);
+
+                if (moduleCommunicationService != null) {
+                    moduleCommunicationService.broadcast(
+                            "ADMIN",
+                            "USER_MESSAGE",
+                            java.util.Map.of(
+                                    "targetUser", session.getUserName(),
+                                    "message", msg,
+                                    "urgent", urgent,
+                                    "source", "Kubata Administrator"
+                            )
+                    );
+                }
+            }, "MESSAGE", "CONSOLE",
+                    "Mensagem enviada ao utilizador " + session.getUserName(),
+                    () -> {
+                        notificationService.showSuccess(
+                                "Mensagem Enviada",
+                                "Mensagem entregue ao utilizador " + session.getUserName() + "."
+                        );
+                        refreshAll();
+                    });
+        }, null);
     }
     private void updateMaintenanceIndicator() {
         if (maintenanceStatusLabel == null) {

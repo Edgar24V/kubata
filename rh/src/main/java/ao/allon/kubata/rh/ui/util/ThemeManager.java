@@ -1,15 +1,16 @@
 package ao.allon.kubata.rh.ui.util;
 
-import com.pixelduke.transit.Style;
-import com.pixelduke.transit.TransitTheme;
 import javafx.scene.Scene;
 
+/**
+ * Tema do Kubata RH: reutiliza a pele visual do Kubata Administrator
+ * (kubata.css + ribbon do core) e acrescenta as camadas específicas do RH.
+ */
 public final class ThemeManager {
 
-    private static boolean darkMode = false;
-
     /** Cor de marca partilhada pelo ecossistema Kubata. */
-    public static final String KUBATA_GREEN = "#107C41";
+    public static final String KUBATA_GREEN =
+            ao.allon.kubata.core.ui.theme.ThemeManager.KUBATA_GREEN;
 
     private ThemeManager() {
     }
@@ -19,21 +20,14 @@ public final class ThemeManager {
             return;
         }
 
-        TransitTheme transitTheme =
-                new TransitTheme(darkMode ? Style.DARK : Style.LIGHT);
-        transitTheme.setScene(scene);
-
-        // Accent global consistente com o Admin.
-        if (scene.getRoot() != null) {
-            String currentStyle = scene.getRoot().getStyle();
-            if (currentStyle == null) {
-                currentStyle = "";
-            }
-            scene.getRoot().setStyle(currentStyle + "; -fx-accent: " + KUBATA_GREEN + ";");
-        }
+        ao.allon.kubata.core.ui.theme.ThemeManager.applyTheme(scene);
 
         addStylesheet(scene, "/ao/allon/kubata/rh/ui/styles/rh-tabpane.css");
         addStylesheet(scene, "/ao/allon/kubata/rh/ui/styles/rh-ribbon.css");
+    }
+
+    public static boolean isReducedMotion() {
+        return ao.allon.kubata.core.ui.theme.ThemeManager.isReducedMotion();
     }
 
     private static void addStylesheet(Scene scene, String resource) {
@@ -46,18 +40,5 @@ public final class ThemeManager {
         if (!scene.getStylesheets().contains(css)) {
             scene.getStylesheets().add(css);
         }
-    }
-
-    public static void setDarkMode(boolean dark) {
-        darkMode = dark;
-    }
-
-    public static boolean isDarkMode() {
-        return darkMode;
-    }
-
-    public static void toggleTheme(Scene scene) {
-        darkMode = !darkMode;
-        applyTheme(scene);
     }
 }

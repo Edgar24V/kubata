@@ -122,11 +122,11 @@ public final class NavigationHeader extends BorderPane {
         String subtitle = "Sistema de Faturação";
         byte[] logo = null;
         try {
-            ao.allon.kubata.faturacao.domain.Empresa e = empresaService.getDadosEmpresa();
+            ao.allon.kubata.core.domain.Empresa e = empresaService.getDadosEmpresa();
             if (e != null && e.getNome() != null && !e.getNome().isBlank()) {
                 nome = e.getNome();
                 if (e.getNif() != null && !e.getNif().isBlank()) {
-                    subtitle = "NIF: " + e.getNif();
+                    subtitle = "NIF: " + e.getNif() + " · Exercício " + empresaService.getExercicioActual();
                 }
             }
             if (e != null && e.getLogotipo() != null && e.getLogotipo().length > 0) {

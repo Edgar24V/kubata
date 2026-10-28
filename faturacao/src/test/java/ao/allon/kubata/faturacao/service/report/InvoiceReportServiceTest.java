@@ -1,6 +1,6 @@
 package ao.allon.kubata.faturacao.service.report;
 
-import ao.allon.kubata.faturacao.domain.Empresa;
+import ao.allon.kubata.core.domain.Empresa;
 import ao.allon.kubata.faturacao.repository.FaturaRepository;
 import ao.allon.kubata.faturacao.service.EmpresaService;
 import ao.allon.kubata.faturacao.service.agt.AGTElectronicInvoiceService;

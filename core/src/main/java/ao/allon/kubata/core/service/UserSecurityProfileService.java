@@ -14,6 +14,8 @@ import ao.allon.kubata.core.repository.UserRepository;
 import ao.allon.kubata.core.repository.UserSecurityFinancialUsageRepository;
 import ao.allon.kubata.core.repository.UserSecurityProfileRepository;
 import ao.allon.kubata.core.repository.UserSessionRepository;
+import ao.allon.kubata.core.security.PermissionCatalog;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -232,6 +234,31 @@ public class UserSecurityProfileService {
         return getEffectiveProfile(user).getPasswordExpiryDays();
     }
 
+    /**
+     * Perfis de acesso do utilizador, mesmo quando a instância recebida está desanexada.
+     *
+     * <p>{@code User.perfis} é LAZY e os utilizadores autenticados chegam dos serviços de
+     * login fora do contexto de persistência; ler a colecção directamente lançaria
+     * LazyInitializationException no sítio onde se esperava apenas uma nega de acesso.</p>
+     */
+    @Transactional(readOnly = true)
+    public List<PerfilAcesso> perfisDe(User user) {
+        if (user == null) {
+            return List.of();
+        }
+        if (user.getPerfis() == null) {
+            return List.of();
+        }
+        if (Hibernate.isInitialized(user.getPerfis()) || user.getId() == null) {
+            return List.copyOf(user.getPerfis());
+        }
+        return userRepository.findById(user.getId())
+                .map(managed -> managed.getPerfis() == null
+                        ? List.<PerfilAcesso>of()
+                        : List.copyOf(managed.getPerfis()))
+                .orElseGet(List::of);
+    }
+
     public boolean isModuleAllowed(User user, String modulo) {
         if (user == null || modulo == null || modulo.isBlank()) {
             return false;
@@ -242,7 +269,10 @@ public class UserSecurityProfileService {
             return true;
         }
 
-        return allowed.stream().anyMatch(m -> m.equalsIgnoreCase(modulo.trim()));
+        Set<String> equivalentes = PermissionCatalog.moduleAliases(modulo.trim());
+        return allowed.stream()
+                .filter(m -> m != null && !m.isBlank())
+                .anyMatch(m -> equivalentes.contains(m.trim().toUpperCase(Locale.ROOT)));
     }
 
     public boolean isCompanyAllowed(User user, Long empresaId) {

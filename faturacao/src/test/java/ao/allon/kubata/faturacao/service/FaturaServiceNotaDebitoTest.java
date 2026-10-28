@@ -39,6 +39,7 @@ public class FaturaServiceNotaDebitoTest {
     private ContabilidadeService contabilidadeService;
     private PlanoContaRepository planoContaRepository;
     private SessionManager sessionManager;
+    private CondicaoPagamentoService condicaoPagamentoService;
 
     @BeforeEach
     void setup() {
@@ -52,11 +53,14 @@ public class FaturaServiceNotaDebitoTest {
         contabilidadeService = mock(ContabilidadeService.class);
         planoContaRepository = mock(PlanoContaRepository.class);
         sessionManager = mock(SessionManager.class);
-        
+        condicaoPagamentoService = mock(CondicaoPagamentoService.class);
+        when(condicaoPagamentoService.calcularVencimento(any(), any(), any()))
+                .thenAnswer(inv -> inv.getArgument(2));
+
         // Mock default async behavior for AGTElectronicInvoiceService
         when(agtElectronicInvoiceService.submitInvoiceAsync(any())).thenReturn(java.util.concurrent.CompletableFuture.completedFuture(new ao.allon.kubata.faturacao.service.agt.dto.AGTResponseDTO()));
 
-        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager);
+        faturaService = new FaturaService(faturaRepository, itemFaturaRepository, produtoService, serieService, agtService, agtElectronicInvoiceService, signatureService, contabilidadeService, planoContaRepository, sessionManager, condicaoPagamentoService);
     }
 
     @Test

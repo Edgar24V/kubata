@@ -22,6 +22,15 @@ public class DevolucaoService {
     private final ProdutoService produtoService;
     private final SessionManager sessionManager;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ao.allon.kubata.core.service.AccessGuard accessGuard;
+
+    private void exigir(String modulo, String opcao) {
+        if (accessGuard != null) {
+            accessGuard.require(modulo, opcao);
+        }
+    }
+
     public DevolucaoService(DevolucaoRepository devolucaoRepository, FaturaService faturaService, ProdutoService produtoService, SessionManager sessionManager) {
         this.devolucaoRepository = devolucaoRepository;
         this.faturaService = faturaService;
@@ -43,6 +52,7 @@ public class DevolucaoService {
 
     @Transactional
     public Devolucao criarSolicitacao(Devolucao devolucao) {
+        exigir("VENDAS", "Criar");
         if (devolucao.getItens().isEmpty()) {
             throw new IllegalArgumentException("A devolução deve conter pelo menos um item.");
         }
@@ -62,6 +72,7 @@ public class DevolucaoService {
 
     @Transactional
     public Devolucao analisarSolicitacao(Long id, boolean aprovar, String parecer) {
+        exigir("VENDAS", "Aprovar");
         Devolucao devolucao = devolucaoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Devolução não encontrada"));
 
@@ -79,6 +90,7 @@ public class DevolucaoService {
 
     @Transactional
     public Devolucao processarDevolucao(Long id) {
+        exigir("FATURACAO", "Anular");
         Devolucao devolucao = devolucaoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Devolução não encontrada"));
 

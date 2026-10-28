@@ -3,7 +3,7 @@ package ao.allon.kubata.faturacao.view;
 import ao.allon.kubata.faturacao.domain.Categoria;
 import ao.allon.kubata.faturacao.domain.ContaBancaria;
 import ao.allon.kubata.faturacao.domain.Despesa;
-import ao.allon.kubata.faturacao.domain.Fornecedor;
+import ao.allon.kubata.core.domain.Fornecedor;
 import ao.allon.kubata.faturacao.service.CategoriaService;
 import ao.allon.kubata.faturacao.service.ContaBancariaService;
 import ao.allon.kubata.faturacao.service.DespesaService;

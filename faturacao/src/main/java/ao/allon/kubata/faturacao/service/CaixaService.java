@@ -22,6 +22,15 @@ public class CaixaService {
     private final MovimentoCaixaRepository movimentoRepository;
     private final SessionManager sessionManager;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ao.allon.kubata.core.service.AccessGuard accessGuard;
+
+    private void exigir(String modulo, String opcao) {
+        if (accessGuard != null) {
+            accessGuard.require(modulo, opcao);
+        }
+    }
+
     public CaixaService(CaixaRepository caixaRepository, MovimentoCaixaRepository movimentoRepository, SessionManager sessionManager) {
         this.caixaRepository = caixaRepository;
         this.movimentoRepository = movimentoRepository;
@@ -39,6 +48,7 @@ public class CaixaService {
         return getCaixaAbertoAtual().isPresent();
     }
     public Caixa abrirCaixa(BigDecimal saldoInicial) {
+        exigir("CAIXA", "Abrir");
         String usuario = sessionManager.getCurrentUser();
         
         Optional<Caixa> caixaAberto = caixaRepository.findTopByUsuarioAndStatusOrderByIdDesc(usuario, StatusCaixa.ABERTO);
@@ -60,6 +70,7 @@ public class CaixaService {
 
     @Transactional
     public Caixa fecharCaixa(Long caixaId, BigDecimal saldoInformado, String observacoes) {
+        exigir("CAIXA", "Editar");
         Caixa caixa = caixaRepository.findById(caixaId)
                 .orElseThrow(() -> new IllegalArgumentException("Caixa não encontrado"));
 
@@ -114,18 +125,21 @@ public class CaixaService {
 
     @Transactional
     public void registrarSangria(BigDecimal valor, String motivo) {
+        exigir("CAIXA", "Editar");
         Caixa caixa = getCaixaAberto();
         registrarMovimento(caixa, TipoMovimento.SANGRIA, valor, motivo, MetodoPagamento.DINHEIRO);
     }
 
     @Transactional
     public void registrarSuprimento(BigDecimal valor, String motivo) {
+        exigir("CAIXA", "Editar");
         Caixa caixa = getCaixaAberto();
         registrarMovimento(caixa, TipoMovimento.SUPRIMENTO, valor, motivo, MetodoPagamento.DINHEIRO);
     }
 
     @Transactional
     public void registrarEstorno(BigDecimal valor, String motivo, MetodoPagamento metodoOriginal) {
+        exigir("CAIXA", "Editar");
         Caixa caixa = getCaixaAberto();
         // Estorno is a negative movement (money leaving/cancelled)
         // But in accounting, we might want to record it as a positive value with type ESTORNO, 

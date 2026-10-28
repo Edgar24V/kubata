@@ -3,7 +3,7 @@ package ao.allon.kubata.faturacao.view;
 import ao.allon.kubata.core.ui.table.AdvancedTableView;
 import ao.allon.kubata.core.ui.table.TableUtils;
 import ao.allon.kubata.faturacao.domain.Despesa;
-import ao.allon.kubata.faturacao.domain.Fornecedor;
+import ao.allon.kubata.core.domain.Fornecedor;
 import ao.allon.kubata.faturacao.domain.StatusDespesa;
 import ao.allon.kubata.faturacao.service.DespesaService;
 import ao.allon.kubata.faturacao.service.FornecedorService;

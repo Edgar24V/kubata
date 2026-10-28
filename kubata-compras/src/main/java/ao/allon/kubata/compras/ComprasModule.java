@@ -3,6 +3,7 @@ package ao.allon.kubata.compras;
 import ao.allon.kubata.core.module.AbstractKubataModule;
 import ao.allon.kubata.core.module.KubataModule;
 import ao.allon.kubata.core.module.ModuleView;
+import ao.allon.kubata.compras.view.FornecedoresView;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -50,7 +51,7 @@ public class ComprasModule extends AbstractKubataModule implements KubataModule 
             "Gestão de fornecedores",
             null,
             "compras.fornecedores",
-            null,
+            FornecedoresView.class,
             1
         ));
         

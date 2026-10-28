@@ -11,7 +11,7 @@ public record ModuleView(
     String viewDescription,
     Node viewIcon,
     String permission,
-    Class<?> viewClass,
+    Class<? extends Node> viewClass,
     int displayOrder
 ) {
     public ModuleView {

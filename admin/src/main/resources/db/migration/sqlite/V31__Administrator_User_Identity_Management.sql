@@ -1,4 +1,6 @@
 -- V31: Administração completa de identidade de utilizadores.
+-- As colunas codigo/tipo_conta/filial_id de users já nascem no esquema
+-- canónico (V1); aqui mantêm-se apenas os backfills e índices.
 
 CREATE TABLE IF NOT EXISTS filiais (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,10 +19,6 @@ CREATE TABLE IF NOT EXISTS filiais (
 
 CREATE INDEX IF NOT EXISTS idx_filial_empresa ON filiais(empresa_id);
 CREATE INDEX IF NOT EXISTS idx_filial_active ON filiais(active);
-
-ALTER TABLE users ADD COLUMN codigo VARCHAR(40);
-ALTER TABLE users ADD COLUMN tipo_conta VARCHAR(30) NOT NULL DEFAULT 'PESSOAL';
-ALTER TABLE users ADD COLUMN filial_id INTEGER REFERENCES filiais(id);
 
 UPDATE users
 SET codigo = printf('USR-%06d', id)

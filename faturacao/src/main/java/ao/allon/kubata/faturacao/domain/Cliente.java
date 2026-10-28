@@ -59,6 +59,18 @@ public class Cliente extends BaseEntity {
 
     private String estatuto;
 
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "condicao_pagamento_id")
+    private CondicaoPagamento condicaoPagamento;
+
+    public CondicaoPagamento getCondicaoPagamento() {
+        return condicaoPagamento;
+    }
+
+    public void setCondicaoPagamento(CondicaoPagamento condicaoPagamento) {
+        this.condicaoPagamento = condicaoPagamento;
+    }
+
     public String getNome() {
         return nome;
     }

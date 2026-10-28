@@ -1,3 +1,4 @@
--- Migration V4: Adicionar coluna avatar em users (se ainda não existir)
-
-ALTER TABLE users ADD COLUMN avatar BLOB;
+-- Migration V4: Adicionar coluna avatar em users
+-- NO-OP: a coluna avatar já nasce no esquema canónico de users (V1).
+-- Mantida por histórico de versões.
+SELECT 1;

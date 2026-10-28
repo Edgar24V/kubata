@@ -2,6 +2,7 @@ package ao.allon.kubata.fiscal;
 
 import ao.allon.kubata.core.module.AbstractKubataModule;
 import ao.allon.kubata.core.module.ModuleView;
+import ao.allon.kubata.fiscal.view.ParametrosFiscaisView;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -44,13 +45,23 @@ public class FiscalModule extends AbstractKubataModule {
         super.initialize();
         
         addView(new ModuleView(
+            "parametros-fiscais",
+            "Parâmetros fiscais",
+            "Valores AGT em vigor",
+            null,
+            "fiscal.parametros",
+            ParametrosFiscaisView.class,
+            1
+        ));
+
+        addView(new ModuleView(
             "agt-correcoes",
             "Correções AGT",
             "Correções e validações AGT",
             null,
             "fiscal.agt-correcoes",
             null,
-            1
+            2
         ));
         
         addView(new ModuleView(
@@ -60,7 +71,7 @@ public class FiscalModule extends AbstractKubataModule {
             null,
             "fiscal.relatorio",
             null,
-            2
+            3
         ));
         
         addView(new ModuleView(
@@ -70,7 +81,7 @@ public class FiscalModule extends AbstractKubataModule {
             null,
             "fiscal.impostos",
             null,
-            3
+            4
         ));
     }
 }

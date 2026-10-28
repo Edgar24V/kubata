@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS backup_record (
     compressed BOOLEAN DEFAULT TRUE,
     encrypted BOOLEAN DEFAULT FALSE,
     error_message VARCHAR(1000),
+    restore_count INTEGER DEFAULT 0,
     restored_at TIMESTAMP,
     restored_by VARCHAR(100),
     notes VARCHAR(500)
