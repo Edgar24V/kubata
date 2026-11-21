@@ -146,8 +146,8 @@ public class MainController {
         ThemeManager.applyTheme(scene);
 
         stage.setScene(scene);
-        stage.setMinWidth(720);
-        stage.setMinHeight(480);
+        stage.setMinWidth(680);
+        stage.setMinHeight(460);
         stage.setResizable(true);
         stage.setWidth(loginSize.getWidth());
         stage.setHeight(loginSize.getHeight());

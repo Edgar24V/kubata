@@ -168,8 +168,8 @@ public class KubataLoginView {
      */
     public static javafx.geometry.Dimension2D recommendedSceneSize() {
         javafx.geometry.Rectangle2D vb = Screen.getPrimary().getVisualBounds();
-        double width = clamp(vb.getWidth() * 0.60, 600, 840);
-        double height = clamp(vb.getHeight() * 0.66, 420, 560);
+        double width = clamp(vb.getWidth() * 0.58, 680, 820);
+        double height = clamp(vb.getHeight() * 0.62, 460, 520);
         return new javafx.geometry.Dimension2D(width, height);
     }
 
@@ -209,14 +209,14 @@ public class KubataLoginView {
      * arranque (min e max fixos era o defeito do desenho anterior).
      */
     private void bindCardToScene(Region root) {
-        card.setMinSize(480, 336);
-        card.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        card.setMinSize(560, 400);
+        card.setMaxSize(820, 520);
 
         card.prefWidthProperty().bind(Bindings.createDoubleBinding(
-                () -> clamp(root.getWidth() - 48, 520, 980),
+                () -> clamp(root.getWidth() - 64, 560, 820),
                 root.widthProperty()));
         card.prefHeightProperty().bind(Bindings.createDoubleBinding(
-                () -> clamp(root.getHeight() - 48, 336, 680),
+                () -> clamp(root.getHeight() - 64, 400, 520),
                 root.heightProperty()));
 
         root.widthProperty().addListener((obs, oldValue, width) ->
@@ -586,7 +586,8 @@ public class KubataLoginView {
         VBox panel = new VBox(14, topLine, formSubtitle, maintenanceBanner, form, footerNote);
         panel.getStyleClass().add("login-form-pane");
         panel.setAlignment(Pos.CENTER_LEFT);
-        panel.setMinWidth(280);
+        panel.setMinWidth(320);
+        panel.setMaxWidth(440);
         return panel;
     }
 
@@ -620,6 +621,10 @@ public class KubataLoginView {
         emailField.setAccessibleText(copy.emailLabel());
         emailLabel.setLabelFor(emailField);
 
+        FontIcon emailIcon = new FontIcon(Feather.MAIL);
+        emailIcon.getStyleClass().add("login-field-icon");
+        HBox emailShell = createFieldShell(emailIcon, emailField);
+
         String rememberedEmail = preferences.get(PREF_EMAIL, "");
         if (!rememberedEmail.isBlank()) {
             emailField.setText(rememberedEmail);
@@ -628,7 +633,7 @@ public class KubataLoginView {
         emailField.textProperty().addListener(
                 (obs, oldValue, value) -> updateEmailState(value));
 
-        VBox emailBox = new VBox(6, emailHeader, emailField);
+        VBox emailBox = new VBox(6, emailHeader, emailShell);
 
         VBox passwordBox = createPasswordBox();
 
@@ -713,7 +718,11 @@ public class KubataLoginView {
 
         setRecoveryMode(false);
 
-        mfaBox = new VBox(6, mfaHeader, mfaCodeField);
+        FontIcon mfaIcon = new FontIcon(Feather.KEY);
+        mfaIcon.getStyleClass().add("login-field-icon");
+        HBox mfaShell = createFieldShell(mfaIcon, mfaCodeField);
+
+        mfaBox = new VBox(6, mfaHeader, mfaShell);
         mfaBox.getStyleClass().add("login-mfa-box");
         // Só aparece quando o serviço confirma que a conta tem segundo fator.
         mfaBox.setVisible(false);
@@ -773,6 +782,16 @@ public class KubataLoginView {
         passwordVisibleField.setManaged(false);
         passwordVisibleField.textProperty().bindBidirectional(passwordField.textProperty());
 
+        FontIcon passwordIcon = new FontIcon(Feather.LOCK);
+        passwordIcon.getStyleClass().add("login-field-icon");
+
+        HBox passwordShell = new HBox();
+        passwordShell.getStyleClass().add("login-field-shell");
+        passwordShell.setAlignment(Pos.CENTER_LEFT);
+        passwordShell.getChildren().addAll(passwordIcon, passwordField, passwordVisibleField);
+        HBox.setHgrow(passwordField, Priority.ALWAYS);
+        HBox.setHgrow(passwordVisibleField, Priority.ALWAYS);
+
         showPasswordBtn.selectedProperty().addListener(
                 (obs, wasSelected, selected) -> {
                     showPasswordBtn.setText(
@@ -792,7 +811,16 @@ public class KubataLoginView {
                     }
                 });
 
-        return new VBox(6, header, passwordField, passwordVisibleField);
+        return new VBox(6, header, passwordShell);
+    }
+
+    private HBox createFieldShell(FontIcon icon, Control field) {
+        HBox shell = new HBox(8);
+        shell.getStyleClass().add("login-field-shell");
+        shell.setAlignment(Pos.CENTER_LEFT);
+        shell.getChildren().addAll(icon, field);
+        HBox.setHgrow(field, Priority.ALWAYS);
+        return shell;
     }
 
     private void updateShowPasswordGlyph(boolean visible) {
