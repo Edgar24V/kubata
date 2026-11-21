@@ -5749,11 +5749,11 @@ Text {
 
 .login-card {
     -fx-background-color: -color-bg-default;
-    -fx-background-radius: 22px;
+    -fx-background-radius: 18px;
     -fx-border-color: rgba(33, 115, 70, 0.12);
     -fx-border-width: 1px;
-    -fx-border-radius: 22px;
-    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.24), 35, 0, 0, 4);
+    -fx-border-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.20), 28, 0, 0, 6);
 }
 
 .login-body {
@@ -5763,11 +5763,12 @@ Text {
 
 /* Coluna de marca (esquerda) */
 .login-branding-pane {
-    -fx-pref-width: 360px;
-    -fx-padding: 32px;
-    -fx-spacing: 18px;
+    -fx-pref-width: 340px;
+    -fx-max-width: 340px;
+    -fx-padding: 28px;
+    -fx-spacing: 14px;
     -fx-alignment: center-left;
-    -fx-background-color: -color-bg-default;
+    -fx-background-color: linear-gradient(to bottom right, #f3f8f5, #eaf3ed);
     -fx-border-color: transparent rgba(33, 115, 70, 0.12) transparent transparent;
     -fx-border-width: 1px;
 }
@@ -5838,11 +5839,12 @@ Text {
 /* Coluna de autenticação (direita) */
 .login-form-pane {
     -fx-pref-width: 440px;
-    -fx-padding: 28px 34px 24px 34px;
-    -fx-spacing: 14px;
+    -fx-max-width: 440px;
+    -fx-padding: 24px 32px 20px 32px;
+    -fx-spacing: 12px;
     -fx-alignment: center-left;
     -fx-background-color: -color-bg-default;
-    -fx-background-radius: 0 0 22px 0;
+    -fx-background-radius: 0 18px 18px 0;
 }
 
 .login-form-topline {
@@ -5872,7 +5874,7 @@ Text {
 }
 
 .login-form {
-    -fx-spacing: 11px;
+    -fx-spacing: 10px;
 }
 
 .login-form-actions {
@@ -5983,27 +5985,57 @@ Text {
 
 /* Campos */
 .modern-text-field {
-    -fx-background-color: -color-bg-inset;
-    -fx-border-color: -color-border-default;
-    -fx-border-width: 1px;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
-    -fx-padding: 12px 15px;
-    -fx-pref-height: 40px;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-padding: 10px 4px;
+    -fx-pref-height: 42px;
+    -fx-min-height: 42px;
     -fx-font-size: 14px;
     -fx-text-fill: -color-fg-default;
 }
 
 .modern-text-field:hover {
-    -fx-border-color: -color-border-muted;
-    -fx-background-color: -color-bg-default;
+    -fx-background-color: transparent;
 }
 
 .modern-text-field:focused {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-effect: null;
+}
+
+.login-field-shell {
+    -fx-min-height: 46px;
+    -fx-pref-height: 46px;
+    -fx-padding: 0 12px;
+    -fx-spacing: 8px;
+    -fx-background-color: -color-bg-inset;
+    -fx-background-radius: 9px;
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 1px;
+    -fx-border-radius: 9px;
+}
+
+.login-field-shell:hover {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: -color-border-muted;
+}
+
+.login-field-shell:focused,
+.login-field-shell:focus-within {
     -fx-background-color: -color-bg-default;
     -fx-border-color: -kubata-green;
     -fx-border-width: 1.5px;
-    -fx-effect: dropshadow(gaussian, rgba(33, 115, 70, 0.15), 10, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(33, 115, 70, 0.12), 8, 0, 0, 0);
+}
+
+.login-field-icon {
+    -fx-icon-color: -kubata-green;
+    -fx-icon-size: 17;
 }
 
 /* Validação por estado, nunca por estilo inline. */
@@ -6025,7 +6057,7 @@ Text {
 
 /* Botão de entrar e botão de mostrar palavra-passe */
 .login-form-pane .button-primary {
-    -fx-pref-height: 54px;
+    -fx-pref-height: 50px;
     -fx-background-color: linear-gradient(to bottom, -kubata-green, -kubata-green-dark);
     -fx-text-fill: -color-fg-emphasis;
     -fx-font-weight: bold;

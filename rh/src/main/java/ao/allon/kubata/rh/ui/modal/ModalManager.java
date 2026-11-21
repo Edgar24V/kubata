@@ -317,7 +317,9 @@ public class ModalManager {
 
         ScrollPane scrollPane = new ScrollPane(contentWrapper);
         scrollPane.setFitToWidth(true);
-        scrollPane.setFitToHeight(true);
+        scrollPane.setFitToHeight(false);
+        scrollPane.setMaxHeight(Region.USE_PREF_SIZE);
+        scrollPane.setMinHeight(0);
 
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         dialogContent.getChildren().add(scrollPane);
@@ -357,8 +359,9 @@ public class ModalManager {
 
     private void prepareContentForDialog(Node content) {
         if (content instanceof Region region) {
-            region.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-            VBox.setVgrow(region, Priority.ALWAYS);
+            region.setMaxWidth(Double.MAX_VALUE);
+            region.setMaxHeight(Region.USE_PREF_SIZE);
+            VBox.setVgrow(region, Priority.NEVER);
             HBox.setHgrow(region, Priority.ALWAYS);
         }
     }
@@ -577,12 +580,12 @@ public class ModalManager {
             });
             
             container.setMaxWidth(Double.MAX_VALUE);
-            container.setMaxHeight(Double.MAX_VALUE);
+            container.setMaxHeight(Region.USE_PREF_SIZE);
         }
 
         public void addContent(Node content) {
             container.getChildren().add(content);
-            VBox.setVgrow(content, Priority.ALWAYS);
+            VBox.setVgrow(content, Priority.NEVER);
         }
     }
 }

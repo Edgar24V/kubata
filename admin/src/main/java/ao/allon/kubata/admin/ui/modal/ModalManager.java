@@ -738,8 +738,8 @@ public class ModalManager {
     private void prepareContentForDialog(Node content) {
         if (content instanceof Region region) {
             region.setMaxWidth(Double.MAX_VALUE);
-            region.setMaxHeight(Double.MAX_VALUE);
-            VBox.setVgrow(region, Priority.ALWAYS);
+            region.setMaxHeight(Region.USE_PREF_SIZE);
+            VBox.setVgrow(region, Priority.NEVER);
             HBox.setHgrow(region, Priority.ALWAYS);
         }
     }
@@ -1411,12 +1411,12 @@ public class ModalManager {
 
             setFocusTraversable(true);
             container.setMaxWidth(Double.MAX_VALUE);
-            container.setMaxHeight(Double.MAX_VALUE);
+            container.setMaxHeight(Region.USE_PREF_SIZE);
         }
 
         void addContent(Node content) {
             container.getChildren().add(content);
-            VBox.setVgrow(content, Priority.ALWAYS);
+            VBox.setVgrow(content, Priority.NEVER);
         }
     }
 }
